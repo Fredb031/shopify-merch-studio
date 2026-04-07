@@ -64,8 +64,6 @@ function CartItemPreview({ item }: { item: CartItemCustomization }) {
 }
 
 // ── Cart drawer ──────────────────────────────────────────────────────────────
-const VALID_CODES: Record<string, number> = { VISION10: 0.10, VISION15: 0.15, VISION20: 0.20 };
-
 export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { t, lang } = useLang();
   const navigate = useNavigate();
