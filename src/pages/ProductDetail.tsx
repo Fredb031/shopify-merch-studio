@@ -4,6 +4,7 @@ import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from '@/lib/shopify';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
+import { ProductCustomizer } from '@/components/ProductCustomizer';
 import { useCartStore } from '@/stores/cartStore';
 import { Loader2, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
@@ -17,6 +18,7 @@ export default function ProductDetail() {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['shopify-product', handle],
