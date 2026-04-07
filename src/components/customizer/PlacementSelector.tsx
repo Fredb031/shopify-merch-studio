@@ -6,16 +6,15 @@ export function PlacementSelector({
   product, selectedColor, logoPreviewUrl, currentPlacement, onPlacementChange,
 }: {
   product: Product;
-  selectedColor: { imageDevant?: string; imageDos?: string } | null;
+  selectedColor: { hex?: string; imageDevant?: string; imageDos?: string } | null;
   logoPreviewUrl: string;
   currentPlacement: LogoPlacement | null;
   onPlacementChange: (placement: LogoPlacement) => void;
 }) {
-  const imageUrl = selectedColor?.imageDevant ?? product.imageDevant;
   return (
     <LogoCanvas
       product={product}
-      productImageUrl={imageUrl}
+      garmentColor={selectedColor?.hex}
       logoUrl={logoPreviewUrl}
       currentPlacement={currentPlacement}
       onPlacementChange={onPlacementChange}
