@@ -140,15 +140,11 @@ export function ProductViewer3D({
   activeView: ProductView; onViewChange: (v: ProductView) => void;
   compact?: boolean;
 }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const H = compact ? 240 : 340;
   const hex = selectedColor?.hex ?? '#1a1a1a';
   const logoUrl = logoPlacement?.previewUrl ?? logoPlacement?.processedUrl;
 
-  // Thumbnail of OPPOSITE view (bottom-right)
-  const thumbUrl = activeView === 'front'
-    ? (selectedColor?.imageDos ?? product.imageDos)
-    : (selectedColor?.imageDevant ?? product.imageDevant);
   const thumbLabel = activeView === 'front' ? t('dos') : t('devant');
 
   const camPos: [number,number,number] =
@@ -180,21 +176,23 @@ export function ProductViewer3D({
         {selectedColor && (
           <div className="absolute bottom-3 left-3 pointer-events-auto flex items-center gap-2 bg-white/88 backdrop-blur-sm rounded-full px-2.5 py-1.5 border border-border shadow-sm">
             <div className="w-3.5 h-3.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: selectedColor.hex }} />
-            <span className="text-[11px] font-semibold text-foreground">{selectedColor.name}</span>
+            <span className="text-[11px] font-semibold text-foreground">
+              {(lang === 'en' && selectedColor.nameEn) ? selectedColor.nameEn : selectedColor.name}
+            </span>
           </div>
         )}
 
-        {/* Bottom-right: thumbnail of OPPOSITE view */}
+        {/* Bottom-right: view toggle — solid garment colour, no CDN mockup images */}
         <button
           onClick={() => onViewChange(activeView === 'front' ? 'back' : 'front')}
           className="absolute bottom-3 right-3 pointer-events-auto group"
-          title={`Voir le ${thumbLabel}`}
+          title={thumbLabel}
         >
-          <div className="relative w-14 h-14 rounded-xl overflow-hidden border-2 border-white shadow-lg bg-[#F4F3EF] group-hover:border-primary transition-all">
-            <img src={thumbUrl} alt={thumbLabel} className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all flex items-end justify-center pb-1">
-              <span className="text-white text-[9px] font-bold">{thumbLabel}</span>
-            </div>
+          <div
+            className="w-14 h-14 rounded-xl border-2 border-white/70 shadow-lg group-hover:border-primary transition-all flex items-center justify-center"
+            style={{ background: hex }}
+          >
+            <span className="text-white text-[9px] font-extrabold drop-shadow-sm">{thumbLabel}</span>
           </div>
         </button>
 
