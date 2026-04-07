@@ -1,68 +1,70 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Customization } from '@/types/customization';
+import { persist } from 'zustand/middleware';
+import type { CartItemCustomization } from '@/types/customization';
 
-export interface CustomCartItem {
-  id: string;
-  customization: Customization;
-  productTitle: string;
-  productImage: string;
-  previewImage?: string; // capture du canvas avec logo
-  addedAt: number;
-}
-
-interface CartState {
-  items: CustomCartItem[];
+interface CartStore {
+  items: CartItemCustomization[];
   isOpen: boolean;
-  openCart: () => void;
-  closeCart: () => void;
-  addItem: (item: CustomCartItem) => void;
-  removeItem: (id: string) => void;
-  updateItemQuantity: (id: string, sizeQuantities: Customization['sizeQuantities']) => void;
-  clearCart: () => void;
-  getTotalItems: () => number;
-  getTotalPrice: () => number;
+  discountCode: string | null;
+  discountApplied: boolean;
+  addItem: (item: Omit<CartItemCustomization, 'cartId' | 'addedAt'>) => void;
+  removeItem: (cartId: string) => void;
+  toggleCart: () => void;
+  applyDiscount: (code: string) => boolean;
+  getTotal: () => number;
+  getItemCount: () => number;
+  clear: () => void;
 }
 
-export const useCustomCartStore = create<CartState>()(
+const VALID_DISCOUNT_CODES: Record<string, number> = {
+  'VISION10': 0.10,
+  'VISION15': 0.15,
+  'VISION20': 0.20,
+};
+
+export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
       isOpen: false,
+      discountCode: null,
+      discountApplied: false,
 
-      openCart: () => set({ isOpen: true }),
-      closeCart: () => set({ isOpen: false }),
+      addItem: (item) => {
+        const cartId = crypto.randomUUID();
+        set((state) => ({
+          items: [...state.items, { ...item, cartId, addedAt: new Date() }],
+          isOpen: true,
+        }));
+      },
 
-      addItem: (item) => set((s) => ({ items: [...s.items, item] })),
+      removeItem: (cartId) =>
+        set((state) => ({ items: state.items.filter((i) => i.cartId !== cartId) })),
 
-      removeItem: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+      toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
-      updateItemQuantity: (id, sizeQuantities) =>
-        set((s) => ({
-          items: s.items.map((i) =>
-            i.id === id
-              ? {
-                  ...i,
-                  customization: {
-                    ...i.customization,
-                    sizeQuantities,
-                    totalQuantity: sizeQuantities.reduce((sum, sq) => sum + sq.quantity, 0),
-                  },
-                }
-              : i
-          ),
-        })),
+      applyDiscount: (code) => {
+        const rate = VALID_DISCOUNT_CODES[code.toUpperCase()];
+        if (rate) {
+          set({ discountCode: code.toUpperCase(), discountApplied: true });
+          return true;
+        }
+        return false;
+      },
 
-      clearCart: () => set({ items: [] }),
+      getTotal: () => {
+        const { items, discountApplied, discountCode } = get();
+        const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+        if (discountApplied && discountCode) {
+          const rate = VALID_DISCOUNT_CODES[discountCode] ?? 0;
+          return parseFloat((subtotal * (1 - rate)).toFixed(2));
+        }
+        return parseFloat(subtotal.toFixed(2));
+      },
 
-      getTotalItems: () => get().items.reduce((sum, i) => sum + i.customization.totalQuantity, 0),
-
-      getTotalPrice: () => get().items.reduce((sum, i) => sum + i.customization.totalPrice, 0),
+      getItemCount: () => get().items.reduce((sum, i) => sum + i.totalQuantity, 0),
+      clear: () => set({ items: [], discountCode: null, discountApplied: false }),
     }),
-    {
-      name: 'vision-custom-cart',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ items: state.items }),
-    }
+    { name: 'vision-cart' }
   )
 );
