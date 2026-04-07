@@ -1,6 +1,15 @@
-// Cart sync is a no-op when Shopify is not configured.
-// Will be activated once VITE_SHOPIFY_STOREFRONT_TOKEN is set in .env
+import { useEffect } from 'react';
+import { useCartStore } from '@/stores/cartStore';
+
 export function useCartSync() {
-  // Shopify Storefront API sync disabled until credentials are configured.
-  // See src/lib/shopify.ts — add VITE_SHOPIFY_STOREFRONT_TOKEN and VITE_SHOPIFY_DOMAIN to .env
+  const syncCart = useCartStore(state => state.syncCart);
+
+  useEffect(() => {
+    syncCart();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncCart();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [syncCart]);
 }

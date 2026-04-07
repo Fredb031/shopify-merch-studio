@@ -1,28 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { X, ShoppingBag, Trash2, Tag, ChevronRight, Minus, Plus, Loader2, ExternalLink } from 'lucide-react';
+import { useCartStore as useCustomizerCart } from '@/store/cartStore';
+import { useCartStore as useShopifyCart } from '@/stores/cartStore';
 
 interface CartDrawerProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const VALID_CODES: Record<string, number> = { VISION10: 0.10, VISION15: 0.15, VISION20: 0.20 };
-
 export const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
-  const cart = useCartStore();
-  const [discountInput, setDiscountInput] = useState('VISION10');
-  const [discountMsg, setDiscountMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // Customizer-based cart (legacy items from the customizer flow)
+  const customizerCart = useCustomizerCart();
 
-  const handleApply = () => {
-    const ok = cart.applyDiscount(discountInput);
-    setDiscountMsg(ok ? { ok: true, text: `Code ${discountInput.toUpperCase()} appliqué !` } : { ok: false, text: 'Code invalide' });
-    setTimeout(() => setDiscountMsg(null), 3000);
+  // Shopify real-time cart
+  const shopifyCart = useShopifyCart();
+
+  // Sync Shopify cart when drawer opens
+  useEffect(() => {
+    if (isOpen) shopifyCart.syncCart();
+  }, [isOpen]);
+
+  const hasCustomizerItems = customizerCart.items.length > 0;
+  const hasShopifyItems = shopifyCart.items.length > 0;
+  const isEmpty = !hasCustomizerItems && !hasShopifyItems;
+
+  // Totals
+  const customizerTotal = hasCustomizerItems ? customizerCart.getTotal() : 0;
+  const shopifyTotal = shopifyCart.items.reduce((sum, item) => sum + (parseFloat(item.price.amount) * item.quantity), 0);
+  const grandTotal = customizerTotal + shopifyTotal;
+
+  const totalItemCount = customizerCart.getItemCount() + shopifyCart.items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const handleCheckout = () => {
+    const checkoutUrl = shopifyCart.getCheckoutUrl();
+    if (checkoutUrl) {
+      window.open(checkoutUrl, '_blank');
+      onClose();
+    }
   };
-
-  const total = cart.getTotal();
-  const itemCount = cart.getItemCount();
 
   return (
     <>
@@ -52,9 +68,9 @@ export const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
           <div className="flex items-center gap-2">
             <ShoppingBag size={18} className="text-primary" />
             <h2 className="text-base font-extrabold text-foreground">Mon panier</h2>
-            {itemCount > 0 && (
+            {totalItemCount > 0 && (
               <span className="bg-primary text-primary-foreground text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
-                {itemCount}
+                {totalItemCount}
               </span>
             )}
           </div>
@@ -68,25 +84,72 @@ export const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
 
         {/* Items */}
         <div className="flex-1 overflow-auto p-5 space-y-3">
-          <AnimatePresence>
-            {cart.items.length === 0 ? (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center h-48 gap-3"
-              >
-                <ShoppingBag size={40} className="text-border" />
-                <p className="text-sm text-muted-foreground font-medium">Ton panier est vide</p>
-                <button
-                  onClick={onClose}
-                  className="text-xs font-bold text-primary underline"
+          {isEmpty ? (
+            <div className="flex flex-col items-center justify-center h-48 gap-3">
+              <ShoppingBag size={40} className="text-border" />
+              <p className="text-sm text-muted-foreground font-medium">Ton panier est vide</p>
+              <button onClick={onClose} className="text-xs font-bold text-primary underline">
+                Explorer les produits
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Shopify cart items */}
+              {shopifyCart.items.map((item) => (
+                <motion.div
+                  key={item.variantId}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: 40 }}
+                  className="flex gap-3 p-3 border border-border rounded-xl bg-secondary/50"
                 >
-                  Explorer les produits
-                </button>
-              </motion.div>
-            ) : (
-              cart.items.map((item) => (
+                  <div className="w-16 h-16 rounded-lg bg-secondary overflow-hidden flex-shrink-0">
+                    {item.product.node.images?.edges?.[0]?.node && (
+                      <img
+                        src={item.product.node.images.edges[0].node.url}
+                        alt={item.product.node.title}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-extrabold text-foreground truncate">{item.product.node.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {item.selectedOptions.map(o => o.value).join(' · ')}
+                    </p>
+                    <p className="text-xs font-extrabold text-primary mt-1">
+                      {(parseFloat(item.price.amount) * item.quantity).toFixed(2)} {item.price.currencyCode}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                    <button
+                      onClick={() => shopifyCart.removeItem(item.variantId)}
+                      className="text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => shopifyCart.updateQuantity(item.variantId, item.quantity - 1)}
+                        className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary transition-colors"
+                      >
+                        <Minus size={10} />
+                      </button>
+                      <span className="w-6 text-center text-xs font-bold">{item.quantity}</span>
+                      <button
+                        onClick={() => shopifyCart.updateQuantity(item.variantId, item.quantity + 1)}
+                        className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary transition-colors"
+                      >
+                        <Plus size={10} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+
+              {/* Customizer cart items */}
+              {customizerCart.items.map((item) => (
                 <motion.div
                   key={item.cartId}
                   layout
@@ -95,7 +158,6 @@ export const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
                   exit={{ opacity: 0, x: 40 }}
                   className="flex gap-3 p-3 border border-border rounded-xl bg-secondary/50"
                 >
-                  {/* Product preview with logo overlay */}
                   <div className="w-16 h-16 rounded-lg bg-secondary overflow-hidden flex-shrink-0 relative">
                     <img
                       src={item.previewSnapshot}
@@ -108,82 +170,62 @@ export const CartDrawer = ({ isOpen, onClose }: CartDrawerProps) => {
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {item.sizeQuantities.filter(s => s.quantity > 0).map(s => `${s.size}×${s.quantity}`).join(' · ')}
                     </p>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <p className="text-xs font-extrabold text-primary">
-                        {item.totalPrice.toFixed(2)} $
-                      </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-xs font-extrabold text-primary">{item.totalPrice.toFixed(2)} $</p>
                       <span className="text-[10px] text-muted-foreground">
                         ({item.totalQuantity} unité{item.totalQuantity !== 1 ? 's' : ''})
                       </span>
                     </div>
                   </div>
                   <button
-                    onClick={() => cart.removeItem(item.cartId)}
+                    onClick={() => customizerCart.removeItem(item.cartId)}
                     className="text-muted-foreground hover:text-destructive transition-colors flex-shrink-0 self-start mt-0.5"
                   >
                     <Trash2 size={14} />
                   </button>
                 </motion.div>
-              ))
-            )}
-          </AnimatePresence>
+              ))}
+            </>
+          )}
         </div>
 
         {/* Footer */}
-        {cart.items.length > 0 && (
+        {!isEmpty && (
           <div className="p-5 border-t border-border space-y-3 bg-card">
-            {/* Discount code */}
-            {!cart.discountApplied ? (
-              <div className="flex gap-2">
-                <input
-                  value={discountInput}
-                  onChange={(e) => setDiscountInput(e.target.value.toUpperCase())}
-                  placeholder="Code de rabais"
-                  className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary font-mono bg-secondary"
-                />
-                <button
-                  onClick={handleApply}
-                  className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary transition-colors"
-                >
-                  Appliquer
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
-                <Tag size={12} className="text-green-700" />
-                <span className="text-xs font-bold text-green-700">
-                  Code {cart.discountCode} appliqué
-                </span>
-                <button
-                  onClick={() => cart.applyDiscount('')}
-                  className="ml-auto text-green-500 hover:text-green-700"
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            )}
-
-            {discountMsg && (
-              <p className={`text-xs font-bold px-1 ${discountMsg.ok ? 'text-green-700' : 'text-destructive'}`}>
-                {discountMsg.text}
-              </p>
-            )}
-
             {/* Total */}
             <div className="flex justify-between items-center py-1">
               <span className="text-sm text-muted-foreground font-medium">Total estimé</span>
-              <span className="text-lg font-extrabold text-foreground">{total.toFixed(2)} $</span>
+              <span className="text-lg font-extrabold text-foreground">{grandTotal.toFixed(2)} $</span>
             </div>
 
             {/* Checkout */}
-            <button
-              className="w-full gradient-navy-dark text-primary-foreground font-extrabold text-sm py-4 rounded-full flex items-center justify-center gap-2 transition-all hover:opacity-90 hover:-translate-y-px"
-              style={{ boxShadow: '0 6px 20px hsla(var(--navy), 0.3)' }}
-              onClick={() => alert('→ Shopify Checkout integration — add VITE_SHOPIFY_STOREFRONT_TOKEN to .env')}
-            >
-              Passer à la caisse
-              <ChevronRight size={16} />
-            </button>
+            {hasShopifyItems ? (
+              <button
+                className="w-full gradient-navy-dark text-primary-foreground font-extrabold text-sm py-4 rounded-full flex items-center justify-center gap-2 transition-all hover:opacity-90 hover:-translate-y-px disabled:opacity-50"
+                style={{ boxShadow: '0 6px 20px hsla(var(--navy), 0.3)' }}
+                onClick={handleCheckout}
+                disabled={shopifyCart.isLoading || shopifyCart.isSyncing}
+              >
+                {shopifyCart.isLoading || shopifyCart.isSyncing ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <>
+                    <ExternalLink size={14} />
+                    Passer à la caisse Shopify
+                    <ChevronRight size={16} />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                className="w-full gradient-navy-dark text-primary-foreground font-extrabold text-sm py-4 rounded-full flex items-center justify-center gap-2 transition-all hover:opacity-90 hover:-translate-y-px"
+                style={{ boxShadow: '0 6px 20px hsla(var(--navy), 0.3)' }}
+                onClick={onClose}
+              >
+                Continuer les achats
+                <ChevronRight size={16} />
+              </button>
+            )}
             <p className="text-center text-[11px] text-muted-foreground">
               Livraison en 5 jours · Paiement sécurisé Shopify
             </p>
