@@ -1,7 +1,10 @@
 /**
- * ProductCustomizer — Clean 5-step modal
- * No duplicates. No conflicting state.
- * Single source of truth: useCustomizerStore + useProductColors
+ * ProductCustomizer — 5-step modal
+ * Fixes applied:
+ *  - Full i18n (no more hardcoded French)
+ *  - REMOVED step-1 product image thumbnails (they showed Shopify CDN mockup
+ *    images with "VOTRE LOGO" embedded in the actual JPG — causing logo
+ *    duplication on step 3). The 3D viewer on the left already shows the garment.
  */
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +24,7 @@ import type { ProductColor } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const store    = useCustomizerStore();
   const cartStore = useCartStore();
   const shopifyCartStore = useShopifyCartStore();
@@ -83,7 +86,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   };
 
   const handleAddToCart = async () => {
-    // 1. Add to Shopify cart (enables real checkout via Cart page)
     if (shopifyColor && totalQty > 0) {
       const minimalProduct: ShopifyProduct = {
         node: {
@@ -124,7 +126,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       });
     }
 
-    // 2. Add to local cart store (for CartDrawer rich display with logo preview)
     cartStore.addItem({
       productId: product.id,
       colorId: activeColor?.id ?? '',
@@ -143,7 +144,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     onClose();
   };
 
-  // Colours to show — Shopify live if available, else local fallback
   const displayColors: ShopifyVariantColor[] = shopifyColors.length > 0
     ? shopifyColors
     : product.colors.map(c => ({
@@ -172,7 +172,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         <div className="px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="flex-shrink-0">
             <h2 className="text-sm font-black text-foreground">{product.shortName}</h2>
-            <p className="text-xs text-muted-foreground">Personnalise ton produit</p>
+            <p className="text-xs text-muted-foreground">{t('personnaliseTonProduit')}</p>
           </div>
 
           {/* Step indicators */}
@@ -217,7 +217,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               <p className="text-[11px] font-bold text-muted-foreground mb-2">
                 {t('couleur')}
                 {!colorsLoading && shopifyColors.length > 0 && (
-                  <span className="ml-1 text-green-600">· {shopifyColors.length} couleurs</span>
+                  <span className="ml-1 text-green-600">
+                    · {shopifyColors.length} {lang === 'en' ? 'colors' : 'couleurs'}
+                  </span>
                 )}
               </p>
               <ColorPicker
@@ -239,7 +241,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 <motion.div key="s1" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('choisirCouleur')}</h3>
                   <p className="text-xs text-muted-foreground mb-3">
-                    {colorsLoading ? 'Chargement depuis Shopify...' : `${displayColors.length} couleurs · change en direct sur le 3D`}
+                    {colorsLoading
+                      ? t('chargementCouleurs')
+                      : t('couleursDisponibles', displayColors.length)}
                   </p>
                   <ColorPicker
                     colors={displayColors}
@@ -247,16 +251,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     selectedColorName={shopifyColor?.colorName ?? null}
                     onSelect={c => { handleSelectColor(c); goNext(); }}
                   />
-                  {shopifyColor && (
-                    <motion.div initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} className="mt-4 grid grid-cols-2 gap-2">
-                      {[shopifyColor.imageDevant, shopifyColor.imageDos].filter(Boolean).map((url, i) => (
-                        <div key={i} className="rounded-xl overflow-hidden border border-border bg-secondary">
-                          <img src={url!} alt={i===0?'Devant':'Dos'} className="w-full aspect-square object-cover" />
-                          <p className="text-center text-[10px] font-bold text-muted-foreground py-1.5">{i===0?t('devant'):t('dos')}</p>
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
                 </motion.div>
               )}
 
@@ -264,7 +258,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               {store.step === 2 && (
                 <motion.div key="s2" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('tonLogo')}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">PNG · JPG · SVG — Fond supprimé automatiquement</p>
+                  <p className="text-xs text-muted-foreground mb-3">{t('fondSupprimeAuto')}</p>
                   <LogoUploader
                     onLogoReady={(previewUrl, processedUrl, file) => {
                       const zone = product.printZones[0];
@@ -284,7 +278,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               {store.step === 3 && store.logoPlacement?.previewUrl && (
                 <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('zoneImpression')}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">Zones recommandées · ou place librement</p>
+                  <p className="text-xs text-muted-foreground mb-2">{t('zonesRecommandees')}</p>
                   <PlacementSelector
                     product={product}
                     selectedColor={activeColor}
@@ -299,7 +293,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               {store.step === 4 && (
                 <motion.div key="s4" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('taillesQuantites')}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">15% de rabais dès 12 unités</p>
+                  <p className="text-xs text-muted-foreground mb-3">{t('rabaisVolume12')}</p>
                   <SizeQuantityPicker
                     product={shopifyColor?.sizeOptions.length
                       ? { ...product, sizes: shopifyColor.sizeOptions.map(s => s.size) }
@@ -318,7 +312,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     {[
                       [t('produit'),        product.shortName],
                       [t('couleurLabel'),   activeColor?.name ?? '—'],
-                      [t('quantiteTotale'), `${totalQty} ${totalQty !== 1 ? 'unités' : 'unité'}`],
+                      [t('quantiteTotale'), `${totalQty} ${t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}`],
                       [t('prixUnitaire'),   `${product.basePrice.toFixed(2)} $`],
                       [t('impression'),     `${PRINT_PRICE.toFixed(2)} $`],
                     ].map(([l, v]) => (
@@ -329,7 +323,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     ))}
                     {hasDiscount && (
                       <div className="flex justify-between text-sm text-green-700">
-                        <span>Rabais volume (12+)</span><span className="font-bold">−15%</span>
+                        <span>{t('rabaisQuantite')}</span>
+                        <span className="font-bold">−15%</span>
                       </div>
                     )}
                     <div className="border-t border-border pt-2.5 flex justify-between">
@@ -342,7 +337,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       <img src={store.logoPlacement.previewUrl} alt="Logo" className="w-12 h-12 object-contain rounded-lg border border-border bg-white" />
                       <div>
                         <p className="text-xs font-bold">{product.shortName} · {activeColor?.name}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{totalQty} unités · {totalPrice.toFixed(2)} $</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')} · {totalPrice.toFixed(2)} $
+                        </p>
                       </div>
                       {activeColor && (
                         <div className="ml-auto w-6 h-6 rounded-full ring-1 ring-border" style={{ background: activeColor.hex }} />
@@ -367,7 +364,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
           {totalQty > 0 && store.step >= 4 && (
             <div className="text-center">
-              <div className="text-[10px] text-muted-foreground">{totalQty} unité{totalQty !== 1 ? 's' : ''}</div>
+              <div className="text-[10px] text-muted-foreground">
+                {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}
+              </div>
               <div className="text-sm font-black text-primary">{totalPrice.toFixed(2)} $</div>
             </div>
           )}
