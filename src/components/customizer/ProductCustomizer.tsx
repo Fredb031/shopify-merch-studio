@@ -13,9 +13,10 @@ import { SizeQuantityPicker } from './SizeQuantityPicker';
 import { ColorPicker } from './ColorPicker';
 import { useCustomizerStore } from '@/store/customizerStore';
 import { useCartStore } from '@/store/cartStore';
+import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
 import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
-import type { ShopifyVariantColor } from '@/lib/shopify';
+import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 
@@ -23,6 +24,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const { t } = useLang();
   const store    = useCustomizerStore();
   const cartStore = useCartStore();
+  const shopifyCartStore = useShopifyCartStore();
 
   const product = PRODUCTS.find(p => p.id === productId);
   if (!product) return null;
@@ -79,7 +81,47 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     store.setColor(c.variantId);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
+    // 1. Add to Shopify cart (enables real checkout via Cart page)
+    if (shopifyColor && totalQty > 0) {
+      const minimalProduct: ShopifyProduct = {
+        node: {
+          id: shopifyColor.variantId,
+          title: product.name,
+          description: product.description,
+          handle: product.shopifyHandle,
+          priceRange: {
+            minVariantPrice: { amount: product.basePrice.toFixed(2), currencyCode: 'CAD' },
+          },
+          images: {
+            edges: [{ node: { url: shopifyColor.imageDevant ?? product.imageDevant, altText: product.shortName } }],
+          },
+          variants: {
+            edges: [{
+              node: {
+                id: shopifyColor.variantId,
+                title: shopifyColor.colorName,
+                price: { amount: shopifyColor.price, currencyCode: 'CAD' },
+                availableForSale: true,
+                selectedOptions: [{ name: 'Couleur', value: shopifyColor.colorName }],
+                image: null,
+              },
+            }],
+          },
+          options: [{ name: 'Couleur', values: [shopifyColor.colorName] }],
+        },
+      };
+      await shopifyCartStore.addItem({
+        product: minimalProduct,
+        variantId: shopifyColor.variantId,
+        variantTitle: shopifyColor.colorName,
+        price: { amount: (unitPrice * discount).toFixed(2), currencyCode: 'CAD' },
+        quantity: totalQty,
+        selectedOptions: [{ name: 'Couleur', value: shopifyColor.colorName }],
+      });
+    }
+
+    // 2. Add to local cart store (for CartDrawer rich display with logo preview)
     cartStore.addItem({
       productId: product.id,
       colorId: activeColor?.id ?? '',
@@ -93,6 +135,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       totalQuantity: totalQty,
       totalPrice,
     });
+
     store.reset();
     onClose();
   };
@@ -159,7 +202,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
           {/* LEFT — 3D viewer + colour palette */}
           <div className="p-4 space-y-3 flex flex-col">
-            {/* 3D — static, no rotation, devant/dos only */}
             <ProductViewer3D
               product={product}
               selectedColor={activeColor}
@@ -168,7 +210,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               onViewChange={store.setView}
             />
 
-            {/* Colour swatches always visible */}
             <div>
               <p className="text-[11px] font-bold text-muted-foreground mb-2">
                 {t('couleur')}
