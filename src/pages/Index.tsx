@@ -2,14 +2,22 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { MoleGame } from '@/components/MoleGame';
-import { useState, useEffect, useRef } from 'react';
+import { CinematicLoader } from '@/components/CinematicLoader';
+import { LoginModal } from '@/components/LoginModal';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
 const avatarColors = ['#1B3A6B', '#1a3d2e', '#5f1f1f', '#6b6b6b'];
 const avatarInitials = ['SL', 'WB', 'JP', 'AO'];
 
+const MARQUEE_LOGOS = [
+  'https://visionaffichage.com/cdn/shop/files/sous-pression-logo.png?height=80&v=1770475023',
+  'https://visionaffichage.com/cdn/shop/files/perfocazes-logo.png?height=80&v=1770474993',
+  'https://visionaffichage.com/cdn/shop/files/luca-jalbert-logo.png?height=80&v=1770579609',
+];
+
 const StarSvg = () => (
-  <svg className="w-3.5 h-3.5 fill-accent" viewBox="0 0 24 24">
+  <svg className="w-3 h-3 fill-accent" viewBox="0 0 24 24">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
@@ -47,14 +55,14 @@ export default function Index() {
   const [cartOpen, setCartOpen] = useState(false);
   const [showGame, setShowGame] = useState(false);
   const [showLoader, setShowLoader] = useState(true);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [heroStaggered, setHeroStaggered] = useState(false);
 
-  useEffect(() => {
+  const handleLoaderComplete = useCallback(() => {
+    setShowLoader(false);
     const hasPlayed = sessionStorage.getItem('moleGamePlayed');
-    const timer = setTimeout(() => {
-      setShowLoader(false);
-      if (!hasPlayed) setShowGame(true);
-    }, 2200);
-    return () => clearTimeout(timer);
+    if (!hasPlayed) setShowGame(true);
+    setTimeout(() => setHeroStaggered(true), 100);
   }, []);
 
   const handleGameClose = (won: boolean) => {
@@ -64,87 +72,55 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Loader */}
-      {showLoader && (
-        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-7 transition-opacity duration-600" style={{ background: 'hsl(218 62% 16%)' }}>
-          <div className="opacity-0 animate-[lIn_0.7s_0.4s_cubic-bezier(.34,1.4,.64,1)_forwards] translate-y-2.5">
-            <img
-              src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
-              alt="Vision"
-              className="h-10"
-            />
-            <div className="text-[11px] font-semibold tracking-[3px] uppercase text-primary-foreground/25 mt-2.5">Merch d'entreprise</div>
-          </div>
-          <div className="w-[180px] h-[1.5px] bg-primary-foreground/10 rounded overflow-hidden">
-            <div className="h-full rounded" style={{ background: 'linear-gradient(90deg, hsl(var(--gold)), #F5C842)', animation: 'lFill 1.5s 0.6s ease forwards', width: 0 }} />
-          </div>
-        </div>
-      )}
-
+      {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
       <MoleGame isOpen={showGame} onClose={handleGameClose} />
-      <Navbar onOpenCart={() => setCartOpen(true)} />
+      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       {/* Hero */}
-      <section className="min-h-screen flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">
-        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsla(var(--navy), 0.07) 0%, transparent 70%)' }} />
-        <div className="relative z-[1] max-w-[900px] mx-auto">
-          <FadeIn>
-            {/* Google rating row */}
-            <div className="flex items-center justify-center gap-2 mb-7">
-              <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
-              </div>
-              <span className="text-[12px] font-bold text-muted-foreground">5,0 sur Google</span>
-              <span className="text-border text-sm">·</span>
-              <span className="text-[12px] font-bold text-muted-foreground">+500 entreprises satisfaites</span>
-            </div>
-          </FadeIn>
+      <section className="min-h-dvh flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">
+        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsla(var(--navy), 0.08) 0%, transparent 70%)' }} />
+        <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
+          {/* Pain point kicker */}
+          <p className={`text-sm text-muted-foreground mb-6 max-w-[600px] mx-auto leading-relaxed ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            Tes clients te jugent avant que tu ouvres la bouche. Ton image parle en premier.
+          </p>
 
-          <FadeIn>
-            <h1 className="text-[clamp(42px,6.5vw,80px)] font-extrabold leading-[0.97] tracking-[-2.5px] text-foreground mb-0">
-              Tes clients te voient<br />avant de t'entendre.
-              <span className="block text-primary">Soigne ce qu'ils voient.</span>
-            </h1>
-          </FadeIn>
+          {/* H1 */}
+          <h1 className={`text-[clamp(48px,7.5vw,92px)] font-extrabold leading-[0.95] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            Habille ton équipe.<span className="block text-primary">Impose ta marque.</span>
+          </h1>
 
-          <FadeIn>
-            <p className="text-base text-muted-foreground leading-[1.75] max-w-[480px] mt-5 mb-9 mx-auto">
-              Commande en 3 minutes. Reçois en 5 jours ouvrables. Ton équipe habillée à l'image de ta marque — sans minimum, sans complication.
-            </p>
-          </FadeIn>
-
-          <FadeIn>
+          {/* CTA */}
+          <div className={heroStaggered ? 'animate-[staggerUp_0.7s_0.35s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}>
             <Link
               to="/products"
-              className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-[52px] py-[18px] rounded-full cursor-pointer transition-all tracking-[-0.2px] mb-7 inline-block hover:-translate-y-0.5"
+              className="inline-block text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full tracking-[-0.2px] mb-8 relative overflow-hidden cursor-pointer transition-shadow hover:shadow-[0_18px_48px_hsla(var(--navy),0.5)]"
               style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
             >
               Voir les produits
             </Link>
-          </FadeIn>
+          </div>
 
-          <FadeIn>
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex">
-                {avatarInitials.map((init, i) => (
-                  <div
-                    key={i}
-                    className="w-[31px] h-[31px] rounded-full border-[2.5px] border-background flex items-center justify-center text-[10px] font-extrabold text-primary-foreground"
-                    style={{ marginLeft: i > 0 ? '-9px' : 0, backgroundColor: avatarColors[i] }}
-                  >
-                    {init}
-                  </div>
-                ))}
-              </div>
-              <div className="text-left">
-                <div className="flex gap-0.5 mb-0.5">
-                  {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
-                </div>
-                <div className="text-[12px] text-muted-foreground">Noté 5/5 · 41 avis vérifiés</div>
-              </div>
+          {/* Logo marquee */}
+          <div className={`w-full max-w-[680px] mx-auto mb-7 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            <div className="absolute top-0 bottom-0 left-0 w-16 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
+            <div className="absolute top-0 bottom-0 right-0 w-16 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
+            <div className="flex animate-marquee w-max">
+              {[...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS].map((logo, i) => (
+                <img key={i} src={logo} alt="" className="h-[30px] px-7 object-contain grayscale opacity-[0.38] hover:grayscale-0 hover:opacity-100 transition-all" />
+              ))}
             </div>
-          </FadeIn>
+          </div>
+
+          {/* Google row */}
+          <div className={`flex items-center justify-center gap-[7px] ${heroStaggered ? 'animate-[staggerUp_0.6s_0.63s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
+            </div>
+            <span className="text-[12px] font-semibold text-muted-foreground">5,0 sur Google · +500 entreprises</span>
+          </div>
         </div>
       </section>
 
@@ -156,7 +132,7 @@ export default function Index() {
             <h2 className="text-[clamp(28px,4vw,44px)] font-extrabold text-primary-foreground tracking-[-1px] mb-12 leading-[1.05]">
               Trois étapes.<br /><em className="text-primary-foreground/28 not-italic">C'est tout.</em>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/7 rounded-[18px] overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[
                 { n: '01', title: 'Choisis ton produit', desc: 'T-shirt, hoodie, casquette, manteau. Sélectionne la couleur et la quantité. Aucun minimum.', icon: (
                   <svg className="w-[22px] h-[22px] stroke-primary-foreground/70 fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/></svg>
@@ -204,6 +180,24 @@ export default function Index() {
         </section>
       </FadeIn>
 
+      {/* Logo Marquee */}
+      <FadeIn>
+        <section className="border-b border-border py-7 overflow-hidden bg-background">
+          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">Ils nous font confiance</div>
+          <div className="overflow-hidden relative">
+            <div className="absolute top-0 bottom-0 left-0 w-20 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
+            <div className="absolute top-0 bottom-0 right-0 w-20 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
+            <div className="flex gap-0 animate-marquee w-max">
+              {[...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS].map((logo, i) => (
+                <div key={i} className="px-10 flex items-center justify-center h-12">
+                  <img src={logo} alt="" className="h-9 w-auto object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
       {/* Sam's Story */}
       <FadeIn>
         <section className="py-20 px-6 md:px-10 max-w-[1060px] mx-auto">
@@ -222,7 +216,7 @@ export default function Index() {
               <p className="text-[15px] text-muted-foreground leading-[1.8]">
                 Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : <strong className="text-foreground">l'image que tu projettes construit la réputation que tu mérites.</strong>
               </p>
-              <div className="font-lora text-[22px] italic text-primary mt-6">— Samuel</div>
+              <div className="font-lora text-[24px] italic text-primary mt-6">— Samuel</div>
               <div className="text-[12px] text-muted-foreground mt-[3px]">Fondateur, Vision Affichage</div>
             </div>
 
@@ -240,7 +234,7 @@ export default function Index() {
                 </div>
                 <div>
                   <div className="text-[12px] font-bold text-foreground">+33 000 produits livrés</div>
-                  <div className="text-[11px] text-muted-foreground">Depuis 2021</div>
+                  <div className="text-[11px] text-muted-foreground">Depuis 2021 · Québec</div>
                 </div>
               </div>
             </div>
@@ -295,7 +289,7 @@ export default function Index() {
                 <div className="flex gap-[3px] justify-center my-1">
                   {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
                 </div>
-                <div className="text-[11px] text-muted-foreground">41 avis</div>
+                <div className="text-[11px] text-muted-foreground">41 avis vérifiés</div>
               </div>
               <div className="w-px h-14 bg-border" />
               <div>
@@ -354,7 +348,7 @@ export default function Index() {
           </p>
           <Link
             to="/products"
-            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-[52px] py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block"
+            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block"
             style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
           >
             Voir les produits
