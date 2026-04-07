@@ -1,14 +1,13 @@
 import { create } from 'zustand';
 import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
-import type { CustomizationState, LogoPlacement } from '@/types/customization';
+import type { CustomizationState, LogoPlacement, ProductView } from '@/types/customization';
 
 interface CustomizerStore extends CustomizationState {
   setProduct: (productId: string) => void;
   setColor: (colorId: string) => void;
   setLogoPlacement: (placement: LogoPlacement) => void;
-  updateLogoPosition: (x: number, y: number, width?: number, rotation?: number) => void;
   setSizeQuantity: (size: string, quantity: number) => void;
-  setView: (view: CustomizationState['activeView']) => void;
+  setView: (view: ProductView) => void;
   setStep: (step: CustomizationState['step']) => void;
   getTotalQuantity: () => number;
   getEstimatedPrice: () => number;
@@ -27,16 +26,9 @@ const initialState: CustomizationState = {
 export const useCustomizerStore = create<CustomizerStore>((set, get) => ({
   ...initialState,
 
-  setProduct: (productId) => set({ productId, colorId: null, step: 1 }),
-  setColor: (colorId) => set({ colorId, step: 2 }),
+  setProduct: (productId) => set({ productId, colorId: null, logoPlacement: null, sizeQuantities: [], step: 1 }),
+  setColor: (colorId) => set({ colorId }),
   setLogoPlacement: (placement) => set({ logoPlacement: placement }),
-
-  updateLogoPosition: (x, y, width, rotation) =>
-    set((state) => ({
-      logoPlacement: state.logoPlacement
-        ? { ...state.logoPlacement, x, y, width: width ?? state.logoPlacement.width, rotation: rotation ?? state.logoPlacement.rotation }
-        : null,
-    })),
 
   setSizeQuantity: (size, quantity) =>
     set((state) => {
@@ -48,8 +40,7 @@ export const useCustomizerStore = create<CustomizerStore>((set, get) => ({
   setView: (activeView) => set({ activeView }),
   setStep: (step) => set({ step }),
 
-  getTotalQuantity: () =>
-    get().sizeQuantities.reduce((sum, s) => sum + s.quantity, 0),
+  getTotalQuantity: () => get().sizeQuantities.reduce((sum, s) => sum + s.quantity, 0),
 
   getEstimatedPrice: () => {
     const { productId, sizeQuantities } = get();

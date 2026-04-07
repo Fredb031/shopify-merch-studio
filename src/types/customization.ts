@@ -15,12 +15,14 @@ export type SizeQuantity = {
   quantity: number;
 };
 
+export type ProductView = 'front' | 'back';
+
 export type CustomizationState = {
   productId: string | null;
   colorId: string | null;
   logoPlacement: LogoPlacement | null;
   sizeQuantities: SizeQuantity[];
-  activeView: 'front' | 'back' | 'left' | 'right';
+  activeView: ProductView;
   step: 1 | 2 | 3 | 4 | 5;
 };
 
