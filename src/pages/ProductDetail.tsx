@@ -2,7 +2,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from '@/lib/shopify';
 import { Navbar } from '@/components/Navbar';
-import { Button } from '@/components/ui/button';
+import { BottomNav } from '@/components/BottomNav';
+import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/cartStore';
 import { Loader2, ShoppingCart, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
@@ -15,6 +16,7 @@ export default function ProductDetail() {
   const isCartLoading = useCartStore(state => state.isLoading);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['shopify-product', handle],
@@ -28,7 +30,8 @@ export default function ProductDetail() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
+        <Navbar onOpenCart={() => setCartOpen(true)} />
+        <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         <div className="flex justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
       </div>
     );
@@ -37,10 +40,13 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="container mx-auto px-4 py-20 text-center">
+        <Navbar onOpenCart={() => setCartOpen(true)} />
+        <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+        <div className="container mx-auto px-4 py-20 text-center pt-24">
           <p className="text-muted-foreground text-lg">Produit non trouvé</p>
-          <Link to="/products"><Button variant="outline" className="mt-4">Retour aux produits</Button></Link>
+          <Link to="/products" className="inline-block mt-4 text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full">
+            Retour aux produits
+          </Link>
         </div>
       </div>
     );
@@ -48,14 +54,6 @@ export default function ProductDetail() {
 
   const images = product.images.edges;
   const options = product.options.filter((o: { name: string; values: string[] }) => !(o.values.length === 1 && o.values[0] === 'Default Title'));
-
-  // Initialize selected options
-  if (Object.keys(selectedOptions).length === 0 && options.length > 0) {
-    const defaults: Record<string, string> = {};
-    options.forEach((o: { name: string; values: string[] }) => { defaults[o.name] = o.values[0]; });
-    // Will be set on first render
-  }
-
   const currentOptions = { ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, o.values[0]])), ...selectedOptions };
 
   const selectedVariant = product.variants.edges.find(
@@ -75,12 +73,15 @@ export default function ProductDetail() {
       selectedOptions: selectedVariant.selectedOptions || [],
     });
     toast.success(`${product.title} ajouté au panier`, { position: 'top-center' });
+    setCartOpen(true);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
+      <Navbar onOpenCart={() => setCartOpen(true)} />
+      <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+
+      <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-20 pb-32">
         <Link to="/products" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft className="h-4 w-4 mr-1" /> Retour aux produits
         </Link>
@@ -88,7 +89,7 @@ export default function ProductDetail() {
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           {/* Images */}
           <div className="space-y-3">
-            <div className="aspect-square overflow-hidden rounded-lg bg-secondary">
+            <div className="aspect-square overflow-hidden rounded-2xl bg-secondary">
               {images[selectedImageIndex]?.node ? (
                 <img
                   src={images[selectedImageIndex].node.url}
@@ -105,8 +106,8 @@ export default function ProductDetail() {
                   <button
                     key={i}
                     onClick={() => setSelectedImageIndex(i)}
-                    className={`w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border-2 transition-colors ${
-                      i === selectedImageIndex ? 'border-foreground' : 'border-transparent'
+                    className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                      i === selectedImageIndex ? 'border-primary' : 'border-transparent'
                     }`}
                   >
                     <img src={img.node.url} alt={img.node.altText || ''} className="w-full h-full object-cover" />
@@ -119,8 +120,8 @@ export default function ProductDetail() {
           {/* Info */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight">{product.title}</h1>
-              <p className="text-2xl font-bold mt-2">
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">{product.title}</h1>
+              <p className="text-2xl font-extrabold text-primary mt-2">
                 {selectedVariant ? parseFloat(selectedVariant.price.amount).toFixed(2) : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}{' '}
                 {product.priceRange.minVariantPrice.currencyCode}
               </p>
@@ -129,16 +130,16 @@ export default function ProductDetail() {
             {/* Options */}
             {options.map((option: { name: string; values: string[] }) => (
               <div key={option.name}>
-                <label className="text-sm font-semibold mb-2 block">{option.name}</label>
+                <label className="text-sm font-bold mb-2 block">{option.name}</label>
                 <div className="flex flex-wrap gap-2">
                   {option.values.map((value: string) => (
                     <button
                       key={value}
                       onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
-                      className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                         currentOptions[option.name] === value
-                          ? 'bg-foreground text-background border-foreground'
-                          : 'bg-background text-foreground border-border hover:border-foreground'
+                          ? 'gradient-navy text-primary-foreground border-transparent'
+                          : 'bg-background text-foreground border-border hover:border-primary'
                       }`}
                     >
                       {value}
@@ -148,9 +149,8 @@ export default function ProductDetail() {
               </div>
             ))}
 
-            <Button
-              size="lg"
-              className="w-full font-bold text-base"
+            <button
+              className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all shadow-navy hover:opacity-88 disabled:opacity-50 flex items-center justify-center gap-2"
               onClick={handleAddToCart}
               disabled={isCartLoading || !selectedVariant?.availableForSale}
             >
@@ -160,20 +160,26 @@ export default function ProductDetail() {
                 'Rupture de stock'
               ) : (
                 <>
-                  <ShoppingCart className="h-5 w-5 mr-2" /> Ajouter au panier
+                  <ShoppingCart className="h-5 w-5" /> Ajouter au panier
                 </>
               )}
-            </Button>
+            </button>
+
+            <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1">
+              🔒 Paiement sécurisé · Livré en 5 jours
+            </div>
 
             {product.description && (
               <div>
-                <h3 className="font-semibold mb-2">Description</h3>
+                <h3 className="font-bold mb-2">Description</h3>
                 <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      <BottomNav />
     </div>
   );
 }
