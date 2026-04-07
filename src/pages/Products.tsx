@@ -5,7 +5,7 @@ import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 import { findProductByHandle } from '@/data/products';
 import { useLang } from '@/lib/langContext';
-import { Loader2, ArrowLeft, Search, X } from 'lucide-react';
+import { ArrowLeft, Search, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
 const CATEGORIES = [
@@ -283,3 +283,4 @@ export default function Products() {
     </div>
   );
 }
+
