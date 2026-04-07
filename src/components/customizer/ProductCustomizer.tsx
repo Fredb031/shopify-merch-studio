@@ -43,6 +43,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     ? {
         id: shopifyColor.variantId,
         name: shopifyColor.colorName,
+        nameEn: shopifyColor.colorName,
         hex: shopifyColor.hex,
         imageDevant: shopifyColor.imageDevant ?? product.imageDevant,
         imageDos:    shopifyColor.imageDos    ?? product.imageDos,
@@ -90,6 +91,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           title: product.name,
           description: product.description,
           handle: product.shopifyHandle,
+          productType: '',
+          tags: [],
           priceRange: {
             minVariantPrice: { amount: product.basePrice.toFixed(2), currencyCode: 'CAD' },
           },
