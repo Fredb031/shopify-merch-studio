@@ -11,17 +11,35 @@ import { SizeQuantityPicker } from './SizeQuantityPicker';
 import { ProductViewer3D } from './ProductViewer3D';
 
 function StepContent() {
-  const { step, setLogoPlacement } = useCustomizerStore();
+  const { step, productId, colorId, logoPlacement, sizeQuantities, setLogoPlacement, setSizeQuantity } = useCustomizerStore();
+  const product = PRODUCTS.find((p) => p.id === productId);
+  const selectedColor = product?.colors.find((c) => c.id === colorId) ?? null;
 
   const handleLogoReady = (previewUrl: string, processedUrl: string, originalFile: File) => {
     setLogoPlacement({ zoneId: 'poitrine-centre', mode: 'preset', processedUrl, previewUrl, originalFile });
   };
 
+  if (!product) return null;
+
   switch (step) {
     case 1: return <ColorSelector />;
     case 2: return <LogoUploader onLogoReady={handleLogoReady} />;
-    case 3: return <PlacementSelector />;
-    case 4: return <SizeQuantityPicker />;
+    case 3: return (
+      <PlacementSelector
+        product={product}
+        selectedColor={selectedColor}
+        logoPreviewUrl={logoPlacement?.previewUrl ?? ''}
+        currentPlacement={logoPlacement}
+        onPlacementChange={setLogoPlacement}
+      />
+    );
+    case 4: return (
+      <SizeQuantityPicker
+        product={product}
+        sizeQuantities={sizeQuantities}
+        onUpdate={setSizeQuantity}
+      />
+    );
     case 5: return <SummaryStep />;
     default: return null;
   }
