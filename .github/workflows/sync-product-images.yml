@@ -1,0 +1,40 @@
+name: Sync Product Images from Google Drive
+
+on:
+  workflow_dispatch:          # Run manually from GitHub Actions tab
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sync-product-images.yml'  # Re-run if workflow changes
+
+jobs:
+  sync-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install gdown supabase requests pillow
+
+      - name: Download images from Google Drive & upload to Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python .github/scripts/sync_images.py
+
+      - name: Commit updated products.ts if changed
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add src/data/products.ts
+          git diff --staged --quiet || git commit -m "chore: auto-sync product images from Google Drive"
+          git push || echo "Nothing to push"
