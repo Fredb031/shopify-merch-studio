@@ -1,0 +1,179 @@
+import { useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY } from '@/lib/shopify';
+import { Navbar } from '@/components/Navbar';
+import { Button } from '@/components/ui/button';
+import { useCartStore } from '@/stores/cartStore';
+import { Loader2, ShoppingCart, ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
+
+export default function ProductDetail() {
+  const { handle } = useParams<{ handle: string }>();
+  const addItem = useCartStore(state => state.addItem);
+  const isCartLoading = useCartStore(state => state.isLoading);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  const { data: product, isLoading } = useQuery({
+    queryKey: ['shopify-product', handle],
+    queryFn: async () => {
+      const data = await storefrontApiRequest(PRODUCT_BY_HANDLE_QUERY, { handle });
+      return data?.data?.product;
+    },
+    enabled: !!handle,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex justify-center py-32"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-20 text-center">
+          <p className="text-muted-foreground text-lg">Produit non trouvé</p>
+          <Link to="/products"><Button variant="outline" className="mt-4">Retour aux produits</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
+  const images = product.images.edges;
+  const options = product.options.filter((o: { name: string; values: string[] }) => !(o.values.length === 1 && o.values[0] === 'Default Title'));
+
+  // Initialize selected options
+  if (Object.keys(selectedOptions).length === 0 && options.length > 0) {
+    const defaults: Record<string, string> = {};
+    options.forEach((o: { name: string; values: string[] }) => { defaults[o.name] = o.values[0]; });
+    // Will be set on first render
+  }
+
+  const currentOptions = { ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, o.values[0]])), ...selectedOptions };
+
+  const selectedVariant = product.variants.edges.find(
+    (v: { node: { selectedOptions: Array<{ name: string; value: string }> } }) =>
+      v.node.selectedOptions.every((so: { name: string; value: string }) => currentOptions[so.name] === so.value)
+  )?.node || product.variants.edges[0]?.node;
+
+  const handleAddToCart = async () => {
+    if (!selectedVariant) return;
+    const wrappedProduct = { node: product };
+    await addItem({
+      product: wrappedProduct,
+      variantId: selectedVariant.id,
+      variantTitle: selectedVariant.title,
+      price: selectedVariant.price,
+      quantity: 1,
+      selectedOptions: selectedVariant.selectedOptions || [],
+    });
+    toast.success(`${product.title} ajouté au panier`, { position: 'top-center' });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="container mx-auto px-4 py-8">
+        <Link to="/products" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
+          <ArrowLeft className="h-4 w-4 mr-1" /> Retour aux produits
+        </Link>
+
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+          {/* Images */}
+          <div className="space-y-3">
+            <div className="aspect-square overflow-hidden rounded-lg bg-secondary">
+              {images[selectedImageIndex]?.node ? (
+                <img
+                  src={images[selectedImageIndex].node.url}
+                  alt={images[selectedImageIndex].node.altText || product.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">Pas d'image</div>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto">
+                {images.map((img: { node: { url: string; altText: string | null } }, i: number) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedImageIndex(i)}
+                    className={`w-16 h-16 rounded-md overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                      i === selectedImageIndex ? 'border-foreground' : 'border-transparent'
+                    }`}
+                  >
+                    <img src={img.node.url} alt={img.node.altText || ''} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight">{product.title}</h1>
+              <p className="text-2xl font-bold mt-2">
+                {selectedVariant ? parseFloat(selectedVariant.price.amount).toFixed(2) : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}{' '}
+                {product.priceRange.minVariantPrice.currencyCode}
+              </p>
+            </div>
+
+            {/* Options */}
+            {options.map((option: { name: string; values: string[] }) => (
+              <div key={option.name}>
+                <label className="text-sm font-semibold mb-2 block">{option.name}</label>
+                <div className="flex flex-wrap gap-2">
+                  {option.values.map((value: string) => (
+                    <button
+                      key={value}
+                      onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                      className={`px-4 py-2 rounded-md text-sm font-medium border transition-colors ${
+                        currentOptions[option.name] === value
+                          ? 'bg-foreground text-background border-foreground'
+                          : 'bg-background text-foreground border-border hover:border-foreground'
+                      }`}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <Button
+              size="lg"
+              className="w-full font-bold text-base"
+              onClick={handleAddToCart}
+              disabled={isCartLoading || !selectedVariant?.availableForSale}
+            >
+              {isCartLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : !selectedVariant?.availableForSale ? (
+                'Rupture de stock'
+              ) : (
+                <>
+                  <ShoppingCart className="h-5 w-5 mr-2" /> Ajouter au panier
+                </>
+              )}
+            </Button>
+
+            {product.description && (
+              <div>
+                <h3 className="font-semibold mb-2">Description</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
