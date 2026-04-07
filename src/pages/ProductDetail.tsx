@@ -8,33 +8,7 @@ import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
 import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt } from 'lucide-react';
 import { useState } from 'react';
-import { PRODUCTS } from '@/data/products';
-
-// Map Shopify handle → local product id for customizer
-const HANDLE_TO_PRODUCT_ID: Record<string, string> = {
-  'hoodie-a-capuche-unisexe': 'atcf2500',
-  'hoodie-avec-zipper': 'atcf2600',
-  't-shirt': 'atc1000',
-  'casquette-trucker': 'atc6606',
-  'tuque-sans-rebords': 'c105',
-  // fallback variants
-  'hoodie': 'atcf2500',
-  'tshirt': 'atc1000',
-  'casquette': 'atc6606',
-  'tuque': 'c105',
-};
-
-function getLocalProductId(handle: string): string {
-  if (HANDLE_TO_PRODUCT_ID[handle]) return HANDLE_TO_PRODUCT_ID[handle];
-  // Try partial match
-  const lower = handle.toLowerCase();
-  if (lower.includes('hoodie') && lower.includes('zip')) return 'atcf2600';
-  if (lower.includes('hoodie')) return 'atcf2500';
-  if (lower.includes('t-shirt') || lower.includes('tshirt')) return 'atc1000';
-  if (lower.includes('casquette') || lower.includes('cap')) return 'atc6606';
-  if (lower.includes('tuque') || lower.includes('toque') || lower.includes('beanie')) return 'c105';
-  return 'atcf2500'; // default
-}
+import { findProductByHandle } from '@/data/products';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -52,7 +26,8 @@ export default function ProductDetail() {
     enabled: !!handle,
   });
 
-  const localProductId = getLocalProductId(handle ?? '');
+  // Map Shopify handle → local product id using findProductByHandle (covers all 22 products)
+  const localProductId = findProductByHandle(handle ?? '')?.id ?? 'atcf2500';
 
   if (isLoading) {
     return (
@@ -173,7 +148,7 @@ export default function ProductDetail() {
               </div>
             ))}
 
-            {/* CTA — Customiser */}
+            {/* CTA */}
             <button
               className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2"
               style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
@@ -198,7 +173,6 @@ export default function ProductDetail() {
         </div>
       </div>
 
-      {/* 3D Customizer modal */}
       <AnimatePresence>
         {customizerOpen && (
           <ProductCustomizer
