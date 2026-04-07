@@ -6,12 +6,14 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2, ShoppingCart, ArrowLeft, Lock, Shirt } from 'lucide-react';
+import { Loader2, ArrowLeft, Lock, Shirt, Check, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { findProductByHandle } from '@/data/products';
+import { useLang } from '@/lib/langContext';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
+  const { lang } = useLang();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
@@ -26,7 +28,6 @@ export default function ProductDetail() {
     enabled: !!handle,
   });
 
-  // Map Shopify handle → local product id using findProductByHandle (covers all 22 products)
   const localProductId = findProductByHandle(handle ?? '')?.id ?? 'atcf2500';
 
   if (isLoading) {
@@ -34,8 +35,17 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background">
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-        <div className="flex justify-center py-32">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-24 pb-32">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+            <div className="aspect-square rounded-2xl bg-secondary animate-pulse" />
+            <div className="space-y-4">
+              <div className="h-8 bg-secondary rounded-xl animate-pulse w-3/4" />
+              <div className="h-6 bg-secondary rounded-xl animate-pulse w-1/3" />
+              <div className="h-4 bg-secondary rounded-lg animate-pulse w-full" />
+              <div className="h-4 bg-secondary rounded-lg animate-pulse w-5/6" />
+              <div className="h-12 bg-secondary rounded-xl animate-pulse mt-6" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -47,9 +57,14 @@ export default function ProductDetail() {
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         <div className="container mx-auto px-4 py-20 text-center pt-24">
-          <p className="text-muted-foreground text-lg">Produit non trouvé</p>
-          <Link to="/products" className="inline-block mt-4 text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full">
-            Retour aux produits
+          <p className="text-muted-foreground text-lg">
+            {lang === 'en' ? 'Product not found' : 'Produit non trouvé'}
+          </p>
+          <Link
+            to="/products"
+            className="inline-block mt-4 text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full"
+          >
+            {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
           </Link>
         </div>
       </div>
@@ -58,7 +73,8 @@ export default function ProductDetail() {
 
   const images = product.images.edges;
   const options = product.options.filter(
-    (o: { name: string; values: string[] }) => !(o.values.length === 1 && o.values[0] === 'Default Title')
+    (o: { name: string; values: string[] }) =>
+      !(o.values.length === 1 && o.values[0] === 'Default Title'),
   );
   const currentOptions = {
     ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, o.values[0]])),
@@ -69,9 +85,15 @@ export default function ProductDetail() {
     product.variants.edges.find(
       (v: { node: { selectedOptions: Array<{ name: string; value: string }> } }) =>
         v.node.selectedOptions.every(
-          (so: { name: string; value: string }) => currentOptions[so.name] === so.value
-        )
+          (so: { name: string; value: string }) => currentOptions[so.name] === so.value,
+        ),
     )?.node || product.variants.edges[0]?.node;
+
+  const price = selectedVariant
+    ? parseFloat(selectedVariant.price.amount).toFixed(2)
+    : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2);
+
+  const currency = product.priceRange.minVariantPrice.currencyCode;
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,8 +101,12 @@ export default function ProductDetail() {
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-20 pb-32">
-        <Link to="/products" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Retour aux produits
+        <Link
+          to="/products"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
         </Link>
 
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
@@ -91,25 +117,35 @@ export default function ProductDetail() {
                 <img
                   src={images[selectedImageIndex].node.url}
                   alt={images[selectedImageIndex].node.altText || product.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-opacity duration-200"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">Pas d'image</div>
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                  {lang === 'en' ? 'No image' : 'Pas d\'image'}
+                </div>
               )}
             </div>
             {images.length > 1 && (
               <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                {images.map((img: { node: { url: string; altText: string | null } }, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedImageIndex(i)}
-                    className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
-                      i === selectedImageIndex ? 'border-primary' : 'border-transparent hover:border-border'
-                    }`}
-                  >
-                    <img src={img.node.url} alt={img.node.altText || ''} className="w-full h-full object-cover" />
-                  </button>
-                ))}
+                {images.map(
+                  (img: { node: { url: string; altText: string | null } }, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImageIndex(i)}
+                      className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                        i === selectedImageIndex
+                          ? 'border-primary'
+                          : 'border-transparent hover:border-border'
+                      }`}
+                    >
+                      <img
+                        src={img.node.url}
+                        alt={img.node.altText || ''}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ),
+                )}
               </div>
             )}
           </div>
@@ -117,25 +153,44 @@ export default function ProductDetail() {
           {/* Info */}
           <div className="space-y-5">
             <div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">{product.title}</h1>
-              <p className="text-2xl font-extrabold text-primary mt-2">
-                {selectedVariant
-                  ? parseFloat(selectedVariant.price.amount).toFixed(2)
-                  : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2)}{' '}
-                {product.priceRange.minVariantPrice.currencyCode}
-              </p>
+              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground leading-tight">
+                {product.title}
+              </h1>
+              <div className="flex items-baseline gap-2 mt-2">
+                <span className="text-2xl font-extrabold text-primary">
+                  {price} {currency}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
+                </span>
+              </div>
+            </div>
+
+            {/* Volume discount callout */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-primary/5 border border-primary/15 rounded-lg text-xs font-semibold text-primary">
+              <Check className="w-3.5 h-3.5 flex-shrink-0" />
+              {lang === 'en'
+                ? '15% discount automatically applied on 12+ units'
+                : '15% de rabais appliqué automatiquement à 12+ unités'}
             </div>
 
             {/* Options */}
             {options.map((option: { name: string; values: string[] }) => (
               <div key={option.name}>
-                <label className="text-sm font-bold mb-2 block text-foreground">{option.name}</label>
+                <label className="text-sm font-bold mb-2 block text-foreground">
+                  {option.name}
+                  {currentOptions[option.name] && (
+                    <span className="font-normal text-muted-foreground ml-2">
+                      — {currentOptions[option.name]}
+                    </span>
+                  )}
+                </label>
                 <div className="flex flex-wrap gap-2">
                   {option.values.map((value: string) => (
                     <button
                       key={value}
                       onClick={() => setSelectedOptions((prev) => ({ ...prev, [option.name]: value }))}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${
+                      className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
                         currentOptions[option.name] === value
                           ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
                           : 'bg-background text-foreground border-border hover:border-primary'
@@ -155,18 +210,25 @@ export default function ProductDetail() {
               onClick={() => setCustomizerOpen(true)}
             >
               <Shirt size={18} />
-              Personnaliser ce produit
+              {lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit'}
+              <ChevronRight size={16} className="ml-auto opacity-60" />
             </button>
 
-            <div className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5 py-1">
+            <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
               <Lock size={11} />
-              Paiement sécurisé · Livré en 5 jours ouvrables
-            </div>
+              {lang === 'en'
+                ? 'Secure payment · Delivered in 5 business days'
+                : 'Paiement sécurisé · Livré en 5 jours ouvrables'}
+            </p>
 
             {product.description && (
-              <div className="pt-2 border-t border-border">
-                <h3 className="font-bold mb-2 text-sm text-foreground">Description</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
+              <div className="pt-3 border-t border-border">
+                <h3 className="font-bold mb-2 text-sm text-foreground">
+                  {lang === 'en' ? 'Description' : 'Description'}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {product.description}
+                </p>
               </div>
             )}
           </div>
