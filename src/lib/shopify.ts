@@ -55,63 +55,98 @@ export interface ShopifyProduct {
   };
 }
 
-// ── Colour name → hex (ATC / SanMar colour codes) ─────────────────────────
+// ── Colour name → hex — complete FR/EN mapping for all 74 Shopify variants ──
 const COLOUR_HEX_MAP: Record<string, string> = {
-  // Neutrals
+  // Blacks
   'Black': '#1a1a1a', 'Noir': '#1a1a1a',
-  'White': '#f5f5f0', 'Blanc': '#f5f5f0',
-  'Natural': '#f0ead6', 'Naturel': '#f0ead6',
-  'Off White': '#f5f2e8',
+  'Noir chiné': '#2d2d2d', 'Noir/Noir': '#1a1a1a', 'Noir/Blanc': '#1a1a1a',
+  'Graphite Chiné': '#3a3a3a', 'Multicam Noir/Noir': '#1a1a1a', 'Multicam/Noir': '#1a1a1a',
+  // Whites / Naturals
+  'White': '#f5f5f0', 'Blanc': '#f5f5f0', 'Blanc/Blanc': '#f5f5f0',
+  'Natural': '#f0ead6', 'Naturel': '#f0ead6', 'Off White': '#f5f2e8',
+  'Sable': '#c4a882', 'Sable Foncé': '#8b7a5e',
+  'Avoine Chiné': '#d4c5a8',
   // Greys
-  'Heather Grey': '#b8b8b8', 'Gris chiné': '#b8b8b8',
-  'Steel Grey': '#6b6b6b', 'Gris acier': '#6b6b6b',
-  'Charcoal': '#3d3d3d', 'Charbon': '#3d3d3d',
-  'Dark Heather': '#4a4a4a',
+  'Gris cendré': '#b8b9bc', 'Heather Grey': '#b8b9bc', 'Gris chiné': '#b8b9bc',
+  'Gris Cendré Athlétique': '#b0b8c0', 'Chiné Athlétique': '#9ca3af',
+  'Gris Foncé': '#4b5563', 'Gris Foncé Chiné': '#3d4046',
+  'Charcoal': '#374151', 'Charbon': '#374151',
+  'Charbon/Blanc': '#374151', 'Charbon/Charbon': '#374151', 'Charbon/Noir': '#374151',
+  'Steel Grey': '#6b7280', 'Gris acier': '#6b7280',
+  'Gris Béton': '#7d7d7d', 'Oxford Athlétique': '#6e7278',
+  'Dark Heather': '#4a4a4a', 'Heather': '#b8aacc',
+  'Chiné/Blanc': '#b0b0b0', 'Chiné/Noir': '#6b6b6b',
+  'Argent': '#a8a9ad',
   // Blues
-  'Navy': '#1B3A6B', 'Marine': '#1B3A6B',
-  'Royal': '#1a3a8b', 'Bleu royal': '#1a3a8b',
-  'Light Blue': '#4a90d9', 'Bleu pâle': '#4a90d9',
-  'Sky Blue': '#6bb5e8',
+  'Navy': '#1b3a6b', 'Marine': '#1b3a6b', 'Marine/Marine': '#1b3a6b',
+  'Marine Foncé': '#0d2240', 'Marine Chiné': '#2d4a7a',
+  'Marine/Blanc': '#1b3a6b', 'Marine/Argent': '#1b3a6b',
+  'Royal': '#1a3a8b', 'Royal Franc': '#1a3a8b', 'Royal Chiné': '#1f3d8a',
+  'Royal/Blanc': '#1a3a8b', 'Bleu royal': '#1a3a8b',
+  'Saphir': '#1560bd',
+  'Lac Blue': '#4a8ec2', 'Bleu Caroline': '#4a8ec2',
+  'Bleu Aquatique': '#06a3b4', 'Bleu Aqua Brilliant': '#00b4d8',
+  'Light Blue': '#93c6e0', 'Bleu Pâle': '#93c6e0',
+  'Bleu Fluo': '#00bfff', 'Sky Blue': '#6bb5e8',
   'Athletic Blue': '#1a5caf',
   // Reds
   'Red': '#cc1a1a', 'Rouge': '#cc1a1a',
-  'Dark Red': '#8b1a1a', 'Rouge foncé': '#8b1a1a',
+  'Rouge Chiné': '#a01515', 'Rouge/Blanc': '#cc1a1a',
+  'Sangria': '#8b1a3a',
   'Cardinal': '#7a1f2e',
   'Maroon': '#5c1420', 'Bordeaux': '#5c1420',
+  'Rose Bonbon': '#ff6eb4', 'Rose Fluo': '#ff1dce',
+  'Pink': '#e87aaa', 'Hot Pink': '#d4186c', 'Lavande': '#c4a8e0',
   // Greens
-  'Forest Green': '#1a3d2e', 'Vert forêt': '#1a3d2e',
-  'Kelly Green': '#1a7a2e',
+  'Forest Green': '#1a3d2e', 'Vert Foncé': '#14532d',
+  'Kelly': '#1a7a2e', 'Kelly Green': '#1a7a2e',
+  'Vert Athlétique': '#1a6b2e',
+  'Vert Laurel': '#4a7c59',
+  'Vert Trèfle': '#1b5e20',
+  'Military Green': '#3d4a2e', 'Vert Militaire': '#3f4f2a',
+  'Vert Sécurité': '#5c7a1e',
   'Bottle Green': '#0f4020',
-  'Military Green': '#3d4a2e',
   // Purples / Burgundy
-  'Purple': '#4a1a7a', 'Mauve': '#4a1a7a',
+  'Purple': '#4a1a7a', 'Mauve': '#9b59b6', 'Mauve chiné': '#8b50a6',
   'Burgundy': '#5c1a2e', 'Bourgogne': '#5c1a2e',
   'Vintage Purple': '#5c2a6b',
-  // Browns / Neutrals
-  'Caramel Brown': '#4a3728', 'Brun caramel': '#4a3728',
-  'Khaki': '#6b6b3a', 'Kaki': '#6b6b3a',
+  // Browns / Khakis
+  'Caramel': '#c19a6b', 'Caramel/Noir': '#c19a6b',
+  'Caramel Brown': '#a37c50', 'Brun caramel': '#a37c50',
+  'Marron': '#7b4f2e',
+  'Brun chocolat foncé': '#3c1f10',
+  'Brun coyote': '#81613c', 'Brun/Kaki': '#6b5b3e',
+  'Khaki': '#92835a', 'Kaki': '#92835a',
   'Tan': '#c4a882',
-  'Camo Green': '#5a6040',
-  // Warm
-  'Gold': '#B8860B', 'Or': '#B8860B',
-  'Orange': '#d4621a',
-  'Athletic Gold': '#C08B14',
-  // Pink
-  'Hot Pink': '#d4186c',
-  'Pink': '#e87aaa',
-  // Special
-  'Heather': '#b8aacc',
+  'Camouflage': '#4b5320', 'Camo Green': '#5a6040',
+  'Realtree EDGE®**/Brun': '#5b4c37',
+  // Golds / Oranges / Yellows
+  'Gold': '#b8860b', 'Or': '#b8860b', 'Athletic Gold': '#c08b14',
+  'Jaune': '#f5c518', 'Jaune Sécurité': '#ffd700',
+  'Citron Vert Fluo': '#adff2f',
+  'Orange': '#e8521e', 'Orange Profond': '#d4450c',
+  'Orange sécurité': '#ff4500',
 };
 
 function colorNameToHex(name: string): string {
+  if (!name || name === '-') return '#888888';
   if (COLOUR_HEX_MAP[name]) return COLOUR_HEX_MAP[name];
-  // Fuzzy match
+  // For compound names like "Noir/Blanc", use first part
+  const primary = name.split('/')[0].trim();
+  if (COLOUR_HEX_MAP[primary]) return COLOUR_HEX_MAP[primary];
+  // Fuzzy match — longer key wins to avoid 'Or' matching 'Orange' etc
+  let best: string | null = null;
+  let bestLen = 0;
+  const nameLow = name.toLowerCase();
   for (const [key, val] of Object.entries(COLOUR_HEX_MAP)) {
-    if (name.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(name.toLowerCase())) {
-      return val;
+    const keyLow = key.toLowerCase();
+    if (nameLow === keyLow) return val;
+    if ((nameLow.includes(keyLow) || keyLow.includes(nameLow)) && key.length > bestLen) {
+      best = val;
+      bestLen = key.length;
     }
   }
-  return '#888888'; // fallback
+  return best ?? '#888888';
 }
 
 // ── Storefront API request ─────────────────────────────────────────────────
