@@ -13,13 +13,13 @@ import { ProductViewer3D } from './ProductViewer3D';
 function StepContent() {
   const { step, setLogoPlacement } = useCustomizerStore();
 
-  const handleLogoReady = (url: string) => {
-    setLogoPlacement({ zoneId: 'poitrine-centre', mode: 'preset', processedUrl: url, previewUrl: url });
+  const handleLogoReady = (previewUrl: string, processedUrl: string, originalFile: File) => {
+    setLogoPlacement({ zoneId: 'poitrine-centre', mode: 'preset', processedUrl, previewUrl, originalFile });
   };
 
   switch (step) {
     case 1: return <ColorSelector />;
-    case 2: return <LogoUploader onLogoReady={(url) => handleLogoReady(url)} />;
+    case 2: return <LogoUploader onLogoReady={handleLogoReady} />;
     case 3: return <PlacementSelector />;
     case 4: return <SizeQuantityPicker />;
     case 5: return <SummaryStep />;
