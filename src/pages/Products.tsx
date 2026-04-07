@@ -13,6 +13,7 @@ const CATEGORIES = [
   { id: 'headwear', label: 'Casquettes & Tuques' },
   { id: 'manteaux', label: 'Manteaux' },
   { id: 'enfants', label: 'Enfants' },
+  { id: 'kits', label: 'Kits' },
 ];
 
 const CATEGORY_TILES = [
