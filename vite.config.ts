@@ -19,4 +19,20 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    // Split the heavy 3D / canvas / framer libs out of the main bundle so the
+    // landing page can hydrate fast and only load them when the customizer opens.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor':    ['react', 'react-dom', 'react-router-dom'],
+          'three':           ['three', '@react-three/fiber', '@react-three/drei'],
+          'fabric':          ['fabric'],
+          'framer':          ['framer-motion'],
+          'tanstack':        ['@tanstack/react-query'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
+  },
 }));

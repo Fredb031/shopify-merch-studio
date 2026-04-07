@@ -6,10 +6,11 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { Loader2, ArrowLeft, Lock, Shirt, Check, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Lock, Shirt, Check, ChevronRight, Package } from 'lucide-react';
 import { useState } from 'react';
 import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { useLang } from '@/lib/langContext';
+import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -30,6 +31,9 @@ export default function ProductDetail() {
 
   const localProduct = findProductByHandle(handle ?? '');
   const localProductId = localProduct?.id ?? 'atcf2500';
+
+  // Live SanMar Canada stock — degrades silently if the edge function is not deployed
+  const { summary: stock, isLoading: stockLoading } = useSanmarInventory(localProduct?.sku ?? null);
 
   if (isLoading) {
     return (
@@ -195,6 +199,25 @@ export default function ProductDetail() {
                 </div>
               );
             })()}
+
+            {/* Live SanMar stock — only shows when the edge function returns real data */}
+            {stockLoading ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-xs text-muted-foreground">
+                <Package className="w-3.5 h-3.5 animate-pulse" />
+                {lang === 'en' ? 'Checking live inventory…' : 'Vérification du stock en direct…'}
+              </div>
+            ) : stock.totalAvailable > 0 ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-green-200 bg-green-50 text-xs">
+                <Package className="w-3.5 h-3.5 text-green-700" />
+                <span className="font-bold text-green-800">
+                  {stock.totalAvailable.toLocaleString()} {lang === 'en' ? 'units in stock' : 'unités en stock'}
+                </span>
+                <span className="text-green-700">
+                  · {stock.byColor.size} {lang === 'en' ? 'colors' : 'couleurs'}
+                  · {stock.bySize.size} {lang === 'en' ? 'sizes' : 'tailles'}
+                </span>
+              </div>
+            ) : null}
 
             {/* Options */}
             {options.map((option: { name: string; values: string[] }) => (
