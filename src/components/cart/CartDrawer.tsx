@@ -2,7 +2,7 @@
  * CartDrawer — Panier avec aperçu produit live (devant + logo)
  * Chaque article montre l'image devant avec le logo overlaid.
  */
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
@@ -67,7 +67,7 @@ function CartItemPreview({ item }: { item: CartItemCustomization }) {
 const VALID_CODES: Record<string, number> = { VISION10: 0.10, VISION15: 0.15, VISION20: 0.20 };
 
 export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
   const cart = useCartStore();
   const [codeInput, setCodeInput] = useState('');
@@ -75,7 +75,11 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 
   const applyCode = () => {
     const ok = cart.applyDiscount(codeInput.toUpperCase());
-    setCodeMsg(ok ? { ok: true, text: `Code ${codeInput.toUpperCase()} appliqué !` } : { ok: false, text: 'Code invalide' });
+    setCodeMsg(
+      ok
+        ? { ok: true, text: lang === 'en' ? `Code ${codeInput.toUpperCase()} applied!` : `Code ${codeInput.toUpperCase()} appliqué !` }
+        : { ok: false, text: lang === 'en' ? 'Invalid code' : 'Code invalide' }
+    );
     setTimeout(() => setCodeMsg(null), 3000);
   };
 
@@ -145,7 +149,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                       <div className="flex items-center gap-2 mt-1">
                         <p className="text-xs font-extrabold text-primary">{item.totalPrice.toFixed(2)} $</p>
                         <span className="text-[10px] text-muted-foreground">
-                          ({item.totalQuantity} {item.totalQuantity !== 1 ? 'unités' : 'unité'})
+                          ({item.totalQuantity} {lang === 'en' ? (item.totalQuantity !== 1 ? 'units' : 'unit') : (item.totalQuantity !== 1 ? 'unités' : 'unité')})
                         </span>
                       </div>
                     </div>
@@ -178,8 +182,10 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             ) : (
               <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
                 <Tag size={11} className="text-green-700" />
-                <span className="text-xs font-bold text-green-700">Code {cart.discountCode} appliqué</span>
-                <button onClick={() => cart.applyDiscount('')} className="ml-auto text-green-500"><X size={11} /></button>
+                <span className="text-xs font-bold text-green-700">
+                  {lang === 'en' ? `Code ${cart.discountCode} applied` : `Code ${cart.discountCode} appliqué`}
+                </span>
+                <button onClick={() => cart.clearDiscount()} className="ml-auto text-green-500"><X size={11} /></button>
               </div>
             )}
             {codeMsg && <p className={`text-xs font-bold px-1 ${codeMsg.ok ? 'text-green-700' : 'text-destructive'}`}>{codeMsg.text}</p>}
@@ -205,3 +211,4 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
 }
 
 export { CartDrawer as default };
+
