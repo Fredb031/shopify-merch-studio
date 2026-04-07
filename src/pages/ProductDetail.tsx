@@ -44,6 +44,8 @@ export default function ProductDetail() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
+  const addItem = useCartStore(state => state.addItem);
+  const isCartLoading = useCartStore(state => state.isLoading);
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['shopify-product', handle],
