@@ -185,6 +185,9 @@
 /* Hero logo marquee */
 @keyframes heroLogoScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
+/* Logo marquee section */
+@keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
 /* Intersection observer fade-in */
 .fi {
   opacity: 0;

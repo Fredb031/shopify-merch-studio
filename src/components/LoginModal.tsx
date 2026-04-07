@@ -6,7 +6,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
-  const [accountType, setAccountType] = useState<'client' | 'enterprise'>('client');
+  const [accountType, setAccountType] = useState<'client' | 'admin' | null>(null);
 
   if (!isOpen) return null;
 
@@ -33,9 +33,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             { id: 'client' as const, icon: (
               <svg className="w-[18px] h-[18px] stroke-primary fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>
             ), name: 'Client', desc: 'Suivi de commandes' },
-            { id: 'enterprise' as const, icon: (
-              <svg className="w-[18px] h-[18px] stroke-primary fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-            ), name: 'Entreprise', desc: 'Volume & facturation' },
+            { id: 'admin' as const, icon: (
+              <svg className="w-[18px] h-[18px] stroke-primary fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            ), name: 'Admin', desc: 'Gestion & commandes' },
           ].map(t => (
             <div
               key={t.id}
@@ -53,17 +53,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           ))}
         </div>
 
-        {/* Form */}
-        <div className="px-6 pb-6 flex flex-col gap-2.5">
-          <input className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background" placeholder="Courriel" type="email" />
-          <input className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background" placeholder="Mot de passe" type="password" />
-          <button className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity">
-            Se connecter
-          </button>
-          <div className="text-[12px] text-muted-foreground text-center cursor-pointer underline" onClick={onClose}>
-            Annuler
+        {/* Form — shown after selecting type */}
+        {accountType ? (
+          <div className="px-6 pb-6 flex flex-col gap-2.5">
+            <input className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background" placeholder="Adresse courriel" type="email" />
+            <input className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background" placeholder="Mot de passe" type="password" />
+            <button className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity">
+              Se connecter
+            </button>
+            <div className="text-[12px] text-muted-foreground text-center cursor-pointer underline" onClick={onClose}>
+              Annuler
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="px-6 pb-5 text-center">
+            <span className="text-[12px] text-muted-foreground">Sélectionne un type de compte pour continuer</span>
+          </div>
+        )}
       </div>
     </div>
   );

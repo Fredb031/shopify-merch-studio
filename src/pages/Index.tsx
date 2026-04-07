@@ -7,13 +7,15 @@ import { LoginModal } from '@/components/LoginModal';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 
-const avatarColors = ['#1B3A6B', '#1a3d2e', '#5f1f1f', '#6b6b6b'];
-const avatarInitials = ['SL', 'WB', 'JP', 'AO'];
-
-const MARQUEE_LOGOS = [
-  'https://visionaffichage.com/cdn/shop/files/sous-pression-logo.png?height=80&v=1770475023',
-  'https://visionaffichage.com/cdn/shop/files/perfocazes-logo.png?height=80&v=1770474993',
-  'https://visionaffichage.com/cdn/shop/files/luca-jalbert-logo.png?height=80&v=1770579609',
+const HERO_LOGOS = [
+  { src: 'https://visionaffichage.com/cdn/shop/files/extreme-fab-coul.png?v=1763588020&width=300', alt: 'Extreme Fab' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/Sports-experts-coul.png?v=1763588020&width=300', alt: 'Sports Experts' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/E-Turgeon-Sport-coul.png?v=1763588020&width=300', alt: 'E-Turgeon Sport' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/Lacasse-coul.png?v=1763588020&width=300', alt: 'Lacasse' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/CFP-coul_0876cdef-2a96-4638-a3f3-d6b69f8d8fa0.png?v=1763588385&width=300', alt: 'CFP' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/Uni-coul.png?v=1763588020&width=300', alt: 'Uni' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/Parc-massif-coul.png?v=1763588020&width=300', alt: 'Parc Massif' },
+  { src: 'https://visionaffichage.com/cdn/shop/files/Muni-Saint-Anselme-coul_2846d7c3-80a6-48da-a08b-ca99098aa62f.png?v=1763588679&width=300', alt: 'Muni Saint-Anselme' },
 ];
 
 const StarSvg = () => (
@@ -70,6 +72,8 @@ export default function Index() {
     sessionStorage.setItem('moleGamePlayed', 'true');
   };
 
+  const allLogos = [...HERO_LOGOS, ...HERO_LOGOS];
+
   return (
     <div className="min-h-screen bg-background">
       {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
@@ -84,12 +88,12 @@ export default function Index() {
         <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
           {/* Pain point kicker */}
           <p className={`text-sm text-muted-foreground mb-6 max-w-[600px] mx-auto leading-relaxed ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            Tes clients te jugent avant que tu ouvres la bouche. Ton image parle en premier.
+            Tes clients te jugent avant que tu parles — habille ton équipe à la hauteur.
           </p>
 
           {/* H1 */}
           <h1 className={`text-[clamp(48px,7.5vw,92px)] font-extrabold leading-[0.95] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            Habille ton équipe.<span className="block text-primary">Impose ta marque.</span>
+            Commande en<br />3 minutes.<span className="block text-primary">Reçue en 5 jours.</span>
           </h1>
 
           {/* CTA */}
@@ -107,50 +111,37 @@ export default function Index() {
           <div className={`w-full max-w-[680px] mx-auto mb-7 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
             <div className="absolute top-0 bottom-0 left-0 w-16 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
             <div className="absolute top-0 bottom-0 right-0 w-16 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
-            <div className="flex animate-marquee w-max">
-              {[...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS].map((logo, i) => (
-                <img key={i} src={logo} alt="" className="h-[30px] px-7 object-contain grayscale opacity-[0.38] hover:grayscale-0 hover:opacity-100 transition-all" />
+            <div className="flex animate-marquee w-max" style={{ animation: 'heroLogoScroll 24s linear infinite' }}>
+              {allLogos.map((logo, i) => (
+                <img key={i} src={logo.src} alt={logo.alt} className="h-[30px] px-7 object-contain grayscale opacity-[0.38] hover:grayscale-0 hover:opacity-100 transition-all" />
               ))}
             </div>
           </div>
 
           {/* Google row */}
           <div className={`flex items-center justify-center gap-[7px] ${heroStaggered ? 'animate-[staggerUp_0.6s_0.63s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            <GoogleIcon />
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
             </div>
-            <span className="text-[12px] font-semibold text-muted-foreground">5,0 sur Google · +500 entreprises</span>
+            <span className="text-[12px] font-semibold text-muted-foreground">50+ avis Google</span>
           </div>
         </div>
       </section>
 
-      {/* Steps */}
+      {/* Steps — minimal v8 */}
       <FadeIn>
-        <section className="gradient-navy-dark py-[68px] px-6 md:px-10">
+        <section className="gradient-navy-dark py-0 px-6 md:px-10">
           <div className="max-w-[1060px] mx-auto">
-            <div className="text-[11px] font-bold tracking-[3px] text-primary-foreground/25 uppercase mb-2.5">Processus</div>
-            <h2 className="text-[clamp(28px,4vw,44px)] font-extrabold text-primary-foreground tracking-[-1px] mb-12 leading-[1.05]">
-              Trois étapes.<br /><em className="text-primary-foreground/28 not-italic">C'est tout.</em>
-            </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[
-                { n: '01', title: 'Choisis ton produit', desc: 'T-shirt, hoodie, casquette, manteau. Sélectionne la couleur et la quantité. Aucun minimum.', icon: (
-                  <svg className="w-[22px] h-[22px] stroke-primary-foreground/70 fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M20.38 3.46L16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.57a1 1 0 00.99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.57a2 2 0 00-1.34-2.23z"/></svg>
-                )},
-                { n: '02', title: 'Upload ton logo', desc: "On enlève le fond et convertit en SVG automatiquement. Aperçu en direct sur le produit.", icon: (
-                  <svg className="w-[22px] h-[22px] stroke-primary-foreground/70 fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                )},
-                { n: '03', title: 'Reçois en 5 jours', desc: "On imprime, on emballe, on expédie. Livraison en 5 jours ouvrables. Qualité garantie 1 an.", icon: (
-                  <svg className="w-[22px] h-[22px] stroke-primary-foreground/70 fill-none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                )},
+                { n: '01', title: 'Choisis ton produit' },
+                { n: '02', title: 'Upload ton logo' },
+                { n: '03', title: 'Reçois en 5 jours' },
               ].map((step, i) => (
-                <div key={i} className="bg-primary-foreground/[0.04] p-8 transition-colors hover:bg-primary-foreground/[0.07]">
-                  <div className="text-[10px] font-extrabold tracking-[2.5px] text-primary-foreground/20 mb-[18px]">{step.n} —</div>
-                  <div className="w-11 h-11 bg-primary-foreground/[0.08] rounded-xl flex items-center justify-center mx-auto mb-4">
-                    {step.icon}
-                  </div>
-                  <div className="text-base font-bold text-primary-foreground mb-[7px]">{step.title}</div>
-                  <div className="text-[13px] text-primary-foreground/[0.42] leading-relaxed">{step.desc}</div>
+                <div key={i} className="bg-primary-foreground/[0.04] text-center py-11 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
+                  <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/20 mb-5">{step.n}</div>
+                  <div className="text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{step.title}</div>
                 </div>
               ))}
             </div>
@@ -158,42 +149,21 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Stats Bar */}
+      {/* Stats Bar — pure numbers, no icons */}
       <FadeIn>
         <section className="border-b border-border">
           <div className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4">
             {[
-              { num: '33K+', label: 'Produits livrés', icon: <svg className="w-4 h-4 stroke-accent fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zM1 7l3-4h16l3 4"/></svg> },
-              { num: '5 jours', label: 'Délai de livraison', icon: <svg className="w-4 h-4 stroke-accent fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> },
-              { num: '500+', label: 'Entreprises satisfaites', icon: <svg className="w-4 h-4 stroke-accent fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-              { num: '5,0', label: 'Note Google', icon: <svg className="w-4 h-4 stroke-accent fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> },
+              { num: '33 000+', label: 'Produits livrés' },
+              { num: '5 jours', label: 'Délai de livraison' },
+              { num: '500+', label: 'Entreprises satisfaites' },
+              { num: '5,0', label: 'Note Google' },
             ].map((item, i) => (
-              <div key={i} className="py-7 text-center border-r border-border last:border-r-0 flex flex-col items-center gap-1.5">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'hsla(var(--gold), 0.12)' }}>
-                  {item.icon}
-                </div>
+              <div key={i} className="py-7 text-center border-r border-border last:border-r-0">
                 <div className="text-[28px] font-extrabold text-primary">{item.num}</div>
-                <div className="text-[12px] text-muted-foreground">{item.label}</div>
+                <div className="text-[12px] text-muted-foreground mt-1">{item.label}</div>
               </div>
             ))}
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Logo Marquee */}
-      <FadeIn>
-        <section className="border-b border-border py-7 overflow-hidden bg-background">
-          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">Ils nous font confiance</div>
-          <div className="overflow-hidden relative">
-            <div className="absolute top-0 bottom-0 left-0 w-20 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
-            <div className="absolute top-0 bottom-0 right-0 w-20 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
-            <div className="flex gap-0 animate-marquee w-max">
-              {[...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS, ...MARQUEE_LOGOS].map((logo, i) => (
-                <div key={i} className="px-10 flex items-center justify-center h-12">
-                  <img src={logo} alt="" className="h-9 w-auto object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
-                </div>
-              ))}
-            </div>
           </div>
         </section>
       </FadeIn>
@@ -216,7 +186,7 @@ export default function Index() {
               <p className="text-[15px] text-muted-foreground leading-[1.8]">
                 Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : <strong className="text-foreground">l'image que tu projettes construit la réputation que tu mérites.</strong>
               </p>
-              <div className="font-lora text-[24px] italic text-primary mt-6">— Samuel</div>
+              <div className="font-lora text-[22px] italic text-primary mt-6">— Samuel</div>
               <div className="text-[12px] text-muted-foreground mt-[3px]">Fondateur, Vision Affichage</div>
             </div>
 
@@ -234,7 +204,7 @@ export default function Index() {
                 </div>
                 <div>
                   <div className="text-[12px] font-bold text-foreground">+33 000 produits livrés</div>
-                  <div className="text-[11px] text-muted-foreground">Depuis 2021 · Québec</div>
+                  <div className="text-[11px] text-muted-foreground">Depuis 2021</div>
                 </div>
               </div>
             </div>
@@ -289,7 +259,7 @@ export default function Index() {
                 <div className="flex gap-[3px] justify-center my-1">
                   {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
                 </div>
-                <div className="text-[11px] text-muted-foreground">41 avis vérifiés</div>
+                <div className="text-[11px] text-muted-foreground">41 avis</div>
               </div>
               <div className="w-px h-14 bg-border" />
               <div>
@@ -326,6 +296,24 @@ export default function Index() {
                     {[...Array(5)].map((_, j) => <StarSvg key={j} />)}
                   </div>
                   <p className="text-[13px] text-muted-foreground leading-relaxed">{r.txt}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* Logo Marquee — after reviews */}
+      <FadeIn>
+        <section className="border-t border-b border-border py-7 overflow-hidden bg-background">
+          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">Des entreprises qui nous font confiance</div>
+          <div className="overflow-hidden relative">
+            <div className="absolute top-0 bottom-0 left-0 w-20 z-[2] pointer-events-none bg-gradient-to-r from-background to-transparent" />
+            <div className="absolute top-0 bottom-0 right-0 w-20 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
+            <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
+              {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
+                <div key={i} className="px-10 flex items-center justify-center h-12">
+                  <img src={logo.src} alt={logo.alt} className="h-9 w-auto object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
                 </div>
               ))}
             </div>
