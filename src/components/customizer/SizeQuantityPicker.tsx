@@ -1,67 +1,62 @@
 import { Minus, Plus } from 'lucide-react';
-import { useCustomizerStore } from '@/store/customizerStore';
-import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
+import type { Product } from '@/data/products';
+import { BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
+import type { SizeQuantity } from '@/types/customization';
 
-export function SizeQuantityPicker() {
-  const { productId, sizeQuantities, setSizeQuantity, getTotalQuantity, getEstimatedPrice } = useCustomizerStore();
-  const product = PRODUCTS.find((p) => p.id === productId);
-  if (!product) return null;
-
-  const totalQty = getTotalQuantity();
-  const discount = totalQty >= BULK_DISCOUNT_THRESHOLD ? BULK_DISCOUNT_RATE * 100 : 0;
-  const unitPrice = product.basePrice + PRINT_PRICE;
-  const estimatedTotal = getEstimatedPrice();
+export function SizeQuantityPicker({
+  product,
+  sizeQuantities,
+  onUpdate,
+}: {
+  product: Product;
+  sizeQuantities: SizeQuantity[];
+  onUpdate: (size: string, qty: number) => void;
+}) {
+  const getQty = (size: string) => sizeQuantities.find((s) => s.size === size)?.quantity ?? 0;
+  const totalQty = sizeQuantities.reduce((sum, s) => sum + s.quantity, 0);
+  const hasDiscount = totalQty >= BULK_DISCOUNT_THRESHOLD;
 
   return (
-    <div className="p-5">
-      <h3 className="text-sm font-bold text-foreground mb-1">Tailles & Quantités</h3>
-      <p className="text-xs text-muted-foreground mb-4">Minimum 1 unité · 15% dès 12 unités</p>
+    <div className="space-y-3">
+      <div className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+        hasDiscount ? 'bg-green-600/10 text-green-700' : 'bg-secondary text-muted-foreground'
+      }`}>
+        <span>{hasDiscount ? `${BULK_DISCOUNT_RATE * 100}% de rabais appliqué !` : `Commande ${BULK_DISCOUNT_THRESHOLD}+ pour -${BULK_DISCOUNT_RATE * 100}%`}</span>
+        <span className="font-black">{totalQty} unité{totalQty !== 1 ? 's' : ''}</span>
+      </div>
 
-      <div className="space-y-2">
+      <div className={`grid gap-2 ${product.sizes.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
         {product.sizes.map((size) => {
-          const qty = sizeQuantities.find((s) => s.size === size)?.quantity ?? 0;
+          const qty = getQty(size);
           return (
-            <div key={size} className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-sm font-semibold w-12">{size}</span>
-              <div className="flex items-center gap-2">
+            <div
+              key={size}
+              className={`rounded-xl border p-3 transition-all ${
+                qty > 0 ? 'border-navy bg-navy/5' : 'border-border'
+              }`}
+            >
+              <div className="text-xs font-black text-foreground mb-2 text-center">{size}</div>
+              <div className="flex items-center justify-center gap-2">
                 <button
-                  onClick={() => setSizeQuantity(size, Math.max(0, qty - 1))}
-                  className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+                  onClick={() => onUpdate(size, Math.max(0, qty - 1))}
+                  disabled={qty === 0}
+                  className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-navy transition-all"
                 >
-                  <Minus className="w-3 h-3" />
+                  <Minus size={12} />
                 </button>
-                <span className="w-8 text-center text-sm font-bold">{qty}</span>
+                <span className={`w-8 text-center text-sm font-black ${qty > 0 ? 'text-navy' : 'text-muted-foreground'}`}>
+                  {qty}
+                </span>
                 <button
-                  onClick={() => setSizeQuantity(size, qty + 1)}
-                  className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground"
+                  onClick={() => onUpdate(size, qty + 1)}
+                  className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-navy hover:text-navy transition-all"
                 >
-                  <Plus className="w-3 h-3" />
+                  <Plus size={12} />
                 </button>
               </div>
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-4 bg-secondary rounded-xl p-4 space-y-2 text-xs">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Total unités</span>
-          <span className="font-bold text-foreground">{totalQty}</span>
-        </div>
-        {discount > 0 && (
-          <div className="flex justify-between font-bold" style={{ color: '#1B7A3E' }}>
-            <span>Rabais volume</span>
-            <span>-{discount}%</span>
-          </div>
-        )}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Prix unitaire</span>
-          <span className="font-bold text-foreground">{unitPrice.toFixed(2)} $</span>
-        </div>
-        <div className="flex justify-between text-sm font-bold text-navy pt-2 border-t border-border">
-          <span>Total estimé</span>
-          <span>{estimatedTotal.toFixed(2)} $</span>
-        </div>
       </div>
     </div>
   );
