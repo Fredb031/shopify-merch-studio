@@ -3,9 +3,10 @@ import { useCartStore } from '@/stores/cartStore';
 
 interface NavbarProps {
   onOpenCart?: () => void;
+  onOpenLogin?: () => void;
 }
 
-export function Navbar({ onOpenCart }: NavbarProps) {
+export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const totalItems = useCartStore(state => state.items.reduce((sum, item) => sum + item.quantity, 0));
 
   return (
@@ -19,6 +20,17 @@ export function Navbar({ onOpenCart }: NavbarProps) {
       </Link>
 
       <div className="flex items-center gap-2.5">
+        {onOpenLogin && (
+          <button
+            onClick={onOpenLogin}
+            className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground bg-transparent border border-border px-4 py-[7px] rounded-full cursor-pointer transition-all hover:border-muted-foreground hover:text-foreground"
+          >
+            <svg className="w-[13px] h-[13px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" viewBox="0 0 24 24">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
+            </svg>
+            Connexion
+          </button>
+        )}
         <button
           onClick={onOpenCart}
           className="flex items-center gap-[7px] text-[13px] text-muted-foreground bg-transparent border border-border px-4 py-[7px] rounded-full cursor-pointer transition-all hover:border-muted-foreground hover:text-foreground relative"
