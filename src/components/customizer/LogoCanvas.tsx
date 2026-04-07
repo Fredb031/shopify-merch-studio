@@ -1,8 +1,7 @@
 /**
- * LogoCanvas — Canva-like logo placement tool
- * Uses Fabric.js for drag / resize / rotate with handles.
- * Shows the actual product image as background.
- * Zone buttons snap logo to predefined print areas.
+ * LogoCanvas — Fabric.js logo placement on clean garment-coloured canvas
+ * Background is the garment's solid hex colour — NO product mockup image
+ * so there is ZERO logo duplication from embedded CDN watermarks.
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut, Move } from 'lucide-react';
@@ -11,23 +10,22 @@ import type { LogoPlacement } from '@/types/customization';
 
 interface LogoCanvasProps {
   product: Product;
-  productImageUrl: string;
+  garmentColor?: string;   // hex of selected colour — used as canvas background
   logoUrl: string | null;
   currentPlacement: LogoPlacement | null;
   onPlacementChange: (p: LogoPlacement) => void;
 }
 
-export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement, onPlacementChange }: LogoCanvasProps) {
+export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, onPlacementChange }: LogoCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef    = useRef<HTMLCanvasElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fc = useRef<any>(null); // Fabric.Canvas instance
+  const fc       = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const logoObj = useRef<any>(null);
+  const logoObj  = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [zoneId, setZoneId] = useState<string>(currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''));
 
-  // Emit placement from current logo object state
   const emit = useCallback((obj: any, zone: string) => {
     if (!fc.current || !obj) return;
     const W = fc.current.width as number;
@@ -45,7 +43,7 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
     });
   }, [logoUrl, onPlacementChange]);
 
-  // ── Init Fabric canvas ────────────────────────────────────────────────────
+  // ── Init canvas ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     let disposed = false;
@@ -57,35 +55,39 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
       const W = containerRef.current!.clientWidth || 320;
       const H = Math.round(W * 1.18);
 
+      // Use the garment colour as background — clean surface, no embedded logos
+      const bg = garmentColor ?? '#F2F0EB';
       const canvas = new fabric.Canvas(canvasRef.current!, {
         width: W, height: H,
-        backgroundColor: '#F4F3EF',
+        backgroundColor: bg,
         selection: false,
         preserveObjectStacking: true,
       });
       fc.current = canvas;
 
-      // Product background — non-interactive
-      fabric.Image.fromURL(
-        productImageUrl,
-        (img: any) => {
-          if (disposed || !fc.current) return;
-          img.set({ left: 0, top: 0, selectable: false, evented: false, lockMovementX: true, lockMovementY: true });
-          img.scaleToWidth(W);
-          canvas.add(img);
-          canvas.sendToBack(img);
-          setReady(true);
-          canvas.renderAll();
-        },
-        { crossOrigin: 'anonymous' }
-      );
+      // Dashed print-zone outline to guide logo placement
+      const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
+      if (zone) {
+        const zx = (zone.x / 100) * W;
+        const zy = (zone.y / 100) * H;
+        const zw = (zone.width  / 100) * W;
+        const zh = (zone.height / 100) * H;
+        const rect = new fabric.Rect({
+          left: zx, top: zy, width: zw, height: zh,
+          fill: 'rgba(255,255,255,0.06)',
+          stroke: 'rgba(255,255,255,0.40)',
+          strokeDashArray: [6, 4], strokeWidth: 1.5,
+          rx: 8, ry: 8,
+          selectable: false, evented: false,
+        });
+        canvas.add(rect);
+      }
 
-      canvas.on('object:modified', () => {
-        if (logoObj.current) emit(logoObj.current, zoneId);
-      });
-      canvas.on('object:moving', () => {
-        if (logoObj.current) emit(logoObj.current, 'manual');
-      });
+      setReady(true);
+      canvas.renderAll();
+
+      canvas.on('object:modified', () => { if (logoObj.current) emit(logoObj.current, zoneId); });
+      canvas.on('object:moving',   () => { if (logoObj.current) emit(logoObj.current, 'manual'); });
     });
 
     return () => {
@@ -93,9 +95,10 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
       fc.current?.dispose();
       fc.current = null;
     };
-  }, [productImageUrl]); // Re-init when product image changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [garmentColor]); // Re-init when garment colour changes
 
-  // ── Place/update logo ────────────────────────────────────────────────────
+  // ── Place / update logo ───────────────────────────────────────────────────
   useEffect(() => {
     if (!ready || !fc.current || !logoUrl) return;
     let disposed = false;
@@ -104,17 +107,15 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
       if (disposed || !fc.current) return;
       const canvas = fc.current;
 
-      // Remove old logo
       if (logoObj.current) { canvas.remove(logoObj.current); logoObj.current = null; }
 
       const W = canvas.width as number;
       const H = canvas.height as number;
 
-      // Determine initial position from zone
       const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
       let cx = W / 2, cy = H * 0.33, initScale = 0.28;
       if (zone) {
-        cx = (zone.x / 100) * W + (zone.width / 100) * W / 2;
+        cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
         cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
         initScale = (zone.width / 100) * 0.9;
       }
@@ -126,13 +127,13 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
           const targetW = W * initScale;
           const s = targetW / (img.width ?? 100);
           img.set({
-            left: cx - (img.width ?? 0) * s / 2,
-            top: cy - (img.height ?? 0) * s / 2,
+            left: cx - (img.width  ?? 0) * s / 2,
+            top:  cy - (img.height ?? 0) * s / 2,
             scaleX: s, scaleY: s,
             selectable: true, evented: true,
             hasControls: true, hasBorders: true,
             cornerStyle: 'circle', cornerSize: 10,
-            cornerColor: '#1B3A6B', borderColor: '#1B3A6B',
+            cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
             borderScaleFactor: 1.8, transparentCorners: false,
             lockUniScaling: true,
           });
@@ -148,9 +149,9 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
     });
 
     return () => { disposed = true; };
-  }, [ready, logoUrl, zoneId]); // Re-place when logo or zone changes
+  }, [ready, logoUrl, zoneId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Zone selector ────────────────────────────────────────────────────────
+  // ── Zone selector ─────────────────────────────────────────────────────────
   const selectZone = useCallback((zone: PrintZone) => {
     setZoneId(zone.id);
     if (!logoObj.current || !fc.current) return;
@@ -158,12 +159,12 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
     const W = canvas.width as number;
     const H = canvas.height as number;
     const obj = logoObj.current;
-    const cx = (zone.x / 100) * W + (zone.width / 100) * W / 2;
+    const cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
     const cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
     const ns = (zone.width / 100) * W * 0.88 / (obj.width ?? 100);
     obj.set({
-      left: cx - (obj.width ?? 0) * ns / 2,
-      top: cy - (obj.height ?? 0) * ns / 2,
+      left: cx - (obj.width  ?? 0) * ns / 2,
+      top:  cy - (obj.height ?? 0) * ns / 2,
       scaleX: ns, scaleY: ns,
     });
     canvas.setActiveObject(obj);
@@ -172,7 +173,7 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
     emit(obj, zone.id);
   }, [emit]);
 
-  // ── Toolbar actions ──────────────────────────────────────────────────────
+  // ── Toolbar ──────────────────────────────────────────────────────────────
   const snapLeft = () => {
     if (!logoObj.current || !fc.current) return;
     logoObj.current.set({ left: (fc.current.width as number) * 0.07 });
@@ -228,9 +229,9 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
         <canvas ref={canvasRef} className="w-full h-full block" style={{ touchAction: 'none' }} />
         {!logoUrl && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center px-6 py-4 rounded-xl bg-background/70 backdrop-blur-sm">
-              <Move className="mx-auto mb-2 text-muted-foreground/50" size={20} />
-              <p className="text-xs text-muted-foreground font-medium leading-snug">
+            <div className="text-center px-6 py-4 rounded-xl bg-black/30 backdrop-blur-sm">
+              <Move className="mx-auto mb-2 text-white/70" size={20} />
+              <p className="text-xs text-white/80 font-medium leading-snug">
                 Upload ton logo<br/>puis place-le ici
               </p>
             </div>
@@ -243,9 +244,9 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
         <div className="flex items-center justify-between bg-secondary rounded-xl px-3 py-2 border border-border">
           <div className="flex gap-0.5">
             {[
-              { icon: AlignLeft, label: 'Gauche', fn: snapLeft },
+              { icon: AlignLeft,   label: 'Gauche', fn: snapLeft   },
               { icon: AlignCenter, label: 'Centre', fn: snapCenter },
-              { icon: AlignRight, label: 'Droite', fn: snapRight },
+              { icon: AlignRight,  label: 'Droite', fn: snapRight  },
             ].map(({ icon: Icon, label, fn }) => (
               <button key={label} onClick={fn} title={label}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
@@ -257,9 +258,9 @@ export function LogoCanvas({ product, productImageUrl, logoUrl, currentPlacement
           <div className="w-px h-4 bg-border" />
           <div className="flex gap-0.5">
             {[
-              { icon: ZoomOut, label: 'Réduire', fn: () => rescale(-0.06) },
-              { icon: ZoomIn, label: 'Agrandir', fn: () => rescale(0.06) },
-              { icon: RotateCcw, label: '+15°', fn: rotate },
+              { icon: ZoomOut,   label: 'Réduire',  fn: () => rescale(-0.06) },
+              { icon: ZoomIn,    label: 'Agrandir', fn: () => rescale(0.06)  },
+              { icon: RotateCcw, label: '+15°',     fn: rotate               },
             ].map(({ icon: Icon, label, fn }) => (
               <button key={label} onClick={fn} title={label}
                 className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
