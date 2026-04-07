@@ -11,6 +11,7 @@ interface CartStore {
   removeItem: (cartId: string) => void;
   toggleCart: () => void;
   applyDiscount: (code: string) => boolean;
+  clearDiscount: () => void;
   getTotal: () => number;
   getItemCount: () => number;
   clear: () => void;
@@ -51,6 +52,8 @@ export const useCartStore = create<CartStore>()(
         }
         return false;
       },
+
+      clearDiscount: () => set({ discountCode: null, discountApplied: false }),
 
       getTotal: () => {
         const { items, discountApplied, discountCode } = get();
