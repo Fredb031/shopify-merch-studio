@@ -105,7 +105,15 @@ export function ProductCustomizer() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex-1"><ProductViewer3D /></div>
+            <div className="flex-1">
+              <ProductViewer3D
+                product={product}
+                selectedColor={product.colors.find((c) => c.id === store.colorId) ?? null}
+                logoPlacement={store.logoPlacement}
+                activeView={store.activeView}
+                onViewChange={(v) => store.setView(v)}
+              />
+            </div>
           </div>
 
           <div className="flex flex-col overflow-hidden">
