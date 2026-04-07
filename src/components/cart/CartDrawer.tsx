@@ -3,6 +3,7 @@
  * Chaque article montre l'image devant avec le logo overlaid.
  */
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -67,6 +68,7 @@ const VALID_CODES: Record<string, number> = { VISION10: 0.10, VISION15: 0.15, VI
 
 export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { t } = useLang();
+  const navigate = useNavigate();
   const cart = useCartStore();
   const [codeInput, setCodeInput] = useState('');
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -190,7 +192,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <button
               className="w-full bg-primary text-primary-foreground font-extrabold text-sm py-3.5 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-all"
               style={{ boxShadow: '0 6px 20px rgba(27,58,107,0.3)' }}
-              onClick={() => alert('→ Configure VITE_SHOPIFY_STOREFRONT_TOKEN pour le checkout')}
+              onClick={() => { onClose(); navigate('/cart'); }}
             >
               {t('passerCaisse')} <ChevronRight size={15} />
             </button>
