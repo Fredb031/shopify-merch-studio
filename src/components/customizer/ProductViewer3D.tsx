@@ -1,206 +1,128 @@
 /**
- * ProductViewer3D — Static 3D viewer with live colour
- * - Solid colour material (no texture background image)
- * - Devant / Dos toggle — thumbnail of OPPOSITE view shown bottom-right
- * - Logo overlaid on 3D model
- * - Colour chip bottom-left, logo badge bottom-right
+ * ProductViewer3D — Image-based product preview (NOT actually 3D anymore)
+ *
+ * The 3D code-rendered models did not look like the real garments, so this
+ * component now renders the actual Shopify product photo (devant + dos)
+ * with the user's logo overlaid as a CSS layer at the placement coordinates
+ * the customizer chose.
+ *
+ * The "VOTRE LOGO" placeholder text in the source JPG is hidden by a small
+ * coloured mask div positioned over the chest area. The user's real logo
+ * sits on top of that mask.
+ *
+ * Filename kept as ProductViewer3D for compatibility with existing imports.
  */
-import { Suspense, useRef, useMemo, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { useTexture } from '@react-three/drei';
-import * as THREE from 'three';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ImageOff } from 'lucide-react';
 import type { Product, ProductColor } from '@/data/products';
 import type { LogoPlacement, ProductView } from '@/types/customization';
-import {
-  createHoodieGeometry, createHoodBumpGeometry,
-  createPocketGeometry, createCuffGeometry, createDrawstringGeometry,
-} from '@/lib/hoodie3D';
-import { createShirtShape, createCapParts, createBeanieParts } from '@/lib/garmentGeometry';
 import { useLang } from '@/lib/langContext';
 
-function useFabricMat(hex: string, roughness = 0.86) {
-  return useMemo(() => new THREE.MeshStandardMaterial({
-    color: new THREE.Color(hex),
-    roughness,
-    metalness: 0,
-    side: THREE.FrontSide,
-  }), [hex, roughness]);
-}
-
-function LogoPlane({ url, x, y, w, rot = 0 }: { url:string; x:number; y:number; w:number; rot?:number }) {
-  const tex = useTexture(url);
-  useEffect(() => { tex.colorSpace = THREE.SRGBColorSpace; tex.premultiplyAlpha = false; tex.needsUpdate = true; }, [tex, url]);
-  return (
-    <mesh position={[x, y, 0.05]} rotation={[0, 0, rot * Math.PI / 180]}>
-      <planeGeometry args={[w, w * 0.62]} />
-      <meshBasicMaterial map={tex} transparent alphaTest={0.01} depthWrite={false} />
-    </mesh>
-  );
-}
-
-function LogoCurved({ url, z = 0.93 }: { url:string; z?:number }) {
-  const tex = useTexture(url);
-  useEffect(() => { tex.colorSpace = THREE.SRGBColorSpace; tex.premultiplyAlpha = false; tex.needsUpdate = true; }, [tex, url]);
-  return (
-    <mesh position={[0, -0.05, z]}>
-      <planeGeometry args={[0.38, 0.24]} />
-      <meshBasicMaterial map={tex} transparent alphaTest={0.01} depthWrite={false} />
-    </mesh>
-  );
-}
-
-function HoodieModel({ hex, logoUrl, logoPlacement }: { hex:string; logoUrl?:string; logoPlacement?:LogoPlacement }) {
-  const bodyGeo = useMemo(() => createHoodieGeometry(), []);
-  const hoodGeo = useMemo(() => createHoodBumpGeometry(), []);
-  const pocketGeo = useMemo(() => createPocketGeometry(), []);
-  const cuffL = useMemo(() => createCuffGeometry('left'), []);
-  const cuffR = useMemo(() => createCuffGeometry('right'), []);
-  const dsL = useMemo(() => createDrawstringGeometry('left'), []);
-  const dsR = useMemo(() => createDrawstringGeometry('right'), []);
-  const bodyMat = useFabricMat(hex, 0.87);
-  const darkC = useMemo(() => new THREE.MeshStandardMaterial({ color: new THREE.Color(hex).multiplyScalar(0.72), roughness: 0.92 }), [hex]);
-  const midC  = useMemo(() => new THREE.MeshStandardMaterial({ color: new THREE.Color(hex).multiplyScalar(0.80), roughness: 0.88 }), [hex]);
-  const lx = logoPlacement ? ((logoPlacement.x ?? 50) - 50) / 100 * 0.52 : 0;
-  const ly = logoPlacement ? (50 - (logoPlacement.y ?? 33)) / 100 * 0.85 + 0.08 : 0.18;
-  const lw = logoPlacement?.width ? (logoPlacement.width / 100) * 0.72 : 0.26;
-  return (
-    <group position={[0, -0.06, 0]}>
-      <mesh geometry={bodyGeo} material={bodyMat} />
-      <mesh geometry={hoodGeo} material={midC} />
-      <mesh geometry={pocketGeo} material={darkC} />
-      <mesh geometry={cuffL} material={darkC} />
-      <mesh geometry={cuffR} material={darkC} />
-      <mesh geometry={dsL}><meshStandardMaterial color="#0a0a0a" roughness={0.96} /></mesh>
-      <mesh geometry={dsR}><meshStandardMaterial color="#0a0a0a" roughness={0.96} /></mesh>
-      {([-0.068, 0.068] as const).map(ex => (
-        <mesh key={ex} position={[ex, 0.868, 0.042]}>
-          <torusGeometry args={[0.017, 0.007, 8, 20]} />
-          <meshStandardMaterial color="#e0e0e0" metalness={0.75} roughness={0.25} />
-        </mesh>
-      ))}
-      {logoUrl && logoPlacement && <LogoPlane url={logoUrl} x={lx} y={ly} w={lw} rot={logoPlacement.rotation ?? 0} />}
-    </group>
-  );
-}
-
-function ShirtModel({ hex, logoUrl, logoPlacement, isHoodie = false }: { hex:string; logoUrl?:string; logoPlacement?:LogoPlacement; isHoodie?:boolean }) {
-  const geo = useMemo(() => createShirtShape(isHoodie), [isHoodie]);
-  const mat = useFabricMat(hex);
-  const lx = logoPlacement ? ((logoPlacement.x ?? 50) - 50) / 100 * 0.95 : 0;
-  const ly = logoPlacement ? (50 - (logoPlacement.y ?? 32)) / 100 * 1.10 : 0.05;
-  const lw = logoPlacement?.width ? (logoPlacement.width / 100) * 0.88 : 0.28;
-  return (
-    <group>
-      <mesh geometry={geo} material={mat} />
-      {logoUrl && logoPlacement && <LogoPlane url={logoUrl} x={lx} y={ly} w={lw} rot={logoPlacement.rotation ?? 0} />}
-    </group>
-  );
-}
-
-function CapModel({ hex, logoUrl }: { hex:string; logoUrl?:string }) {
-  const parts = useMemo(() => createCapParts(), []);
-  const mat  = useFabricMat(hex, 0.78);
-  const trim = useMemo(() => new THREE.MeshStandardMaterial({ color: new THREE.Color(hex).lerp(new THREE.Color('#888'), 0.28), roughness:0.82 }), [hex]);
-  return (
-    <group rotation={[-0.1, 0, 0]}>
-      <mesh geometry={parts.dome} material={mat} />
-      <mesh geometry={parts.brim} material={trim} />
-      <mesh geometry={parts.button} material={trim} />
-      <mesh geometry={parts.sweatband}><meshStandardMaterial color="#111" roughness={0.9} /></mesh>
-      {logoUrl && <LogoCurved url={logoUrl} z={0.93} />}
-    </group>
-  );
-}
-
-function BeanieModel({ hex, logoUrl }: { hex:string; logoUrl?:string }) {
-  const parts = useMemo(() => createBeanieParts(), []);
-  const mat  = useFabricMat(hex, 0.92);
-  const cuff = useMemo(() => new THREE.MeshStandardMaterial({ color: new THREE.Color(hex).multiplyScalar(0.80), roughness:0.95 }), [hex]);
-  return (
-    <group>
-      <mesh geometry={parts.body} material={mat} />
-      <mesh geometry={parts.crown} material={mat} />
-      <mesh geometry={parts.cuff} material={cuff} />
-      <mesh geometry={parts.pompom}><meshStandardMaterial color={hex} roughness={1} /></mesh>
-      {logoUrl && <LogoCurved url={logoUrl} z={0.75} />}
-    </group>
-  );
-}
-
-function Skeleton() {
-  return <mesh><planeGeometry args={[1.65, 2.20]} /><meshBasicMaterial color="#E8E6E1" transparent opacity={0.45} /></mesh>;
+interface Props {
+  product: Product;
+  selectedColor: ProductColor | null;
+  logoPlacement: LogoPlacement | null;
+  activeView: ProductView;
+  onViewChange: (v: ProductView) => void;
+  compact?: boolean;
 }
 
 export function ProductViewer3D({
   product, selectedColor, logoPlacement, activeView, onViewChange, compact = false,
-}: {
-  product: Product; selectedColor: ProductColor | null;
-  logoPlacement: LogoPlacement | null;
-  activeView: ProductView; onViewChange: (v: ProductView) => void;
-  compact?: boolean;
-}) {
+}: Props) {
   const { t, lang } = useLang();
-  const H = compact ? 240 : 340;
-  const hex = selectedColor?.hex ?? '#1a1a1a';
+  const [imgError, setImgError] = useState(false);
+  const H = compact ? 240 : 360;
+
+  // Pick the variant-specific image when the user has chosen a colour
+  const imageDevant = selectedColor?.imageDevant ?? product.imageDevant;
+  const imageDos    = selectedColor?.imageDos    ?? product.imageDos;
+  const currentImage = activeView === 'front' ? imageDevant : imageDos;
+
   const logoUrl = logoPlacement?.previewUrl ?? logoPlacement?.processedUrl;
+  const colorHex = selectedColor?.hex ?? '#1a1a1a';
+  const colorLabel = (lang === 'en' && selectedColor?.nameEn) ? selectedColor.nameEn : (selectedColor?.name ?? '');
 
-  const thumbLabel = activeView === 'front' ? t('dos') : t('devant');
+  // The first print zone is where the embedded "VOTRE LOGO" placeholder lives —
+  // we cover it with a coloured mask and place the user's logo on top.
+  const maskZone = product.printZones[0];
 
-  const camPos: [number,number,number] =
-    product.category === 'cap'   ? [0, 0.5, 2.2] :
-    product.category === 'toque' ? [0, 0.2, 2.4] : [0, 0.0, 3.0];
+  // Logo CSS positioning — derived from the placement the customizer set
+  const lx = logoPlacement?.x ?? (maskZone ? maskZone.x + maskZone.width / 2 : 50);
+  const ly = logoPlacement?.y ?? (maskZone ? maskZone.y + maskZone.height / 2 : 35);
+  const lw = logoPlacement?.width ?? (maskZone ? maskZone.width * 0.85 : 26);
+  const lr = logoPlacement?.rotation ?? 0;
 
   return (
     <div className="relative flex flex-col rounded-2xl overflow-hidden bg-[#F4F3EF] border border-border">
-      {/* 3D Canvas — static, no pointer interaction */}
-      <div style={{ height: H }} className="relative pointer-events-none">
-        <Canvas camera={{ position: camPos, fov: 36 }} gl={{ antialias:true, alpha:true }} style={{ background:'transparent' }}>
-          <ambientLight intensity={1.4} />
-          <directionalLight position={[2.5, 5, 4]} intensity={1.0} />
-          <directionalLight position={[-2.5, 1.5, -2]} intensity={0.45} />
-          <pointLight position={[0, -5, 3]} intensity={0.3} color="#f0ece4" />
-          <Suspense fallback={<Skeleton />}>
-            {product.category === 'hoodie'   && <HoodieModel hex={hex} logoUrl={logoUrl} logoPlacement={logoPlacement ?? undefined} />}
-            {product.category === 'crewneck' && <ShirtModel  hex={hex} logoUrl={logoUrl} logoPlacement={logoPlacement ?? undefined} />}
-            {product.category === 'tshirt'   && <ShirtModel  hex={hex} logoUrl={logoUrl} logoPlacement={logoPlacement ?? undefined} />}
-            {product.category === 'longsleeve'&&<ShirtModel  hex={hex} logoUrl={logoUrl} logoPlacement={logoPlacement ?? undefined} />}
-            {product.category === 'polo'     && <ShirtModel  hex={hex} logoUrl={logoUrl} logoPlacement={logoPlacement ?? undefined} />}
-            {product.category === 'sport'    && <ShirtModel  hex={hex} logoUrl={logoUrl} logoPlacement={logoPlacement ?? undefined} />}
-            {product.category === 'cap'      && <CapModel    hex={hex} logoUrl={logoUrl} />}
-            {product.category === 'toque'    && <BeanieModel hex={hex} logoUrl={logoUrl} />}
-          </Suspense>
-        </Canvas>
-
-        {/* Bottom-left: colour chip */}
-        {selectedColor && (
-          <div className="absolute bottom-3 left-3 pointer-events-auto flex items-center gap-2 bg-white/88 backdrop-blur-sm rounded-full px-2.5 py-1.5 border border-border shadow-sm">
-            <div className="w-3.5 h-3.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: selectedColor.hex }} />
-            <span className="text-[11px] font-semibold text-foreground">
-              {(lang === 'en' && selectedColor.nameEn) ? selectedColor.nameEn : selectedColor.name}
-            </span>
+      {/* Photo area */}
+      <div style={{ height: H }} className="relative overflow-hidden bg-secondary">
+        {currentImage && !imgError ? (
+          <img
+            src={currentImage}
+            alt={product.shortName}
+            className="absolute inset-0 w-full h-full object-contain"
+            onError={() => setImgError(true)}
+            crossOrigin="anonymous"
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+            <ImageOff size={28} />
+            <span className="text-xs">{lang === 'en' ? 'No image' : "Pas d'image"}</span>
           </div>
         )}
 
-        {/* Bottom-right: view toggle — solid garment colour, no CDN mockup images */}
-        <button
-          onClick={() => onViewChange(activeView === 'front' ? 'back' : 'front')}
-          className="absolute bottom-3 right-3 pointer-events-auto group"
-          title={thumbLabel}
-        >
+        {/* Mask covers the embedded "VOTRE LOGO" placeholder when viewing the front
+            and the user has not yet placed their own logo. Once they place a logo,
+            the logo itself covers the area, so we keep the mask only for the front. */}
+        {activeView === 'front' && maskZone && (
           <div
-            className="w-14 h-14 rounded-xl border-2 border-white/70 shadow-lg group-hover:border-primary transition-all flex items-center justify-center"
-            style={{ background: hex }}
-          >
-            <span className="text-white text-[9px] font-extrabold drop-shadow-sm">{thumbLabel}</span>
+            className="absolute pointer-events-none rounded-xl"
+            style={{
+              left:   `${maskZone.x - 1}%`,
+              top:    `${maskZone.y - 1}%`,
+              width:  `${maskZone.width + 2}%`,
+              height: `${maskZone.height + 2}%`,
+              background: colorHex,
+              boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+            }}
+          />
+        )}
+
+        {/* User's logo overlaid at the chosen placement */}
+        {activeView === 'front' && logoUrl && (
+          <img
+            src={logoUrl}
+            alt="Logo"
+            className="absolute pointer-events-none object-contain"
+            style={{
+              left:   `${lx - lw / 2}%`,
+              top:    `${ly - lw * 0.35}%`,
+              width:  `${lw}%`,
+              maxWidth: '85%',
+              transform: `rotate(${lr}deg)`,
+              transformOrigin: 'center',
+            }}
+          />
+        )}
+
+        {/* Bottom-left: colour chip */}
+        {selectedColor && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1.5 border border-border shadow-sm">
+            <div className="w-3.5 h-3.5 rounded-full ring-1 ring-black/10 flex-shrink-0" style={{ background: colorHex }} />
+            <span className="text-[11px] font-semibold text-foreground">{colorLabel}</span>
           </div>
-        </button>
+        )}
 
         {/* Logo placed badge */}
         <AnimatePresence>
-          {logoPlacement?.previewUrl && (
-            <motion.div initial={{ opacity:0, scale:0.85 }} animate={{ opacity:1, scale:1 }} exit={{ opacity:0 }}
-              className="absolute top-3 right-3 pointer-events-none bg-green-700/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full"
+          {logoUrl && (
+            <motion.div
+              initial={{ opacity:0, scale:0.85 }}
+              animate={{ opacity:1, scale:1 }}
+              exit={{ opacity:0 }}
+              className="absolute top-3 right-3 bg-green-700/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full"
             >
               {t('logoPlace')}
             </motion.div>
@@ -211,7 +133,9 @@ export function ProductViewer3D({
       {/* Devant / Dos toggle */}
       <div className="flex border-t border-border">
         {(['front', 'back'] as const).map(v => (
-          <button key={v} onClick={() => onViewChange(v)}
+          <button
+            key={v}
+            onClick={() => onViewChange(v)}
             className={`flex-1 py-2.5 text-xs font-bold transition-all ${
               activeView === v
                 ? 'bg-primary text-primary-foreground'

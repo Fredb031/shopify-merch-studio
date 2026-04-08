@@ -11,9 +11,12 @@ export function PlacementSelector({
   currentPlacement: LogoPlacement | null;
   onPlacementChange: (placement: LogoPlacement) => void;
 }) {
+  const productImageUrl = selectedColor?.imageDevant ?? product.imageDevant;
+
   return (
     <LogoCanvas
       product={product}
+      productImageUrl={productImageUrl}
       garmentColor={selectedColor?.hex}
       logoUrl={logoPreviewUrl}
       currentPlacement={currentPlacement}

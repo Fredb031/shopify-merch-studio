@@ -1,7 +1,18 @@
 /**
- * LogoCanvas — Fabric.js logo placement on clean garment-coloured canvas
- * Background is the garment's solid hex colour — NO product mockup image
- * so there is ZERO logo duplication from embedded CDN watermarks.
+ * LogoCanvas — Fabric.js logo placement on the REAL product photo
+ *
+ * Layers (back → front):
+ *   1. Real Shopify product photo (e.g. ATCF2500-Devant.jpg)
+ *   2. "Print zone" mask: a rounded rect of the garment colour that COVERS
+ *      the embedded "VOTRE LOGO" placeholder text in the source JPG. This
+ *      gives a clean canvas where the user can drop their own logo.
+ *   3. The user's logo, locked to uniform scaling so it can never deform.
+ *
+ * Why a mask instead of a cleaner image?
+ *   The Shopify CDN images all ship with a "VOTRE LOGO" marketing placeholder
+ *   burned into the chest area. SanMar's Media Content API has clean photos,
+ *   but we don't want the customizer to break while waiting for credentials.
+ *   The mask is a robust workaround that works for every product today.
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut, Move } from 'lucide-react';
@@ -10,19 +21,24 @@ import type { LogoPlacement } from '@/types/customization';
 
 interface LogoCanvasProps {
   product: Product;
-  garmentColor?: string;   // hex of selected colour — used as canvas background
+  productImageUrl: string;   // real Shopify product photo (front or back)
+  garmentColor?: string;     // hex of selected colour — used to mask the embedded placeholder
   logoUrl: string | null;
   currentPlacement: LogoPlacement | null;
   onPlacementChange: (p: LogoPlacement) => void;
 }
 
-export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, onPlacementChange }: LogoCanvasProps) {
+export function LogoCanvas({
+  product, productImageUrl, garmentColor, logoUrl, currentPlacement, onPlacementChange,
+}: LogoCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef    = useRef<HTMLCanvasElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fc       = useRef<any>(null);
+  const fc      = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const logoObj  = useRef<any>(null);
+  const logoObj = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const maskRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
   const [zoneId, setZoneId] = useState<string>(currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''));
 
@@ -43,7 +59,7 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
     });
   }, [logoUrl, onPlacementChange]);
 
-  // ── Init canvas ────────────────────────────────────────────────────────────
+  // ── Init canvas + load product photo + add mask ───────────────────────────
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     let disposed = false;
@@ -55,36 +71,65 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
       const W = containerRef.current!.clientWidth || 320;
       const H = Math.round(W * 1.18);
 
-      // Use the garment colour as background — clean surface, no embedded logos
-      const bg = garmentColor ?? '#F2F0EB';
       const canvas = new fabric.Canvas(canvasRef.current!, {
         width: W, height: H,
-        backgroundColor: bg,
+        backgroundColor: '#F4F3EF',
         selection: false,
         preserveObjectStacking: true,
       });
       fc.current = canvas;
+      maskRef.current = null;
 
-      // Dashed print-zone outline to guide logo placement
-      const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
-      if (zone) {
-        const zx = (zone.x / 100) * W;
-        const zy = (zone.y / 100) * H;
-        const zw = (zone.width  / 100) * W;
-        const zh = (zone.height / 100) * H;
-        const rect = new fabric.Rect({
-          left: zx, top: zy, width: zw, height: zh,
-          fill: 'rgba(255,255,255,0.06)',
-          stroke: 'rgba(255,255,255,0.40)',
-          strokeDashArray: [6, 4], strokeWidth: 1.5,
-          rx: 8, ry: 8,
-          selectable: false, evented: false,
-        });
-        canvas.add(rect);
-      }
+      // Load the REAL product photo as a background image, scaled to fill
+      fabric.Image.fromURL(
+        productImageUrl,
+        (img: any) => {
+          if (disposed || !fc.current) return;
+          // Scale-to-fit (object-cover style) so the photo always fills the canvas
+          const sx = W / (img.width ?? W);
+          const sy = H / (img.height ?? H);
+          const scale = Math.max(sx, sy);
+          img.set({
+            left: (W - (img.width ?? W) * scale) / 2,
+            top:  (H - (img.height ?? H) * scale) / 2,
+            scaleX: scale, scaleY: scale,
+            selectable: false, evented: false,
+            lockMovementX: true, lockMovementY: true,
+            hoverCursor: 'default',
+          });
+          canvas.add(img);
+          canvas.sendToBack(img);
 
-      setReady(true);
-      canvas.renderAll();
+          // Add the mask rectangle in the chest area to cover the embedded
+          // "VOTRE LOGO" placeholder. Sized from the FIRST print zone.
+          const zone = product.printZones[0];
+          if (zone) {
+            const mx = (zone.x / 100) * W;
+            const my = (zone.y / 100) * H;
+            const mw = (zone.width  / 100) * W;
+            const mh = (zone.height / 100) * H;
+            // Slightly inflate to fully cover the placeholder text edges
+            const pad = 8;
+            const mask = new fabric.Rect({
+              left: mx - pad, top: my - pad,
+              width: mw + pad * 2, height: mh + pad * 2,
+              fill: garmentColor ?? '#1a1a1a',
+              rx: 12, ry: 12,
+              stroke: 'rgba(255,255,255,0.18)',
+              strokeWidth: 1.5,
+              strokeDashArray: [6, 4],
+              selectable: false, evented: false,
+              shadow: new fabric.Shadow({ color: 'rgba(0,0,0,0.25)', blur: 8, offsetY: 2 }),
+            });
+            canvas.add(mask);
+            maskRef.current = mask;
+          }
+
+          setReady(true);
+          canvas.renderAll();
+        },
+        { crossOrigin: 'anonymous' }
+      );
 
       canvas.on('object:modified', () => { if (logoObj.current) emit(logoObj.current, zoneId); });
       canvas.on('object:moving',   () => { if (logoObj.current) emit(logoObj.current, 'manual'); });
@@ -96,7 +141,7 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
       fc.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [garmentColor]); // Re-init when garment colour changes
+  }, [productImageUrl, garmentColor]);
 
   // ── Place / update logo ───────────────────────────────────────────────────
   useEffect(() => {
@@ -113,29 +158,40 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
       const H = canvas.height as number;
 
       const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
-      let cx = W / 2, cy = H * 0.33, initScale = 0.28;
+      let cx = W / 2, cy = H * 0.36, initWidthPct = 0.28;
       if (zone) {
         cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
         cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
-        initScale = (zone.width / 100) * 0.9;
+        initWidthPct = (zone.width / 100) * 0.85;
       }
 
       fabric.Image.fromURL(
         logoUrl,
         (img: any) => {
           if (disposed || !fc.current) return;
-          const targetW = W * initScale;
-          const s = targetW / (img.width ?? 100);
+          // Compute uniform scale that fits the logo within initWidthPct of canvas width
+          const targetW = W * initWidthPct;
+          const naturalW = img.width ?? 100;
+          const s = targetW / naturalW;
           img.set({
             left: cx - (img.width  ?? 0) * s / 2,
             top:  cy - (img.height ?? 0) * s / 2,
             scaleX: s, scaleY: s,
             selectable: true, evented: true,
             hasControls: true, hasBorders: true,
-            cornerStyle: 'circle', cornerSize: 10,
+            cornerStyle: 'circle', cornerSize: 11,
             cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
-            borderScaleFactor: 1.8, transparentCorners: false,
+            borderScaleFactor: 2, transparentCorners: false,
+            // CRITICAL: lock uniform scaling so the logo never deforms
             lockUniScaling: true,
+            lockScalingFlip: true,
+            centeredScaling: false,
+          });
+          // Disable middle handles entirely so users can ONLY scale from corners
+          img.setControlsVisibility({
+            mt: false, mb: false, ml: false, mr: false, // middles off → no stretch
+            tl: true, tr: true, bl: true, br: true,     // corners on  → uniform scale
+            mtr: true,                                   // top rotation handle
           });
           canvas.add(img);
           canvas.setActiveObject(img);
@@ -154,26 +210,41 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
   // ── Zone selector ─────────────────────────────────────────────────────────
   const selectZone = useCallback((zone: PrintZone) => {
     setZoneId(zone.id);
-    if (!logoObj.current || !fc.current) return;
+    if (!fc.current) return;
     const canvas = fc.current;
     const W = canvas.width as number;
     const H = canvas.height as number;
-    const obj = logoObj.current;
-    const cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
-    const cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
-    const ns = (zone.width / 100) * W * 0.88 / (obj.width ?? 100);
-    obj.set({
-      left: cx - (obj.width  ?? 0) * ns / 2,
-      top:  cy - (obj.height ?? 0) * ns / 2,
-      scaleX: ns, scaleY: ns,
-    });
-    canvas.setActiveObject(obj);
-    canvas.bringToFront(obj);
+
+    // Move the mask rectangle to the new zone so it covers the new print area
+    if (maskRef.current) {
+      const pad = 8;
+      maskRef.current.set({
+        left: (zone.x / 100) * W - pad,
+        top:  (zone.y / 100) * H - pad,
+        width:  (zone.width  / 100) * W + pad * 2,
+        height: (zone.height / 100) * H + pad * 2,
+      });
+    }
+
+    if (logoObj.current) {
+      const obj = logoObj.current;
+      const cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
+      const cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
+      const targetW = (zone.width / 100) * W * 0.88;
+      const ns = targetW / (obj.width ?? 100);
+      obj.set({
+        left: cx - (obj.width  ?? 0) * ns / 2,
+        top:  cy - (obj.height ?? 0) * ns / 2,
+        scaleX: ns, scaleY: ns,
+      });
+      canvas.setActiveObject(obj);
+      canvas.bringToFront(obj);
+      emit(obj, zone.id);
+    }
     canvas.renderAll();
-    emit(obj, zone.id);
   }, [emit]);
 
-  // ── Toolbar ──────────────────────────────────────────────────────────────
+  // ── Toolbar actions ──────────────────────────────────────────────────────
   const snapLeft = () => {
     if (!logoObj.current || !fc.current) return;
     logoObj.current.set({ left: (fc.current.width as number) * 0.07 });
@@ -200,6 +271,7 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
   const rescale = (delta: number) => {
     if (!logoObj.current || !fc.current) return;
     const s = Math.max(0.04, Math.min(1.6, (logoObj.current.scaleX ?? 0.25) + delta));
+    // Uniform scale on both axes — no deformation possible
     logoObj.current.set({ scaleX: s, scaleY: s });
     fc.current.renderAll(); emit(logoObj.current, zoneId);
   };
@@ -225,15 +297,12 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
       </div>
 
       {/* Fabric canvas */}
-      <div ref={containerRef} className="relative rounded-xl overflow-hidden border border-border shadow-sm" style={{ aspectRatio: '0.85' }}>
+      <div ref={containerRef} className="relative rounded-xl overflow-hidden border border-border shadow-sm bg-secondary" style={{ aspectRatio: '0.85' }}>
         <canvas ref={canvasRef} className="w-full h-full block" style={{ touchAction: 'none' }} />
-        {!logoUrl && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="text-center px-6 py-4 rounded-xl bg-black/30 backdrop-blur-sm">
-              <Move className="mx-auto mb-2 text-white/70" size={20} />
-              <p className="text-xs text-white/80 font-medium leading-snug">
-                Upload ton logo<br/>puis place-le ici
-              </p>
+        {!logoUrl && ready && (
+          <div className="absolute inset-x-0 bottom-3 flex items-center justify-center pointer-events-none">
+            <div className="px-4 py-2 rounded-full bg-black/55 backdrop-blur-sm">
+              <p className="text-[11px] text-white font-bold">Glisse ton logo dans la zone</p>
             </div>
           </div>
         )}
@@ -269,7 +338,9 @@ export function LogoCanvas({ product, garmentColor, logoUrl, currentPlacement, o
               </button>
             ))}
           </div>
-          <span className="text-[10px] text-muted-foreground hidden sm:block pl-1">Glisse · Ajuste</span>
+          <span className="text-[10px] text-muted-foreground hidden sm:block pl-1">
+            <Move className="inline w-2.5 h-2.5" /> Glisse
+          </span>
         </div>
       )}
     </div>
