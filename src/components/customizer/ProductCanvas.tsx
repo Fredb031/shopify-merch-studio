@@ -56,12 +56,22 @@ export function ProductCanvas({
 
   const [ready, setReady] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''),
   );
   // Ref mirror of zoneId so canvas event listeners always read the current value
   const zoneIdRef = useRef(zoneId);
   zoneIdRef.current = zoneId;
+
+  // Resize listener — rebuild canvas when container width changes (phone rotation, etc.)
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setCanvasKey(k => k + 1));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // ── Emit placement back to parent ──────────────────────────────────────────
   const emit = useCallback((obj: any, zone: string) => {
@@ -193,7 +203,7 @@ export function ProductCanvas({
       fc.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageDevant, imageDos, activeView, garmentColor]);
+  }, [imageDevant, imageDos, activeView, garmentColor, canvasKey]);
 
   // ── Place / replace the user's logo whenever it changes ───────────────────
   useEffect(() => {
@@ -209,13 +219,23 @@ export function ProductCanvas({
       const W = canvas.width as number;
       const H = canvas.height as number;
 
-      // Initial position derived from the active zone
-      const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
-      let cx = W / 2, cy = H * 0.36, initWidthPct = 0.26;
-      if (zone) {
-        cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
-        cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
-        initWidthPct = (zone.width / 100) * 0.85;
+      // If the user already placed the logo, restore that position.
+      // Otherwise, default to the zone center.
+      const hasExistingPlacement = currentPlacement?.x != null && currentPlacement?.y != null;
+      let cx: number, cy: number, initWidthPct: number;
+
+      if (hasExistingPlacement) {
+        cx = (currentPlacement!.x! / 100) * W;
+        cy = (currentPlacement!.y! / 100) * H;
+        initWidthPct = (currentPlacement!.width ?? 26) / 100;
+      } else {
+        const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
+        cx = W / 2; cy = H * 0.36; initWidthPct = 0.26;
+        if (zone) {
+          cx = (zone.x / 100) * W + (zone.width  / 100) * W / 2;
+          cy = (zone.y / 100) * H + (zone.height / 100) * H / 2;
+          initWidthPct = (zone.width / 100) * 0.85;
+        }
       }
 
       fabric.Image.fromURL(
@@ -229,6 +249,7 @@ export function ProductCanvas({
             left: cx - (img.width  ?? 0) * s / 2,
             top:  cy - (img.height ?? 0) * s / 2,
             scaleX: s, scaleY: s,
+            angle: currentPlacement?.rotation ?? 0,
             selectable: true, evented: true,
             hasControls: true, hasBorders: true,
             cornerStyle: 'circle', cornerSize: 12,

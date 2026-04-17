@@ -17,7 +17,7 @@ import { useCustomizerStore } from '@/store/customizerStore';
 import { useCartStore } from '@/store/cartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
-import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
+import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage } from '@/data/products';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import { useLang } from '@/lib/langContext';
@@ -40,18 +40,35 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // Selected colour — single state, either Shopify variant or local
   const [shopifyColor, setShopifyColor] = useState<ShopifyVariantColor | null>(null);
 
-  // The active ProductColor — always uses the clean product images from Drive,
-  // never the Shopify CDN variant images (those have "VOTRE LOGO" embedded)
-  const activeColor: ProductColor | null = shopifyColor
-    ? {
+  // The active ProductColor — uses per-colour Drive images when available,
+  // falls back to the product's default (black) image + tint overlay
+  const activeColor: ProductColor | null = (() => {
+    if (shopifyColor) {
+      // Look for a per-colour Drive image matching this colour name
+      const colorImg = findColorImage(product.sku, shopifyColor.colorName);
+      return {
         id: shopifyColor.variantId,
         name: shopifyColor.colorName,
         nameEn: shopifyColor.colorName,
         hex: shopifyColor.hex,
-        imageDevant: product.imageDevant,
-        imageDos:    product.imageDos,
+        imageDevant: colorImg?.front ?? product.imageDevant,
+        imageDos:    colorImg?.back  ?? product.imageDos,
+      };
+    }
+    const localColor = product.colors.find(c => c.id === store.colorId) ?? product.colors[0] ?? null;
+    if (localColor) {
+      // Also try per-colour Drive image for local colours
+      const colorImg = findColorImage(product.sku, localColor.nameEn);
+      if (colorImg) {
+        return {
+          ...localColor,
+          imageDevant: colorImg.front ?? localColor.imageDevant ?? product.imageDevant,
+          imageDos:    colorImg.back  ?? localColor.imageDos    ?? product.imageDos,
+        };
       }
-    : (product.colors.find(c => c.id === store.colorId) ?? product.colors[0] ?? null);
+    }
+    return localColor;
+  })();
 
   const totalQty    = store.getTotalQuantity();
   const hasDiscount = totalQty >= BULK_DISCOUNT_THRESHOLD;
