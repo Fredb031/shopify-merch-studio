@@ -31,8 +31,9 @@ import { useLang } from '@/lib/langContext';
 interface Props {
   product: Product;
   garmentColor?: string;        // hex of selected colour
-  imageDevant: string;          // real Shopify photo for front
-  imageDos: string;             // real Shopify photo for back
+  hasRealColorImage?: boolean;  // true = real per-colour photo, skip tint overlay
+  imageDevant: string;          // product photo for front
+  imageDos: string;             // product photo for back
   logoUrl: string | null;
   currentPlacement: LogoPlacement | null;
   activeView: ProductView;
@@ -41,7 +42,7 @@ interface Props {
 }
 
 export function ProductCanvas({
-  product, garmentColor, imageDevant, imageDos, logoUrl,
+  product, garmentColor, hasRealColorImage, imageDevant, imageDos, logoUrl,
   currentPlacement, activeView, onViewChange, onPlacementChange,
 }: Props) {
   const { t, lang } = useLang();
@@ -148,10 +149,9 @@ export function ProductCanvas({
             canvas.add(img);
             canvas.sendToBack(img);
 
-            // Colour tint overlay — when the user picks a colour, this
-            // semi-transparent rectangle tints the product photo to match.
-            // Uses 'multiply' blend for dark garments, light overlay for whites.
-            if (garmentColor) {
+            // Colour tint overlay — only when we DON'T have a real per-colour photo.
+            // When hasRealColorImage is true, the loaded photo IS the right colour already.
+            if (garmentColor && !hasRealColorImage) {
               const tint = new fabric.Rect({
                 left: 0, top: 0, width: W, height: H,
                 fill: garmentColor,

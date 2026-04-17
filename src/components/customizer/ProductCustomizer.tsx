@@ -225,6 +225,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <ProductCanvas
               product={product}
               garmentColor={activeColor?.hex}
+              hasRealColorImage={activeColor?.imageDevant !== product.imageDevant}
               imageDevant={activeColor?.imageDevant ?? product.imageDevant}
               imageDos={activeColor?.imageDos ?? product.imageDos}
               logoUrl={store.logoPlacement?.previewUrl ?? null}

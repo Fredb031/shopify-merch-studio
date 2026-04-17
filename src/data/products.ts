@@ -989,17 +989,76 @@ export const COLOR_IMAGES: Record<string, Record<string, { front?: string; back?
   },
 };
 
-/** Find the best per-colour image for a product + colour name */
-export function findColorImage(sku: string, colorNameEn: string): { front?: string; back?: string } | null {
+// French→English colour name translation for matching Shopify names to Drive filenames
+const FR_EN_COLORS: Record<string, string> = {
+  'noir': 'black', 'blanc': 'white', 'marine': 'navy', 'rouge': 'red',
+  'bleu royal': 'royal', 'royal franc': 'royal', 'vert foncé': 'darkgreen',
+  'vert forêt': 'forestgreen', 'bourgogne': 'maroon', 'bordeaux': 'maroon',
+  'mauve': 'purple', 'or': 'gold', 'gris acier': 'steel_grey',
+  'gris foncé chiné': 'darkheathergrey', 'gris pâle chiné': 'athleticheather',
+  'gris chiné': 'athleticheather', 'gris cendré': 'ash_grey',
+  'charbon': 'charcoal', 'sable': 'sand', 'caramel': 'caramel',
+  'orange': 'orange', 'jaune': 'yellow', 'lime': 'lime',
+  'saphir': 'sapphire', 'sangria': 'sangria', 'kelly': 'kelly',
+  'marine foncé': 'dark_navy', 'marine chiné': 'heather_navy',
+  'royal chiné': 'heather_royal', 'rouge chiné': 'heather_red',
+  'vert militaire': 'military_green', 'bleu aquatique': 'aquatic_blue',
+  'rose bonbon': 'candy_pink', 'vert laurel': 'laurel_green',
+  'bleu pâle': 'light_blue', 'avoine chiné': 'oatmeal_heather',
+  'brun chocolat foncé': 'dark_chocolate_brown', 'gris cendré athlétique': 'ash_grey',
+  'chiné athlétique': 'athleticheather', 'vert sécurité': 'safety_green',
+  'orange sécurité': 'safety_orange', 'argent': 'silver',
+  'kaki': 'khaki', 'naturel': 'natural', 'lavande': 'lavender',
+  'noir/blanc': 'black_white', 'noir/noir': 'black_black',
+  'marine/blanc': 'navy_white', 'marine/marine': 'navy_navy',
+  'marine/argent': 'navy_silver', 'charbon/blanc': 'charcoal_white',
+  'charbon/charbon': 'charcoal_charcoal', 'charbon/noir': 'charcoal_black',
+  'caramel/noir': 'caramel_black', 'rouge/blanc': 'red_white',
+  'royal/blanc': 'royal_white', 'blanc/blanc': 'white_white',
+  'brun/kaki': 'brown_khaki',
+};
+
+/** Find the best per-colour image for a product + colour name (FR or EN) */
+export function findColorImage(sku: string, colorName: string): { front?: string; back?: string } | null {
   const skuMap = COLOR_IMAGES[sku];
   if (!skuMap) return null;
-  // Normalize: lowercase, replace spaces with _, strip accents
-  const key = colorNameEn.toLowerCase().replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, '');
-  // Exact match
-  if (skuMap[key]) return skuMap[key];
-  // Fuzzy: find a key that contains the search term or vice versa
-  for (const k of Object.keys(skuMap)) {
-    if (k.includes(key) || key.includes(k)) return skuMap[k];
+
+  // Normalize input
+  const raw = colorName.toLowerCase().trim();
+
+  // Try French→English translation first
+  const enName = FR_EN_COLORS[raw] ?? raw;
+
+  // Build search keys to try (in order of specificity)
+  const keys = [
+    enName.replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, ''),
+    raw.replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, ''),
+  ];
+
+  // 1. Exact match
+  for (const key of keys) {
+    if (skuMap[key]) return skuMap[key];
   }
+
+  // 2. Match a key that starts with or contains the search term
+  for (const key of keys) {
+    if (!key) continue;
+    for (const k of Object.keys(skuMap)) {
+      // Skip keys that are just dates
+      if (/^\d+$/.test(k)) continue;
+      if (k.startsWith(key) || k.includes(key) || key.includes(k.split('_')[0])) {
+        return skuMap[k];
+      }
+    }
+  }
+
+  // 3. Try matching just the first word (e.g., "Noir chiné" → "black" → matches "black_012017")
+  const firstWord = keys[0]?.split('_')[0];
+  if (firstWord && firstWord.length >= 3) {
+    for (const k of Object.keys(skuMap)) {
+      if (k.startsWith(firstWord)) return skuMap[k];
+    }
+  }
+
   return null;
 }
