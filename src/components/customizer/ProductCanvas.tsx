@@ -22,7 +22,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut,
-  ImageOff, Move, Trash2,
+  ImageOff, Move, Trash2, Type,
 } from 'lucide-react';
 import type { Product, PrintZone } from '@/data/products';
 import type { LogoPlacement, ProductView } from '@/types/customization';
@@ -48,6 +48,7 @@ export function ProductCanvas({
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasElRef  = useRef<HTMLCanvasElement>(null);
+  const [textInput, setTextInput] = useState('');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc      = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -353,6 +354,42 @@ export function ProductCanvas({
     onPlacementChange({ zoneId, mode: 'preset', previewUrl: undefined });
   };
 
+  // ── Add text to garment ──────────────────────────────────────────────────
+  const addText = (text: string, color = '#FFFFFF') => {
+    if (!fc.current || !text.trim()) return;
+    import('fabric').then(({ fabric }) => {
+      if (!fc.current) return;
+      const canvas = fc.current;
+      const W = canvas.width as number;
+      const H = canvas.height as number;
+      const zone = product.printZones[0];
+      const cx = zone ? (zone.x / 100) * W + (zone.width / 100) * W / 2 : W / 2;
+      const cy = zone ? (zone.y / 100) * H + (zone.height / 100) * H / 2 + 40 : H / 2;
+
+      const t = new fabric.IText(text, {
+        left: cx, top: cy,
+        originX: 'center', originY: 'center',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: Math.round(W * 0.06),
+        fontWeight: 'bold',
+        fill: color,
+        textAlign: 'center',
+        editable: true,
+        selectable: true,
+        hasControls: true,
+        lockUniScaling: true,
+        cornerStyle: 'circle', cornerSize: 12,
+        cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
+        transparentCorners: false,
+      });
+      t.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
+      canvas.add(t);
+      canvas.setActiveObject(t);
+      canvas.bringToFront(t);
+      canvas.renderAll();
+    });
+  };
+
   return (
     <div className="flex flex-col gap-2.5">
       {/* The interactive canvas */}
@@ -471,6 +508,30 @@ export function ProductCanvas({
             className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-background transition-all"
           >
             <Trash2 size={13} />
+          </button>
+        </div>
+      )}
+
+      {/* Add text to garment */}
+      {activeView === 'front' && ready && (
+        <div className="flex gap-1.5">
+          <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-2.5 py-1.5 border border-border">
+            <Type size={13} className="text-muted-foreground flex-shrink-0" />
+            <input
+              type="text"
+              value={textInput}
+              onChange={e => setTextInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && textInput.trim()) { addText(textInput); setTextInput(''); } }}
+              placeholder={lang === 'en' ? 'Add text to garment...' : 'Ajouter du texte...'}
+              className="flex-1 bg-transparent text-xs outline-none text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+          <button
+            onClick={() => { if (textInput.trim()) { addText(textInput); setTextInput(''); } }}
+            disabled={!textInput.trim()}
+            className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-xl disabled:opacity-30 hover:opacity-90 transition-all"
+          >
+            {lang === 'en' ? 'Add' : 'Ajouter'}
           </button>
         </div>
       )}
