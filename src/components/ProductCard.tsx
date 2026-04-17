@@ -102,7 +102,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Info */}
         <div className="p-3.5 pb-4">
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[1.5px] mb-0.5">{local?.sku ?? node.productType ?? ''}</p>
+          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[1.5px] mb-0.5">
+            {local ? `${local.shortName} · ${local.sku}` : (node.productType || '')}
+          </p>
           <div className="text-[13px] font-bold text-foreground leading-tight mb-1">{node.title}</div>
 
           {/* Pricing with quantity breaks */}
