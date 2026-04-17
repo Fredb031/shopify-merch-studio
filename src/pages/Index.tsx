@@ -68,8 +68,7 @@ export default function Index() {
 
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
-    const hasPlayed = sessionStorage.getItem('moleGamePlayed');
-    if (!hasPlayed) setShowGame(true);
+    // Mini-game no longer auto-opens — accessible via floating button instead
     setTimeout(() => setHeroStaggered(true), 100);
   }, []);
 
@@ -374,6 +373,18 @@ export default function Index() {
         </div>
         <span className="text-[12px] text-muted-foreground">© {new Date().getFullYear()} Vision Affichage</span>
       </footer>
+
+      {/* Floating mini-game button — persistent, non-intrusive */}
+      {!showGame && (
+        <button
+          onClick={() => setShowGame(true)}
+          className="fixed bottom-20 right-4 z-[440] bg-accent text-accent-foreground text-xs font-bold px-4 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-1.5"
+          aria-label={lang === 'en' ? 'Play mini-game for 10% off' : 'Joue au mini-jeu pour 10% de rabais'}
+        >
+          <span className="text-sm">🎮</span>
+          <span className="hidden sm:inline">{lang === 'en' ? '10% off' : '10% rabais'}</span>
+        </button>
+      )}
 
       <BottomNav />
     </div>
