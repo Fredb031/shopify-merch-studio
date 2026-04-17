@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LangProvider } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -23,6 +24,7 @@ const App = () => (
         <Sonner />
         <ErrorBoundary>
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/products" element={<Products />} />

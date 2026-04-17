@@ -124,12 +124,12 @@ export default function ProductDetail() {
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           {/* Images */}
           <div className="space-y-3">
-            <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border">
+            <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group cursor-zoom-in">
               {images[selectedImageIndex]?.node ? (
                 <img
                   src={images[selectedImageIndex].node.url}
                   alt={images[selectedImageIndex].node.altText || product.title}
-                  className="w-full h-full object-cover transition-opacity duration-200"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -266,12 +266,21 @@ export default function ProductDetail() {
               <ChevronRight size={16} className="ml-auto opacity-60" />
             </button>
 
-            <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
-              <Lock size={11} />
-              {lang === 'en'
-                ? 'Secure payment · Delivered in 5 business days'
-                : 'Paiement sécurisé · Livré en 5 jours ouvrables'}
-            </p>
+            {/* Trust badges + delivery estimate */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { icon: '🚚', en: '5-day delivery', fr: 'Livraison 5 jours' },
+                { icon: '🔒', en: 'Secure payment', fr: 'Paiement sécurisé' },
+                { icon: '✅', en: 'No minimum', fr: 'Aucun minimum' },
+              ].map((b) => (
+                <div key={b.en} className="flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl bg-secondary border border-border">
+                  <span className="text-sm">{b.icon}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground leading-tight">
+                    {lang === 'en' ? b.en : b.fr}
+                  </span>
+                </div>
+              ))}
+            </div>
 
             {product.description && (
               <div className="pt-3 border-t border-border">

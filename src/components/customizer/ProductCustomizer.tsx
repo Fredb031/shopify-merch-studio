@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, ChevronRight, ChevronLeft, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
 import { SizeQuantityPicker } from './SizeQuantityPicker';
@@ -159,6 +160,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
     store.reset();
     onClose();
+    toast.success(
+      lang === 'en'
+        ? `${product.shortName} added to cart!`
+        : `${product.shortName} ajouté au panier !`,
+      { duration: 3000 },
+    );
   };
 
   const displayColors: ShopifyVariantColor[] = shopifyColors.length > 0
