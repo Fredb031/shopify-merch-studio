@@ -1,0 +1,26 @@
+{
+  "name": "Vision Affichage",
+  "short_name": "Vision",
+  "description": "Merch d'entreprise personnalisé — livré en 5 jours ouvrables.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1B3A6B",
+  "lang": "fr-CA",
+  "categories": ["shopping", "business"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
