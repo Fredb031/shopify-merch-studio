@@ -69,6 +69,62 @@ export default function QuoteBuilder() {
 
   const canSend = clientEmail.includes('@') && items.length > 0;
 
+  const persistQuote = (status: 'draft' | 'sent') => {
+    const list = (() => {
+      try { return JSON.parse(localStorage.getItem('vision-quotes') ?? '[]'); }
+      catch { return []; }
+    })();
+    const number = `Q-${new Date().getFullYear()}-${String(list.length + 1).padStart(4, '0')}`;
+    const quote = {
+      id: `q-${Date.now()}`,
+      number,
+      status,
+      clientName,
+      clientEmail,
+      items,
+      subtotal,
+      discountKind,
+      discountValue: parseFloat(discountValue) || 0,
+      discountAmount,
+      tax,
+      total,
+      notes,
+      createdAt: new Date().toISOString(),
+      lang: 'fr',
+    };
+    list.unshift(quote);
+    try { localStorage.setItem('vision-quotes', JSON.stringify(list.slice(0, 100))); } catch {}
+    return quote;
+  };
+
+  const handleSaveDraft = () => {
+    if (items.length === 0) return;
+    const q = persistQuote('draft');
+    alert(`Brouillon ${q.number} sauvegardé. Visible dans /admin/quotes et /vendor/quotes.`);
+  };
+
+  const handleSendToClient = () => {
+    if (!canSend) return;
+    const q = persistQuote('sent');
+    const lines = items.map(it =>
+      `• ${it.productName} (${it.color || '—'}, ${it.size}) × ${it.quantity} = ${(it.unitPrice * it.quantity).toFixed(2)} $${it.placementNote ? ` — Placement: ${it.placementNote}` : ''}`,
+    ).join('\n');
+    const subject = encodeURIComponent(`Ta soumission ${q.number} de Vision Affichage`);
+    const body = encodeURIComponent(
+      `Bonjour ${clientName || ''},\n\n` +
+      `Voici ta soumission personnalisée :\n\n` +
+      `${lines}\n\n` +
+      `Sous-total : ${subtotal.toFixed(2)} $\n` +
+      `${discountAmount > 0 ? `Rabais : -${discountAmount.toFixed(2)} $\n` : ''}` +
+      `Taxes : ${tax.toFixed(2)} $\n` +
+      `Total : ${total.toFixed(2)} $ CAD\n\n` +
+      `Pour accepter et payer : https://visionaffichage.com/quote/${q.id}\n\n` +
+      `Livraison en 5 jours ouvrables après confirmation.\n\n` +
+      `— L'équipe Vision Affichage`,
+    );
+    window.location.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
+  };
+
   return (
     <div className="min-h-screen bg-zinc-50">
       <header className="bg-white border-b border-zinc-200 px-4 md:px-8 py-4 flex items-center justify-between">
@@ -77,11 +133,18 @@ export default function QuoteBuilder() {
           <h1 className="font-extrabold text-lg">Nouvelle soumission</h1>
         </div>
         <div className="flex gap-2">
-          <button className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50">
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={items.length === 0}
+            className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             <Save size={14} />
             Brouillon
           </button>
           <button
+            type="button"
+            onClick={handleSendToClient}
             disabled={!canSend}
             className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >

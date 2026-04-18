@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, Plus } from 'lucide-react';
 
@@ -29,15 +29,45 @@ const STATUS_COLOR: Record<Status, string> = {
 export default function AdminQuotes() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>('all');
+  const [savedQuotes, setSavedQuotes] = useState<typeof MOCK>([]);
+
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+      const mapped = (Array.isArray(raw) ? raw : []).map((q: any) => {
+        const created = new Date(q.createdAt);
+        const ageMs = Date.now() - created.getTime();
+        const days = Math.floor(ageMs / 86400000);
+        const hours = Math.floor(ageMs / 3600000);
+        const age = days > 0 ? `il y a ${days}j` : hours > 0 ? `il y a ${hours}h` : "à l'instant";
+        return {
+          id: q.id,
+          number: q.number,
+          vendor: 'Admin',
+          client: q.clientName || q.clientEmail.split('@')[0],
+          items: q.items.length,
+          total: q.total,
+          discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
+          status: q.status as Status,
+          age,
+        };
+      });
+      setSavedQuotes(mapped);
+    } catch {
+      setSavedQuotes([]);
+    }
+  }, []);
+
+  const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
 
   const filtered = useMemo(() => {
-    return MOCK.filter(q => {
+    return all.filter(q => {
       if (filter !== 'all' && q.status !== filter) return false;
       if (!query.trim()) return true;
       const Q = query.toLowerCase();
       return q.client.toLowerCase().includes(Q) || q.vendor.toLowerCase().includes(Q) || q.number.toLowerCase().includes(Q);
     });
-  }, [query, filter]);
+  }, [all, query, filter]);
 
   return (
     <div className="space-y-6">

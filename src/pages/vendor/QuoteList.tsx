@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Plus, Copy, Send, Eye } from 'lucide-react';
 
@@ -47,22 +47,52 @@ const STATUS_COLOR: Record<Status, string> = {
 export default function QuoteList() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>('all');
+  const [savedQuotes, setSavedQuotes] = useState<MockQuote[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+      const mapped: MockQuote[] = (Array.isArray(raw) ? raw : []).map((q: any) => {
+        const created = new Date(q.createdAt);
+        const ageMs = Date.now() - created.getTime();
+        const days = Math.floor(ageMs / 86400000);
+        const hours = Math.floor(ageMs / 3600000);
+        const age = days > 0 ? `il y a ${days}j` : hours > 0 ? `il y a ${hours}h` : 'à l\'instant';
+        return {
+          id: q.id,
+          number: q.number,
+          client: q.clientName || q.clientEmail.split('@')[0],
+          email: q.clientEmail,
+          items: q.items.length,
+          total: q.total,
+          discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
+          status: q.status as Status,
+          age,
+        };
+      });
+      setSavedQuotes(mapped);
+    } catch {
+      setSavedQuotes([]);
+    }
+  }, []);
+
+  const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
 
   const filtered = useMemo(() => {
-    return MOCK.filter(q => {
+    return all.filter(q => {
       if (filter !== 'all' && q.status !== filter) return false;
       if (!query.trim()) return true;
       const Q = query.toLowerCase();
       return q.client.toLowerCase().includes(Q) || q.number.toLowerCase().includes(Q);
     });
-  }, [query, filter]);
+  }, [all, query, filter]);
 
   return (
     <div className="space-y-6">
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Mes soumissions</h1>
-          <p className="text-sm text-zinc-500 mt-1">{MOCK.length} soumissions au total</p>
+          <p className="text-sm text-zinc-500 mt-1">{all.length} soumissions au total</p>
         </div>
         <Link to="/vendor/quotes/new" className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90">
           <Plus size={16} />
