@@ -2,7 +2,7 @@
  * CartDrawer — Panier avec aperçu produit live (devant + logo)
  * Chaque article montre l'image devant avec le logo overlaid.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
@@ -107,6 +107,21 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   };
   const [codeInput, setCodeInput] = useState('');
   const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Escape key closes drawer (standard modal pattern). Skip if user is
+  // typing in an input — Esc should clear/blur the field instead of
+  // killing the whole drawer mid-edit.
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
 
   const applyCode = () => {
     const ok = cart.applyDiscount(codeInput.toUpperCase());
