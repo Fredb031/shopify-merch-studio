@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
+import { TablePagination } from '@/components/admin/TablePagination';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 
@@ -80,11 +81,18 @@ function formatRelativeTime(iso: string): string {
   return `il y a ${days}j`;
 }
 
+const PAGE_SIZE = 25;
+
 export default function AdminOrders() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
   const [shippedIds, setShippedIds] = useState<Set<number>>(new Set());
+  const [page, setPage] = useState(0);
+
+  // Reset to first page whenever the filter or search changes so we
+  // don't strand the user on an empty page 5 after narrowing a filter.
+  useEffect(() => { setPage(0); }, [query, statusFilter]);
 
   useEffect(() => {
     try {
@@ -132,6 +140,13 @@ export default function AdminOrders() {
       );
     });
   }, [augmented, query, statusFilter]);
+
+  // Paginated slice. Rendering 100+ order rows at once caused noticeable
+  // first-paint jank on the admin route.
+  const pageItems = useMemo(
+    () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filtered, page],
+  );
 
   const lastSync = new Date(SHOPIFY_SNAPSHOT_META.syncedAt);
 
@@ -225,7 +240,7 @@ export default function AdminOrders() {
                   </td>
                 </tr>
               ) : (
-                filtered.map(o => (
+                pageItems.map(o => (
                   <tr
                     key={o.id}
                     onClick={() => setSelected(o)}
@@ -271,6 +286,14 @@ export default function AdminOrders() {
             </tbody>
           </table>
         </div>
+
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+          itemLabel="commandes"
+        />
       </div>
 
       {selected && (

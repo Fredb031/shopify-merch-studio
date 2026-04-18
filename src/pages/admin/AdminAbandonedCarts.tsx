@@ -1,11 +1,14 @@
 import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
   SHOPIFY_STATS,
   type ShopifyAbandonedCheckoutSnapshot,
 } from '@/data/shopifySnapshot';
 import { StatCard } from '@/components/admin/StatCard';
+import { TablePagination } from '@/components/admin/TablePagination';
+
+const PAGE_SIZE = 25;
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -19,6 +22,7 @@ function formatRelative(iso: string): string {
 
 export default function AdminAbandonedCarts() {
   const [sort, setSort] = useState<'recent' | 'value'>('value');
+  const [page, setPage] = useState(0);
 
   const sorted = useMemo(() => {
     const arr = [...SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT];
@@ -26,6 +30,14 @@ export default function AdminAbandonedCarts() {
     else arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return arr;
   }, [sort]);
+
+  // Reset page on sort change so user isn't stranded.
+  useEffect(() => { setPage(0); }, [sort]);
+
+  const pageItems = useMemo(
+    () => sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [sorted, page],
+  );
 
   return (
     <div className="space-y-6">
@@ -87,10 +99,18 @@ export default function AdminAbandonedCarts() {
         </div>
 
         <div className="space-y-2">
-          {sorted.map(c => (
+          {pageItems.map(c => (
             <CheckoutRow key={c.id} checkout={c} />
           ))}
         </div>
+
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={sorted.length}
+          onPageChange={setPage}
+          itemLabel="paniers"
+        />
       </div>
 
       <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
