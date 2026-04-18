@@ -7,6 +7,7 @@ import { useLang } from '@/lib/langContext';
 import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
+import { DeliveryBadge } from '@/components/DeliveryBadge';
 
 function PromoCodeInput({
   onApply,
@@ -307,6 +308,11 @@ export default function Cart() {
                 <span className="text-2xl font-extrabold text-primary">
                   {totalPrice.toFixed(2)} $
                 </span>
+              </div>
+
+              {/* Concrete ETA above the CTA — urgency + commitment. */}
+              <div className="flex justify-center pt-1">
+                <DeliveryBadge size="sm" showDate />
               </div>
 
               <button
