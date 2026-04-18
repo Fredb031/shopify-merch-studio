@@ -155,11 +155,24 @@ export function ProductCanvas({
               selectable: false, evented: false,
             });
             canvas.add(tint);
-            // place tint just above photo, below logo + outline
-            if (logoObj.current) canvas.bringToFront(logoObj.current);
-            if (maskRef.current) canvas.bringToFront(maskRef.current);
             tintObj.current = tint;
           }
+
+          // Update print-zone outline contrast based on (new) garment color
+          if (maskRef.current && garmentColor) {
+            const hex = garmentColor.replace('#', '');
+            if (hex.length >= 6) {
+              const r = parseInt(hex.slice(0, 2), 16);
+              const g = parseInt(hex.slice(2, 4), 16);
+              const b = parseInt(hex.slice(4, 6), 16);
+              const isLight = (r * 299 + g * 587 + b * 114) / 1000 > 160;
+              maskRef.current.set('stroke', isLight ? 'rgba(0, 82, 204, 0.55)' : 'rgba(255, 255, 255, 0.65)');
+            }
+          }
+
+          // Layer order: photo → tint → outline → logo
+          if (maskRef.current) canvas.bringToFront(maskRef.current);
+          if (logoObj.current) canvas.bringToFront(logoObj.current);
           canvas.renderAll();
         },
         { crossOrigin: 'anonymous' },
@@ -245,17 +258,28 @@ export function ProductCanvas({
               tintObj.current = tint;
             }
 
-            // Print-zone outline on the front view
+            // Print-zone outline on the front view — adaptive contrast so
+            // it's visible on both dark AND light garments
             if (activeView === 'front') {
               const zone = product.printZones[0];
               if (zone) {
+                const isLightGarment = (() => {
+                  if (!garmentColor) return false;
+                  // Quick luminance estimate from hex
+                  const hex = garmentColor.replace('#', '');
+                  if (hex.length < 6) return false;
+                  const r = parseInt(hex.slice(0, 2), 16);
+                  const g = parseInt(hex.slice(2, 4), 16);
+                  const b = parseInt(hex.slice(4, 6), 16);
+                  return (r * 299 + g * 587 + b * 114) / 1000 > 160;
+                })();
                 const outline = new fabric.Rect({
                   left: (zone.x / 100) * W,
                   top:  (zone.y / 100) * H,
                   width:  (zone.width  / 100) * W,
                   height: (zone.height / 100) * H,
                   fill: 'transparent',
-                  stroke: 'rgba(255,255,255,0.5)',
+                  stroke: isLightGarment ? 'rgba(0, 82, 204, 0.55)' : 'rgba(255, 255, 255, 0.65)',
                   strokeDashArray: [6, 4],
                   strokeWidth: 1.5,
                   rx: 8, ry: 8,

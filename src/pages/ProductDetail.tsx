@@ -10,7 +10,7 @@ import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minu
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { useState } from 'react';
-import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
+import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
@@ -129,45 +129,73 @@ export default function ProductDetail() {
         </Link>
 
         <div className="grid md:grid-cols-[1.1fr_1fr] gap-8 lg:gap-14 items-start">
-          {/* Images */}
-          <div className="space-y-3">
-            <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group cursor-zoom-in">
-              {images[selectedImageIndex]?.node ? (
-                <img
-                  src={images[selectedImageIndex].node.url}
-                  alt={images[selectedImageIndex].node.altText || product.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                  {lang === 'en' ? 'No image' : 'Pas d\'image'}
+          {/* Images — main photo swaps when a color option is picked */}
+          {(() => {
+            const pickedColor = (() => {
+              if (!localProduct) return null;
+              const colorOpt = options.find((o: { name: string }) => /color|colour|couleur/i.test(o.name));
+              if (!colorOpt) return null;
+              const value = currentOptions[colorOpt.name];
+              if (!value) return null;
+              return findColorImage(localProduct.sku, value);
+            })();
+            const swappedFront = pickedColor?.front;
+            const swappedBack = pickedColor?.back;
+            const mainImg = (() => {
+              if (selectedImageIndex === 0 && swappedFront) {
+                return { url: swappedFront, alt: product.title };
+              }
+              if (selectedImageIndex === 1 && swappedBack) {
+                return { url: swappedBack, alt: `${product.title} dos` };
+              }
+              const node = images[selectedImageIndex]?.node;
+              return node ? { url: node.url, alt: node.altText || product.title } : null;
+            })();
+
+            return (
+              <div className="space-y-3">
+                <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group cursor-zoom-in">
+                  {mainImg ? (
+                    <img
+                      src={mainImg.url}
+                      alt={mainImg.alt}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.15]"
+                      key={mainImg.url}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                      {lang === 'en' ? 'No image' : 'Pas d\'image'}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                {images.map(
-                  (img: { node: { url: string; altText: string | null } }, i: number) => (
-                    <button
-                      key={i}
-                      onClick={() => setSelectedImageIndex(i)}
-                      className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
-                        i === selectedImageIndex
-                          ? 'border-primary'
-                          : 'border-transparent hover:border-border'
-                      }`}
-                    >
-                      <img
-                        src={img.node.url}
-                        alt={img.node.altText || ''}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ),
+                {images.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                    {images.map(
+                      (img: { node: { url: string; altText: string | null } }, i: number) => (
+                        <button
+                          key={i}
+                          onClick={() => setSelectedImageIndex(i)}
+                          className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                            i === selectedImageIndex
+                              ? 'border-primary'
+                              : 'border-transparent hover:border-border'
+                          }`}
+                        >
+                          <img
+                            src={img.node.url}
+                            alt={img.node.altText || ''}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </button>
+                      ),
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            );
+          })()}
 
           {/* Info */}
           <div className="space-y-5">
