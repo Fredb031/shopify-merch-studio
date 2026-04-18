@@ -68,17 +68,31 @@ export default function Products() {
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      {/* Banner */}
+      {/* Banner — premium hero */}
       <div className="pt-[58px]">
-        <div className="gradient-navy-dark px-6 md:px-10 pt-[34px]">
-          <div className="max-w-[1200px] mx-auto">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-6 md:px-10 pt-[44px] pb-2">
+          {/* Subtle radial accent */}
+          <div
+            className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none opacity-40"
+            style={{ background: 'radial-gradient(circle at 70% 0%, hsla(40, 82%, 55%, 0.18) 0%, transparent 60%)' }}
+            aria-hidden="true"
+          />
+          <div className="relative max-w-[1200px] mx-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-primary-foreground mb-1">
-                  {lang === 'en' ? 'Dress your team to your image' : 'Habille ton équipe à ton image'}
+                <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-3">
+                  <span>⚡</span>
+                  {lang === 'en' ? 'Made in Québec · 5 business days' : 'Fabriqué au Québec · 5 jours ouvrables'}
+                </div>
+                <h1 className="text-3xl md:text-5xl font-extrabold tracking-[-1px] text-primary-foreground mb-2 leading-[1.05]">
+                  {lang === 'en' ? (
+                    <>Dress your team<br /><span className="text-[#E8A838]">to your image.</span></>
+                  ) : (
+                    <>Habille ton équipe<br /><span className="text-[#E8A838]">à ton image.</span></>
+                  )}
                 </h1>
-                <p className="text-[13px] text-primary-foreground/50 mb-4">
-                  {lang === 'en' ? '20+ customizable products · Delivered in 5 days' : '20+ produits personnalisables · Livré en 5 jours'}
+                <p className="text-[13px] text-primary-foreground/60 mb-4">
+                  {lang === 'en' ? '22 customizable products · No minimum order' : '22 produits personnalisables · Aucun minimum'}
                 </p>
               </div>
 
@@ -123,21 +137,24 @@ export default function Products() {
               )}
             </div>
 
-            {/* Category tabs */}
-            <div className="flex overflow-x-auto scrollbar-hide">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => selectCategory(cat.id)}
-                  className={`text-[13px] font-semibold px-[18px] py-[11px] bg-transparent border-none border-b-2 whitespace-nowrap cursor-pointer transition-all ${
-                    activeCategory === cat.id && !searchQuery
-                      ? 'text-primary-foreground border-b-primary-foreground'
-                      : 'text-primary-foreground/40 border-b-transparent hover:text-primary-foreground/80'
-                  }`}
-                >
-                  {lang === 'en' ? cat.en : cat.fr}
-                </button>
-              ))}
+            {/* Category tabs — pill style */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {CATEGORIES.map((cat) => {
+                const isActive = activeCategory === cat.id && !searchQuery;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => selectCategory(cat.id)}
+                    className={`text-[12px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full ${
+                      isActive
+                        ? 'bg-white text-[#1B3A6B] shadow-md'
+                        : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white'
+                    }`}
+                  >
+                    {lang === 'en' ? cat.en : cat.fr}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

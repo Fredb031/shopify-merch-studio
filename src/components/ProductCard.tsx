@@ -109,12 +109,14 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Info */}
         <div className="p-3.5 pb-4">
           <p
-            className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[1.5px] mb-0.5"
+            className="text-[9px] font-mono text-muted-foreground/50 uppercase tracking-[2px] mb-0.5"
             data-sku={local?.sku}
           >
-            {local ? categoryLabel(local.category, lang) : (node.productType || '')}
+            {local?.sku ?? node.productType ?? ''}
           </p>
-          <div className="text-[13px] font-bold text-foreground leading-tight mb-1">{node.title}</div>
+          <div className="text-[14px] font-extrabold text-foreground leading-tight mb-1">
+            {local ? categoryLabel(local.category, lang) : node.title}
+          </div>
 
           {/* Pricing with quantity breaks */}
           {local ? (() => {

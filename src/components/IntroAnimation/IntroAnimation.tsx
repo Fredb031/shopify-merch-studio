@@ -105,6 +105,14 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
         ease: 'power3.out',
       }, 1.05);
 
+      // Gold accent line reveals subtly under the logo (premium signature)
+      tl.to('#va-intro-accent', {
+        width: 80,
+        opacity: 1,
+        duration: 0.55,
+        ease: 'power2.out',
+      }, 1.80);
+
       // PHASE 4 — Breathe (relative t = 2.10)
       tl.to(['#va-intro-line-top', '#va-intro-line-bottom'], {
         opacity: 0.4,
@@ -122,7 +130,13 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       }, 2.10);
 
       // PHASE 5 — Collapse (relative t = 2.80)
-      tl.to('#va-intro-logo', {
+      tl.to('#va-intro-accent', {
+        width: 0,
+        opacity: 0,
+        duration: 0.30,
+        ease: 'power2.in',
+      }, 2.80)
+      .to('#va-intro-logo', {
         opacity: 0,
         duration: 0.35,
         ease: 'power2.in',
@@ -179,23 +193,24 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
 
       <svg
         id="va-intro-logo"
-        viewBox="0 0 120 80"
+        viewBox="0 0 181.1 85.73"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        {/* Geometric V-A mark recreated as two angular polygons.
-            Each polygon scales independently from its own center for staggered emergence. */}
+        {/* Real Vision Affichage VA mark — exact paths from brand SVG */}
         <polygon
           id="va-mark-1"
           className="va-mark"
-          points="8,12 38,12 60,68 50,68 28,28 18,28 32,68 22,68"
+          points="0 0 33.76 0 66.38 56.58 77.83 37.15 111.02 37.15 124.85 61.46 96.71 61.46 82.98 85.73 50.04 85.73 0 0"
         />
         <polygon
           id="va-mark-2"
           className="va-mark"
-          points="60,68 80,28 90,28 76,52 90,52 96,40 110,40 100,68 92,68 88,60 80,60 84,68"
+          points="98.99 0 131.42 0 181.1 85.73 147.78 85.73 98.99 0"
         />
       </svg>
+      {/* Subtle gold accent line that draws under the logo at exit — premium signature */}
+      <div id="va-intro-accent" />
 
       <div id="va-intro-hint" className={showHint ? 'show' : ''}>
         Touche pour commencer

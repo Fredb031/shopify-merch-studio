@@ -32,11 +32,27 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 96px;
-  height: 64px;
+  width: 140px;
+  height: auto;
   transform: translate(-50%, -50%);
   will-change: transform, opacity;
   pointer-events: none;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.18));
+}
+
+#va-intro-accent {
+  position: absolute;
+  top: calc(50% + 36px);
+  left: 50%;
+  height: 1.5px;
+  width: 0px;
+  background: linear-gradient(90deg, transparent, #E8A838, transparent);
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  will-change: width, opacity;
+  border-radius: 2px;
+  box-shadow: 0 0 10px rgba(232, 168, 56, 0.4);
 }
 
 #va-intro-logo path,
