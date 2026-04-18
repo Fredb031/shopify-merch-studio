@@ -8,6 +8,7 @@ import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { StickyHelp } from '@/components/StickyHelp';
+import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
@@ -127,6 +128,11 @@ export default function Index() {
             >
               {t('heroCta')}
             </Link>
+            <p className="text-[11px] text-muted-foreground mt-3 font-medium">
+              {lang === 'en'
+                ? `⚡ ${SHOPIFY_STATS.ordersLast7Days} orders this week · No minimum order`
+                : `⚡ ${SHOPIFY_STATS.ordersLast7Days} commandes cette semaine · Aucun minimum`}
+            </p>
           </div>
 
           {/* Logo marquee */}

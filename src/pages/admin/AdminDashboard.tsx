@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, DollarSign, FileText, Package, TrendingUp, AlertCircle } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
+import { TodayWidget } from '@/components/admin/TodayWidget';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_STATS, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -40,6 +41,8 @@ export default function AdminDashboard() {
           accent="gold"
         />
       </div>
+
+      <TodayWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-5">
