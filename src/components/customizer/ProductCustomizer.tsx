@@ -24,6 +24,7 @@ import type { ProductColor } from '@/data/products';
 import type { LogoPlacement, PlacementSides } from '@/types/customization';
 import { autoPlaceOnUpload, centerOnGarment, centerOnChest, centerOnZone } from '@/lib/placement';
 import { useLang } from '@/lib/langContext';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -82,16 +83,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   // Escape closes the modal (but only when not focused in a text field
   // — fabric IText editing uses Escape to exit text mode).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  useEscapeKey(true, onClose, { skipInTextInputs: true });
 
   // Auto-select the first Shopify color on mount so a default preview is
   // always shown — users don't need a dedicated "pick color" step with
@@ -528,6 +520,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[600] flex items-end md:items-center justify-center p-0 md:p-4"
       style={{ background: 'rgba(8,14,32,.75)', backdropFilter: 'blur(18px)' }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="customizer-title"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <motion.div
@@ -539,7 +534,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         {/* ── Header ── */}
         <div className="px-5 py-3 border-b border-border flex items-center gap-3">
           <div className="flex-shrink-0">
-            <h2 className="text-sm font-black text-foreground">{product.shortName}</h2>
+            <h2 id="customizer-title" className="text-sm font-black text-foreground">{product.shortName}</h2>
             <p className="text-xs text-muted-foreground">{t('personnaliseTonProduit')}</p>
           </div>
 
