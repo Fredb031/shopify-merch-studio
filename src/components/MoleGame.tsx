@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useLang } from '@/lib/langContext';
 
 interface MoleGameProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ const SadFaceSvg = () => (
 );
 
 export function MoleGame({ isOpen, onClose }: MoleGameProps) {
+  const { lang } = useLang();
   const [hits, setHits] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   const [moleStates, setMoleStates] = useState<('down' | 'up' | 'hit')[]>(['down', 'down', 'down']);

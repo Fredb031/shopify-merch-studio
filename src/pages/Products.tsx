@@ -73,11 +73,11 @@ export default function Products() {
           <div className="max-w-[1200px] mx-auto">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-4xl font-extrabold tracking-[-0.5px] text-primary-foreground mb-[3px]">
-                  {lang === 'en' ? 'Shop' : 'Boutique'}
+                <h1 className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-primary-foreground mb-1">
+                  {lang === 'en' ? 'Dress your team to your image' : 'Habille ton équipe à ton image'}
                 </h1>
-                <p className="text-[13px] text-primary-foreground/45 mb-4">
-                  {lang === 'en' ? 'Click a category to explore' : 'Clique sur une catégorie pour explorer'}
+                <p className="text-[13px] text-primary-foreground/50 mb-4">
+                  {lang === 'en' ? '20+ customizable products · Delivered in 5 days' : '20+ produits personnalisables · Livré en 5 jours'}
                 </p>
               </div>
 
