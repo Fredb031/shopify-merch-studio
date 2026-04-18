@@ -17,6 +17,7 @@ import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useSanmarInventory } from '@/hooks/useSanmarInventory';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -40,6 +41,14 @@ export default function ProductDetail() {
 
   // Live SanMar Canada stock — degrades silently if the edge function is not deployed
   const { summary: stock, isLoading: stockLoading } = useSanmarInventory(localProduct?.sku ?? null);
+
+  // Track the viewed product so the Cart empty state (and future
+  // "recently viewed" surfaces) can show the last handful of products
+  // the user was considering.
+  const { track: trackRecentlyViewed } = useRecentlyViewed();
+  useEffect(() => {
+    if (handle) trackRecentlyViewed(handle);
+  }, [handle, trackRecentlyViewed]);
 
   // Set a product-specific document title so browser tabs, bookmarks,
   // and shared links reflect the actual product instead of the default
