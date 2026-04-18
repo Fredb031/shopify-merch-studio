@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { LoginModal } from '@/components/LoginModal';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface NavbarProps {
   onOpenCart?: () => void;
@@ -24,12 +25,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
 
   // Close the user menu on Escape so keyboard users can dismiss it
   // without having to click outside.
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [menuOpen]);
+  useEscapeKey(menuOpen, useCallback(() => setMenuOpen(false), []));
 
   const dashboardPath = user?.role === 'admin' ? '/admin' : user?.role === 'vendor' ? '/vendor' : null;
 

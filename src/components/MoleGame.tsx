@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@/lib/langContext';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface MoleGameProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const { lang } = useLang();
   const [hits, setHits] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
+  useEscapeKey(isOpen, useCallback(() => onClose(false), [onClose]));
   const [moleStates, setMoleStates] = useState<('down' | 'up' | 'hit')[]>(['down', 'down', 'down']);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);
@@ -151,6 +153,9 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
     <div
       className="fixed inset-0 z-[800] flex items-center justify-center"
       style={{ background: 'rgba(8,14,32,.82)', backdropFilter: 'blur(18px)' }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mole-game-title"
     >
       {/* Star burst effects */}
       {stars.map(s => (
@@ -179,7 +184,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
           <div className="inline-block border border-primary-foreground/20 text-primary-foreground/70 text-[10px] font-bold tracking-[2.5px] px-4 py-[5px] rounded-full mb-3">
             {lang === 'en' ? 'EXCLUSIVE MINI-GAME' : 'MINI-JEU EXCLUSIF'}
           </div>
-          <h2 className="text-2xl font-extrabold text-primary-foreground leading-[1.2] mb-[5px]">
+          <h2 id="mole-game-title" className="text-2xl font-extrabold text-primary-foreground leading-[1.2] mb-[5px]">
             {lang === 'en' ? <>Whack the moles,<br/>win 10% off</> : <>Frappe les taupes,<br/>gagne 10% de rabais</>}
           </h2>
           <p className="text-[13px] text-primary-foreground/50">

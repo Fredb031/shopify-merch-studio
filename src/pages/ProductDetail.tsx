@@ -424,13 +424,13 @@ export default function ProductDetail() {
 
             {/* CTA */}
             <button
-              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2"
+              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
               onClick={() => setCustomizerOpen(true)}
             >
-              <Shirt size={18} />
+              <Shirt size={18} aria-hidden="true" />
               {lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit'}
-              <ChevronRight size={16} className="ml-auto opacity-60" />
+              <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
 
             {/* Trust badges + delivery estimate */}
