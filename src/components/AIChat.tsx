@@ -93,7 +93,11 @@ export function AIChat() {
         onClick={() => setOpen(o => !o)}
         aria-label={lang === 'en' ? 'Open chat' : 'Ouvrir la conversation'}
         aria-expanded={open}
-        className="fixed bottom-24 right-4 z-[450] w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+        className="fixed right-4 z-[450] w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/30"
+        // Float above the bottom nav (60 px) + iOS safe area + a bit
+        // of breathing room. Replaces the old hardcoded bottom-24 px
+        // that clashed with tall safe-area bezels on newer phones.
+        style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)' }}
       >
         {open ? <X size={20} /> : <MessageCircle size={22} />}
         {!open && (
@@ -106,7 +110,10 @@ export function AIChat() {
           role="dialog"
           aria-label={lang === 'en' ? 'Chat with Vision AI' : 'Discuter avec Vision AI'}
           aria-modal="false"
-          className="fixed bottom-44 right-4 z-[450] w-[380px] max-w-[calc(100vw-32px)] h-[560px] max-h-[calc(100vh-200px)] bg-white rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col animate-[staggerUp_0.3s_cubic-bezier(.34,1.4,.64,1)_forwards]"
+          className="fixed right-4 z-[450] w-[380px] max-w-[calc(100vw-32px)] h-[560px] max-h-[calc(100vh-200px)] bg-white rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col animate-[staggerUp_0.3s_cubic-bezier(.34,1.4,.64,1)_forwards]"
+          // Sits directly above the FAB (FAB is at ~80 px from bottom
+          // including safe-area; panel starts another 68 px up).
+          style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 92px)' }}
         >
           {/* Header */}
           <div className="bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white p-4 flex items-center gap-3">
