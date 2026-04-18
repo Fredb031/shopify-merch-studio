@@ -494,7 +494,7 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
           type="button"
           onClick={() => bump(-1)}
           aria-label={lang === 'en' ? 'Decrease' : 'Diminuer'}
-          className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center transition-colors"
+          className="w-11 h-11 rounded-lg border border-border bg-background hover:bg-secondary active:bg-secondary/80 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
           <Minus size={14} />
         </button>
@@ -510,7 +510,7 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
           type="button"
           onClick={() => bump(1)}
           aria-label={lang === 'en' ? 'Increase' : 'Augmenter'}
-          className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center transition-colors"
+          className="w-11 h-11 rounded-lg border border-border bg-background hover:bg-secondary active:bg-secondary/80 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
           <Plus size={14} />
         </button>
