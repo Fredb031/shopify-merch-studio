@@ -1,16 +1,16 @@
 {
   "name": "vision-autonomous-agent",
-  "version": "1.0.0",
-  "description": "Autonomous Claude agent that audits and improves the Vision Affichage site",
+  "version": "2.0.0",
+  "description": "Managed Agents runner — spawns a Claude Opus 4.7 session that audits and improves the Vision Affichage site",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx agent.ts"
+    "setup": "tsx setup.ts",
+    "run": "tsx run-session.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.40.0",
+    "@anthropic-ai/sdk": "^0.90.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.0",
-    "zod": "^3.23.8"
+    "typescript": "^5.6.0"
   }
 }

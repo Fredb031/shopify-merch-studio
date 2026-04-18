@@ -1,15 +1,20 @@
 name: Autonomous Site Agent
 
-# Runs Claude Opus 4.7 on a cron schedule to audit the site, find improvements,
-# and commit small incremental fixes to the autonomous-improvements branch.
+# Triggers a Claude Managed Agents session every 6 hours to audit the site
+# and commit incremental improvements to the autonomous-improvements branch.
+#
+# The agent itself runs in an Anthropic-hosted container (visible in
+# console.anthropic.com). This workflow just spawns the session.
 #
 # Triggered by:
 #   - Schedule:     every 6 hours (UTC)
-#   - Manual:       workflow_dispatch (run anytime from the Actions tab)
+#   - Manual:       workflow_dispatch
 #
-# Required secrets:
-#   - ANTHROPIC_API_KEY — for Claude API calls
-#   - GITHUB_TOKEN      — built-in, used to push commits
+# Required repo secrets:
+#   - ANTHROPIC_API_KEY   — your console.anthropic.com API key
+#   - ANTHROPIC_ENV_ID    — from running `npm run setup` in scripts/autonomous-agent
+#   - ANTHROPIC_AGENT_ID  — from running `npm run setup` in scripts/autonomous-agent
+#   - GH_PAT              — GitHub PAT with `repo` scope (for the agent's clone + push)
 
 on:
   schedule:
@@ -30,54 +35,36 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   improve:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Install site dependencies
-        run: npm ci --prefer-offline --no-audit --no-fund
+          cache-dependency-path: scripts/autonomous-agent/package.json
 
       - name: Install agent dependencies
         working-directory: scripts/autonomous-agent
         run: npm install --no-audit --no-fund
 
-      - name: Configure git
-        run: |
-          git config user.name "Vision Autonomous Agent"
-          git config user.email "noreply@anthropic.com"
-
-      - name: Run autonomous agent
+      - name: Spawn Managed Agents session
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_ENV_ID: ${{ secrets.ANTHROPIC_ENV_ID }}
+          ANTHROPIC_AGENT_ID: ${{ secrets.ANTHROPIC_AGENT_ID }}
+          GH_PAT: ${{ secrets.GH_PAT }}
           FOCUS: ${{ github.event.inputs.focus }}
           MAX_CHANGES: ${{ github.event.inputs.max_changes || '3' }}
           RUN_ID: ${{ github.run_id }}
         working-directory: scripts/autonomous-agent
-        run: npx tsx agent.ts
-
-      - name: Push improvements
-        run: |
-          # Check if anything was committed
-          BRANCH="autonomous-improvements"
-          if git rev-parse --verify "$BRANCH" >/dev/null 2>&1; then
-            echo "Pushing $BRANCH..."
-            git push origin "$BRANCH" --force-with-lease
-          else
-            echo "No improvements branch created this run."
-          fi
+        run: npm run run
