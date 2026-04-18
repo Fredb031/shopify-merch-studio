@@ -159,7 +159,17 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
         </div>
       ))}
 
-      <div className="bg-card rounded-3xl w-[480px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.35)]">
+      <div className="bg-card rounded-3xl w-[480px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.35)] relative">
+        {/* Always-visible close button so customers can dismiss the popup */}
+        <button
+          type="button"
+          onClick={() => onClose(false)}
+          aria-label={lang === 'en' ? 'Close' : 'Fermer'}
+          className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+
         {/* Header */}
         <div className="gradient-navy-dark p-[26px] pb-5 text-center">
           <div className="inline-block border border-primary-foreground/20 text-primary-foreground/70 text-[10px] font-bold tracking-[2.5px] px-4 py-[5px] rounded-full mb-3">
