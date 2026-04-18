@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, Plus } from 'lucide-react';
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
 
@@ -41,9 +41,18 @@ export default function AdminQuotes() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">Soumissions</h1>
-        <p className="text-sm text-zinc-500 mt-1">Toutes les soumissions créées par l'équipe</p>
+      <header className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Soumissions</h1>
+          <p className="text-sm text-zinc-500 mt-1">Toutes les soumissions créées par l'équipe</p>
+        </div>
+        <Link
+          to="/admin/quotes/new"
+          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md"
+        >
+          <Plus size={16} />
+          Nouvelle soumission
+        </Link>
       </header>
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">

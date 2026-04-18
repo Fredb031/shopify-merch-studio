@@ -1,11 +1,10 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Plus, Settings, LogOut, Menu, X, Inbox } from 'lucide-react';
+import { LayoutDashboard, FileText, Plus, Settings, LogOut, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 const NAV_ITEMS = [
   { to: '/vendor', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
-  { to: '/vendor/leads', label: 'Demandes entrantes', icon: Inbox },
   { to: '/vendor/quotes', label: 'Mes soumissions', icon: FileText },
   { to: '/vendor/quotes/new', label: 'Nouvelle soumission', icon: Plus, highlight: true },
   { to: '/vendor/settings', label: 'Paramètres', icon: Settings },

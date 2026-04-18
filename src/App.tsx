@@ -34,7 +34,6 @@ const VendorLayout = lazy(() => import("@/components/vendor/VendorLayout").then(
 const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const QuoteBuilder = lazy(() => import("./pages/vendor/QuoteBuilder"));
 const QuoteList = lazy(() => import("./pages/vendor/QuoteList"));
-const QuoteLeads = lazy(() => import("./pages/vendor/QuoteLeads"));
 
 // Client-facing (lazy)
 const QuoteAccept = lazy(() => import("./pages/QuoteAccept"));
@@ -97,12 +96,19 @@ const App = () => (
                 >
                   <Route index element={<VendorDashboard />} />
                   <Route path="quotes" element={<QuoteList />} />
-                  <Route path="leads" element={<QuoteLeads />} />
                 </Route>
                 <Route
                   path="/vendor/quotes/new"
                   element={
                     <AuthGuard requiredRole={["vendor", "admin"]}>
+                      <QuoteBuilder />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/admin/quotes/new"
+                  element={
+                    <AuthGuard requiredRole="admin">
                       <QuoteBuilder />
                     </AuthGuard>
                   }

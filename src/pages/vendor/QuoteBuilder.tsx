@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { PRODUCTS } from '@/data/products';
 
 interface LineItem {
@@ -16,6 +16,9 @@ interface LineItem {
 }
 
 export default function QuoteBuilder() {
+  const location = useLocation();
+  const isAdminPath = location.pathname.startsWith('/admin');
+  const backHref = isAdminPath ? '/admin/quotes' : '/vendor';
   const [query, setQuery] = useState('');
   const [items, setItems] = useState<LineItem[]>([]);
   const [clientEmail, setClientEmail] = useState('');
@@ -70,7 +73,7 @@ export default function QuoteBuilder() {
     <div className="min-h-screen bg-zinc-50">
       <header className="bg-white border-b border-zinc-200 px-4 md:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/vendor" className="text-sm text-zinc-500 hover:text-zinc-900">← Retour</Link>
+          <Link to={backHref} className="text-sm text-zinc-500 hover:text-zinc-900">← Retour</Link>
           <h1 className="font-extrabold text-lg">Nouvelle soumission</h1>
         </div>
         <div className="flex gap-2">
