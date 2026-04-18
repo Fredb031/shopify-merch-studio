@@ -105,10 +105,14 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
-        className={`w-full border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all bg-transparent cursor-pointer ${
-          dragOver
-            ? 'border-[#0052CC] bg-[#0052CC]/5 scale-[1.01]'
-            : 'border-border hover:border-[#0052CC]/50 hover:bg-secondary/30'
+        aria-invalid={!!error}
+        aria-describedby={error ? 'logo-upload-error' : undefined}
+        className={`w-full border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center gap-3 transition-all bg-transparent cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+          error
+            ? 'border-rose-400 bg-rose-50/40'
+            : dragOver
+              ? 'border-[#0052CC] bg-[#0052CC]/5 scale-[1.01]'
+              : 'border-border hover:border-[#0052CC]/50 hover:bg-secondary/30'
         }`}
       >
         <div className="w-12 h-12 rounded-full bg-[#0052CC]/10 flex items-center justify-center">
@@ -139,7 +143,7 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
       />
 
       {error && (
-        <p className="text-xs text-rose-600 font-semibold mt-2 text-center" role="alert">
+        <p id="logo-upload-error" className="text-xs text-rose-600 font-semibold mt-2 text-center" role="alert">
           {error}
         </p>
       )}
