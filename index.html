@@ -29,6 +29,14 @@
     <!-- Canonical -->
     <link rel="canonical" href="https://visionaffichage.com" />
 
+    <!-- Hreflang: the page serves both fr-CA and en-CA from the same URL
+         (the user toggles language client-side). Declaring both tells
+         Google that this URL is a valid hit for either-language queries
+         rather than preferring English-only results. -->
+    <link rel="alternate" hreflang="fr-CA" href="https://visionaffichage.com" />
+    <link rel="alternate" hreflang="en-CA" href="https://visionaffichage.com" />
+    <link rel="alternate" hreflang="x-default" href="https://visionaffichage.com" />
+
     <!-- Preconnect to CDN for faster image loads -->
     <link rel="preconnect" href="https://cdn.shopify.com" crossorigin />
     <link rel="dns-prefetch" href="https://cdn.shopify.com" />
