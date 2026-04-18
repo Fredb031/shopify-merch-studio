@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "setup": "tsx setup.ts",
-    "run": "tsx run-session.ts"
+    "run": "tsx run-session.ts",
+    "burst": "tsx burst.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

@@ -1,37 +1,43 @@
 name: Autonomous Site Agent
 
-# Triggers a Claude Managed Agents session every 6 hours to audit the site
-# and commit incremental improvements to the autonomous-improvements branch.
+# Triggers Claude Managed Agents sessions to audit and improve the site.
 #
-# The agent itself runs in an Anthropic-hosted container (visible in
-# console.anthropic.com). This workflow just spawns the session.
+# Modes:
+#   - Single run:  one session with a specific focus (manual or cron)
+#   - Burst mode:  chain through all focuses in focuses.json in ONE long job
+#                  (used for multi-hour intensive improvement bursts)
 #
 # Triggered by:
-#   - Schedule:     every 6 hours (UTC)
-#   - Manual:       workflow_dispatch
+#   - Schedule:           every 20 min (burst backup cadence)
+#   - workflow_dispatch:  manual trigger with options
 #
-# Required repo secrets:
-#   - ANTHROPIC_API_KEY   — your console.anthropic.com API key
-#   - ANTHROPIC_ENV_ID    — from running `npm run setup` in scripts/autonomous-agent
-#   - ANTHROPIC_AGENT_ID  — from running `npm run setup` in scripts/autonomous-agent
-#   - GH_PAT              — GitHub PAT with `repo` scope (for the agent's clone + push)
+# Required repo secrets: ANTHROPIC_API_KEY, ANTHROPIC_ENV_ID,
+# ANTHROPIC_AGENT_ID, GH_PAT.
 
 on:
   schedule:
     - cron: '*/20 * * * *'
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'single or burst'
+        required: false
+        default: 'single'
+        type: choice
+        options:
+          - single
+          - burst
       focus:
-        description: 'Focus area for this run (optional)'
+        description: 'Focus area (single mode only)'
         required: false
         default: ''
       max_changes:
-        description: 'Max files to change (default 3)'
+        description: 'Max files per session'
         required: false
-        default: '3'
+        default: '5'
 
 concurrency:
-  group: autonomous-agent
+  group: autonomous-agent-${{ github.event.inputs.mode || 'single' }}
   cancel-in-progress: false
 
 permissions:
@@ -40,7 +46,7 @@ permissions:
 jobs:
   improve:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: ${{ github.event.inputs.mode == 'burst' && 360 || 45 }}
 
     steps:
       - name: Checkout repo
@@ -57,14 +63,19 @@ jobs:
         working-directory: scripts/autonomous-agent
         run: npm install --no-audit --no-fund
 
-      - name: Spawn Managed Agents session
+      - name: Spawn Managed Agents session(s)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           ANTHROPIC_ENV_ID: ${{ secrets.ANTHROPIC_ENV_ID }}
           ANTHROPIC_AGENT_ID: ${{ secrets.ANTHROPIC_AGENT_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
           FOCUS: ${{ github.event.inputs.focus }}
-          MAX_CHANGES: ${{ github.event.inputs.max_changes || '3' }}
+          MAX_CHANGES: ${{ github.event.inputs.max_changes || '5' }}
           RUN_ID: ${{ github.run_id }}
         working-directory: scripts/autonomous-agent
-        run: npm run run
+        run: |
+          if [ "${{ github.event.inputs.mode }}" = "burst" ]; then
+            npm run burst
+          else
+            npm run run
+          fi

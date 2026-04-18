@@ -1,0 +1,22 @@
+[
+  "visual polish — homepage hero: tighten spacing, improve typography hierarchy, ensure logo+CTA have breathing room on mobile. Check src/pages/Index.tsx.",
+  "visual polish — boutique page: improve product card hover states, price formatting, badge positioning. Grid should feel premium. Check src/pages/Boutique.tsx.",
+  "visual polish — product customizer (src/components/customizer/*): improve step indicator, button hierarchy, zone selector visual clarity. Premium feel like CustomInk.",
+  "display bugs — scan src for React key warnings, missing return statements, unclosed tags, untyped props. Fix the 3 most impactful. Run tsc and report any errors fixed.",
+  "display bugs — scan for CSS issues: z-index stacking problems, overflow hidden cutting content, sticky elements that don't stick right. Fix visible issues in Boutique and Customizer pages.",
+  "mobile optimization — homepage: ensure all sections render well on 375px viewport. Fix any horizontal scroll, cramped spacing, or unreadable text sizes. Check with grep for any fixed widths.",
+  "mobile optimization — boutique + customizer: filter menu should work on mobile (drawer pattern), zone selector should be thumb-friendly, buttons full-width where appropriate",
+  "mobile optimization — BottomNav: verify it doesn't cover content on long pages (all pages need pb-20 or safe-area padding on root), tab bar must respect iOS safe-area-inset-bottom",
+  "admin scaffolding — create src/pages/admin/AdminDashboard.tsx as a new route. Protected placeholder page with nav to sub-pages (Orders, Products, Vendors, Quotes, Settings). Route it in src/App.tsx at /admin. Use placeholder data only — auth wiring will happen in a separate human-reviewed session.",
+  "admin scaffolding — create src/pages/admin/AdminOrders.tsx listing orders in a table with status badges, search, and drawer for details. Mock data for now. Nice, premium admin UI (Tailwind).",
+  "admin scaffolding — create src/pages/admin/AdminVendors.tsx showing a list of vendor accounts with role, last activity, quick actions. Mock data.",
+  "vendor quote builder UI — create src/pages/vendor/QuoteBuilder.tsx: a vendor-facing form to build a custom cart for a client. Product picker, quantity, color/size, discount field (% or $), client email field, 'Send quote' button. Mock submit for now.",
+  "vendor quote builder UI — create src/pages/vendor/QuoteList.tsx: list all quotes this vendor has sent, status (pending, viewed, paid), total. Mock data.",
+  "quote acceptance page — create src/pages/QuoteAccept.tsx at route /quote/:id. Shows the vendor-built cart with products, colors, sizes, placement instructions, discount applied, total. Client can upload logo, tick T&C checkbox, and see 'Pay' button (disabled, wired later). Premium UI.",
+  "admin + vendor role types — create src/types/admin.ts with TypeScript types: AdminUser, VendorUser, Quote, QuoteLineItem, OrderSummary. No implementation yet, just types for the UI to consume.",
+  "login page scaffold — create src/pages/admin/Login.tsx with a clean email+password form (Supabase magic link pattern). Route at /admin/login. UI only — auth wiring happens separately.",
+  "route all new admin/vendor pages in src/App.tsx with React.lazy + Suspense for code-splitting",
+  "shared admin layout — create src/components/admin/AdminLayout.tsx with sidebar nav + topbar. Use across all admin pages for consistency.",
+  "product sync status UI — in AdminDashboard show a 'Shopify sync' widget (product count, last sync time, any errors). Mock the data. Real wiring comes later.",
+  "accessibility cleanup — run through the earlier audit list from session 24593170131 and fix the 5 most impactful items on src/pages/Index.tsx (aria-hidden on decorative elements, aria-label on star ratings, fix Contact link, heading hierarchy, reduced-motion guard on marquee)"
+]
