@@ -4,8 +4,63 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/store/cartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';
 import { StickyHelp } from '@/components/StickyHelp';
+
+function PromoCodeInput({
+  onApply,
+  placeholder,
+  applyLabel,
+  invalidLabel,
+}: {
+  onApply: (code: string) => boolean;
+  placeholder: string;
+  applyLabel: string;
+  invalidLabel: string;
+}) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+
+  const submit = () => {
+    if (!code.trim()) return;
+    const ok = onApply(code.trim());
+    if (!ok) {
+      setError(true);
+      setTimeout(() => setError(false), 2500);
+    } else {
+      setCode('');
+    }
+  };
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <Tag size={13} className="text-muted-foreground flex-shrink-0" />
+        <input
+          type="text"
+          value={code}
+          onChange={e => { setCode(e.target.value); setError(false); }}
+          onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+          placeholder={placeholder}
+          className={`flex-1 bg-secondary border rounded-lg px-2.5 py-1.5 text-xs uppercase tracking-wider outline-none transition-colors ${
+            error ? 'border-rose-300 focus:border-rose-500' : 'border-border focus:border-primary'
+          }`}
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!code.trim()}
+          className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-lg hover:opacity-90 disabled:opacity-30"
+        >
+          {applyLabel}
+        </button>
+      </div>
+      {error && (
+        <p className="text-[10px] text-rose-600 font-semibold pl-5">{invalidLabel}</p>
+      )}
+    </div>
+  );
+}
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -21,7 +76,7 @@ import { useState } from 'react';
  */
 export default function Cart() {
   const { lang } = useLang();
-  const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied } = useCartStore();
+  const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount } = useCartStore();
   const shopifyCart = useShopifyCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -174,11 +229,26 @@ export default function Cart() {
                     {lang === 'en' ? 'Included' : 'Incluse'}
                   </span>
                 </div>
-                {discountApplied && discountCode && (
-                  <div className="flex justify-between text-green-700">
-                    <span>{lang === 'en' ? 'Discount' : 'Rabais'} ({discountCode})</span>
-                    <span className="font-bold">{lang === 'en' ? 'Applied' : 'Appliqué'}</span>
+                {discountApplied && discountCode ? (
+                  <div className="flex justify-between text-emerald-700 bg-emerald-50 -mx-2 px-2 py-1.5 rounded-lg">
+                    <span className="font-semibold">
+                      ✓ {lang === 'en' ? 'Discount' : 'Rabais'} <code className="font-mono text-[11px]">{discountCode}</code>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearDiscount}
+                      className="text-[11px] font-bold underline hover:no-underline"
+                    >
+                      {lang === 'en' ? 'Remove' : 'Retirer'}
+                    </button>
                   </div>
+                ) : (
+                  <PromoCodeInput
+                    onApply={applyDiscount}
+                    placeholder={lang === 'en' ? 'Promo code' : 'Code promo'}
+                    applyLabel={lang === 'en' ? 'Apply' : 'Appliquer'}
+                    invalidLabel={lang === 'en' ? 'Invalid code' : 'Code invalide'}
+                  />
                 )}
                 <div className="flex justify-between text-muted-foreground">
                   <span>{lang === 'en' ? 'Taxes' : 'Taxes'}</span>

@@ -2,7 +2,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useLang } from '@/lib/langContext';
 import { BottomNav } from '@/components/BottomNav';
-import { ArrowLeft, Home } from 'lucide-react';
+import { StickyHelp } from '@/components/StickyHelp';
+import { ArrowLeft, Home, Compass } from 'lucide-react';
 
 const NotFound = () => {
   const location = useLocation();
@@ -13,36 +14,55 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background flex flex-col pb-20">
       <div className="flex-1 flex items-center justify-center px-6 py-20">
-        <div className="text-center max-w-sm">
-          <div className="text-[96px] font-extrabold text-primary/10 leading-none mb-4">404</div>
-          <h1 className="text-2xl font-extrabold text-foreground mb-2">
+        <div className="text-center max-w-md">
+          <div className="relative w-32 h-32 mx-auto mb-6">
+            <div
+              className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/15 to-[#E8A838]/15 blur-2xl"
+              aria-hidden="true"
+            />
+            <div className="relative w-32 h-32 rounded-full bg-white border border-border flex items-center justify-center shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+              <Compass size={48} className="text-[#0052CC]" strokeWidth={1.5} />
+            </div>
+            <div className="absolute -top-2 -right-2 w-12 h-12 bg-[#E8A838] text-[#1B3A6B] rounded-full flex items-center justify-center font-extrabold text-sm shadow-lg">
+              404
+            </div>
+          </div>
+
+          <h1 className="text-3xl md:text-4xl font-extrabold text-foreground tracking-tight mb-3">
             {lang === 'en' ? 'Page not found' : 'Page introuvable'}
           </h1>
-          <p className="text-muted-foreground text-sm mb-8 leading-relaxed">
+          <p className="text-muted-foreground text-sm md:text-base mb-2 leading-relaxed">
             {lang === 'en'
-              ? "The page you're looking for doesn't exist or has been moved."
-              : "La page que tu cherches n'existe pas ou a été déplacée."}
+              ? "We can't find the page you're looking for — but our products are right where they should be."
+              : "On ne trouve pas la page que tu cherches — mais nos produits sont à leur place."}
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <code className="text-[11px] text-muted-foreground/60 font-mono">{location.pathname}</code>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-7">
             <Link
               to="/"
-              className="inline-flex items-center justify-center gap-2 text-sm font-bold text-primary-foreground gradient-navy px-6 py-3 rounded-full"
+              className="inline-flex items-center justify-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-7 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform"
             >
               <Home className="w-4 h-4" />
               {lang === 'en' ? 'Go home' : "Retour à l'accueil"}
             </Link>
             <Link
               to="/products"
-              className="inline-flex items-center justify-center gap-2 text-sm font-bold border border-border px-6 py-3 rounded-full hover:border-primary hover:text-primary transition-colors"
+              className="inline-flex items-center justify-center gap-2 text-sm font-extrabold border border-border bg-background px-7 py-3.5 rounded-full hover:border-primary hover:text-primary transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               {lang === 'en' ? 'See products' : 'Voir les produits'}
             </Link>
           </div>
+
+          <p className="text-[11px] text-muted-foreground/70 mt-6">
+            {lang === 'en' ? 'Made in Québec · Delivered in 5 business days' : 'Fabriqué au Québec · Livré en 5 jours ouvrables'}
+          </p>
         </div>
       </div>
+      <StickyHelp />
       <BottomNav />
     </div>
   );
