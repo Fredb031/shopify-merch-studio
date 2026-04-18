@@ -9,7 +9,7 @@ import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
@@ -41,6 +41,17 @@ export default function ProductDetail() {
 
   // Live SanMar Canada stock — degrades silently if the edge function is not deployed
   const { summary: stock, isLoading: stockLoading } = useSanmarInventory(localProduct?.sku ?? null);
+
+  // Set a product-specific document title so browser tabs, bookmarks,
+  // and shared links reflect the actual product instead of the default
+  // site title. Restore on unmount so SPA nav doesn't leak stale titles.
+  useEffect(() => {
+    if (!product) return;
+    const prev = document.title;
+    const label = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
+    document.title = `${label} ${localProduct?.sku ?? ''} — Vision Affichage`.trim();
+    return () => { document.title = prev; };
+  }, [product, localProduct, lang]);
 
   if (isLoading) {
     return (
