@@ -410,25 +410,51 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     </p>
                   </div>
 
-                  {/* Quick CENTER button — most-used position, prominent */}
+                  {/* Quick CENTER button — true visual center of the garment.
+                      Uses the picked zone's WIDTH for sizing but always
+                      places the logo at the EXACT geometric center of the
+                      product photo (x=50, y=50 in canvas %). Many garment
+                      photos have the shirt centered vertically too, so this
+                      is the "center of the shirt" the customer expects when
+                      they say 'center'. */}
                   <button
                     type="button"
                     onClick={() => {
                       const zone = product.printZones.find(z => /centre|center|coeur|heart|chest|poitrine/i.test(z.label) || /centre|center|coeur|heart|chest|poitrine/i.test(z.labelEn ?? '')) ?? product.printZones[0];
-                      if (!zone) return;
+                      const widthPct = zone ? Math.min(zone.width * 0.85, 32) : 26;
                       store.setLogoPlacement({
                         ...store.logoPlacement!,
-                        zoneId: zone.id,
+                        zoneId: zone?.id ?? 'centre-vetement',
                         mode: 'preset',
                         x: 50,
-                        y: zone.y + zone.height / 2,
-                        width: zone.width * 0.85,
+                        y: 50,
+                        width: widthPct,
                       });
                     }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
                   >
                     <span aria-hidden="true">⊕</span>
-                    {lang === 'en' ? 'Center logo on garment' : 'Centrer le logo sur le vêtement'}
+                    {lang === 'en' ? 'Center on garment (50/50)' : 'Centrer sur le vêtement (50/50)'}
+                  </button>
+
+                  {/* Quick CHEST button — chest area (the typical logo spot) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const zone = product.printZones.find(z => /poitrine|chest/i.test(z.label) || /poitrine|chest/i.test(z.labelEn ?? '')) ?? product.printZones[0];
+                      if (!zone) return;
+                      store.setLogoPlacement({
+                        ...store.logoPlacement!,
+                        zoneId: zone.id,
+                        mode: 'preset',
+                        x: zone.x + zone.width / 2,
+                        y: zone.y + zone.height / 2,
+                        width: zone.width * 0.85,
+                      });
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-primary/30 text-primary text-sm font-bold hover:bg-primary/5 transition-all"
+                  >
+                    {lang === 'en' ? '↑ Center on chest' : '↑ Centrer sur la poitrine'}
                   </button>
 
                   <div className="flex items-center gap-2 my-2">
