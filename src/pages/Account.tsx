@@ -159,13 +159,21 @@ export default function Account() {
           </div>
 
           {myOrders.length === 0 ? (
-            <div className="p-12 text-center">
-              <ShoppingBag size={32} className="text-muted-foreground/30 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-4">
-                {lang === 'en' ? 'No orders yet — make your first one.' : 'Aucune commande — fais ta première.'}
+            <div className="p-10 md:p-12 text-center">
+              <ShoppingBag size={36} className="text-[#0052CC]/30 mx-auto mb-3" />
+              <h3 className="text-base font-extrabold text-foreground mb-1">
+                {lang === 'en' ? 'No orders yet' : 'Pas encore de commande'}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto leading-relaxed">
+                {lang === 'en'
+                  ? 'Once you place an order, you\u2019ll see status, tracking and delivery dates right here.'
+                  : 'Dès ta première commande, tu verras le statut, le suivi et la date de livraison ici.'}
               </p>
-              <Link to="/products" className="inline-block text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full">
-                {lang === 'en' ? 'Browse products' : 'Magasiner'}
+              <Link
+                to="/products"
+                className="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full hover:-translate-y-0.5 transition-transform"
+              >
+                {lang === 'en' ? 'Start your first order →' : 'Commencer ma première commande →'}
               </Link>
             </div>
           ) : (
