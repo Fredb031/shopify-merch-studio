@@ -22,7 +22,6 @@ export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
   const { lang } = useLang();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
