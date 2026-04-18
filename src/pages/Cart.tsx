@@ -277,20 +277,27 @@ export default function Cart() {
                     {lang === 'en' ? 'Included' : 'Incluse'}
                   </span>
                 </div>
-                {discountApplied && discountCode ? (
-                  <div className="flex justify-between text-emerald-700 bg-emerald-50 -mx-2 px-2 py-1.5 rounded-lg">
-                    <span className="font-semibold">
-                      ✓ {lang === 'en' ? 'Discount' : 'Rabais'} <code className="font-mono text-[11px]">{discountCode}</code>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={clearDiscount}
-                      className="text-[11px] font-bold underline hover:no-underline"
-                    >
-                      {lang === 'en' ? 'Remove' : 'Retirer'}
-                    </button>
-                  </div>
-                ) : (
+                {discountApplied && discountCode ? (() => {
+                  // Show the actual dollars saved so the discount badge
+                  // reads as a concrete win, not just a code sticker.
+                  const subtotal = items.reduce((s, it) => s + (Number.isFinite(it.totalPrice) ? it.totalPrice : 0), 0);
+                  const savings = Math.max(0, subtotal - totalPrice);
+                  return (
+                    <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 -mx-2 px-2 py-1.5 rounded-lg">
+                      <span className="font-semibold">
+                        ✓ {lang === 'en' ? 'Discount' : 'Rabais'} <code className="font-mono text-[11px]">{discountCode}</code>
+                        {savings > 0 && <span className="ml-2 text-[11px] text-emerald-800">-{savings.toFixed(2)} $</span>}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={clearDiscount}
+                        className="text-[11px] font-bold underline hover:no-underline"
+                      >
+                        {lang === 'en' ? 'Remove' : 'Retirer'}
+                      </button>
+                    </div>
+                  );
+                })() : (
                   <PromoCodeInput
                     onApply={applyDiscount}
                     placeholder={lang === 'en' ? 'Promo code' : 'Code promo'}
