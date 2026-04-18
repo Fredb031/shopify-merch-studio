@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
@@ -144,7 +145,7 @@ export default function Checkout() {
         (it.shopifyVariantIds ?? []).map(vid => ({ vid, qty: 1 })),
       );
       if (localLines.length === 0) {
-        alert(lang === 'en'
+        toast.error(lang === 'en'
           ? 'Your cart could not be synced to Shopify. Please refresh and try again, or contact us at 367-380-4808.'
           : "Le panier n'a pas pu être synchronisé avec Shopify. Rafraîchis la page ou appelle-nous au 367-380-4808.");
         setProcessing(false);
@@ -154,7 +155,7 @@ export default function Checkout() {
       window.location.href = 'https://visionaffichage-com.myshopify.com/cart';
     } catch (err) {
       console.error('Checkout error:', err);
-      alert(lang === 'en'
+      toast.error(lang === 'en'
         ? 'Something went wrong. Please try again or call us.'
         : 'Une erreur est survenue. Réessaie ou appelle-nous.');
       setProcessing(false);
