@@ -1,11 +1,10 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { Home, Store, ShoppingCart } from 'lucide-react';
 
 export function BottomNav() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { lang, t } = useLang();
   const itemCount = useCartStore(s => s.getItemCount());
 
@@ -34,12 +33,14 @@ export function BottomNav() {
           const ariaLabel = item.id === 'cart' && itemCount > 0
             ? `${item.label} (${itemCount})`
             : item.label;
+          // Use Link instead of button — preserves Cmd/right-click "Open
+          // in new tab", proper screen reader announcement as link, and
+          // browser history works as users expect.
           return (
-            <button
+            <Link
               key={item.id}
-              type="button"
-              onClick={() => navigate(item.path)}
-              className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] py-1 bg-transparent border-none cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded-md"
+              to={item.path}
+              className="flex flex-col items-center justify-center gap-0.5 min-w-[60px] py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded-md no-underline"
               aria-current={active ? 'page' : undefined}
               aria-label={ariaLabel}
             >
@@ -62,7 +63,7 @@ export function BottomNav() {
               <span className={`text-[10px] font-semibold transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}>
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>
