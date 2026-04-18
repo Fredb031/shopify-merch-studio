@@ -4,12 +4,14 @@ import { storefrontApiRequest, PRODUCT_BY_HANDLE_QUERY, colorNameToHex } from '@
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
-import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
+// Keep fabric.js + customizer siblings out of the ProductDetail chunk;
+// they're only needed when the user actually opens the customizer.
+const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense, lazy } from 'react';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
@@ -529,10 +531,12 @@ export default function ProductDetail() {
 
       <AnimatePresence>
         {customizerOpen && (
-          <ProductCustomizer
-            productId={localProductId}
-            onClose={() => setCustomizerOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <ProductCustomizer
+              productId={localProductId}
+              onClose={() => setCustomizerOpen(false)}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
 
