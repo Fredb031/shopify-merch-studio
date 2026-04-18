@@ -89,7 +89,7 @@ export function LogoUploader({
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setErrorMsg(lang === 'en' ? 'File too large (max 20MB).' : 'Fichier trop volumineux (max 20MB).');
+      setErrorMsg(lang === 'en' ? 'File too large (max 20MB).' : 'Fichier trop volumineux (max 20 Mo).');
       setStatus('error');
       return;
     }
