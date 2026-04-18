@@ -108,7 +108,44 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   };
 
   const handleAddToCart = async () => {
-    if (shopifyColor && totalQty > 0) {
+    // ── Multi-variant flow: emit ONE cart line item per (color × all sizes) group ──
+    if (multiVariants.length > 0) {
+      // Group variants by color so each color becomes a single cart line
+      const byColor = new Map<string, { color: VariantQty; sizes: { size: string; qty: number }[]; total: number }>();
+      for (const v of multiVariants) {
+        const existing = byColor.get(v.colorId);
+        if (existing) {
+          existing.sizes.push({ size: v.size, qty: v.qty });
+          existing.total += v.qty;
+        } else {
+          byColor.set(v.colorId, {
+            color: v,
+            sizes: [{ size: v.size, qty: v.qty }],
+            total: v.qty,
+          });
+        }
+      }
+
+      for (const group of byColor.values()) {
+        const colorImg = findColorImage(product.sku, group.color.colorName);
+        const linePreview = store.logoPlacement?.previewUrl ?? colorImg?.front ?? product.imageDevant;
+
+        cartStore.addItem({
+          productId: product.id,
+          colorId: group.color.colorId,
+          logoPlacement: store.logoPlacement,
+          sizeQuantities: group.sizes,
+          activeView: store.activeView,
+          step: store.step,
+          productName: `${product.name} — ${group.color.colorName}`,
+          previewSnapshot: linePreview,
+          unitPrice: unitPrice * discount,
+          totalQuantity: group.total,
+          totalPrice: parseFloat((group.total * unitPrice * discount).toFixed(2)),
+        });
+      }
+    } else if (shopifyColor && totalQty > 0) {
+      // ── Legacy single-color flow (fallback) ──
       const minimalProduct: ShopifyProduct = {
         node: {
           id: shopifyColor.variantId,
@@ -146,28 +183,30 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         quantity: totalQty,
         selectedOptions: [{ name: 'Couleur', value: shopifyColor.colorName }],
       });
+
+      cartStore.addItem({
+        productId: product.id,
+        colorId: activeColor?.id ?? '',
+        logoPlacement: store.logoPlacement,
+        sizeQuantities: store.sizeQuantities,
+        activeView: store.activeView,
+        step: store.step,
+        productName: product.name,
+        previewSnapshot: store.logoPlacement?.previewUrl ?? activeColor?.imageDevant ?? product.imageDevant,
+        unitPrice: unitPrice * discount,
+        totalQuantity: totalQty,
+        totalPrice,
+      });
     }
 
-    cartStore.addItem({
-      productId: product.id,
-      colorId: activeColor?.id ?? '',
-      logoPlacement: store.logoPlacement,
-      sizeQuantities: store.sizeQuantities,
-      activeView: store.activeView,
-      step: store.step,
-      productName: product.name,
-      previewSnapshot: store.logoPlacement?.previewUrl ?? activeColor?.imageDevant ?? product.imageDevant,
-      unitPrice: unitPrice * discount,
-      totalQuantity: totalQty,
-      totalPrice,
-    });
-
     store.reset();
+    setMultiVariants([]);
     onClose();
+    const colorCount = multiVariants.length > 0 ? new Set(multiVariants.map(v => v.colorId)).size : 1;
     toast.success(
       lang === 'en'
-        ? `${product.shortName} added to cart!`
-        : `${product.shortName} ajouté au panier !`,
+        ? `${product.shortName} × ${colorCount > 1 ? `${colorCount} colors` : '1 color'} added to cart!`
+        : `${product.shortName} × ${colorCount > 1 ? `${colorCount} couleurs` : '1 couleur'} ajouté au panier !`,
       { duration: 3000 },
     );
   };
