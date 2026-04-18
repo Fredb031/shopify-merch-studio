@@ -25,6 +25,7 @@ import type { LogoPlacement, PlacementSides } from '@/types/customization';
 import { autoPlaceOnUpload, centerOnGarment, centerOnChest, centerOnZone } from '@/lib/placement';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -84,6 +85,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // Escape closes the modal (but only when not focused in a text field
   // — fabric IText editing uses Escape to exit text mode).
   useEscapeKey(true, onClose, { skipInTextInputs: true });
+  useBodyScrollLock(true);
 
   // Auto-select the first Shopify color on mount so a default preview is
   // always shown — users don't need a dedicated "pick color" step with

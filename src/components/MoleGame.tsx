@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface MoleGameProps {
   isOpen: boolean;
@@ -56,6 +57,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const [hits, setHits] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   useEscapeKey(isOpen, useCallback(() => onClose(false), [onClose]));
+  useBodyScrollLock(isOpen);
   const [moleStates, setMoleStates] = useState<('down' | 'up' | 'hit')[]>(['down', 'down', 'down']);
   const [gameStarted, setGameStarted] = useState(false);
   const [gameWon, setGameWon] = useState(false);

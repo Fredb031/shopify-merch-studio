@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import type { Product } from '@/data/products';
 
 // Size measurements in cm — standard SanMar/ATC sizing
@@ -44,6 +45,7 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   const isCap = chartKey === 'cap';
 
   useEscapeKey(isOpen, onClose);
+  useBodyScrollLock(isOpen);
 
   return (
     <AnimatePresence>
