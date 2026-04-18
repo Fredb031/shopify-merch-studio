@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { ShopifyProduct } from '@/lib/shopify';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD, POPULAR_SKUS } from '@/data/products';
