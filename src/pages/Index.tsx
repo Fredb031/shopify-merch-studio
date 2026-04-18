@@ -240,7 +240,9 @@ export default function Index() {
         <section className="border-b border-border">
           <div className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4">
             {[
-              { num: '33 000+', key: 'produitLivres' as const },
+              // Thin NBSP between '33' and '000+' so the number never
+              // wraps mid-digit-group (French typography rule).
+              { num: '33\u202F000+', key: 'produitLivres' as const },
               { num: lang === 'en' ? '5 days' : '5 jours',  key: 'delaiLivraison' as const },
               { num: '500+',     key: 'entreprisesSatisfaites' as const },
               { num: '5,0',      key: 'noteGoogle' as const },
@@ -298,7 +300,7 @@ export default function Index() {
                   </svg>
                 </div>
                 <div>
-                  <div className="text-[12px] font-bold text-foreground">{lang === 'en' ? '+33,000 products delivered' : '+33 000 produits livrés'}</div>
+                  <div className="text-[12px] font-bold text-foreground">{lang === 'en' ? '+33,000 products delivered' : '+33\u202F000 produits livrés'}</div>
                   <div className="text-[11px] text-muted-foreground">{lang === 'en' ? 'Since 2021' : 'Depuis 2021'}</div>
                 </div>
               </div>
