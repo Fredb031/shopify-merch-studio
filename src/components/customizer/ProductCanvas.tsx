@@ -263,12 +263,25 @@ export function ProductCanvas({
           // the actual shirt body (not canvas whitespace).
           onBboxDetected?.(analyzeBboxFromFabricImage(img));
 
-          // Tint only if no real per-color photo
+          // Tint only if no real per-color photo. Opacity is adaptive to
+          // the garment's luminance — dark colors need a stronger tint to
+          // register, light colors need a softer one so they don't wash
+          // the photo out completely.
           if (garmentColor && !hasRealColorImage) {
+            const hex = garmentColor.replace('#', '');
+            let tintOpacity = 0.35;
+            if (hex.length >= 6) {
+              const r = parseInt(hex.slice(0, 2), 16);
+              const g = parseInt(hex.slice(2, 4), 16);
+              const b = parseInt(hex.slice(4, 6), 16);
+              const lum = (r * 299 + g * 587 + b * 114) / 1000;
+              // Map luminance 0..255 → opacity 0.22..0.55
+              tintOpacity = Math.max(0.22, Math.min(0.55, 0.55 - (lum / 255) * 0.33));
+            }
             const tint = new fabric.Rect({
               left: 0, top: 0, width: W, height: H,
               fill: garmentColor,
-              opacity: 0.35,
+              opacity: tintOpacity,
               globalCompositeOperation: 'multiply',
               selectable: false, evented: false,
             });
@@ -288,22 +301,12 @@ export function ProductCanvas({
             }
           }
 
-          // Show/hide overlays based on view. Most customizers place
-          // logo+text on the FRONT zone — when user toggles to back, hide
-          // them so they don't render confusingly on top of the back photo.
-          const isFront = activeView === 'front';
-          if (logoObj.current) {
-            logoObj.current.set('visible', isFront);
-            logoObj.current.set('selectable', isFront);
-            logoObj.current.set('evented', isFront);
-          }
-          textObjects.current.forEach((t) => {
-            t.set('visible', isFront);
-            t.set('selectable', isFront);
-            t.set('evented', isFront);
-          });
+          // Zone outline stays visible on BOTH front and back so the user
+          // can see the safe print area on whichever side they're editing.
+          // (Logo + text objects are driven by the parent's per-side
+          // logoUrl prop, so they naturally flip when activeView changes.)
           if (maskRef.current) {
-            maskRef.current.set('visible', isFront);
+            maskRef.current.set('visible', true);
           }
 
           // Layer order: photo → tint → outline → logo
@@ -400,9 +403,11 @@ export function ProductCanvas({
               tintObj.current = tint;
             }
 
-            // Print-zone outline on the front view — adaptive contrast so
-            // it's visible on both dark AND light garments
-            if (activeView === 'front') {
+            // Print-zone outline — adaptive contrast so it's visible on
+            // both dark AND light garments. Shown on BOTH front and back
+            // so the user knows where the safe area is when placing a
+            // back-side logo. (Previously only on front.)
+            {
               const zone = product.printZones[0];
               if (zone) {
                 const isLightGarment = (() => {
@@ -499,11 +504,25 @@ export function ProductCanvas({
       // Wire up modification → emit placement + guides. Use emitRef so
       // listeners always call the LATEST emit (emit captures logoUrl, so a
       // stale closure would emit the wrong previewUrl after a re-upload).
+      //
+      // During drag we rAF-throttle emits: parent state updates at ~60Hz
+      // cause noticeable jank on low-end phones. requestAnimationFrame
+      // gives us one emit per frame max, while object:modified (drag end)
+      // still fires synchronously so the final position is always exact.
+      let moveRafId: number | null = null;
       canvas.on('object:moving', (e: any) => {
         if (e.target) updateGuides(e.target);
-        if (logoObj.current) emitRef.current(logoObj.current, 'manual');
+        if (moveRafId != null) return;
+        moveRafId = requestAnimationFrame(() => {
+          moveRafId = null;
+          if (logoObj.current) emitRef.current(logoObj.current, 'manual');
+        });
       });
       canvas.on('object:modified', () => {
+        if (moveRafId != null) {
+          cancelAnimationFrame(moveRafId);
+          moveRafId = null;
+        }
         hideGuides();
         if (logoObj.current) emitRef.current(logoObj.current, zoneIdRef.current);
       });
@@ -525,7 +544,18 @@ export function ProductCanvas({
 
   // ── Place / replace the user's logo whenever it changes ───────────────────
   useEffect(() => {
-    if (!ready || !fc.current || !logoUrl) return;
+    if (!ready || !fc.current) return;
+    // When logoUrl is null, remove any existing logo from the canvas.
+    // This matters when the user toggles to the back view in "Front only"
+    // mode — the parent passes null, we clean up the fabric object.
+    if (!logoUrl) {
+      if (logoObj.current && fc.current) {
+        fc.current.remove(logoObj.current);
+        logoObj.current = null;
+        fc.current.requestRenderAll();
+      }
+      return;
+    }
     let disposed = false;
 
     import('fabric').then(({ fabric }) => {
@@ -881,19 +911,26 @@ export function ProductCanvas({
           Keeping both caused UI duplication and state-divergence bugs. */}
 
       {/* Alignment & transform toolbar — only while the user is actively
-          placing the logo (Step "Where") and there IS a logo. */}
+          placing the logo (Step "Where") and there IS a logo. Buttons use
+          w-10 h-10 (40px) to meet WCAG touch-target guidance; each has
+          aria-label for screen readers. */}
       {showPlacementTools && logoUrl && activeView === 'front' && (
         <div className="flex items-center justify-between bg-secondary rounded-xl px-2 py-1.5 border border-border">
           <div className="flex gap-0.5">
             {[
-              { icon: AlignLeft,   label: lang === 'en' ? 'Left'   : 'Gauche', fn: snapLeft   },
-              { icon: AlignCenter, label: lang === 'en' ? 'Center' : 'Centre', fn: snapCenter },
-              { icon: AlignRight,  label: lang === 'en' ? 'Right'  : 'Droite', fn: snapRight  },
+              { icon: AlignLeft,   label: lang === 'en' ? 'Align left'   : 'Aligner à gauche',  fn: snapLeft   },
+              { icon: AlignCenter, label: lang === 'en' ? 'Align center' : 'Centrer',           fn: snapCenter },
+              { icon: AlignRight,  label: lang === 'en' ? 'Align right'  : 'Aligner à droite',  fn: snapRight  },
             ].map(({ icon: Icon, label, fn }) => (
-              <button key={label} onClick={fn} title={label}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
+              <button
+                key={label}
+                type="button"
+                onClick={fn}
+                title={label}
+                aria-label={label}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
               >
-                <Icon size={13} />
+                <Icon size={14} />
               </button>
             ))}
           </div>
@@ -902,22 +939,29 @@ export function ProductCanvas({
             {[
               { icon: ZoomOut,   label: lang === 'en' ? 'Smaller' : 'Réduire',  fn: () => rescale(-0.06) },
               { icon: ZoomIn,    label: lang === 'en' ? 'Bigger'  : 'Agrandir', fn: () => rescale(0.06)  },
-              { icon: RotateCcw, label: '+15°', fn: rotate },
+              { icon: RotateCcw, label: lang === 'en' ? 'Rotate +15°' : 'Rotation +15°', fn: rotate },
             ].map(({ icon: Icon, label, fn }) => (
-              <button key={label} onClick={fn} title={label}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
+              <button
+                key={label}
+                type="button"
+                onClick={fn}
+                title={label}
+                aria-label={label}
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
               >
-                <Icon size={13} />
+                <Icon size={14} />
               </button>
             ))}
           </div>
           <div className="w-px h-4 bg-border" />
           <button
+            type="button"
             onClick={removeLogo}
             title={lang === 'en' ? 'Remove logo' : 'Supprimer le logo'}
-            className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-background transition-all"
+            aria-label={lang === 'en' ? 'Remove logo' : 'Supprimer le logo'}
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-background transition-all"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
           </button>
         </div>
       )}

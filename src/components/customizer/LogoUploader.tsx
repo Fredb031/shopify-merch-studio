@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, X, Loader2, CheckCircle2, Scissors } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { removeBackground } from '@/lib/removeBg';
@@ -21,6 +21,21 @@ export function LogoUploader({
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [bgRemoved, setBgRemoved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Track every blob URL we createObjectURL so we can revoke them on
+  // replace / unmount. Without this, memory grows on every upload.
+  const blobUrlsRef = useRef<string[]>([]);
+  const trackBlobUrl = (url: string) => {
+    blobUrlsRef.current.push(url);
+    return url;
+  };
+  useEffect(() => {
+    return () => {
+      blobUrlsRef.current.forEach(u => {
+        try { URL.revokeObjectURL(u); } catch { /* already revoked */ }
+      });
+      blobUrlsRef.current = [];
+    };
+  }, []);
 
   const processFile = useCallback(async (file: File, autoRemoveBg = true) => {
     if (!file.type.startsWith('image/')) {
@@ -37,7 +52,7 @@ export function LogoUploader({
     setErrorMsg(null);
     setCurrentFile(file);
     setBgRemoved(false);
-    const localUrl = URL.createObjectURL(file);
+    const localUrl = trackBlobUrl(URL.createObjectURL(file));
     setPreview(localUrl);
     setOriginalPreview(localUrl);
 
@@ -45,7 +60,7 @@ export function LogoUploader({
       setStatus('removing-bg');
       try {
         const noBgBlob = await removeBackground(file);
-        const noBgUrl = URL.createObjectURL(noBgBlob);
+        const noBgUrl = trackBlobUrl(URL.createObjectURL(noBgBlob));
         setPreview(noBgUrl);
         setBgRemoved(true);
         setStatus('saving');
@@ -69,7 +84,7 @@ export function LogoUploader({
     setStatus('removing-bg');
     try {
       const noBgBlob = await removeBackground(currentFile);
-      const noBgUrl = URL.createObjectURL(noBgBlob);
+      const noBgUrl = trackBlobUrl(URL.createObjectURL(noBgBlob));
       setPreview(noBgUrl);
       setBgRemoved(true);
       setStatus('saving');

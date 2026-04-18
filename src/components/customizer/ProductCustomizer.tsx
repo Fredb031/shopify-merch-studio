@@ -22,6 +22,7 @@ import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, fin
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import type { LogoPlacement, PlacementSides } from '@/types/customization';
+import { autoPlaceOnUpload, centerOnGarment, centerOnChest, centerOnZone } from '@/lib/placement';
 import { useLang } from '@/lib/langContext';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
@@ -165,6 +166,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const anyLogoUploaded =
     !!store.logoPlacement?.previewUrl || !!store.logoPlacementBack?.previewUrl;
 
+  // Whether the canvas should render a logo on the currently VISIBLE view.
+  // E.g. when sides='front' and the user toggles to Back, we must NOT
+  // smear the front logo on the back photo.
+  const showLogoForActiveView = (() => {
+    if (store.placementSides === 'none') return false;
+    if (store.placementSides === 'front') return store.activeView === 'front' && !!store.logoPlacement?.previewUrl;
+    if (store.placementSides === 'back')  return store.activeView === 'back'  && !!store.logoPlacementBack?.previewUrl;
+    // both — use the placement attached to the currently shown view
+    return store.activeView === 'front'
+      ? !!store.logoPlacement?.previewUrl
+      : !!store.logoPlacementBack?.previewUrl;
+  })();
+
   // Full label for sm+, shortLabel for mobile where horizontal room is tight.
   const STEPS = [
     { id: 1, label: t('couleur'),         shortLabel: lang === 'en' ? 'Color'  : 'Couleur',  done: colorChosen },
@@ -225,10 +239,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       }
 
       // 1) Local cart lines (for cart UI display) — track shopifyVariantIds
-      //    so removing the line later also removes from Shopify.
+      //    so removing the line later also removes from Shopify. Both
+      //    front AND back placements are carried on the cart item so
+      //    fulfillment + order detail pages can render both sides.
       for (const [colorId, group] of byColor.entries()) {
         const colorImg = findColorImage(product.sku, group.color.colorName);
-        const linePreview = store.logoPlacement?.previewUrl ?? colorImg?.front ?? product.imageDevant;
+        const linePreview = store.logoPlacement?.previewUrl
+          ?? store.logoPlacementBack?.previewUrl
+          ?? colorImg?.front ?? product.imageDevant;
         const variantIdsForLine = multiVariants
           .filter(v => v.colorId === colorId && v.shopifyVariantId)
           .map(v => v.shopifyVariantId as string);
@@ -236,6 +254,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           productId: product.id,
           colorId: group.color.colorId,
           logoPlacement: store.logoPlacement,
+          logoPlacementBack: store.logoPlacementBack,
+          placementSides: store.placementSides,
           sizeQuantities: group.sizes,
           activeView: store.activeView,
           step: store.step,
@@ -246,6 +266,18 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           totalPrice: parseFloat((group.total * unitPrice * discount).toFixed(2)),
           shopifyVariantIds: variantIdsForLine,
         });
+      }
+
+      // Warn user if any picked variants couldn't match a Shopify variant
+      // ID — those will NOT reach checkout and the totals won't match.
+      const unmatched = multiVariants.filter(v => !v.shopifyVariantId);
+      if (unmatched.length > 0) {
+        toast.warning(
+          lang === 'en'
+            ? `${unmatched.length} variant${unmatched.length > 1 ? 's' : ''} couldn\u2019t match a Shopify product. We\u2019ll contact you to confirm.`
+            : `${unmatched.length} variante${unmatched.length > 1 ? 's' : ''} n\u2019a pas pu être associée à un produit Shopify. On te contactera pour confirmer.`,
+          { duration: 5000 },
+        );
       }
 
       // 2) Shopify cart sync — one line per (color × size) Shopify variant
@@ -325,11 +357,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         productId: product.id,
         colorId: activeColor?.id ?? '',
         logoPlacement: store.logoPlacement,
+        logoPlacementBack: store.logoPlacementBack,
+        placementSides: store.placementSides,
         sizeQuantities: store.sizeQuantities,
         activeView: store.activeView,
         step: store.step,
         productName: product.name,
-        previewSnapshot: store.logoPlacement?.previewUrl ?? activeColor?.imageDevant ?? product.imageDevant,
+        previewSnapshot: store.logoPlacement?.previewUrl
+          ?? store.logoPlacementBack?.previewUrl
+          ?? activeColor?.imageDevant ?? product.imageDevant,
         unitPrice: unitPrice * discount,
         totalQuantity: totalQty,
         totalPrice,
@@ -415,15 +451,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         {/* ── Body ── */}
         <div className="overflow-auto grid md:grid-cols-[1.2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border min-h-0">
 
-          {/* LEFT — Single interactive canvas (CustomInk-style: customize and preview in one) */}
-          <div className="p-3 md:p-4 space-y-2.5 flex flex-col min-h-0">
+          {/* LEFT — Just the interactive canvas. No duplicated controls.
+              Color palette + step content live in the right panel. */}
+          <div className="p-3 md:p-4 flex flex-col min-h-0">
             <ProductCanvas
               product={product}
               garmentColor={activeColor?.hex}
               hasRealColorImage={activeColor?.imageDevant !== product.imageDevant}
               imageDevant={activeColor?.imageDevant ?? product.imageDevant}
               imageDos={activeColor?.imageDos ?? product.imageDos}
-              logoUrl={currentPlacement?.previewUrl ?? null}
+              logoUrl={showLogoForActiveView ? currentPlacement?.previewUrl ?? null : null}
               currentPlacement={currentPlacement}
               activeView={store.activeView}
               onViewChange={store.setView}
@@ -434,28 +471,34 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               showPlacementTools={store.step === 3 && store.placementSides !== 'none'}
               onBboxDetected={setBbox}
             />
+          </div>
 
-            <div>
-              <p className="text-[11px] font-bold text-muted-foreground mb-2">
-                {t('couleur')}
+          {/* RIGHT — persistent color palette at the TOP + step content below.
+              Colors live here and only here: swap preview color anytime, at
+              any step. This matches the user request to place the palette
+              "tout à droite" and removes the duplicate that used to sit
+              under the canvas. */}
+          <div className="p-4 overflow-auto flex flex-col gap-4">
+            <div className="flex-shrink-0">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {t('couleur')}
+                </p>
                 {!colorsLoading && shopifyColors.length > 0 && (
-                  <span className="ml-1 text-green-600">
-                    · {shopifyColors.length} {lang === 'en' ? 'colors' : 'couleurs'}
+                  <span className="text-[10px] font-bold text-emerald-600">
+                    {shopifyColors.length} {lang === 'en' ? 'colors' : 'couleurs'}
                   </span>
                 )}
-              </p>
+              </div>
               <ColorPicker
                 colors={displayColors}
                 loading={colorsLoading}
                 selectedColorName={shopifyColor?.colorName ?? activeColor?.name ?? null}
                 onSelect={handleSelectColor}
-                compact
               />
             </div>
-          </div>
 
-          {/* RIGHT — Step content */}
-          <div className="p-4 overflow-auto">
+            <div className="flex-1 min-h-0">
             <AnimatePresence mode="wait">
 
               {/* Step 1 — Choose preview colour. The swatches live under the
@@ -539,17 +582,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <LogoUploader
                       onLogoReady={(previewUrl, processedUrl, file) => {
                         const zone = product.printZones[0];
-                        // Smart auto-placement using the REAL garment bbox
-                        // when available — falls back to zone center.
-                        const auto = bbox
-                          ? {
-                              x: bbox.cx,
-                              y: bbox.y + bbox.h * 0.25,
-                              width: Math.min(bbox.w * 0.35, 32),
-                            }
-                          : zone
-                          ? { x: zone.x + zone.width / 2, y: zone.y + zone.height / 2, width: zone.width * 0.85 }
-                          : { x: 50, y: 37, width: 26 };
+                        const auto = autoPlaceOnUpload({ bbox, zone });
                         const placement: LogoPlacement = {
                           zoneId: zone?.id ?? 'centre',
                           mode: 'preset',
@@ -627,14 +660,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   <button
                     type="button"
                     onClick={() => {
-                      const widthPct = bbox ? Math.min(bbox.w * 0.35, 32) : 26;
                       setCurrentPlacement({
                         ...currentPlacement!,
                         zoneId: 'centre-vetement',
                         mode: 'preset',
-                        x: bbox ? bbox.cx : 50,
-                        y: bbox ? bbox.cy : 50,
-                        width: widthPct,
+                        ...centerOnGarment({ bbox }),
                       });
                     }}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
@@ -649,15 +679,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <button
                       type="button"
                       onClick={() => {
-                        const widthPct = bbox ? Math.min(bbox.w * 0.32, 28) : 24;
                         const zone = product.printZones.find(z => /poitrine|chest/i.test(z.label) || /poitrine|chest/i.test(z.labelEn ?? '')) ?? product.printZones[0];
                         setCurrentPlacement({
                           ...currentPlacement!,
                           zoneId: zone?.id ?? 'poitrine-centre',
                           mode: 'preset',
-                          x: bbox ? bbox.cx : (zone ? zone.x + zone.width / 2 : 50),
-                          y: bbox ? bbox.y + bbox.h * 0.25 : (zone ? zone.y + zone.height / 2 : 37),
-                          width: widthPct,
+                          ...centerOnChest({ bbox, zone }),
                         });
                       }}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-primary/30 text-primary text-sm font-bold hover:bg-primary/5 transition-all"
@@ -686,9 +713,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             ...currentPlacement!,
                             zoneId: z.id,
                             mode: 'preset',
-                            x: z.x + z.width / 2,
-                            y: z.y + z.height / 2,
-                            width: z.width * 0.85,
+                            ...centerOnZone(z),
                           })}
                           className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-all ${
                             active
@@ -896,6 +921,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               )}
 
             </AnimatePresence>
+            </div>
           </div>
         </div>
 

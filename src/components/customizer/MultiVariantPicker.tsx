@@ -256,11 +256,11 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                     onClick={() => setQty(activeColor, size, Math.max(0, qty - 1))}
                     disabled={qty === 0 || unavailable}
                     aria-label={lang === 'en' ? `Decrease ${size}` : `Diminuer ${size}`}
-                    className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all"
+                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all"
                   >
-                    <Minus size={10} />
+                    <Minus size={12} />
                   </button>
-                  <span className={`w-7 text-center text-sm font-black ${qty > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <span className={`w-8 text-center text-sm font-black ${qty > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
                     {qty}
                   </span>
                   <button
@@ -268,9 +268,9 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                     onClick={() => setQty(activeColor, size, qty + 1)}
                     disabled={unavailable}
                     aria-label={lang === 'en' ? `Increase ${size}` : `Augmenter ${size}`}
-                    className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all"
+                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all"
                   >
-                    <Plus size={10} />
+                    <Plus size={12} />
                   </button>
                 </div>
               </div>
