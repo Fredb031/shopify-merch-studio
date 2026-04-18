@@ -475,13 +475,19 @@ export function ProductCanvas({
 
   return (
     <div className="flex flex-col gap-2.5">
-      {/* The interactive canvas */}
+      {/* The interactive canvas — premium frame with subtle gradient + drop shadow */}
       <div
         ref={containerRef}
-        className="relative rounded-2xl overflow-hidden border border-border shadow-sm bg-[#F4F3EF]"
+        className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)]"
         style={{ aspectRatio: '0.85' }}
       >
-        <canvas ref={canvasElRef} className="w-full h-full block" style={{ touchAction: 'none' }} />
+        {/* Subtle radial accent in the corner — looks like studio lighting */}
+        <div
+          className="absolute top-0 right-0 w-1/2 h-1/2 pointer-events-none opacity-40"
+          style={{ background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.7) 0%, transparent 60%)' }}
+          aria-hidden="true"
+        />
+        <canvas ref={canvasElRef} className="relative w-full h-full block" style={{ touchAction: 'none' }} />
 
         {imgError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -519,6 +525,14 @@ export function ProductCanvas({
           ))}
         </div>
 
+        {/* Color sync badge — confirms the photo really matches the picked color */}
+        {hasRealColorImage && (
+          <div className="absolute top-3 left-3 bg-emerald-600/95 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
+            {lang === 'en' ? 'Real color' : 'Vraie couleur'}
+          </div>
+        )}
+
         {/* Logo placed badge */}
         <AnimatePresence>
           {logoUrl && activeView === 'front' && (
@@ -527,6 +541,7 @@ export function ProductCanvas({
               animate={{ opacity:1, scale:1 }}
               exit={{ opacity:0 }}
               className="absolute top-3 left-3 bg-green-700/90 text-white text-[10px] font-bold px-2.5 py-1 rounded-full"
+              style={{ top: hasRealColorImage ? '38px' : '12px' }}
             >
               {t('logoPlace')}
             </motion.div>
