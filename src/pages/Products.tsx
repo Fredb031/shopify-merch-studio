@@ -7,7 +7,7 @@ import { findProductByHandle } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 
 const CATEGORIES = [
   { id: 'overview',  fr: 'Tout',                 en: 'All' },
@@ -41,6 +41,32 @@ export default function Products() {
   const [cartOpen, setCartOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const searchDesktopRef = useRef<HTMLInputElement>(null);
+  const searchMobileRef  = useRef<HTMLInputElement>(null);
+
+  // Cmd+K (macOS) / Ctrl+K (Windows/Linux) focuses the search input —
+  // standard power-user shortcut on commerce sites (Linear, Vercel, etc.)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        // Focus whichever input is visible (CSS hides one or the other)
+        const desktop = searchDesktopRef.current;
+        const mobile  = searchMobileRef.current;
+        const desktopVisible = desktop && desktop.offsetParent !== null;
+        (desktopVisible ? desktop : mobile)?.focus();
+      } else if (e.key === 'Escape' && document.activeElement === searchDesktopRef.current) {
+        // Esc clears search when input is focused
+        setSearchQuery('');
+        searchDesktopRef.current?.blur();
+      } else if (e.key === 'Escape' && document.activeElement === searchMobileRef.current) {
+        setSearchQuery('');
+        searchMobileRef.current?.blur();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const selectCategory = (catId: string) => {
     setActiveCategory(catId);
@@ -100,12 +126,14 @@ export default function Products() {
               <div className="relative hidden md:flex items-center mt-2">
                 <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
                 <input
+                  ref={searchDesktopRef}
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={lang === 'en' ? 'Search products…' : 'Rechercher…'}
+                  placeholder={lang === 'en' ? 'Search products… (⌘K)' : 'Rechercher… (⌘K)'}
                   aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
-                  className="pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all w-52"
+                  aria-keyshortcuts="Meta+K"
+                  className="pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all w-56"
                 />
                 {searchQuery && (
                   <button
@@ -124,6 +152,7 @@ export default function Products() {
             <div className="relative flex md:hidden items-center mb-4">
               <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
               <input
+                ref={searchMobileRef}
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
