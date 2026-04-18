@@ -29,6 +29,8 @@ export default defineConfig(({ mode }) => ({
           'fabric':       ['fabric'],
           'framer':       ['framer-motion'],
           'tanstack':     ['@tanstack/react-query'],
+          'supabase':     ['@supabase/supabase-js'],
+          'icons':        ['lucide-react'],
         },
       },
     },
