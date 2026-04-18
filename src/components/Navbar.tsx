@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { LoginModal } from '@/components/LoginModal';

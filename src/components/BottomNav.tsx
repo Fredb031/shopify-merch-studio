@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore } from '@/stores/localCartStore';
 import { Home, Store, ShoppingCart } from 'lucide-react';
 
 export function BottomNav() {

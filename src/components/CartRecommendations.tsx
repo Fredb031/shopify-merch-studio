@@ -3,7 +3,7 @@ import { Plus, Sparkles } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore } from '@/stores/localCartStore';
 
 /**
  * Cross-sell module shown above the cart total on the Cart page and

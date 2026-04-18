@@ -1,7 +1,7 @@
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';

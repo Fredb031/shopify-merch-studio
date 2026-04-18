@@ -15,7 +15,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Shirt, Brush, PackageCheck } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore } from '@/stores/localCartStore';
 
 const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
 
