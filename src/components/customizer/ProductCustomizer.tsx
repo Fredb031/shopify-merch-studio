@@ -19,7 +19,6 @@ import { useCartStore } from '@/store/cartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useProductColors } from '@/hooks/useProductColors';
 import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE, findColorImage } from '@/data/products';
-import { hasRealColorImage } from '@/lib/colorFilter';
 import type { ShopifyVariantColor, ShopifyProduct } from '@/lib/shopify';
 import type { ProductColor } from '@/data/products';
 import { useLang } from '@/lib/langContext';
@@ -169,31 +168,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     );
   };
 
-  // Filter to only colors that have a real per-color image — hides phantom
-  // variants that exist in Shopify but don't have proper imagery.
-  const filteredShopifyColors = shopifyColors.filter(sc =>
-    hasRealColorImage(product.sku, {
-      id: sc.variantId,
-      name: sc.colorName,
-      nameEn: sc.colorName,
-      hex: sc.hex,
-    }),
-  );
-
-  const usableShopifyColors = filteredShopifyColors.length > 0 ? filteredShopifyColors : shopifyColors;
-
-  const displayColors: ShopifyVariantColor[] = usableShopifyColors.length > 0
-    ? usableShopifyColors
-    : product.colors
-        .filter(c => hasRealColorImage(product.sku, c))
-        .map(c => ({
-          variantId: c.id, colorName: c.name, hex: c.hex,
-          imageDevant: c.imageDevant ?? product.imageDevant,
-          imageDos: c.imageDos ?? product.imageDos,
-          price: product.basePrice.toString(),
-          availableForSale: true,
-          sizeOptions: product.sizes.map(s => ({ variantId: `${c.id}_${s}`, size: s, available: true })),
-        }));
+  // ALL colors stay visible — never hide one (Black + others must always
+  // be selectable). The "Real color" badge inside the canvas signals
+  // whether the picked color comes with a true per-color image.
+  const displayColors: ShopifyVariantColor[] = shopifyColors.length > 0
+    ? shopifyColors
+    : product.colors.map(c => ({
+        variantId: c.id, colorName: c.name, hex: c.hex,
+        imageDevant: c.imageDevant ?? product.imageDevant,
+        imageDos: c.imageDos ?? product.imageDos,
+        price: product.basePrice.toString(),
+        availableForSale: true,
+        sizeOptions: product.sizes.map(s => ({ variantId: `${c.id}_${s}`, size: s, available: true })),
+      }));
 
   return (
     <motion.div
@@ -331,6 +318,35 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     </p>
                   </div>
 
+                  {/* Quick CENTER button — most-used position, prominent */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const zone = product.printZones.find(z => /centre|center|coeur|heart|chest|poitrine/i.test(z.label) || /centre|center|coeur|heart|chest|poitrine/i.test(z.labelEn ?? '')) ?? product.printZones[0];
+                      if (!zone) return;
+                      store.setLogoPlacement({
+                        ...store.logoPlacement!,
+                        zoneId: zone.id,
+                        mode: 'preset',
+                        x: 50,
+                        y: zone.y + zone.height / 2,
+                        width: zone.width * 0.85,
+                      });
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
+                  >
+                    <span aria-hidden="true">⊕</span>
+                    {lang === 'en' ? 'Center logo on garment' : 'Centrer le logo sur le vêtement'}
+                  </button>
+
+                  <div className="flex items-center gap-2 my-2">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {lang === 'en' ? 'or pick a zone' : 'ou choisis une zone'}
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+
                   {/* Zone grid with pricing */}
                   <div className="space-y-1.5">
                     {product.printZones.map(z => {
@@ -367,12 +383,26 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     })}
                   </div>
 
-                  {/* Manual placement hint */}
-                  <p className="text-[10px] text-muted-foreground text-center mt-2">
-                    {lang === 'en'
-                      ? 'Or drag the logo directly on the product preview'
-                      : 'Ou glisse le logo directement sur le produit'}
-                  </p>
+                  {/* Manual placement explicit option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      store.setLogoPlacement({
+                        ...store.logoPlacement!,
+                        mode: 'manual',
+                        zoneId: 'manual',
+                      });
+                    }}
+                    className={`w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed text-xs font-bold transition-all ${
+                      store.logoPlacement?.mode === 'manual'
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    ✋ {lang === 'en'
+                      ? 'Place manually (drag on the product)'
+                      : 'Placer manuellement (glisse sur le produit)'}
+                  </button>
 
                   {/* Remove logo button */}
                   <button

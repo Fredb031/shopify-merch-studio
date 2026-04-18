@@ -60,6 +60,10 @@ export function ProductCanvas({
   const logoObj = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const maskRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const photoObj = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tintObj = useRef<any>(null);
 
   const [ready, setReady] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -98,6 +102,75 @@ export function ProductCanvas({
     });
   }, [logoUrl, onPlacementChange]);
 
+  // ── Swap photo + tint in-place when garment color or view changes,
+  //    WITHOUT rebuilding canvas. This preserves the user's logo placement
+  //    perfectly across color picks. (Init effect runs only on first mount
+  //    or explicit resize.)
+  useEffect(() => {
+    if (!fc.current || !ready) return;
+    let disposed = false;
+    import('fabric').then(({ fabric }) => {
+      if (disposed || !fc.current) return;
+      const canvas = fc.current;
+      const W = canvas.width as number;
+      const H = canvas.height as number;
+      const photoUrl = activeView === 'front' ? imageDevant : imageDos;
+
+      // Replace existing photo
+      if (photoObj.current) {
+        canvas.remove(photoObj.current);
+        photoObj.current = null;
+      }
+      if (tintObj.current) {
+        canvas.remove(tintObj.current);
+        tintObj.current = null;
+      }
+
+      fabric.Image.fromURL(
+        photoUrl,
+        (img: any) => {
+          if (disposed || !fc.current) return;
+          const sx = W / (img.width ?? W);
+          const sy = H / (img.height ?? H);
+          const scale = Math.min(sx, sy);
+          img.set({
+            left: (W - (img.width ?? W) * scale) / 2,
+            top:  (H - (img.height ?? H) * scale) / 2,
+            scaleX: scale, scaleY: scale,
+            selectable: false, evented: false,
+            lockMovementX: true, lockMovementY: true,
+            hoverCursor: 'default',
+          });
+          canvas.add(img);
+          canvas.sendToBack(img);
+          photoObj.current = img;
+
+          // Tint only if no real per-color photo
+          if (garmentColor && !hasRealColorImage) {
+            const tint = new fabric.Rect({
+              left: 0, top: 0, width: W, height: H,
+              fill: garmentColor,
+              opacity: 0.35,
+              globalCompositeOperation: 'multiply',
+              selectable: false, evented: false,
+            });
+            canvas.add(tint);
+            // place tint just above photo, below logo + outline
+            if (logoObj.current) canvas.bringToFront(logoObj.current);
+            if (maskRef.current) canvas.bringToFront(maskRef.current);
+            tintObj.current = tint;
+          }
+          canvas.renderAll();
+        },
+        { crossOrigin: 'anonymous' },
+      );
+    });
+    return () => { disposed = true; };
+    // Only fires on color/view/photo change — NOT on canvasKey (resize) or first mount
+    // (init effect handles the very first photo load)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageDevant, imageDos, activeView, garmentColor, hasRealColorImage]);
+
   // ── Init Fabric canvas + load photo + add mask ────────────────────────────
   useEffect(() => {
     if (!canvasElRef.current || !containerRef.current) return;
@@ -123,6 +196,8 @@ export function ProductCanvas({
       fc.current = canvas;
       maskRef.current = null;
       logoObj.current = null;
+      photoObj.current = null;
+      tintObj.current = null;
 
       const photoUrl = activeView === 'front' ? imageDevant : imageDos;
 
@@ -154,6 +229,7 @@ export function ProductCanvas({
             });
             canvas.add(img);
             canvas.sendToBack(img);
+            photoObj.current = img;
 
             // Colour tint overlay — only when we DON'T have a real per-colour photo.
             // When hasRealColorImage is true, the loaded photo IS the right colour already.
@@ -166,6 +242,7 @@ export function ProductCanvas({
                 selectable: false, evented: false,
               });
               canvas.add(tint);
+              tintObj.current = tint;
             }
 
             // Print-zone outline on the front view
@@ -270,7 +347,11 @@ export function ProductCanvas({
       fc.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageDevant, imageDos, activeView, garmentColor, canvasKey]);
+    // Init effect: only fires on first mount + on canvas resize.
+    // Photo/color/view changes are handled by the swap-in-place effect above
+    // so the user's logo placement survives a color pick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canvasKey]);
 
   // ── Place / replace the user's logo whenever it changes ───────────────────
   useEffect(() => {

@@ -13,7 +13,6 @@ import { useState } from 'react';
 import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
-import { filterRealColors } from '@/lib/colorFilter';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { StickyHelp } from '@/components/StickyHelp';
 import { useLang } from '@/lib/langContext';
@@ -216,28 +215,6 @@ export default function ProductDetail() {
                 </span>
               </div>
 
-              {/* Visual color swatches — like the customizer */}
-              {localProduct && (() => {
-                const realColors = filterRealColors(localProduct.sku, localProduct.colors);
-                if (realColors.length === 0) return null;
-                return (
-                  <div className="mt-4">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                      {lang === 'en' ? 'Colors' : 'Couleurs'} · {realColors.length}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {realColors.map(c => (
-                        <span
-                          key={c.id}
-                          className="w-6 h-6 rounded-full ring-1 ring-border shadow-sm"
-                          style={{ background: c.hex }}
-                          title={lang === 'en' ? (c.nameEn ?? c.name) : c.name}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
 
             {/* Live quantity calculator (replaces static pricing tier table) */}
