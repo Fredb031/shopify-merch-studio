@@ -35,6 +35,9 @@ export default function AdminLogin() {
     const result = await signIn(email, password);
     setSubmitting(false);
     if (!result.ok) return;
+    // Clear any stale error so a back-nav to /admin/login doesn't flash
+    // the previous attempt's message.
+    clearError();
     const role = result.role;
     if (redirectTo && (
       (role === 'president') ||
@@ -115,11 +118,10 @@ export default function AdminLogin() {
             </div>
           </label>
 
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#0052CC]" />
-              <span className="text-xs text-zinc-600">Rester connecté</span>
-            </label>
+          <div className="flex items-center justify-end pt-1">
+            {/* The "Stay connected" checkbox used to live here but did
+                nothing — Supabase persists sessions via localStorage by
+                default. Removed to avoid misleading the user. */}
             <Link to="/admin/forgot-password" className="text-xs font-bold text-[#0052CC] hover:underline">
               Mot de passe oublié ?
             </Link>

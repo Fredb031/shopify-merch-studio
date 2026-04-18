@@ -71,16 +71,45 @@ export default function AcceptInvite() {
       return;
     }
 
-    // Update profile role + mark invite used
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user && invite) {
-      await supabase.from('profiles').update({ role: invite.role, full_name: invite.full_name }).eq('id', user.id);
-      await supabase.from('vendor_invites').update({ used_at: new Date().toISOString() }).eq('token', token!);
+    // Update profile role + mark invite used. Both writes are checked —
+    // silent failures here meant the user landed on the "activated"
+    // screen but their role was never actually set.
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user || !invite) {
+      setSubmitting(false);
+      setError('Impossible de récupérer ta session. Reconnecte-toi et réessaie.');
+      return;
+    }
+    // Security check: the logged-in session's email must match the invite.
+    // Prevents someone pasting an invite link while logged in as another
+    // account from accidentally taking over the invite.
+    if ((user.email ?? '').toLowerCase() !== invite.email.toLowerCase()) {
+      setSubmitting(false);
+      setError(`Cette invitation a été envoyée à ${invite.email}. Déconnecte-toi et ouvre le lien dans ton navigateur privé.`);
+      return;
+    }
+    const { error: profileErr } = await supabase
+      .from('profiles')
+      .update({ role: invite.role, full_name: invite.full_name })
+      .eq('id', user.id);
+    if (profileErr) {
+      setSubmitting(false);
+      setError(`Échec mise à jour du profil : ${profileErr.message}`);
+      return;
+    }
+    const { error: inviteErr } = await supabase
+      .from('vendor_invites')
+      .update({ used_at: new Date().toISOString() })
+      .eq('token', token!);
+    if (inviteErr) {
+      // Non-fatal: the user's role was updated, the invite is just
+      // marked used. Log for admin visibility, continue.
+      console.warn('[AcceptInvite] Could not mark invite used:', inviteErr);
     }
 
     setSubmitting(false);
     setDone(true);
-    setTimeout(() => navigate(invite?.role === 'admin' ? '/admin' : '/vendor', { replace: true }), 1800);
+    setTimeout(() => navigate(invite.role === 'admin' ? '/admin' : '/vendor', { replace: true }), 1800);
   };
 
   return (

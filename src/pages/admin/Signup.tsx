@@ -9,8 +9,11 @@ export default function Signup() {
   const error = useAuthStore(s => s.error);
   const clearError = useAuthStore(s => s.clearError);
 
-  const [name, setName] = useState('Frederick Bouchard');
-  const [email, setEmail] = useState('contact@fredbouchard.ca');
+  // No hardcoded defaults — placeholder text in the inputs is enough.
+  // Pre-filling Frederick's name leaked the owner's identity on a
+  // shared browser.
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [submitting, setSubmitting] = useState(false);

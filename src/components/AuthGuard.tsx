@@ -4,10 +4,13 @@ import { useAuthStore, type UserRole } from '@/stores/authStore';
 interface AuthGuardProps {
   children: React.ReactNode;
   requiredRole: UserRole | UserRole[];
+  /** Explicit login page. When omitted, the guard auto-picks based on
+   * the current path: /vendor/* → /admin/login (same login page, redirect
+   * back to /vendor after success). Keeps things simple with one login. */
   redirectTo?: string;
 }
 
-export function AuthGuard({ children, requiredRole, redirectTo = '/admin/login' }: AuthGuardProps) {
+export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps) {
   const user = useAuthStore(s => s.user);
   const loading = useAuthStore(s => s.loading);
   const location = useLocation();
@@ -19,14 +22,18 @@ export function AuthGuard({ children, requiredRole, redirectTo = '/admin/login' 
   // gets bounced to /admin/login for ~50ms before the session resolves.
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="min-h-[60vh] flex items-center justify-center" aria-busy="true">
         <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-label="Loading" />
       </div>
     );
   }
 
   if (!user) {
-    return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;
+    // Default to /admin/login since it's the single sign-in surface on
+    // this site; AdminLogin's post-auth redirect sends admins to /admin
+    // and vendors to /vendor based on role. Pages can override if needed.
+    const target = redirectTo ?? '/admin/login';
+    return <Navigate to={target} state={{ from: location.pathname }} replace />;
   }
 
   // President has access to everything — bypass role check.

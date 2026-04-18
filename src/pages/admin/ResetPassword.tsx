@@ -38,7 +38,10 @@ export default function ResetPassword() {
     setSubmitting(false);
     if (result.ok) {
       setDone(true);
-      setTimeout(() => navigate('/admin/login', { replace: true }), 2200);
+      // No auto-redirect — the success view now has an explicit
+      // "Continue to dashboard" button (see below). Auto-redirects
+      // interrupted users reading the confirmation and were flagged
+      // as an accessibility issue.
     }
   };
 
@@ -61,7 +64,14 @@ export default function ResetPassword() {
               <CheckCircle2 size={28} strokeWidth={2.5} />
             </div>
             <h2 className="text-lg font-extrabold mb-2">Mot de passe mis à jour</h2>
-            <p className="text-sm text-zinc-600">Redirection vers la connexion…</p>
+            <p className="text-sm text-zinc-600 mb-5">Tu peux maintenant te connecter avec ton nouveau mot de passe.</p>
+            <button
+              type="button"
+              onClick={() => navigate('/admin/login', { replace: true })}
+              className="w-full py-3 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all"
+            >
+              Continuer vers la connexion
+            </button>
           </div>
         ) : !tokenReady ? (
           <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center">
