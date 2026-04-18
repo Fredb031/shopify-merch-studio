@@ -1,0 +1,66 @@
+import { Link } from 'react-router-dom';
+import { History } from 'lucide-react';
+import { useLang } from '@/lib/langContext';
+import { PRODUCTS } from '@/data/products';
+import { categoryLabel } from '@/lib/productLabels';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+
+/**
+ * Shows up to 4 of the user's most-recently-viewed products. Used on
+ * the cart empty state as a gentle prompt ('here's what you were
+ * looking at, want to keep going?'). Renders nothing if the user
+ * hasn't viewed any products yet.
+ */
+export function RecentlyViewed({ limit = 4 }: { limit?: number }) {
+  const { lang } = useLang();
+  const { handles } = useRecentlyViewed();
+
+  const items = handles
+    .map(h => PRODUCTS.find(p => p.shopifyHandle === h))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .slice(0, limit);
+
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mt-10" aria-label={lang === 'en' ? 'Recently viewed' : 'Vus récemment'}>
+      <div className="flex items-center gap-2 mb-4 justify-center">
+        <History size={14} className="text-muted-foreground" aria-hidden="true" />
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          {lang === 'en' ? 'Recently viewed' : 'Vus récemment'}
+        </h3>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {items.map(p => (
+          <Link
+            key={p.sku}
+            to={`/product/${p.shopifyHandle}`}
+            className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-primary/30 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <div className="aspect-square bg-secondary">
+              {p.imageDevant && (
+                <img
+                  src={p.imageDevant}
+                  alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                  width={300}
+                  height={300}
+                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
+                />
+              )}
+            </div>
+            <div className="p-2">
+              <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 truncate">
+                {p.sku}
+              </div>
+              <div className="text-[12px] font-extrabold text-foreground truncate">
+                {categoryLabel(p.category, lang)}
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

@@ -8,6 +8,7 @@ import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
+import { RecentlyViewed } from '@/components/RecentlyViewed';
 
 function PromoCodeInput({
   onApply,
@@ -169,6 +170,8 @@ export default function Cart() {
             <p className="text-[11px] text-muted-foreground/70 mt-4">
               {lang === 'en' ? 'Made in Québec · Free standard shipping' : 'Fabriqué au Québec · Livraison standard gratuite'}
             </p>
+
+            <RecentlyViewed limit={4} />
           </div>
         ) : (
           <div className="space-y-3">
