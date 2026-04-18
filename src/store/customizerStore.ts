@@ -72,6 +72,21 @@ export const useCustomizerStore = create<CustomizerStore>()(
     {
       name: 'va-customizer',
       storage: createJSONStorage(() => localStorage),
+      version: 2,
+      // Migrate old persisted state. v1 had 5 steps (Color/Logo/Where/
+      // Sizes/Review); v2 collapsed to 4 (Logo/Where/Sizes/Review).
+      // Mapping: v1 step N → v2 max(1, N-1). Returning users see the
+      // right screen instead of a blank modal.
+      migrate: (persisted: unknown, fromVersion: number) => {
+        const state = persisted as Partial<CustomizationState> | null;
+        if (!state) return state;
+        if (fromVersion < 2) {
+          const old = (state.step as unknown as number | undefined) ?? 1;
+          const next = Math.max(1, Math.min(4, old - 1)) as 1 | 2 | 3 | 4;
+          return { ...state, step: next };
+        }
+        return state;
+      },
       // Don't persist the File blob — it isn't JSON-serializable and the
       // object URL it backs is revoked on unload anyway. We keep the
       // uploaded processedUrl (Supabase) + previewUrl so a reload still

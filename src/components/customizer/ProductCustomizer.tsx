@@ -43,15 +43,17 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // on step 3, bounce back to step 2 so the user can re-upload. The
   // "current side" depends on placementSides + activeView.
   useEffect(() => {
-    if (store.step !== 3) return;
-    if (store.placementSides === 'none') return; // step 3 shouldn't show at all
+    // Step 2 = "Where to print". If the canvas-level trash wiped the
+    // current side's logo, bounce back to Step 1 (upload).
+    if (store.step !== 2) return;
+    if (store.placementSides === 'none') return;
     const currentSideHasLogo =
       store.placementSides === 'back'  ? !!store.logoPlacementBack?.previewUrl :
       store.placementSides === 'both'  ? (store.activeView === 'back'
         ? !!store.logoPlacementBack?.previewUrl
         : !!store.logoPlacement?.previewUrl) :
       !!store.logoPlacement?.previewUrl;
-    if (!currentSideHasLogo) store.setStep(2);
+    if (!currentSideHasLogo) store.setStep(1);
   }, [store.step, store.placementSides, store.activeView, store.logoPlacement?.previewUrl, store.logoPlacementBack?.previewUrl, store]);
 
   // Escape closes the modal (but only when not focused in a text field
@@ -137,6 +139,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   const colorChosen = !!(shopifyColor || store.colorId);
 
+  // Auto-select the first Shopify color on mount so a default preview is
+  // always shown — users don't need a dedicated "pick color" step with
+  // the palette persistent on the right.
+  useEffect(() => {
+    if (shopifyColor || !shopifyColors.length) return;
+    const first = shopifyColors[0];
+    setShopifyColor(first);
+    store.setColor(first.variantId);
+  }, [shopifyColors, shopifyColor, store]);
+
   // Side-aware placement routing. Canvas edits the placement that
   // matches the current view when sides='both'; otherwise it edits
   // the single relevant side.
@@ -179,20 +191,24 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       : !!store.logoPlacementBack?.previewUrl;
   })();
 
-  // Full label for sm+, shortLabel for mobile where horizontal room is tight.
+  // 4-step flow (collapsed from 5). Color selection is handled by the
+  // persistent palette on the right — no dedicated step needed, which
+  // makes the whole flow one click shorter.
+  //   1 = Logo upload   (+ side selection)
+  //   2 = Where to print
+  //   3 = Sizes & quantities
+  //   4 = Review & cart
   const STEPS = [
-    { id: 1, label: t('couleur'),         shortLabel: lang === 'en' ? 'Color'  : 'Couleur',  done: colorChosen },
-    { id: 2, label: t('tonLogo'),         shortLabel: lang === 'en' ? 'Logo'   : 'Logo',     done: anyLogoUploaded || store.placementSides === 'none' },
-    { id: 3, label: t('zoneImpression'),  shortLabel: lang === 'en' ? 'Zone'   : 'Zone',     done: placementComplete },
-    { id: 4, label: t('taillesQuantites'),shortLabel: lang === 'en' ? 'Sizes'  : 'Tailles',  done: totalQty > 0 },
-    { id: 5, label: t('resume'),          shortLabel: lang === 'en' ? 'Recap'  : 'Récap',    done: false },
+    { id: 1, label: t('tonLogo'),          shortLabel: lang === 'en' ? 'Logo'   : 'Logo',    done: anyLogoUploaded || store.placementSides === 'none' },
+    { id: 2, label: t('zoneImpression'),   shortLabel: lang === 'en' ? 'Where'  : 'Où',      done: placementComplete },
+    { id: 3, label: t('taillesQuantites'), shortLabel: lang === 'en' ? 'Sizes'  : 'Tailles', done: totalQty > 0 },
+    { id: 4, label: t('resume'),           shortLabel: lang === 'en' ? 'Review' : 'Récap',   done: false },
   ];
 
   const canNext = () => {
-    if (store.step === 1) return colorChosen;
-    if (store.step === 2) return anyLogoUploaded || store.placementSides === 'none';
-    if (store.step === 3) return placementComplete;
-    if (store.step === 4) return totalQty > 0;
+    if (store.step === 1) return anyLogoUploaded || store.placementSides === 'none';
+    if (store.step === 2) return placementComplete;
+    if (store.step === 3) return totalQty > 0;
     return true;
   };
 
@@ -200,13 +216,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     if (!canNext()) return;
     let next = store.step + 1;
     // Skip "Where to print" entirely when the user picked a blank garment.
-    if (store.step === 2 && store.placementSides === 'none' && next === 3) next = 4;
-    store.setStep(next as 1 | 2 | 3 | 4 | 5);
+    if (store.step === 1 && store.placementSides === 'none' && next === 2) next = 3;
+    store.setStep(next as 1 | 2 | 3 | 4);
   };
   const goBack = () => {
     let prev = store.step - 1;
-    if (store.step === 4 && store.placementSides === 'none' && prev === 3) prev = 2;
-    store.setStep(Math.max(1, prev) as 1 | 2 | 3 | 4 | 5);
+    if (store.step === 3 && store.placementSides === 'none' && prev === 2) prev = 1;
+    store.setStep(Math.max(1, prev) as 1 | 2 | 3 | 4);
   };
 
   const handleSelectColor = (c: ShopifyVariantColor) => {
@@ -468,7 +484,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               onSnapshotReady={fn => { getSnapshotRef.current = fn; }}
               // Tools only appear when the user is actively placing the logo.
               // No more leaking into color / sizes / review steps.
-              showPlacementTools={store.step === 3 && store.placementSides !== 'none'}
+              showPlacementTools={store.step === 2 && store.placementSides !== 'none'}
               onBboxDetected={setBbox}
             />
           </div>
@@ -501,38 +517,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <div className="flex-1 min-h-0">
             <AnimatePresence mode="wait">
 
-              {/* Step 1 — Choose preview colour. The swatches live under the
-                  canvas (persistent strip) as the single source of truth.
-                  Step 4 handles the real color × size selection. */}
+              {/* Step 1 — Upload logo + pick which sides to print on.
+                  (Color selection lives in the persistent palette at the
+                  top of this panel, available at every step.) */}
               {store.step === 1 && (
-                <motion.div key="s1" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
-                  <h3 className="text-sm font-black mb-1">{t('choisirCouleur')}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {lang === 'en'
-                      ? `Pick the color you want to see first. ${displayColors.length} colors are available on this product. You\u2019ll pick all the colors + sizes you want to order in step 4.`
-                      : `Choisis la couleur à prévisualiser. ${displayColors.length} couleurs disponibles sur ce produit. Tu choisiras toutes les couleurs + tailles à commander à l\u2019étape 4.`}
-                  </p>
-                  <div className="rounded-xl bg-primary/5 border border-primary/15 text-primary/90 text-xs p-3 flex items-start gap-2">
-                    <span aria-hidden="true">←</span>
-                    <span>
-                      {lang === 'en'
-                        ? 'Use the color swatches under the preview to swap the displayed color.'
-                        : 'Utilise les pastilles de couleur sous l\u2019aperçu pour changer la couleur affichée.'}
-                    </span>
-                  </div>
-                  {colorChosen && (
-                    <p className="text-[11px] text-muted-foreground">
-                      {lang === 'en'
-                        ? 'Looks good. Tap Next to upload your logo.'
-                        : 'Parfait. Clique Suivant pour téléverser ton logo.'}
-                    </p>
-                  )}
-                </motion.div>
-              )}
-
-              {/* Step 2 — Upload logo */}
-              {store.step === 2 && (
-                <motion.div key="s2" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
+                <motion.div key="s1" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
                   <div>
                     <h3 className="text-sm font-black mb-1">{t('tonLogo')}</h3>
                     <p className="text-xs text-muted-foreground">{t('fondSupprimeAuto')}</p>
@@ -617,9 +606,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 </motion.div>
               )}
 
-              {/* Step 3 — Logo placement with visual presets */}
-              {store.step === 3 && currentPlacement?.previewUrl && (
-                <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
+              {/* Step 2 — Where to print (zones + centering) */}
+              {store.step === 2 && currentPlacement?.previewUrl && (
+                <motion.div key="s2" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-4">
                   <div>
                     <h3 className="text-sm font-black mb-1">{t('zoneImpression')}</h3>
                     <p className="text-xs text-muted-foreground">
@@ -762,14 +751,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       : 'Placer manuellement (glisse sur le produit)'}
                   </button>
 
-                  {/* Remove-logo button goes back to Step 2 so the user can
+                  {/* Remove-logo button goes back to Step 1 so the user can
                       re-upload. Clears every side so state stays clean. */}
                   <button
                     type="button"
                     onClick={() => {
                       store.setLogoPlacement(null);
                       store.setLogoPlacementBack(null);
-                      store.setStep(2);
+                      store.setStep(1);
                     }}
                     className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/5 transition-colors"
                   >
@@ -779,9 +768,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 </motion.div>
               )}
 
-              {/* Step 4 — Multi-color × multi-size matrix */}
-              {store.step === 4 && (
-                <motion.div key="s4" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
+              {/* Step 3 — Multi-color × multi-size matrix */}
+              {store.step === 3 && (
+                <motion.div key="s3" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }}>
                   <h3 className="text-sm font-black mb-1">{t('taillesQuantites')}</h3>
                   <p className="text-xs text-muted-foreground mb-3">
                     {lang === 'en'
@@ -796,8 +785,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       <span aria-hidden="true">⚠</span>
                       <div className="flex-1">
                         {lang === 'en'
-                          ? 'Your logo placement isn\u2019t complete. Go back to step 3 to finish, or switch to "Blank" in step 2 if you want a plain garment.'
-                          : 'Le placement de ton logo n\u2019est pas terminé. Reviens à l\u2019étape 3, ou choisis « Vierge » à l\u2019étape 2 pour un vêtement sans logo.'}
+                          ? 'Your logo placement isn\u2019t complete. Go back to Where to finish, or switch to "Blank" in step 1 for a plain garment.'
+                          : 'Le placement de ton logo n\u2019est pas terminé. Reviens à l\u2019étape « Où », ou choisis « Vierge » à l\u2019étape 1 pour un vêtement sans logo.'}
                       </div>
                     </div>
                   )}
@@ -812,9 +801,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 </motion.div>
               )}
 
-              {/* Step 5 — Summary */}
-              {store.step === 5 && (
-                <motion.div key="s5" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
+              {/* Step 4 — Summary */}
+              {store.step === 4 && (
+                <motion.div key="s4" initial={{ opacity:0, x:16 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-16 }} className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-black">{t('resume')}</h3>
                     <button
@@ -926,7 +915,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                               type="button"
                               onClick={() => {
                                 store.setView(s.key);
-                                store.setStep(3);
+                                store.setStep(2);
                               }}
                               aria-label={lang === 'en' ? `Edit ${s.label} placement` : `Modifier le placement ${s.label}`}
                               className="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[11px] font-bold"
@@ -978,7 +967,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <ChevronLeft size={15} /> {t('retour')}
           </button>
 
-          {totalQty > 0 && store.step >= 4 && (
+          {totalQty > 0 && store.step >= 3 && (
             <div className="text-center">
               <div className="text-[10px] text-muted-foreground">
                 {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}
@@ -987,7 +976,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             </div>
           )}
 
-          {store.step < 5 ? (
+          {store.step < 4 ? (
             <button onClick={goNext} disabled={!canNext()}
               className="flex items-center gap-1.5 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all"
             >

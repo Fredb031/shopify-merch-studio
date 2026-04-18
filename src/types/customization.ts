@@ -32,7 +32,7 @@ export type CustomizationState = {
   placementSides: PlacementSides;
   sizeQuantities: SizeQuantity[];
   activeView: ProductView;
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4;
 };
 
 export type CartItemCustomization = CustomizationState & {

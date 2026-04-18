@@ -1,11 +1,55 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Upload, X, Loader2, CheckCircle2, Scissors } from 'lucide-react';
+import { Upload, X, Loader2, CheckCircle2, Scissors, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { removeBackground } from '@/lib/removeBg';
 import { uploadLogo } from '@/lib/supabase';
 import { useLang } from '@/lib/langContext';
 
 type UploadStatus = 'idle' | 'removing-bg' | 'saving' | 'done' | 'error';
+
+type QualityCheck = {
+  ok: boolean;
+  naturalWidth: number;
+  naturalHeight: number;
+  /** Message to display, null when quality is fine. */
+  warning: string | null;
+};
+
+/** Inspect the uploaded image and warn the user if the resolution is too
+ * low for print. Industry rule of thumb: ≥ 300 DPI at 10 cm wide =
+ * ~1200px. Anything under ~600px on the longest edge is likely blurry
+ * once printed. SVGs skip the check (they're resolution-independent). */
+async function checkImageQuality(file: File, lang: 'fr' | 'en'): Promise<QualityCheck> {
+  if (file.type === 'image/svg+xml') {
+    return { ok: true, naturalWidth: 0, naturalHeight: 0, warning: null };
+  }
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const longest = Math.max(w, h);
+      let warning: string | null = null;
+      if (longest < 600) {
+        warning = lang === 'en'
+          ? `Low-res image (${w}×${h}px). Your print may look blurry — aim for at least 1200×1200px.`
+          : `Image basse résolution (${w}×${h}px). L\u2019impression risque d\u2019être floue — vise au moins 1200×1200px.`;
+      } else if (longest < 1200) {
+        warning = lang === 'en'
+          ? `Moderate resolution (${w}×${h}px). Good for small prints, may soften on a full-back design.`
+          : `Résolution moyenne (${w}×${h}px). Correcte pour petit format, peut adoucir sur un dos complet.`;
+      }
+      resolve({ ok: longest >= 600, naturalWidth: w, naturalHeight: h, warning });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ ok: true, naturalWidth: 0, naturalHeight: 0, warning: null });
+    };
+    img.src = url;
+  });
+}
 
 export function LogoUploader({
   onLogoReady,
@@ -20,6 +64,7 @@ export function LogoUploader({
   const [isDragOver, setIsDragOver] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [bgRemoved, setBgRemoved] = useState(false);
+  const [quality, setQuality] = useState<QualityCheck | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Track every blob URL we createObjectURL so we can revoke them on
   // replace / unmount. Without this, memory grows on every upload.
@@ -52,6 +97,10 @@ export function LogoUploader({
     setErrorMsg(null);
     setCurrentFile(file);
     setBgRemoved(false);
+    // Inspect resolution so we can warn the customer BEFORE they commit
+    // to an order that'll print blurry. Runs in parallel with the BG
+    // removal so there's no extra wait.
+    void checkImageQuality(file, lang === 'en' ? 'en' : 'fr').then(setQuality);
     const localUrl = trackBlobUrl(URL.createObjectURL(file));
     setPreview(localUrl);
     setOriginalPreview(localUrl);
@@ -162,6 +211,16 @@ export function LogoUploader({
               >
                 <Scissors size={13} /> {t('supprimerFond')}
               </button>
+            )}
+
+            {/* DPI / resolution warning — industry-standard trust signal.
+                Users appreciate knowing BEFORE ordering that their logo
+                might print blurry. */}
+            {quality?.warning && (
+              <div className="mt-2 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5">
+                <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+                <span>{quality.warning}</span>
+              </div>
             )}
           </motion.div>
         )}

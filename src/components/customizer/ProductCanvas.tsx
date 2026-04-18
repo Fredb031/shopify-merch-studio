@@ -887,10 +887,20 @@ export function ProductCanvas({
         )}
 
         {/* Front / Back toggle — sits on the canvas, top-right */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full p-0.5 border border-border shadow-sm">
+        <div
+          className="absolute top-3 right-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full p-0.5 border border-border shadow-sm"
+          role="tablist"
+          aria-label={lang === 'en' ? 'Garment view' : 'Vue du vêtement'}
+        >
           {(['front', 'back'] as const).map(v => (
             <button
               key={v}
+              type="button"
+              role="tab"
+              aria-selected={activeView === v}
+              aria-label={v === 'front'
+                ? (lang === 'en' ? 'Show front' : 'Voir le devant')
+                : (lang === 'en' ? 'Show back'  : 'Voir le dos')}
               onClick={() => onViewChange(v)}
               className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full transition-all ${
                 activeView === v
