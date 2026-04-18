@@ -252,10 +252,16 @@ export default function Products() {
       {/* Content */}
       <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-9 pb-32">
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+          <div
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
+            role="status"
+            aria-live="polite"
+            aria-label={lang === 'en' ? 'Loading products' : 'Chargement des produits'}
+          >
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-[3/4] rounded-2xl bg-secondary animate-pulse" />
+              <div key={i} className="aspect-[3/4] rounded-2xl bg-secondary animate-pulse" aria-hidden="true" />
             ))}
+            <span className="sr-only">{lang === 'en' ? 'Loading products…' : 'Chargement des produits…'}</span>
           </div>
         ) : !products || products.length === 0 ? (
           <div className="text-center py-20">
