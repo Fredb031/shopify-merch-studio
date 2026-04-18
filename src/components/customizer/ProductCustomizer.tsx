@@ -35,9 +35,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   // Init store when productId changes — use effect to avoid
   // "Cannot update a component while rendering" warnings.
+  // NOTE: do NOT include `store` in the deps — Zustand returns a fresh
+  // state object on every render, so including it causes an infinite
+  // update loop. Action functions (store.setProduct) are stable refs.
   useEffect(() => {
     if (product && store.productId !== productId) store.setProduct(productId);
-  }, [productId, product, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId, product]);
 
   // If the canvas-level trash wiped the current side's logo while we're
   // on step 3, bounce back to step 2 so the user can re-upload. The
@@ -54,7 +58,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         : !!store.logoPlacement?.previewUrl) :
       !!store.logoPlacement?.previewUrl;
     if (!currentSideHasLogo) store.setStep(1);
-  }, [store.step, store.placementSides, store.activeView, store.logoPlacement?.previewUrl, store.logoPlacementBack?.previewUrl, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.step, store.placementSides, store.activeView, store.logoPlacement?.previewUrl, store.logoPlacementBack?.previewUrl]);
 
   // Escape closes the modal (but only when not focused in a text field
   // — fabric IText editing uses Escape to exit text mode).
@@ -147,7 +152,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     const first = shopifyColors[0];
     setShopifyColor(first);
     store.setColor(first.variantId);
-  }, [shopifyColors, shopifyColor, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shopifyColors, shopifyColor]);
 
   // Side-aware placement routing. Canvas edits the placement that
   // matches the current view when sides='both'; otherwise it edits
