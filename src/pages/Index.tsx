@@ -121,18 +121,18 @@ export default function Index() {
             <div className="absolute top-0 bottom-0 right-0 w-16 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
             <div className="flex w-max" style={{ animation: 'heroLogoScroll 24s linear infinite' }}>
               {allLogos.map((logo, i) => (
-                <img key={i} src={logo.src} alt={logo.alt} className="h-[52px] px-7 object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
+                <img key={i} src={logo.src} alt={logo.alt} className="h-[64px] px-8 object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
               ))}
             </div>
           </div>
 
           {/* Google row */}
-          <div className={`flex items-center justify-center gap-[7px] ${heroStaggered ? 'animate-[staggerUp_0.6s_0.63s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+          <div className={`flex items-center justify-center gap-2 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.63s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
             <GoogleIcon />
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
             </div>
-            <span className="text-[12px] font-semibold text-muted-foreground">{t('googleReviews')}</span>
+            <span className="text-[14px] font-bold text-foreground">{t('googleReviews')}</span>
           </div>
         </div>
       </section>
@@ -143,13 +143,14 @@ export default function Index() {
           <div className="max-w-[1060px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[
-                { n: '01', key: 'step1' as const },
-                { n: '02', key: 'step2' as const },
-                { n: '03', key: 'step3' as const },
+                { n: '01', icon: '🛍️', key: 'step1' as const },
+                { n: '02', icon: '🎨', key: 'step2' as const },
+                { n: '03', icon: '📦', key: 'step3' as const },
               ].map((step, i) => (
-                <div key={i} className="bg-primary-foreground/[0.04] text-center py-11 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
-                  <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/20 mb-5">{step.n}</div>
-                  <div className="text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{t(step.key)}</div>
+                <div key={i} className="bg-primary-foreground/[0.04] text-center py-10 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
+                  <div className="text-3xl mb-3">{step.icon}</div>
+                  <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/30 mb-2">{lang === 'en' ? 'STEP' : 'ÉTAPE'} {step.n}</div>
+                  <div className="text-[18px] md:text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{t(step.key)}</div>
                 </div>
               ))}
             </div>
@@ -292,17 +293,20 @@ export default function Index() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
               {[
-                { init: 'SL', name: 'Samuel Lacroix',           date: 'Il y a 2 mois', color: '#1B3A6B', txt: '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
-                { init: 'WB', name: 'William Barry',             date: 'Il y a 3 mois', color: '#1a3d2e', txt: '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\'une PME."' },
-                { init: 'JP', name: 'Jean-Philippe N.-Langevin', date: 'Il y a 4 mois', color: '#5f1f1f', txt: '"Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!"' },
+                { init: 'SL', name: 'Samuel Lacroix',           date: lang === 'en' ? '2 months ago' : 'Il y a 2 mois', color: '#1B3A6B', txt: lang === 'en' ? '"Amazing service! Great quality and super fast. Highly recommend for any business wanting to look professional."' : '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
+                { init: 'WB', name: 'William Barry',             date: lang === 'en' ? '3 months ago' : 'Il y a 3 mois', color: '#1a3d2e', txt: lang === 'en' ? '"I highly recommend Vision Affichage! Fast, courteous service. A true professional who understands SMB needs."' : '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\'une PME."' },
+                { init: 'JP', name: 'Jean-Philippe N.-L.',       date: lang === 'en' ? '4 months ago' : 'Il y a 4 mois', color: '#5f1f1f', txt: lang === 'en' ? '"Great service, dynamic team. Just as good for custom orders as large corporate orders. I recommend!"' : '"Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!"' },
+                { init: 'MC', name: 'Marie-Claude Tremblay',     date: lang === 'en' ? '5 months ago' : 'Il y a 5 mois', color: '#4C1D95', txt: lang === 'en' ? '"We ordered hoodies for our whole team and the result was impeccable. Fast delivery, premium quality. Will reorder!"' : '"On a commandé des hoodies pour toute notre équipe et le résultat était impeccable. Livraison rapide, qualité premium. On recommande!"' },
+                { init: 'PD', name: 'Patrick Dubois',            date: lang === 'en' ? '6 months ago' : 'Il y a 6 mois', color: '#0F2341', txt: lang === 'en' ? '"Excellent experience from A to Z. The customizer tool is brilliant and the final product exceeded expectations."' : '"Excellente expérience du début à la fin. L\'outil de personnalisation est génial et le produit final a dépassé nos attentes."' },
+                { init: 'AB', name: 'Audrey Bergeron',           date: lang === 'en' ? '7 months ago' : 'Il y a 7 mois', color: '#6B1B1B', txt: lang === 'en' ? '"Perfect for our construction company. Tough quality, quick turnaround, competitive prices. Our go-to for all our merch."' : '"Parfait pour notre compagnie de construction. Qualité solide, délai rapide, prix compétitifs. Notre référence pour tout notre merch."' },
               ].map((r, i) => (
-                <div key={i} className="bg-secondary border border-border rounded-2xl p-[18px] px-5">
+                <div key={i} className="min-w-[280px] md:min-w-0 snap-start bg-secondary border border-border rounded-2xl p-[18px] px-5 flex-shrink-0">
                   <div className="flex items-center gap-2.5 mb-2.5">
-                    <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center text-[12px] font-extrabold text-primary-foreground flex-shrink-0" style={{ background: r.color }}>{r.init}</div>
-                    <div>
-                      <div className="text-[13px] font-bold text-foreground">{r.name}</div>
+                    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[12px] font-extrabold text-primary-foreground flex-shrink-0" style={{ background: r.color }}>{r.init}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-bold text-foreground truncate">{r.name}</div>
                       <div className="text-[11px] text-muted-foreground mt-px">{r.date}</div>
                     </div>
                     <GoogleIcon />
@@ -327,8 +331,8 @@ export default function Index() {
             <div className="absolute top-0 bottom-0 right-0 w-20 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
             <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
               {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
-                <div key={i} className="px-10 flex items-center justify-center h-[72px]">
-                  <img src={logo.src} alt={logo.alt} className="h-[52px] w-auto object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
+                <div key={i} className="px-10 flex items-center justify-center h-[88px]">
+                  <img src={logo.src} alt={logo.alt} className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all" />
                 </div>
               ))}
             </div>
