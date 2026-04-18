@@ -17,10 +17,19 @@ export type SizeQuantity = {
 
 export type ProductView = 'front' | 'back';
 
+/** Which sides the customer wants printed. Drives whether the modal asks
+ * for a front placement, a back placement, both, or neither. */
+export type PlacementSides = 'none' | 'front' | 'back' | 'both';
+
 export type CustomizationState = {
   productId: string | null;
   colorId: string | null;
+  /** Front-side placement (used when placementSides is 'front' or 'both'). */
   logoPlacement: LogoPlacement | null;
+  /** Back-side placement (used when placementSides is 'back' or 'both'). */
+  logoPlacementBack: LogoPlacement | null;
+  /** Chosen printing sides. Default 'front'. */
+  placementSides: PlacementSides;
   sizeQuantities: SizeQuantity[];
   activeView: ProductView;
   step: 1 | 2 | 3 | 4 | 5;

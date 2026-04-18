@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { PRODUCTS, PRINT_PRICE, BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
-import type { CustomizationState, LogoPlacement, ProductView } from '@/types/customization';
+import type { CustomizationState, LogoPlacement, PlacementSides, ProductView } from '@/types/customization';
 
 interface CustomizerStore extends CustomizationState {
   setProduct: (productId: string) => void;
   setColor: (colorId: string) => void;
   setLogoPlacement: (placement: LogoPlacement | null) => void;
+  setLogoPlacementBack: (placement: LogoPlacement | null) => void;
+  setPlacementSides: (sides: PlacementSides) => void;
   setSizeQuantity: (size: string, quantity: number) => void;
   setView: (view: ProductView) => void;
   setStep: (step: CustomizationState['step']) => void;
@@ -19,6 +21,8 @@ const initialState: CustomizationState = {
   productId: null,
   colorId: null,
   logoPlacement: null,
+  logoPlacementBack: null,
+  placementSides: 'front',
   sizeQuantities: [],
   activeView: 'front',
   step: 1,
@@ -29,9 +33,16 @@ export const useCustomizerStore = create<CustomizerStore>()(
     (set, get) => ({
       ...initialState,
 
-      setProduct: (productId) => set({ productId, colorId: null, logoPlacement: null, sizeQuantities: [], step: 1 }),
+      setProduct: (productId) => set({
+        productId, colorId: null,
+        logoPlacement: null, logoPlacementBack: null,
+        placementSides: 'front',
+        sizeQuantities: [], step: 1,
+      }),
       setColor: (colorId) => set({ colorId }),
       setLogoPlacement: (placement) => set({ logoPlacement: placement }),
+      setLogoPlacementBack: (placement) => set({ logoPlacementBack: placement }),
+      setPlacementSides: (placementSides) => set({ placementSides }),
 
       setSizeQuantity: (size, quantity) =>
         set((state) => {
@@ -71,6 +82,10 @@ export const useCustomizerStore = create<CustomizerStore>()(
         logoPlacement: state.logoPlacement
           ? { ...state.logoPlacement, originalFile: undefined }
           : null,
+        logoPlacementBack: state.logoPlacementBack
+          ? { ...state.logoPlacementBack, originalFile: undefined }
+          : null,
+        placementSides: state.placementSides,
         sizeQuantities: state.sizeQuantities,
         activeView: state.activeView,
         step: state.step,

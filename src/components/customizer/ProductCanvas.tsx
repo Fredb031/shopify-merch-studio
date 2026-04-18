@@ -42,11 +42,20 @@ interface Props {
   /** Called once the canvas is ready — gives parent a snapshot function
    * so Step 5 "Download mockup" can export the current preview as PNG. */
   onSnapshotReady?: (getDataUrl: () => string | null) => void;
+  /** When true, the canvas shows the alignment toolbar + text input.
+   * Used to keep tools OUT of sight on steps where the user isn't
+   * actively placing the logo. */
+  showPlacementTools?: boolean;
+  /** Called once the garment bounding box has been detected, expressed
+   * as percentages of canvas dimensions (0-100) so the parent can feed
+   * the values straight into placement { x, y, width }. */
+  onBboxDetected?: (bboxPct: { x: number; y: number; w: number; h: number; cx: number; cy: number } | null) => void;
 }
 
 export function ProductCanvas({
   product, garmentColor, hasRealColorImage, imageDevant, imageDos, logoUrl,
   currentPlacement, activeView, onViewChange, onPlacementChange, onSnapshotReady,
+  showPlacementTools = true, onBboxDetected,
 }: Props) {
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -77,6 +86,85 @@ export function ProductCanvas({
   // Ref mirror of zoneId so canvas event listeners always read the current value
   const zoneIdRef = useRef(zoneId);
   zoneIdRef.current = zoneId;
+
+  // ── Analyze loaded photo to find the garment's bounding box in
+  //    CANVAS coordinates (not image pixels). We sample pixels, treat
+  //    the bright "seamless background" as empty, and take the
+  //    min/max of the dark pixels. This is what makes "center on
+  //    garment" land on the shirt body instead of canvas whitespace.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const analyzeBboxFromFabricImage = useCallback((fabImg: any) => {
+    try {
+      const W = fc.current?.width as number;
+      const H = fc.current?.height as number;
+      const el: HTMLImageElement | HTMLCanvasElement | undefined =
+        fabImg.getElement?.() || fabImg._element;
+      if (!el || !W || !H) return null;
+      const natW = (el as HTMLImageElement).naturalWidth || el.width;
+      const natH = (el as HTMLImageElement).naturalHeight || el.height;
+      if (!natW || !natH) return null;
+
+      // Offscreen canvas sized to a cheap sampling resolution
+      const SAMPLE = 200;
+      const sw = SAMPLE;
+      const sh = Math.round(SAMPLE * (natH / natW));
+      const off = document.createElement('canvas');
+      off.width = sw; off.height = sh;
+      const ctx = off.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return null;
+      ctx.drawImage(el as CanvasImageSource, 0, 0, sw, sh);
+      const img = ctx.getImageData(0, 0, sw, sh).data;
+
+      let minX = sw, maxX = 0, minY = sh, maxY = 0, hit = 0;
+      for (let y = 0; y < sh; y += 1) {
+        for (let x = 0; x < sw; x += 1) {
+          const i = (y * sw + x) * 4;
+          const r = img[i], g = img[i + 1], b = img[i + 2], a = img[i + 3];
+          // Treat near-transparent OR near-white pixels as background
+          if (a < 120) continue;
+          const lum = (r * 299 + g * 587 + b * 114) / 1000;
+          if (lum > 235) continue; // near-white background
+          // Garment pixel
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+          hit++;
+        }
+      }
+      if (hit < 50) return null; // not enough signal — skip
+
+      // Map sample coordinates back to canvas coordinates.
+      // The fabric image is centered with uniform scale = min(W/natW, H/natH).
+      const scale = Math.min(W / natW, H / natH);
+      const drawnW = natW * scale;
+      const drawnH = natH * scale;
+      const offX = (W - drawnW) / 2;
+      const offY = (H - drawnH) / 2;
+
+      const toCanvasX = (sx: number) => offX + (sx / sw) * drawnW;
+      const toCanvasY = (sy: number) => offY + (sy / sh) * drawnH;
+
+      const x = toCanvasX(minX);
+      const y = toCanvasY(minY);
+      const x2 = toCanvasX(maxX);
+      const y2 = toCanvasY(maxY);
+      // Convert to percentages of the canvas so the parent can pipe
+      // directly into a LogoPlacement { x, y, width } without knowing
+      // canvas dimensions.
+      const pct = (n: number, total: number) => (n / total) * 100;
+      return {
+        x:  pct(x,  W),
+        y:  pct(y,  H),
+        w:  pct(x2 - x, W),
+        h:  pct(y2 - y, H),
+        cx: pct((x + x2) / 2, W),
+        cy: pct((y + y2) / 2, H),
+      };
+    } catch {
+      return null;
+    }
+  }, []);
 
   // Resize listener — rebuild canvas when container width changes (phone rotation, etc.)
   useEffect(() => {
@@ -170,6 +258,10 @@ export function ProductCanvas({
           canvas.add(img);
           canvas.sendToBack(img);
           photoObj.current = img;
+
+          // Report garment bbox to parent so centering buttons land on
+          // the actual shirt body (not canvas whitespace).
+          onBboxDetected?.(analyzeBboxFromFabricImage(img));
 
           // Tint only if no real per-color photo
           if (garmentColor && !hasRealColorImage) {
@@ -290,6 +382,9 @@ export function ProductCanvas({
             canvas.add(img);
             canvas.sendToBack(img);
             photoObj.current = img;
+
+            // Report garment bbox to parent on first photo load too.
+            onBboxDetected?.(analyzeBboxFromFabricImage(img));
 
             // Colour tint overlay — only when we DON'T have a real per-colour photo.
             // When hasRealColorImage is true, the loaded photo IS the right colour already.
@@ -781,28 +876,13 @@ export function ProductCanvas({
         </AnimatePresence>
       </div>
 
-      {/* Zone preset buttons — only shown when there's a logo to place */}
-      {logoUrl && activeView === 'front' && (
-        <div className="grid grid-cols-2 gap-1.5">
-          {product.printZones.map(z => (
-            <button
-              key={z.id}
-              onClick={() => selectZone(z)}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-left text-[10px] font-semibold transition-all ${
-                zoneId === z.id
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/40'
-              }`}
-            >
-              <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${zoneId === z.id ? 'bg-primary' : 'bg-border'}`} />
-              {z.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* NOTE: canvas-bottom zone grid intentionally removed — the "Where
+          to print" step already has a richer zone picker with pricing.
+          Keeping both caused UI duplication and state-divergence bugs. */}
 
-      {/* Alignment & transform toolbar */}
-      {logoUrl && activeView === 'front' && (
+      {/* Alignment & transform toolbar — only while the user is actively
+          placing the logo (Step "Where") and there IS a logo. */}
+      {showPlacementTools && logoUrl && activeView === 'front' && (
         <div className="flex items-center justify-between bg-secondary rounded-xl px-2 py-1.5 border border-border">
           <div className="flex gap-0.5">
             {[
@@ -842,8 +922,9 @@ export function ProductCanvas({
         </div>
       )}
 
-      {/* Assets panel — shows added texts with delete */}
-      {textAssets.length > 0 && (
+      {/* Assets panel — shows added texts with delete. Visible only while
+          placing so it doesn't clutter the color / sizes / review steps. */}
+      {showPlacementTools && textAssets.length > 0 && (
         <div className="bg-secondary/60 border border-border rounded-xl p-2 space-y-1">
           <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
             {lang === 'en' ? `${textAssets.length} text element${textAssets.length > 1 ? 's' : ''}` : `${textAssets.length} élément${textAssets.length > 1 ? 's' : ''} texte`}
@@ -865,8 +946,8 @@ export function ProductCanvas({
         </div>
       )}
 
-      {/* Add text to garment */}
-      {activeView === 'front' && ready && (
+      {/* Add text to garment — only during placement, front view */}
+      {showPlacementTools && activeView === 'front' && ready && (
         <div className="space-y-1.5">
           <div className="flex gap-1.5">
             <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-2.5 py-1.5 border border-border">
