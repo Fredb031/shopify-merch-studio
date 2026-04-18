@@ -48,6 +48,7 @@ export default function Products() {
   const initialCat = searchParams.get('cat') ?? 'overview';
   const [activeCategory, setActiveCategory] = useState(initialCat);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortMode, setSortMode] = useState<'default' | 'name' | 'price-asc' | 'price-desc'>('default');
 
   // Keep the URL in sync when the user clicks a category pill — without
   // pushing history entries so Back still returns to the previous page.
@@ -106,8 +107,26 @@ export default function Products() {
         p.node.handle.toLowerCase().includes(q)
       );
     }
+    if (sortMode !== 'default') {
+      // Copy before sort — useMemo would otherwise mutate the upstream
+      // products array and invalidate React Query's cached reference.
+      const sorted = [...result];
+      const priceOf = (p: typeof result[number]) => parseFloat(p.node.priceRange.minVariantPrice.amount);
+      switch (sortMode) {
+        case 'name':
+          sorted.sort((a, b) => a.node.title.localeCompare(b.node.title, lang));
+          break;
+        case 'price-asc':
+          sorted.sort((a, b) => priceOf(a) - priceOf(b));
+          break;
+        case 'price-desc':
+          sorted.sort((a, b) => priceOf(b) - priceOf(a));
+          break;
+      }
+      result = sorted;
+    }
     return result;
-  }, [products, activeCategory, searchQuery]);
+  }, [products, activeCategory, searchQuery, sortMode, lang]);
 
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
@@ -258,6 +277,32 @@ export default function Products() {
                     : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
                 </span>
               </h2>
+            )}
+
+            {/* Sort + result count — shown whenever we have something to sort */}
+            {filteredProducts.length > 1 && (
+              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+                <span className="text-[12px] text-muted-foreground">
+                  {filteredProducts.length}{' '}
+                  {lang === 'en'
+                    ? `product${filteredProducts.length !== 1 ? 's' : ''}`
+                    : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
+                </span>
+                <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                  {lang === 'en' ? 'Sort:' : 'Trier :'}
+                  <select
+                    value={sortMode}
+                    onChange={e => setSortMode(e.target.value as typeof sortMode)}
+                    className="text-[12px] font-semibold text-foreground bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 cursor-pointer"
+                    aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
+                  >
+                    <option value="default">{lang === 'en' ? 'Default' : 'Défaut'}</option>
+                    <option value="name">{lang === 'en' ? 'Name (A–Z)' : 'Nom (A–Z)'}</option>
+                    <option value="price-asc">{lang === 'en' ? 'Price: low → high' : 'Prix : bas → élevé'}</option>
+                    <option value="price-desc">{lang === 'en' ? 'Price: high → low' : 'Prix : élevé → bas'}</option>
+                  </select>
+                </label>
+              </div>
             )}
 
             {filteredProducts.length === 0 ? (
