@@ -7,6 +7,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
+import { StickyHelp } from '@/components/StickyHelp';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
@@ -421,6 +422,7 @@ export default function Index() {
         <span className="text-[12px] text-muted-foreground">© {new Date().getFullYear()} Vision Affichage</span>
       </footer>
 
+      <StickyHelp />
       <BottomNav />
     </div>
   );

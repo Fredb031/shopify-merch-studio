@@ -2,11 +2,12 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
   { to: '/admin/analytics', label: 'Analytique', icon: BarChart3 },
-  { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag },
+  { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag, badge: 'pendingFulfillment' as const },
   { to: '/admin/abandoned-carts', label: 'Paniers abandonnés', icon: ShoppingCart },
   { to: '/admin/products', label: 'Produits', icon: Package },
   { to: '/admin/customers', label: 'Clients', icon: UserCircle },
@@ -62,7 +63,12 @@ export function AdminLayout() {
                 }
               >
                 <Icon size={18} strokeWidth={1.8} />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {'badge' in item && item.badge === 'pendingFulfillment' && SHOPIFY_STATS.awaitingFulfillment > 0 && (
+                  <span className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                    {SHOPIFY_STATS.awaitingFulfillment}
+                  </span>
+                )}
               </NavLink>
             );
           })}

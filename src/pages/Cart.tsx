@@ -5,6 +5,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { Trash2, ShoppingCart, ArrowLeft, Lock } from 'lucide-react';
+import { StickyHelp } from '@/components/StickyHelp';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -72,24 +73,33 @@ export default function Cart() {
         </div>
 
         {items.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-20 h-20 bg-secondary rounded-full flex items-center justify-center mx-auto mb-5">
-              <ShoppingCart className="h-9 w-9 text-muted-foreground" />
+          <div className="text-center py-16 px-6 max-w-md mx-auto">
+            <div className="relative w-32 h-32 mx-auto mb-7">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-2xl" aria-hidden="true" />
+              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-secondary to-background border-2 border-border flex items-center justify-center">
+                <ShoppingCart className="h-12 w-12 text-[#0052CC]" strokeWidth={1.5} />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#E8A838] text-[#1B3A6B] rounded-full text-sm font-extrabold flex items-center justify-center shadow-lg">
+                0
+              </div>
             </div>
-            <p className="text-muted-foreground text-lg mb-1">
-              {lang === 'en' ? 'Your cart is empty' : 'Votre panier est vide'}
-            </p>
-            <p className="text-sm text-muted-foreground/70 mb-6">
+            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground mb-2">
+              {lang === 'en' ? 'Your cart is empty' : 'Ton panier est vide'}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
               {lang === 'en'
-                ? 'Start by choosing a product and customizing it with your logo.'
-                : 'Commencez par choisir un produit et personnalisez-le avec votre logo.'}
+                ? 'Pick a product, drop in your logo, and we ship in 5 business days. No minimum order.'
+                : "Choisis un produit, ajoute ton logo, et on livre en 5 jours ouvrables. Aucun minimum."}
             </p>
             <Link
               to="/products"
-              className="inline-block text-sm font-bold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy"
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform"
             >
-              {lang === 'en' ? 'See products' : 'Voir les produits'}
+              {lang === 'en' ? 'Browse products →' : 'Voir les produits →'}
             </Link>
+            <p className="text-[11px] text-muted-foreground/70 mt-4">
+              {lang === 'en' ? 'Made in Québec · Free shipping over $200' : 'Fabriqué au Québec · Livraison gratuite à 200 $+'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -205,6 +215,7 @@ export default function Cart() {
         )}
       </div>
 
+      <StickyHelp />
       <BottomNav />
     </div>
   );

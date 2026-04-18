@@ -6,6 +6,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { findProductByHandle } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
+import { StickyHelp } from '@/components/StickyHelp';
 import { useState, useMemo } from 'react';
 
 const CATEGORIES = [
@@ -213,6 +214,7 @@ export default function Products() {
         )}
       </div>
 
+      <StickyHelp />
       <BottomNav />
     </div>
   );

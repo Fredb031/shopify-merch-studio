@@ -32,6 +32,35 @@
     <!-- Preconnect to CDN for faster image loads -->
     <link rel="preconnect" href="https://cdn.shopify.com" />
     <link rel="dns-prefetch" href="https://cdn.shopify.com" />
+    <link rel="preconnect" href="https://visionaffichage.com" />
+
+    <!-- Security headers (CSP) -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.shopify.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://cdn.shopify.com https://visionaffichage.com https://*.replicate.delivery https://*.openai.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://cdn.shopify.com https://visionaffichage.com https://*.myshopify.com https://api.shopify.com https://*.supabase.co https://api.anthropic.com https://api.replicate.com https://api.openai.com https://api.remove.bg blob:; media-src 'self' https://cdn.shopify.com blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://*.shopify.com;"
+    />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <!-- JSON-LD Organization schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Vision Affichage",
+      "url": "https://visionaffichage.com",
+      "logo": "https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Logo-vision-horizontal-blanc.png?v=1694121209",
+      "description": "Vêtements d'entreprise personnalisés. Imprimé au Québec. Livré en 5 jours ouvrables.",
+      "telephone": "+1-367-380-4808",
+      "email": "info@visionaffichage.com",
+      "areaServed": "CA",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "CA",
+        "addressRegion": "QC"
+      }
+    }
+    </script>
   </head>
 
   <body>
