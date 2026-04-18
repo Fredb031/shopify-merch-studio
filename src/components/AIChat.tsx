@@ -173,7 +173,7 @@ export function AIChat() {
                         key={topic.id}
                         type="button"
                         onClick={() => openTopic(topic)}
-                        className="group flex items-center gap-2 bg-white border border-border rounded-xl px-3 py-2.5 text-left hover:border-[#0052CC] hover:shadow-sm transition-all"
+                        className="group flex items-center gap-2 bg-white border border-border rounded-xl px-3 py-2.5 text-left hover:border-[#0052CC] hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                       >
                         <span className="text-lg flex-shrink-0" aria-hidden="true">{topic.icon}</span>
                         <span className="text-[12px] font-bold text-foreground leading-tight group-hover:text-[#0052CC]">
@@ -204,7 +204,7 @@ export function AIChat() {
                     key={entry.id}
                     type="button"
                     onClick={() => pickFromTopic(entry.qFr, entry.qEn, entry.aFr, entry.aEn)}
-                    className="w-full text-left bg-white border border-border rounded-xl px-3 py-2.5 hover:border-[#0052CC] hover:shadow-sm transition-all text-[13px] font-semibold text-foreground"
+                    className="w-full text-left bg-white border border-border rounded-xl px-3 py-2.5 hover:border-[#0052CC] hover:shadow-sm transition-all text-[13px] font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                   >
                     {lang === 'fr' ? entry.qFr : entry.qEn}
                   </button>
