@@ -38,6 +38,13 @@ export default function AdminCustomers() {
   // filtering to 3 prospects while on page 5 shows an empty table.
   useEffect(() => { setPage(0); }, [query, filter]);
 
+  useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected]);
+
   const filtered = useMemo(() => {
     return SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => {
       if (filter === 'paying' && c.ordersCount === 0) return false;
@@ -187,16 +194,29 @@ export default function AdminCustomers() {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex justify-end" onClick={() => setSelected(null)}>
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="customer-detail-title"
+          onClick={() => setSelected(null)}
+        >
           <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="p-6">
-              <button onClick={() => setSelected(null)} className="float-right text-zinc-400 hover:text-zinc-700 text-sm">Fermer</button>
+              <button
+                type="button"
+                onClick={() => setSelected(null)}
+                aria-label="Fermer"
+                className="float-right text-zinc-400 hover:text-zinc-700 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded px-1"
+              >
+                Fermer
+              </button>
               <div className="flex items-center gap-3 mb-5">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-lg font-extrabold">
                   {initials(selected)}
                 </div>
                 <div>
-                  <h2 className="text-xl font-extrabold">{fullName(selected)}</h2>
+                  <h2 id="customer-detail-title" className="text-xl font-extrabold">{fullName(selected)}</h2>
                   <div className="text-xs text-zinc-500">Client depuis le {formatDate(selected.createdAt)}</div>
                 </div>
               </div>

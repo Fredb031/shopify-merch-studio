@@ -95,6 +95,13 @@ export default function AdminOrders() {
   useEffect(() => { setPage(0); }, [query, statusFilter]);
 
   useEffect(() => {
+    if (!selected) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelected(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected]);
+
+  useEffect(() => {
     try {
       const raw = JSON.parse(localStorage.getItem('vision-shipped-orders') ?? '[]');
       setShippedIds(new Set(Array.isArray(raw) ? raw : []));
@@ -297,15 +304,28 @@ export default function AdminOrders() {
       </div>
 
       {selected && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex justify-end" onClick={() => setSelected(null)}>
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 flex justify-end"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-detail-title"
+          onClick={() => setSelected(null)}
+        >
           <div className="bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <div className="text-xs text-zinc-500">Commande Shopify</div>
-                  <h2 className="text-xl font-extrabold">{selected.name}</h2>
+                  <h2 id="order-detail-title" className="text-xl font-extrabold">{selected.name}</h2>
                 </div>
-                <button onClick={() => setSelected(null)} className="text-zinc-400 hover:text-zinc-700 text-sm">Fermer</button>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  aria-label="Fermer le détail"
+                  className="text-zinc-400 hover:text-zinc-700 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded px-1"
+                >
+                  Fermer
+                </button>
               </div>
               <div className="space-y-4 text-sm">
                 <div>

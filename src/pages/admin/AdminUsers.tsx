@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,10 +41,21 @@ export default function AdminUsers() {
   const [inviteRole, setInviteRole] = useState<'admin' | 'vendor'>('vendor');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteResult, setInviteResult] = useState<string | null>(null);
+  const inviteNameRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (!showInvite) return;
+    inviteNameRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setShowInvite(false); setInviteResult(null); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showInvite]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -250,9 +261,15 @@ export default function AdminUsers() {
       </div>
 
       {showInvite && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setShowInvite(false); setInviteResult(null); }}>
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-member-title"
+          onClick={() => { setShowInvite(false); setInviteResult(null); }}
+        >
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h2 className="text-lg font-extrabold mb-1">Inviter un membre</h2>
+            <h2 id="invite-member-title" className="text-lg font-extrabold mb-1">Inviter un membre</h2>
             <p className="text-sm text-zinc-500 mb-4">
               Le membre recevra un courriel avec un lien d'activation valide 7 jours.
             </p>
@@ -266,12 +283,12 @@ export default function AdminUsers() {
             <form onSubmit={handleInvite} className="space-y-3">
               <label className="block">
                 <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nom complet</span>
-                <input type="text" value={inviteName} onChange={e => setInviteName(e.target.value)} required placeholder="Marie Tremblay"
+                <input ref={inviteNameRef} type="text" value={inviteName} onChange={e => setInviteName(e.target.value)} required autoComplete="name" placeholder="Marie Tremblay"
                   className="mt-1 w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC]" />
               </label>
               <label className="block">
                 <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Courriel</span>
-                <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required placeholder="marie@visionaffichage.com"
+                <input type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} required autoComplete="email" placeholder="marie@visionaffichage.com"
                   className="mt-1 w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC]" />
               </label>
               <div>
