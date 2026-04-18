@@ -46,8 +46,12 @@ export function SiteFooter() {
           </div>
 
           {subscribed ? (
-            <div className="flex items-center gap-3 bg-emerald-500/15 border border-emerald-400/30 rounded-2xl p-4 self-center">
-              <CheckCircle2 size={20} className="text-emerald-300 flex-shrink-0" />
+            <div
+              className="flex items-center gap-3 bg-emerald-500/15 border border-emerald-400/30 rounded-2xl p-4 self-center"
+              role="status"
+              aria-live="polite"
+            >
+              <CheckCircle2 size={20} className="text-emerald-300 flex-shrink-0" aria-hidden="true" />
               <div>
                 <div className="font-bold">{lang === 'en' ? 'Subscribed!' : 'Inscrit !'}</div>
                 <div className="text-xs text-white/70">
