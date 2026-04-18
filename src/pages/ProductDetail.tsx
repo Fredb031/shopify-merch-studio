@@ -256,15 +256,28 @@ export default function ProductDetail() {
                   )}
                 </div>
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast.success(lang === 'en' ? 'Link copied!' : 'Lien copié !');
+                  onClick={async () => {
+                    // Prefer the native Web Share sheet on mobile (iOS Safari,
+                    // Chrome Android) so users can ping the page to Messages,
+                    // Slack, etc. — fall back to clipboard + toast.
+                    const shareData = {
+                      title: document.title,
+                      url: window.location.href,
+                    };
+                    try {
+                      if (typeof navigator.share === 'function') {
+                        await navigator.share(shareData);
+                        return;
+                      }
+                      await navigator.clipboard.writeText(window.location.href);
+                      toast.success(lang === 'en' ? 'Link copied!' : 'Lien copié !');
+                    } catch { /* user cancelled share sheet — no toast needed */ }
                   }}
-                  className="flex-shrink-0 w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors mt-1"
+                  className="flex-shrink-0 w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors mt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   aria-label={lang === 'en' ? 'Share product' : 'Partager le produit'}
-                  title={lang === 'en' ? 'Copy link' : 'Copier le lien'}
+                  title={lang === 'en' ? 'Share' : 'Partager'}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
                 </button>
               </div>
               <div className="flex items-baseline gap-2 mt-3">
