@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { Check, CreditCard, ShieldCheck, MapPin, Mail } from 'lucide-react';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { LogoUploadDropzone } from '@/components/LogoUploadDropzone';
@@ -65,11 +65,13 @@ export default function QuoteAccept() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background">
       <header className="bg-white border-b border-border px-4 md:px-8 py-5 flex items-center justify-between print:border-b-2 print:border-zinc-900">
-        <img
-          src="https://visionaffichage.com/cdn/shop/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
-          alt="Vision Affichage"
-          className="h-6"
-        />
+        <Link to="/" aria-label="Vision Affichage">
+          <img
+            src="https://visionaffichage.com/cdn/shop/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
+            alt="Vision Affichage"
+            className="h-6"
+          />
+        </Link>
         <div className="flex items-center gap-3">
           <button
             type="button"

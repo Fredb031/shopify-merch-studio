@@ -9,9 +9,21 @@ interface AuthGuardProps {
 
 export function AuthGuard({ children, requiredRole, redirectTo = '/admin/login' }: AuthGuardProps) {
   const user = useAuthStore(s => s.user);
+  const loading = useAuthStore(s => s.loading);
   const location = useLocation();
 
   const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+
+  // Don't redirect while the auth store is still hydrating from Supabase
+  // session — otherwise a logged-in user landing directly on /admin/...
+  // gets bounced to /admin/login for ~50ms before the session resolves.
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;

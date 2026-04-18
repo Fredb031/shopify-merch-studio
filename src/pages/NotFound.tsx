@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useLang } from '@/lib/langContext';
+import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
 import { ArrowLeft, Home, Compass } from 'lucide-react';
@@ -15,7 +16,8 @@ const NotFound = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background flex flex-col pb-20">
-      <div className="flex-1 flex items-center justify-center px-6 py-20">
+      <Navbar />
+      <div className="flex-1 flex items-center justify-center px-6 py-20 pt-24">
         <div className="text-center max-w-md">
           <div className="relative w-32 h-32 mx-auto mb-6">
             <div
