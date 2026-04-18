@@ -37,7 +37,7 @@ export function FeaturedProducts() {
             <Link
               key={p.sku}
               to={`/product/${p.shopifyHandle}`}
-              className="group block"
+              className="group block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             >
               <div className="relative aspect-square overflow-hidden rounded-2xl bg-secondary border border-border transition-all hover:border-[#0052CC]/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.1)] hover:-translate-y-1">
                 <img
