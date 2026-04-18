@@ -43,6 +43,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const [shopifyColor, setShopifyColor] = useState<ShopifyVariantColor | null>(null);
   // Step 4: multi-color × multi-size matrix
   const [multiVariants, setMultiVariants] = useState<VariantQty[]>([]);
+  // Debounce guard against double-click double-add
+  const [adding, setAdding] = useState(false);
 
   // The active ProductColor — uses per-colour Drive images when available,
   // falls back to the product's default (black) image + tint overlay
@@ -108,6 +110,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   };
 
   const handleAddToCart = async () => {
+    if (adding) return;
+    setAdding(true);
+    try {
     // ── Multi-variant flow: emit ONE local cart line per color group AND
     //    push each (color × size) Shopify variant to the Shopify cart store
     //    so checkoutUrl resolves at /checkout. Without this push, the local
@@ -240,16 +245,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       });
     }
 
+    const colorCount = multiVariants.length > 0 ? new Set(multiVariants.map(v => v.colorId)).size : 1;
     store.reset();
     setMultiVariants([]);
     onClose();
-    const colorCount = multiVariants.length > 0 ? new Set(multiVariants.map(v => v.colorId)).size : 1;
     toast.success(
       lang === 'en'
         ? `${product.shortName} × ${colorCount > 1 ? `${colorCount} colors` : '1 color'} added to cart!`
         : `${product.shortName} × ${colorCount > 1 ? `${colorCount} couleurs` : '1 couleur'} ajouté au panier !`,
       { duration: 3000 },
     );
+    } finally {
+      setAdding(false);
+    }
   };
 
   // ALL colors stay visible — never hide one (Black + others must always
@@ -597,10 +605,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               {t('suivant')} <ChevronRight size={15} />
             </button>
           ) : (
-            <button onClick={handleAddToCart} disabled={totalQty === 0}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={totalQty === 0 || adding}
               className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all shadow-md"
             >
-              <ShoppingBag size={14} /> {t('ajouterPanier')}
+              <ShoppingBag size={14} />
+              {adding ? (lang === 'en' ? 'Adding…' : 'Ajout…') : t('ajouterPanier')}
             </button>
           )}
         </div>
