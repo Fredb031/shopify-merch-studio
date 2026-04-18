@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { lazy, Suspense, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { Heart } from 'lucide-react';
 import { ShopifyProduct } from '@/lib/shopify';
+import { useWishlist } from '@/hooks/useWishlist';
 // Customizer pulls in fabric.js (~310kB) and its own siblings — lazy-
 // load so just rendering the grid doesn't eagerly fetch it. The
 // customizer only opens when the user clicks the inline 'Personnaliser'.
@@ -38,6 +40,13 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
   const backImage = local
     ? { url: local.imageDos, altText: `${local.shortName} dos` }
     : shopifyBackImage;
+
+  const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
+  const saved = isWishlisted(node.handle);
+  const handleWishlistClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleWishlist(node.handle);
+  };
 
   const handleCardClick = () => navigate(`/product/${node.handle}`);
   const handleCustomize = (e: React.MouseEvent) => {
@@ -104,6 +113,25 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
               {lang === 'en' ? '⭐ Popular' : '⭐ Populaire'}
             </div>
           )}
+
+          {/* Wishlist heart — lets users save from the grid without
+              opening the PDP. stopPropagation so the card's link
+              handler doesn't also fire. */}
+          <button
+            type="button"
+            onClick={handleWishlistClick}
+            aria-label={saved
+              ? (lang === 'en' ? `Remove ${node.title} from wishlist` : `Retirer ${node.title} des favoris`)
+              : (lang === 'en' ? `Save ${node.title} to wishlist` : `Ajouter ${node.title} aux favoris`)}
+            aria-pressed={saved}
+            className={`absolute top-2.5 right-2.5 z-[5] w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+              saved
+                ? 'border-[#E8A838] text-[#B37D10]'
+                : 'border-white/70 text-muted-foreground hover:text-foreground hover:border-border'
+            }`}
+          >
+            <Heart size={15} fill={saved ? '#E8A838' : 'none'} strokeWidth={2} aria-hidden="true" />
+          </button>
 
           {/* Customize CTA — visible on mobile, fade-in on desktop hover */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3 pt-12 z-[3]">
