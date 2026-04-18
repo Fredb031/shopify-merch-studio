@@ -149,7 +149,16 @@ export default function Index() {
             <div className="absolute top-0 bottom-0 right-0 w-16 z-[2] pointer-events-none bg-gradient-to-l from-background to-transparent" />
             <div className="flex w-max" style={{ animation: 'heroLogoScroll 24s linear infinite' }}>
               {allLogos.map((logo, i) => (
-                <img key={i} src={logo.src} alt={logo.alt} className="h-[64px] px-8 object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all" />
+                <img
+                  key={i}
+                  src={logo.src}
+                  alt={logo.alt}
+                  width={128}
+                  height={64}
+                  loading={i < 4 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  className="h-[64px] w-auto px-8 object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all"
+                />
               ))}
             </div>
           </div>
