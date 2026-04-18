@@ -43,6 +43,20 @@ export function AIChat() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, view]);
 
+  // Escape key closes the chat panel. Skip when the user is typing
+  // in the input — we don't want Esc to nuke their half-typed question.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   const hello = lang === 'fr'
     ? 'Salut ! Je réponds à toutes tes questions sur Vision Affichage — prix, délais, produits, impression, couleurs, livraison. Choisis un sujet ou pose-moi n\u2019importe quoi.'
     : 'Hi! I answer every question about Vision Affichage — pricing, timing, products, printing, colours, shipping. Pick a topic or ask anything.';
