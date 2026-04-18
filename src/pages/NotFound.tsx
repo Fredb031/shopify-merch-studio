@@ -14,6 +14,16 @@ const NotFound = () => {
     console.error('404 Error: User attempted to access non-existent route:', location.pathname);
   }, [location.pathname]);
 
+  // Browser tab + SERP label reflect the 404 state. Restore on unmount
+  // so SPA nav back to a real page doesn't carry the error title along.
+  useEffect(() => {
+    const prev = document.title;
+    document.title = lang === 'en'
+      ? 'Page not found (404) — Vision Affichage'
+      : 'Page introuvable (404) — Vision Affichage';
+    return () => { document.title = prev; };
+  }, [lang]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background flex flex-col pb-20">
       <Navbar />
