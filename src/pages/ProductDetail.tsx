@@ -6,7 +6,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { useState } from 'react';
@@ -204,25 +204,30 @@ export default function ProductDetail() {
               const unitWithPrint = shopifyBase + PRINT_PRICE;
               const discountedUnit = unitWithPrint * (1 - BULK_DISCOUNT_RATE);
               return (
-                <div className="overflow-hidden rounded-xl border border-border text-sm">
-                  <div className="px-3.5 py-2 bg-secondary border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
-                    {lang === 'en' ? 'Price per unit (print included)' : 'Prix / unité (impression incluse)'}
-                  </div>
-                  <div className="divide-y divide-border">
-                    <div className="flex items-center justify-between px-3.5 py-2.5">
-                      <span className="text-muted-foreground">1–11 {lang === 'en' ? 'units' : 'unités'}</span>
-                      <span className="font-extrabold text-foreground">{unitWithPrint.toFixed(2)} $</span>
+                <div className="space-y-3">
+                  <div className="overflow-hidden rounded-xl border border-border text-sm">
+                    <div className="px-3.5 py-2 bg-secondary border-b border-border text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                      {lang === 'en' ? 'Price per unit (print included)' : 'Prix / unité (impression incluse)'}
                     </div>
-                    <div className="flex items-center justify-between px-3.5 py-2.5 bg-green-50/60">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground">12+ {lang === 'en' ? 'units' : 'unités'}</span>
-                        <span className="text-[10px] font-extrabold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
-                          -{Math.round(BULK_DISCOUNT_RATE * 100)}%
-                        </span>
+                    <div className="divide-y divide-border">
+                      <div className="flex items-center justify-between px-3.5 py-2.5">
+                        <span className="text-muted-foreground">1–11 {lang === 'en' ? 'units' : 'unités'}</span>
+                        <span className="font-extrabold text-foreground">{unitWithPrint.toFixed(2)} $</span>
                       </div>
-                      <span className="font-extrabold text-green-700">{discountedUnit.toFixed(2)} $</span>
+                      <div className="flex items-center justify-between px-3.5 py-2.5 bg-green-50/60">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-foreground">12+ {lang === 'en' ? 'units' : 'unités'}</span>
+                          <span className="text-[10px] font-extrabold text-green-700 bg-green-100 px-1.5 py-0.5 rounded-full">
+                            -{Math.round(BULK_DISCOUNT_RATE * 100)}%
+                          </span>
+                        </div>
+                        <span className="font-extrabold text-green-700">{discountedUnit.toFixed(2)} $</span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Live quantity calculator */}
+                  <BulkCalculator unitWithPrint={unitWithPrint} discountedUnit={discountedUnit} lang={lang} />
                 </div>
               );
             })()}
@@ -382,6 +387,77 @@ export default function ProductDetail() {
 
       <StickyHelp />
       <BottomNav />
+    </div>
+  );
+}
+
+function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint: number; discountedUnit: number; lang: 'fr' | 'en' }) {
+  const [qty, setQty] = useState(12);
+  const isBulk = qty >= 12;
+  const unit = isBulk ? discountedUnit : unitWithPrint;
+  const total = unit * qty;
+  const savings = isBulk ? (unitWithPrint - discountedUnit) * qty : 0;
+
+  const bump = (delta: number) => setQty(q => Math.max(1, q + delta));
+
+  return (
+    <div className="bg-gradient-to-br from-secondary/60 to-background border border-border rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Calculator size={14} className="text-[#0052CC]" />
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC]">
+          {lang === 'en' ? 'Quick price estimate' : 'Estimation rapide'}
+        </span>
+      </div>
+      <div className="flex items-center gap-3 mb-3">
+        <button
+          type="button"
+          onClick={() => bump(-1)}
+          aria-label={lang === 'en' ? 'Decrease' : 'Diminuer'}
+          className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center transition-colors"
+        >
+          <Minus size={14} />
+        </button>
+        <input
+          type="number"
+          min="1"
+          value={qty}
+          onChange={e => setQty(Math.max(1, parseInt(e.target.value) || 1))}
+          className="flex-1 text-center text-2xl font-extrabold bg-background border border-border rounded-lg py-1.5 outline-none focus:border-primary"
+          aria-label={lang === 'en' ? 'Quantity' : 'Quantité'}
+        />
+        <button
+          type="button"
+          onClick={() => bump(1)}
+          aria-label={lang === 'en' ? 'Increase' : 'Augmenter'}
+          className="w-9 h-9 rounded-lg border border-border bg-background hover:bg-secondary flex items-center justify-center transition-colors"
+        >
+          <Plus size={14} />
+        </button>
+      </div>
+      <div className="flex justify-between items-baseline">
+        <span className="text-xs text-muted-foreground">
+          {qty} × {unit.toFixed(2)} $
+        </span>
+        <div className="text-right">
+          <div className="text-2xl font-extrabold text-foreground">{total.toFixed(2)} $</div>
+          {savings > 0 && (
+            <div className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">
+              {lang === 'en' ? 'Save' : 'Économise'} {savings.toFixed(2)} $
+            </div>
+          )}
+        </div>
+      </div>
+      {!isBulk && qty > 0 && (
+        <button
+          type="button"
+          onClick={() => setQty(12)}
+          className="w-full mt-2 text-[11px] font-bold text-emerald-700 hover:underline text-center"
+        >
+          {lang === 'en'
+            ? `+ ${12 - qty} units to unlock 10% volume discount →`
+            : `+ ${12 - qty} unités pour débloquer 10% de rabais →`}
+        </button>
+      )}
     </div>
   );
 }
