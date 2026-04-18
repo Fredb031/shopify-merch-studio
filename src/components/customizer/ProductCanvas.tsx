@@ -240,28 +240,40 @@ export function ProductCanvas({
         tintObj.current = null;
       }
 
-      fabric.Image.fromURL(
-        photoUrl,
-        (img: any) => {
-          if (disposed || !fc.current) return;
-          const sx = W / (img.width ?? W);
-          const sy = H / (img.height ?? H);
-          const scale = Math.min(sx, sy);
-          img.set({
-            left: (W - (img.width ?? W) * scale) / 2,
-            top:  (H - (img.height ?? H) * scale) / 2,
-            scaleX: scale, scaleY: scale,
-            selectable: false, evented: false,
-            lockMovementX: true, lockMovementY: true,
-            hoverCursor: 'default',
-          });
-          canvas.add(img);
-          canvas.sendToBack(img);
-          photoObj.current = img;
+      // Probe first so we catch load failures (back photo may 404 even
+      // if front loaded fine). fabric.Image.fromURL silently fails on
+      // error which leaves the canvas visibly blank with no explanation.
+      const probe = new Image();
+      probe.crossOrigin = 'anonymous';
+      probe.onerror = () => {
+        if (disposed) return;
+        setImgError(true);
+      };
+      probe.onload = () => {
+        if (disposed || !fc.current) return;
+        setImgError(false);
+        fabric.Image.fromURL(
+          photoUrl,
+          (img: any) => {
+            if (disposed || !fc.current) return;
+            const sx = W / (img.width ?? W);
+            const sy = H / (img.height ?? H);
+            const scale = Math.min(sx, sy);
+            img.set({
+              left: (W - (img.width ?? W) * scale) / 2,
+              top:  (H - (img.height ?? H) * scale) / 2,
+              scaleX: scale, scaleY: scale,
+              selectable: false, evented: false,
+              lockMovementX: true, lockMovementY: true,
+              hoverCursor: 'default',
+            });
+            canvas.add(img);
+            canvas.sendToBack(img);
+            photoObj.current = img;
 
-          // Report garment bbox to parent so centering buttons land on
-          // the actual shirt body (not canvas whitespace).
-          onBboxDetected?.(analyzeBboxFromFabricImage(img));
+            // Report garment bbox to parent so centering buttons land on
+            // the actual shirt body (not canvas whitespace).
+            onBboxDetected?.(analyzeBboxFromFabricImage(img));
 
           // Tint only if no real per-color photo. Opacity is adaptive to
           // the garment's luminance — dark colors need a stronger tint to
@@ -309,14 +321,16 @@ export function ProductCanvas({
             maskRef.current.set('visible', true);
           }
 
-          // Layer order: photo → tint → outline → logo
-          if (maskRef.current) canvas.bringToFront(maskRef.current);
-          if (logoObj.current) canvas.bringToFront(logoObj.current);
-          textObjects.current.forEach((t) => canvas.bringToFront(t));
-          canvas.renderAll();
-        },
-        { crossOrigin: 'anonymous' },
-      );
+            // Layer order: photo → tint → outline → logo
+            if (maskRef.current) canvas.bringToFront(maskRef.current);
+            if (logoObj.current) canvas.bringToFront(logoObj.current);
+            textObjects.current.forEach((t) => canvas.bringToFront(t));
+            canvas.renderAll();
+          },
+          { crossOrigin: 'anonymous' },
+        );
+      };
+      probe.src = photoUrl;
     });
     return () => { disposed = true; };
     // Only fires on color/view/photo change — NOT on canvasKey (resize) or first mount
@@ -758,12 +772,19 @@ export function ProductCanvas({
            parseInt(hex.slice(2, 4), 16) * 587 +
            parseInt(hex.slice(4, 6), 16) * 114) / 1000 > 160
         : false;
+      // Adaptive font size: scales with canvas width but shrinks for
+      // long strings so a 30-char "SUPPORT YOUR LOCAL ARTISTS" doesn't
+      // overflow the garment on a phone.
+      const baseSize = W * 0.06;
+      const lengthFactor = Math.max(0.5, Math.min(1, 14 / Math.max(1, text.length)));
+      const fontSize = Math.max(14, Math.round(baseSize * lengthFactor));
+
       const id = `txt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
       const t = new fabric.IText(text, {
         left: cx, top: cy,
         originX: 'center', originY: 'center',
         fontFamily,
-        fontSize: Math.round(W * 0.06),
+        fontSize,
         fontWeight: 'bold',
         fill: color,
         stroke: isLightText ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
@@ -882,8 +903,11 @@ export function ProductCanvas({
           ))}
         </div>
 
-        {/* Color sync badge — confirms the photo really matches the picked color */}
-        {hasRealColorImage && (
+        {/* Color-sync badge — confirms the photo really matches the picked
+            color. Only shown on the FRONT view because hasRealColorImage
+            is derived from imageDevant; on the back side we can't
+            truthfully claim "real color" without a per-color back image. */}
+        {hasRealColorImage && activeView === 'front' && (
           <div className="absolute top-3 left-3 bg-emerald-600/95 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-white" />
             {lang === 'en' ? 'Real color' : 'Vraie couleur'}

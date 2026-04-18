@@ -126,27 +126,93 @@ const COLOUR_HEX_MAP: Record<string, string> = {
   'Citron Vert Fluo': '#adff2f',
   'Orange': '#e8521e', 'Orange Profond': '#d4450c',
   'Orange sécurité': '#ff4500',
+  // Common variants merchants type that weren't matching before
+  'True Navy': '#1b3a6b', 'True Royal': '#1a3a8b', 'True Red': '#cc1a1a',
+  'Royal Blue': '#1a3a8b', 'Navy Blue': '#1b3a6b',
+  'Sport Grey': '#b0b0b0', 'Sport Gray': '#b0b0b0',
+  'Heather Navy': '#2d4a7a', 'Heather Red': '#a01515',
+  'Heather Royal': '#1f3d8a', 'Heather Black': '#2d2d2d',
+  'Jet Black': '#0c0c0c', 'Pure White': '#ffffff',
+  'Ash': '#c4c4c4', 'Ash Grey': '#c4c4c4',
+  'Kelly Heather': '#2d7a42',
+  'Forest': '#14532d', 'Kelly Green Heather': '#2d7a42',
+  'Bright Blue': '#1e6ee8',
+  'Pale Blue': '#a8c8e0',
 };
+
+/** Normalize a color name for fuzzy matching: lowercase, strip diacritics,
+ * collapse whitespace, drop punctuation. "Vert Forêt" → "vert foret". */
+function normalizeColorName(s: string): string {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9/\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Pre-compute a normalized version of the map for O(1) lookups on
+// diacritic-insensitive matches.
+const NORMALIZED_COLOUR_MAP: Map<string, string> = (() => {
+  const m = new Map<string, string>();
+  for (const [key, hex] of Object.entries(COLOUR_HEX_MAP)) {
+    m.set(normalizeColorName(key), hex);
+  }
+  return m;
+})();
+
+/** Deterministic fallback: hash unknown names to a muted HSL color so the
+ * same unknown color always renders the same swatch (users notice when
+ * the same string renders as different grays each load). */
+function hashColorName(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;
+  }
+  const h = Math.abs(hash) % 360;
+  // HSL → RGB → hex
+  const s = 0.35, l = 0.45;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r1, g1, b1] =
+    h < 60  ? [c, x, 0] :
+    h < 120 ? [x, c, 0] :
+    h < 180 ? [0, c, x] :
+    h < 240 ? [0, x, c] :
+    h < 300 ? [x, 0, c] : [c, 0, x];
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r1)}${toHex(g1)}${toHex(b1)}`;
+}
 
 export function colorNameToHex(name: string): string {
   if (!name || name === '-') return '#888888';
+  // Tier 1: exact match
   if (COLOUR_HEX_MAP[name]) return COLOUR_HEX_MAP[name];
-  // For compound names like "Noir/Blanc", use first part
+  // Tier 2: diacritic-insensitive exact match ("Vert Foncé" → "vert fonce")
+  const norm = normalizeColorName(name);
+  const normHit = NORMALIZED_COLOUR_MAP.get(norm);
+  if (normHit) return normHit;
+  // Tier 3: compound name like "Noir/Blanc" — try primary part both raw and normalized
   const primary = name.split('/')[0].trim();
-  if (COLOUR_HEX_MAP[primary]) return COLOUR_HEX_MAP[primary];
-  // Fuzzy match — longer key wins to avoid 'Or' matching 'Orange' etc
+  if (primary !== name) {
+    if (COLOUR_HEX_MAP[primary]) return COLOUR_HEX_MAP[primary];
+    const primaryNorm = normalizeColorName(primary);
+    const primaryHit = NORMALIZED_COLOUR_MAP.get(primaryNorm);
+    if (primaryHit) return primaryHit;
+  }
+  // Tier 4: fuzzy (longest overlap wins so 'or' doesn't steal 'orange')
   let best: string | null = null;
   let bestLen = 0;
-  const nameLow = name.toLowerCase();
-  for (const [key, val] of Object.entries(COLOUR_HEX_MAP)) {
-    const keyLow = key.toLowerCase();
-    if (nameLow === keyLow) return val;
-    if ((nameLow.includes(keyLow) || keyLow.includes(nameLow)) && key.length > bestLen) {
-      best = val;
+  for (const [key, hex] of NORMALIZED_COLOUR_MAP.entries()) {
+    if ((norm.includes(key) || key.includes(norm)) && key.length > bestLen) {
+      best = hex;
       bestLen = key.length;
     }
   }
-  return best ?? '#888888';
+  if (best) return best;
+  // Tier 5: deterministic fallback via name hash — better than a constant
+  // gray because at least distinct unknowns stay visually distinct.
+  return hashColorName(name);
 }
 
 // ── Storefront API request ─────────────────────────────────────────────────

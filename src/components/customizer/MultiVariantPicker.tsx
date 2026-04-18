@@ -127,7 +127,9 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
 
   return (
     <div className="space-y-4">
-      {/* Discount banner + progress bar */}
+      {/* Discount banner + progress bar. The secondary line makes it
+          explicit that the discount is calculated on ALL picked colors
+          combined — common point of confusion per the audit. */}
       <div className={`relative overflow-hidden rounded-xl border px-3 py-2.5 text-xs font-bold transition-all ${
         hasDiscount ? 'bg-emerald-600/10 text-emerald-700 border-emerald-600/30' : 'bg-secondary text-muted-foreground border-border'
       }`}>
@@ -151,6 +153,11 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
             style={{ width: `${progressPct}%` }}
             aria-label={lang === 'en' ? `Bulk discount progress: ${Math.round(progressPct)}%` : `Progression du rabais : ${Math.round(progressPct)}%`}
           />
+        </div>
+        <div className="mt-1.5 text-[10px] font-normal opacity-75">
+          {lang === 'en'
+            ? 'Units are counted across ALL colors you pick.'
+            : 'Les unités comptent toutes couleurs confondues.'}
         </div>
       </div>
 

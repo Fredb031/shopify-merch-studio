@@ -788,6 +788,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       ? 'Pick one or several colors. For each, choose sizes and quantities.'
                       : 'Choisis une ou plusieurs couleurs. Pour chacune, sélectionne les tailles et quantités.'}
                   </p>
+                  {/* Warn if the user reached Step 4 expecting a logo but
+                      never finished placing it. placementComplete already
+                      reflects "every picked side has a previewUrl". */}
+                  {store.placementSides !== 'none' && !placementComplete && (
+                    <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/5 text-amber-800 text-[11px] font-semibold p-2.5 flex items-start gap-2">
+                      <span aria-hidden="true">⚠</span>
+                      <div className="flex-1">
+                        {lang === 'en'
+                          ? 'Your logo placement isn\u2019t complete. Go back to step 3 to finish, or switch to "Blank" in step 2 if you want a plain garment.'
+                          : 'Le placement de ton logo n\u2019est pas terminé. Reviens à l\u2019étape 3, ou choisis « Vierge » à l\u2019étape 2 pour un vêtement sans logo.'}
+                      </div>
+                    </div>
+                  )}
                   <MultiVariantPicker
                     product={shopifyColor?.sizeOptions?.length
                       ? { ...product, sizes: shopifyColor.sizeOptions.map(s => s.size) }
@@ -878,13 +891,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   </div>
 
                   {/* Larger preview card — replaces the cramped 48px thumbnail.
-                      Shows whichever side(s) have a placement. */}
+                      Shows whichever side(s) have a placement. Each side
+                      has an inline edit + remove so the user can adjust
+                      without going back through the whole flow. */}
                   {(store.logoPlacement?.previewUrl || store.logoPlacementBack?.previewUrl) && (
                     <div className="p-3 bg-secondary rounded-xl border border-border space-y-2">
                       {([
-                        { key: 'front', p: store.logoPlacement,     label: lang === 'en' ? 'Front' : 'Devant' },
-                        { key: 'back',  p: store.logoPlacementBack, label: lang === 'en' ? 'Back'  : 'Dos' },
-                      ] as const).filter(s => !!s.p?.previewUrl).map(s => (
+                        { key: 'front' as const, p: store.logoPlacement,     label: lang === 'en' ? 'Front' : 'Devant' },
+                        { key: 'back'  as const, p: store.logoPlacementBack, label: lang === 'en' ? 'Back'  : 'Dos' },
+                      ]).filter(s => !!s.p?.previewUrl).map(s => (
                         <div key={s.key} className="flex gap-3 items-center">
                           <div className="relative w-16 h-16 rounded-lg border border-border bg-white overflow-hidden flex-shrink-0">
                             <div
@@ -906,9 +921,39 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                               {lang === 'en' ? 'Zone' : 'Zone'}: <span className="font-semibold text-foreground">{s.p?.zoneId}</span>
                             </p>
                           </div>
-                          {activeColor && multiVariants.length === 0 && (
-                            <div className="w-6 h-6 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: activeColor.hex }} />
-                          )}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                store.setView(s.key);
+                                store.setStep(3);
+                              }}
+                              aria-label={lang === 'en' ? `Edit ${s.label} placement` : `Modifier le placement ${s.label}`}
+                              className="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5 transition-all text-[11px] font-bold"
+                            >
+                              {lang === 'en' ? 'Edit' : 'Modif'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (s.key === 'front') store.setLogoPlacement(null);
+                                else store.setLogoPlacementBack(null);
+                                // Downgrade placementSides so "both" with
+                                // one side removed becomes a single-sided
+                                // config, keeping state consistent.
+                                const stillFront = s.key === 'back'  ? !!store.logoPlacement?.previewUrl    : false;
+                                const stillBack  = s.key === 'front' ? !!store.logoPlacementBack?.previewUrl : false;
+                                if (stillFront && stillBack) store.setPlacementSides('both');
+                                else if (stillFront) store.setPlacementSides('front');
+                                else if (stillBack)  store.setPlacementSides('back');
+                                else store.setPlacementSides('none');
+                              }}
+                              aria-label={lang === 'en' ? `Remove ${s.label} logo` : `Retirer le logo ${s.label}`}
+                              className="w-8 h-8 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive hover:bg-destructive/5 transition-all flex items-center justify-center"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                       <div className="text-[11px] text-muted-foreground pt-1.5 border-t border-border/50">

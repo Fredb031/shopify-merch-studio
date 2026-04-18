@@ -51,7 +51,7 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
               onMouseLeave={() => setHovered(null)}
               title={color.colorName}
               className={`relative flex-shrink-0 transition-all duration-200 ${
-                compact ? 'w-7 h-7' : 'w-8 h-8'
+                compact ? 'w-9 h-9' : 'w-10 h-10'
               } rounded-full ${
                 isSelected
                   ? 'ring-2 ring-offset-2 ring-primary scale-110'
