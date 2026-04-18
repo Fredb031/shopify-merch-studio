@@ -8,6 +8,7 @@ import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { StickyHelp } from '@/components/StickyHelp';
+import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -159,6 +160,9 @@ export default function Index() {
 
       {/* Trust signals — right below hero */}
       <TrustSignalsBar />
+
+      {/* Featured products — grab attention right after trust */}
+      <FeaturedProducts />
 
       {/* Steps timeline — gamified delivery journey */}
       <StepsTimeline />
