@@ -543,30 +543,55 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <p className="text-xs text-muted-foreground">{t('personnaliseTonProduit')}</p>
           </div>
 
-          {/* Step indicators */}
-          <div className="flex-1 flex items-center justify-center gap-1 overflow-x-auto px-1 scrollbar-hide">
-            {STEPS.map((s, i) => (
-              <div key={s.id} className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => s.done && s.id < store.step && store.setStep(s.id as 1 | 2 | 3 | 4)}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
-                    store.step === s.id ? 'bg-primary text-primary-foreground' :
-                    s.done ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200' :
-                    'text-muted-foreground cursor-default'
-                  }`}
+          {/* Step indicators — semantic ol so screen readers announce
+              "step X of 4" + aria-current on the live step. */}
+          <ol
+            className="flex-1 flex items-center justify-center gap-1 overflow-x-auto px-1 scrollbar-hide"
+            aria-label={lang === 'en' ? 'Customizer progress' : 'Progression du personnalisateur'}
+          >
+            {STEPS.map((s, i) => {
+              const isActive = store.step === s.id;
+              const isDone = s.done && !isActive;
+              const isClickable = s.done && s.id < store.step;
+              const stateSr = isDone
+                ? (lang === 'en' ? 'completed' : 'complété')
+                : isActive
+                  ? (lang === 'en' ? 'current step' : 'étape courante')
+                  : (lang === 'en' ? 'upcoming' : 'à venir');
+              return (
+                <li
+                  key={s.id}
+                  className="flex items-center gap-1 flex-shrink-0"
+                  aria-current={isActive ? 'step' : undefined}
                 >
-                  {s.done && store.step !== s.id ? <Check size={9} /> : <span>{s.id}</span>}
-                  {/* Always show a compact label so mobile users know what each step is */}
-                  <span className="sm:hidden">{s.shortLabel}</span>
-                  <span className="hidden sm:inline">{s.label}</span>
-                </button>
-                {i < STEPS.length - 1 && <div className="w-1.5 h-px bg-border flex-shrink-0" />}
-              </div>
-            ))}
-          </div>
+                  <button
+                    type="button"
+                    onClick={() => isClickable && store.setStep(s.id as 1 | 2 | 3 | 4)}
+                    disabled={!isClickable && !isActive}
+                    aria-label={`${s.label} — ${stateSr}`}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                      isActive ? 'bg-primary text-primary-foreground' :
+                      isDone ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200' :
+                      'text-muted-foreground cursor-default disabled:opacity-70'
+                    }`}
+                  >
+                    {isDone ? <Check size={9} aria-hidden="true" /> : <span aria-hidden="true">{s.id}</span>}
+                    <span className="sm:hidden">{s.shortLabel}</span>
+                    <span className="hidden sm:inline">{s.label}</span>
+                  </button>
+                  {i < STEPS.length - 1 && <div className="w-1.5 h-px bg-border flex-shrink-0" aria-hidden="true" />}
+                </li>
+              );
+            })}
+          </ol>
 
-          <button onClick={onClose} className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary flex-shrink-0 transition-colors">
-            <X size={14} />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={lang === 'en' ? 'Close customizer' : 'Fermer le personnalisateur'}
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary flex-shrink-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          >
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 

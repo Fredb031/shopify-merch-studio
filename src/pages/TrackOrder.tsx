@@ -93,10 +93,13 @@ export default function TrackOrder() {
               </span>
               <input
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
                 value={searchInput}
                 onChange={e => setSearchInput(e.target.value)}
                 placeholder="1570"
-                className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary"
+                className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
               />
             </label>
             <label className="block">
@@ -105,10 +108,11 @@ export default function TrackOrder() {
               </span>
               <input
                 type="email"
+                autoComplete="email"
                 value={emailInput}
                 onChange={e => setEmailInput(e.target.value)}
                 placeholder="toi@entreprise.ca"
-                className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary"
+                className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
               />
             </label>
           </div>
