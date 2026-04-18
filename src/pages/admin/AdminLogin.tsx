@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -9,12 +9,23 @@ export default function AdminLogin() {
   const signIn = useAuthStore(s => s.signIn);
   const error = useAuthStore(s => s.error);
   const clearError = useAuthStore(s => s.clearError);
+  const user = useAuthStore(s => s.user);
+  const loading = useAuthStore(s => s.loading);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
 
   const redirectTo = (location.state as { from?: string } | null)?.from;
+
+  // If already logged in, send them to their natural home — no point
+  // showing the login form to a signed-in user.
+  useEffect(() => {
+    if (loading || !user) return;
+    if (user.role === 'president' || user.role === 'admin') navigate('/admin', { replace: true });
+    else if (user.role === 'vendor') navigate('/vendor', { replace: true });
+    else navigate('/', { replace: true });
+  }, [user, loading, navigate]);
 
   const [submitting, setSubmitting] = useState(false);
 
