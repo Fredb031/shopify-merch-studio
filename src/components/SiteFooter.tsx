@@ -54,19 +54,26 @@ export function SiteFooter() {
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubscribe} className="flex items-stretch self-center w-full max-w-md">
+            <form
+              onSubmit={handleSubscribe}
+              className="flex items-stretch self-center w-full max-w-md"
+              aria-label={lang === 'en' ? 'Newsletter signup' : 'Inscription à l\u2019infolettre'}
+            >
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder={lang === 'en' ? 'your@email.com' : 'ton@courriel.com'}
-                className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:border-[#E8A838] focus:bg-white/15"
+                aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                aria-required="true"
+                className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:border-[#E8A838] focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow"
                 autoComplete="email"
                 required
               />
               <button
                 type="submit"
-                className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] transition-colors"
+                disabled={!email.trim()}
+                className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
               >
                 {lang === 'en' ? 'Subscribe' : "M'inscrire"}
               </button>

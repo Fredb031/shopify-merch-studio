@@ -80,10 +80,12 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
 
           {/* Customize CTA — visible on mobile, fade-in on desktop hover */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3 pt-12 z-[3]">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3 pt-12 z-[3]">
             <button
+              type="button"
               onClick={handleCustomize}
-              className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white text-primary shadow-lg border border-primary/15 transition-transform duration-300 md:translate-y-3 md:group-hover:translate-y-0 hover:scale-105"
+              aria-label={`${t('personnaliserProduit')} — ${local?.shortName ?? node.title}`}
+              className="text-[11px] font-extrabold px-4 py-2 rounded-full bg-white text-primary shadow-lg border border-primary/15 transition-transform duration-300 md:translate-y-3 md:group-hover:translate-y-0 hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
             >
               {t('personnaliserProduit')} →
             </button>
