@@ -8,6 +8,7 @@ import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const CATEGORIES = [
   { id: 'overview',  fr: 'Tout',                 en: 'All' },
@@ -39,8 +40,24 @@ export default function Products() {
   const { lang } = useLang();
   const { data: products, isLoading } = useProducts();
   const [cartOpen, setCartOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('overview');
+  // Read the category off ?cat= on first mount so footer links like
+  // /products?cat=tshirts land directly on the right filter, and so a
+  // refresh or back-nav preserves the selected category.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCat = searchParams.get('cat') ?? 'overview';
+  const [activeCategory, setActiveCategory] = useState(initialCat);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Keep the URL in sync when the user clicks a category pill — without
+  // pushing history entries so Back still returns to the previous page.
+  useEffect(() => {
+    const current = searchParams.get('cat') ?? 'overview';
+    if (activeCategory === current) return;
+    const next = new URLSearchParams(searchParams);
+    if (activeCategory === 'overview') next.delete('cat');
+    else next.set('cat', activeCategory);
+    setSearchParams(next, { replace: true });
+  }, [activeCategory, searchParams, setSearchParams]);
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
