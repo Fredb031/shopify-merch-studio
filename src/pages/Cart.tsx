@@ -142,8 +142,8 @@ export default function Cart() {
 
         {items.length === 0 ? (
           <div className="text-center py-16 px-6 max-w-md mx-auto">
-            <div className="relative w-32 h-32 mx-auto mb-7">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-2xl" aria-hidden="true" />
+            <div className="relative w-32 h-32 mx-auto mb-7" aria-hidden="true">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-2xl" />
               <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-secondary to-background border-2 border-border flex items-center justify-center">
                 <ShoppingCart className="h-12 w-12 text-[#0052CC]" strokeWidth={1.5} />
               </div>
