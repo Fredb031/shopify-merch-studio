@@ -267,16 +267,18 @@ export function AIChat() {
               onChange={e => setInput(e.target.value)}
               placeholder={lang === 'en' ? 'Ask anything…' : 'Pose ta question…'}
               aria-label={lang === 'en' ? 'Your question' : 'Ta question'}
+              autoCapitalize="sentences"
+              autoComplete="off"
               className="flex-1 bg-secondary border border-border rounded-full px-4 py-2 text-sm outline-none focus:border-[#0052CC]"
               disabled={thinking}
             />
             <button
               type="submit"
               disabled={!input.trim() || thinking}
-              className="w-10 h-10 rounded-full bg-[#0052CC] text-white flex items-center justify-center disabled:opacity-30 hover:opacity-90"
+              className="w-11 h-11 rounded-full bg-[#0052CC] text-white flex items-center justify-center disabled:opacity-30 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-1"
               aria-label={lang === 'en' ? 'Send' : 'Envoyer'}
             >
-              <Send size={14} />
+              <Send size={14} aria-hidden="true" />
             </button>
           </form>
         </div>
