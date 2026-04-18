@@ -357,6 +357,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       ? 'Or drag the logo directly on the product preview'
                       : 'Ou glisse le logo directement sur le produit'}
                   </p>
+
+                  {/* Remove logo button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      store.setLogoPlacement(null);
+                      store.setStep(2);
+                    }}
+                    className="w-full mt-3 flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-destructive/40 text-destructive text-xs font-bold hover:bg-destructive/5 transition-colors"
+                  >
+                    <X size={13} />
+                    {lang === 'en' ? 'Remove logo' : 'Retirer le logo'}
+                  </button>
                 </motion.div>
               )}
 

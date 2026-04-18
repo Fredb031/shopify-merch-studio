@@ -4,7 +4,6 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { MoleGame } from '@/components/MoleGame';
 import { CinematicLoader } from '@/components/CinematicLoader';
 import { LoginModal } from '@/components/LoginModal';
-import { VideoModal } from '@/components/VideoModal';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
@@ -66,7 +65,7 @@ export default function Index() {
   const [showLoader, setShowLoader] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
   const [heroStaggered, setHeroStaggered] = useState(false);
-  const [activeVideo, setActiveVideo] = useState<{ src?: string; poster: string; title: string; subtitle: string } | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<number | null>(null);
 
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
@@ -95,14 +94,6 @@ export default function Index() {
       {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
       <MoleGame isOpen={showGame} onClose={handleGameClose} />
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
-      <VideoModal
-        isOpen={activeVideo !== null}
-        onClose={() => setActiveVideo(null)}
-        src={activeVideo?.src}
-        poster={activeVideo?.poster}
-        title={activeVideo?.title}
-        subtitle={activeVideo?.subtitle}
-      />
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
@@ -261,31 +252,47 @@ export default function Index() {
                 { name: 'Anthony Ouellet', co: 'Sous Pression', img: `${CDN}/preview_images/f95a004374be46dba55baf59721ce807.thumbnail.0000000000.jpg?v=1770475023&width=600`, video: `${CDN}/f95a004374be46dba55baf59721ce807.HD-1080p-4.8Mbps-52069500.mp4` },
                 { name: 'Hubert Cazes',    co: 'Perfocazes',   img: `${CDN}/preview_images/72a54f824d3d4139b646cc3e21e1371c.thumbnail.0000000000.jpg?v=1770474993&width=600`, video: `${CDN}/72a54f824d3d4139b646cc3e21e1371c.HD-1080p-4.8Mbps-52069480.mp4` },
                 { name: 'Luca Jalbert',   co: "L'univers de Luca Jalbert", img: `${CDN}/preview_images/40a1dafa21da49eaa892ab5ed9929163.thumbnail.0000000000.jpg?v=1770579609&width=600`, video: `${CDN}/40a1dafa21da49eaa892ab5ed9929163.HD-1080p-4.8Mbps-52075605.mp4` },
-              ].map((v, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActiveVideo({ src: v.video, poster: v.img, title: v.name, subtitle: v.co })}
-                  className="bg-card border border-border rounded-[18px] overflow-hidden cursor-pointer transition-all hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.09)] group text-left p-0"
-                  aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
-                >
-                  <div className="aspect-[9/12] relative bg-foreground overflow-hidden">
-                    <img src={v.img} alt="" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-xl">
-                        <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              ].map((v, i) => {
+                const isPlaying = playingVideo === i;
+                return (
+                  <div key={i} className="bg-card border border-border rounded-[18px] overflow-hidden transition-all hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.09)] group">
+                    <div className="aspect-[9/12] relative bg-foreground overflow-hidden">
+                      {isPlaying ? (
+                        <video
+                          src={v.video}
+                          poster={v.img}
+                          controls
+                          autoPlay
+                          playsInline
+                          onEnded={() => setPlayingVideo(null)}
+                          className="w-full h-full object-cover bg-black"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPlayingVideo(i)}
+                          className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play"
+                          aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
+                        >
+                          <img src={v.img} alt="" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover/play:scale-110 shadow-xl">
+                              <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                    <div className="p-3.5 px-4">
+                      <div className="text-[13px] font-bold text-foreground">{v.name}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">{v.co}</div>
+                      <div className="flex gap-0.5 mt-[7px]" role="img" aria-label={lang === 'en' ? '5 out of 5 stars' : '5 étoiles sur 5'}>
+                        {[...Array(5)].map((_, j) => <StarSvg key={j} />)}
                       </div>
                     </div>
                   </div>
-                  <div className="p-3.5 px-4">
-                    <div className="text-[13px] font-bold text-foreground">{v.name}</div>
-                    <div className="text-[11px] text-muted-foreground mt-0.5">{v.co}</div>
-                    <div className="flex gap-0.5 mt-[7px]" role="img" aria-label={lang === 'en' ? '5 out of 5 stars' : '5 étoiles sur 5'}>
-                      {[...Array(5)].map((_, j) => <StarSvg key={j} />)}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>

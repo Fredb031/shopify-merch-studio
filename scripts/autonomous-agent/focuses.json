@@ -1,32 +1,61 @@
 [
-  "hero revamp — src/pages/Index.tsx: rewrite the hero section to lead with Vision Affichage's core value prop: premium custom merch, FAST delivery (48-72h rush available). Add a prominent delivery speed badge, a bold one-liner headline, a clean CTA. Use the existing navy #1B3A6B + blue #0052CC + gold #E8A838 palette. Premium, simple, Apple-inspired. Feel: confident, fast, quality.",
-  "typography system — audit all font sizes/weights across src/pages/Index.tsx, src/pages/Boutique.tsx, src/components/customizer/*. Establish a clear hierarchy: display/h1/h2/h3/body/caption. Update any rogue sizes to the system. Use Tailwind's type scale consistently. Premium = generous line-height, tight tracking on headings.",
-  "trust signals banner — add a thin strip below the hero showing: Livraison 48-72h / Impression locale Québec / Garantie satisfaction / 500+ entreprises. Icons from lucide-react. Bilingual. Premium, subtle, not cheesy.",
-  "product card revamp — src/components/ProductCard.tsx (or wherever product cards render in Boutique): photography-first layout, subtle shadow-on-hover, price prominent but not shouty, fast-delivery badge if applicable. Use aspect-square for image. Generous padding.",
-  "premium motion design — pass through src/pages/Index.tsx and reduce motion verbosity. Keep only the 2-3 most impactful animations (hero entrance, section reveal). Remove hover-bounces that feel consumer-y. Apple/Linear aesthetic: subtle, purposeful, fast easing.",
-  "spacing + rhythm audit — every section in Index.tsx should follow an 8pt grid. Increase breathing room between major sections to feel premium (py-20 md:py-28 for majors). Tighten inline element spacing for crispness.",
-  "color consistency — grep for any rogue colors outside the navy #1B3A6B / blue #0052CC / gold #E8A838 / neutral (zinc) palette. Replace outliers with palette tokens. Ensure text contrast is AAA on primary CTAs.",
-  "delivery speed section — add a new section to the homepage dedicated to speed: '3 jours. De la commande au port-à-la-main.' Visual timeline showing Day 1 (conception), Day 2 (production), Day 3 (livraison). Bilingual. Icon-driven.",
-  "social proof — revamp the Google reviews section to feel premium, not busy. Fewer reviews shown at once, bigger quotes, verified badge, overall rating prominent. Smooth carousel with dot indicators.",
-  "CTA consistency — every primary CTA across the site should use the same button component and copy pattern ('Commencer', 'Obtenir un devis', 'Personnaliser') in bilingual parallel. Audit and standardize.",
-  "admin — create src/pages/admin/AdminDashboard.tsx with sidebar + topbar layout, widgets for: Orders today, Revenue this week, Pending quotes, Low inventory. Mock data. Premium admin UI inspired by Linear/Vercel.",
-  "admin — create src/components/admin/AdminLayout.tsx (sidebar + topbar) used across all admin pages. Route protection placeholder. Dark-mode-friendly.",
-  "admin — create src/pages/admin/AdminOrders.tsx with a table: date, client, items, total, status, actions. Drawer for order details. Filters: date range, status. Mock data.",
-  "admin — create src/pages/admin/AdminProducts.tsx showing Shopify-synced products: image, title, price, inventory, status. Filter, search. Sync status indicator (mock).",
-  "admin — create src/pages/admin/AdminVendors.tsx listing vendor accounts: name, email, quotes sent, conversion rate, last active. Add vendor button (modal stub).",
-  "admin — create src/pages/admin/AdminSettings.tsx with sections for Company info, Shopify connection, Payment settings, Team & roles. Form placeholders.",
-  "vendor — create src/pages/vendor/QuoteBuilder.tsx: left panel product picker (searchable), right panel building cart (items, qty, color, size, placement note, zone price add-on), bottom: discount %/$ field, client email, 'Send quote' button. Save draft button. Premium UI.",
-  "vendor — create src/pages/vendor/QuoteList.tsx: vendor's quotes with status pill (Draft, Sent, Viewed, Accepted, Paid, Expired), client, total, discount, age. Sort + filter. Quick-duplicate action.",
-  "vendor — create src/pages/vendor/VendorDashboard.tsx with widgets: quotes sent this week, conversion rate, commission earned, quick-create-quote button. Premium.",
-  "client quote page — create src/pages/QuoteAccept.tsx at /quote/:id: shows the vendor-built cart (products, colors, sizes, placement, pricing), 'Upload your logo' section (file dropzone, accepted formats), T&C checkbox, 'Review & Pay' button (disabled stub). Mobile-first.",
-  "logo upload component — create src/components/LogoUploadDropzone.tsx: drag-drop, preview, file size validation (max 10MB), format check (png, svg, pdf, ai), remove button. Used in QuoteAccept and ProductCustomizer. Styled, premium.",
-  "types — create src/types/admin.ts and src/types/quote.ts with: User, AdminUser, VendorUser, ClientUser, Order, OrderItem, Quote, QuoteLineItem, Discount, QuoteStatus enum. Clean TypeScript for the UI layer to consume.",
-  "route all new admin/vendor/quote pages in src/App.tsx with React.lazy + Suspense for code-splitting",
-  "accessibility pass — src/pages/Index.tsx: aria-hidden on decorative emoji and SVGs, aria-label on star ratings, fix footer Contact to have href or role=button, prefers-reduced-motion guard on logo marquee, proper heading hierarchy",
-  "mobile polish — audit all pages at 375px viewport. Fix horizontal scroll, cramped spacing, small touch targets. Specifically: homepage hero, Boutique filter bar, Customizer steps, BottomNav spacing with pb-20 on all root containers.",
-  "icons + delivery badge component — create src/components/DeliveryBadge.tsx showing '48-72h' with a bolt icon, used on hero, product cards, and cart page. Bilingual, subtle gold accent.",
-  "footer revamp — make the footer premium: Vision Affichage logo, tagline, 3 column links (Boutique, Entreprise, Support), social icons, copyright. Bilingual. Newsletter signup at the bottom (UI only).",
-  "404 + error page polish — make NotFound.tsx beautiful: illustration (or big 404 type), friendly bilingual copy, CTA back to home. Match brand aesthetic.",
-  "performance — lazy-load all below-the-fold images on Index.tsx and Boutique.tsx, add width/height to all img tags to prevent CLS",
-  "SEO + meta — index.html: add JSON-LD Organization schema, ensure meta description is bilingual-aware, open graph image, twitter card image (use existing brand assets)"
+  "customizer — multi-asset refactor: change src/types/customization.ts so logoPlacement becomes an assets array. Each CanvasAsset has: id, type ('logo' | 'text'), previewUrl (for logos), text/font/color (for texts), x, y, width, rotation, zoneId, view ('front' | 'back'). Update customizerStore.ts with addAsset/updateAsset/removeAsset/clearAssets actions. Keep backward compat: expose logoPlacement getter that returns the first 'logo' asset for legacy code that reads it. Max 5 files changed.",
+
+  "customizer — AssetsPanel: create src/components/customizer/AssetsPanel.tsx showing a list of all canvas assets (logos + texts) with thumbnail, zone label, and a delete button (X). Clicking an asset selects it on the canvas. Empty state: 'Aucun élément ajouté encore'. Bilingual. Slot it into the right side of ProductCustomizer (desktop only, stack below on mobile).",
+
+  "customizer — text asset feature: in ProductCustomizer step 2 (or a new sub-step), add a 'Ajouter du texte' button next to the logo uploader. Modal asks: text, font (3 choices: Inter bold, Georgia italic, Impact), color (navy/white/gold/red/black), size. Creates a 'text' asset and shows it on the canvas. Render text assets in ProductCanvas.tsx as fabric.Text objects.",
+
+  "customizer — canvas delete on select: in ProductCanvas.tsx, when an asset is selected, show a small circular X button above it. Clicking removes the asset via store. Use fabric.js's controls API or overlay a DOM button positioned from the selected object's coordinates. Test on both logos and texts.",
+
+  "customizer — right sidebar layout: restructure ProductCustomizer so on desktop (md:) there's a permanent right sidebar (~280px wide) containing the AssetsPanel + a mini 'Upload logo' button + 'Add text' button, so users don't have to go back to step 2 to add more. Steps become orchestration for first-time flow but panel is always accessible.",
+
+  "customizer — center everything: audit ProductCustomizer modal layout. Canvas should be truly centered in its container (no left/right bias). Step content should be centered vertically on screen. Modal should be centered with max-width. Check both mobile and desktop.",
+
+  "colors — audit COLOUR_HEX_MAP in src/lib/shopify.ts vs actual Shopify variant color names. Add any missing names. Fix hex values that look visually wrong (e.g. a 'Forest Green' that's actually dark olive). Keep compatible with findColorImage fallback logic.",
+
+  "product descriptions — audit src/data/products.ts descriptions if any exist, or wherever description text shows on ProductDetail.tsx. Rewrite to be MORE GENERAL — not technical fabric jargon, just: 'Un hoodie unisex confortable, prêt pour ton logo' rather than '80% coton / 20% polyester ringspun...'. 3 paragraphs max per product type (not per SKU).",
+
+  "product card — hide SKU everywhere it's shown to customers. Use categoryLabel(category, lang) from src/lib/productLabels.ts instead. Search for local.sku in src/components/ and src/pages/ (excluding admin). Keep SKU in data attributes (data-sku='...') for internal identification.",
+
+  "admin — add /admin/quotes page: list all quotes with status pills, client, total, discount, date, view count. Drawer with quote details. Mock data.",
+
+  "admin — add /admin/login page: clean email+password form, 'Forgot password?' link, Supabase auth-ready placeholder. Route at /admin/login. Not yet wired to real auth.",
+
+  "vendor — add src/pages/vendor/VendorLayout.tsx similar to AdminLayout but with vendor-specific nav (Dashboard, My Quotes, New Quote, Settings). Route /vendor/*.",
+
+  "vendor — VendorDashboard: widgets for quotes sent (7d), conversion rate, commission earned, quick 'new quote' button, recent activity feed. Premium UI.",
+
+  "vendor — QuoteList at /vendor/quotes: table of all quotes this vendor sent, status pill, client, total, age. Quick actions (duplicate, view link, resend).",
+
+  "client-facing — QuoteAccept page at /quote/:id: shows vendor-built cart (products, colors, sizes, placement, pricing), 'Upload your logo' dropzone, T&C checkbox, 'Review & Pay' button (stub). Mobile-first premium UI. Bilingual based on URL ?lang= or browser lang.",
+
+  "client-facing — create src/components/LogoUploadDropzone.tsx: drag-drop, preview, file validation (png/svg/pdf/ai, max 20MB), remove button, bilingual labels. Reusable between customizer and QuoteAccept.",
+
+  "visual polish — hero revamp: tighter typography, bigger headline, clearer value prop about 48h delivery. Test 375px + 1440px viewports.",
+
+  "visual polish — Boutique grid: premium product card, better price display, fast-delivery badge on all products, improved filter UI on mobile",
+
+  "visual polish — CartDrawer: cleaner line item layout, clearer edit/remove actions, better empty state with CTA to boutique",
+
+  "new feature — DeliveryBadge component: reusable '48-72h' badge with bolt icon + subtle gold accent. Use on hero, product cards, cart.",
+
+  "new feature — TrustSignalsBar: thin strip below hero with 4 signals (48-72h delivery / Made in Quebec / Quality guarantee / 500+ companies). Icons from lucide, bilingual.",
+
+  "new feature — StepsTimeline: a premium horizontal timeline on homepage: Day 1 Conception → Day 2 Production → Day 3 Delivery. Icon-driven, clean animations.",
+
+  "mobile polish — ensure all fixed bottom elements (BottomNav, CartDrawer, modal CTAs) respect safe-area-inset-bottom. Test with grep for 'fixed bottom' and ensure each has env(safe-area-inset-bottom) padding",
+
+  "a11y deep pass — src/pages/Index.tsx and src/components/customizer/*: aria-hidden on decorative icons, aria-label on interactive icon-only buttons, proper heading order (h1 → h2 → h3 without skipping), focus-visible rings on all interactive, reduced-motion guard on marquee and major animations",
+
+  "performance — add loading='lazy' + width/height to all <img> below the fold, wrap heavy product lists in React.memo, audit for unnecessary re-renders",
+
+  "SEO — index.html: add JSON-LD Organization + Product schemas, ensure canonical URL, og:image, twitter:card, bilingual meta description that matches current lang",
+
+  "error handling — wrap /admin, /vendor, /quote routes in route-level error boundaries with friendly fallback UIs",
+
+  "loading states — all admin pages should show skeleton loaders when data fetches (using mock Promise.resolve for now to establish the UI pattern)",
+
+  "print-ready — on the client QuoteAccept page, add a 'Print quote PDF' button (UI only, wiring later). Premium print stylesheet for the quote layout",
+
+  "polish — footer revamp: 4-column layout, newsletter signup, social icons, bilingual, copyright. Works in admin/vendor/public layouts."
 ]

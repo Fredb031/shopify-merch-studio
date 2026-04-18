@@ -5,7 +5,7 @@ import type { CustomizationState, LogoPlacement, ProductView } from '@/types/cus
 interface CustomizerStore extends CustomizationState {
   setProduct: (productId: string) => void;
   setColor: (colorId: string) => void;
-  setLogoPlacement: (placement: LogoPlacement) => void;
+  setLogoPlacement: (placement: LogoPlacement | null) => void;
   setSizeQuantity: (size: string, quantity: number) => void;
   setView: (view: ProductView) => void;
   setStep: (step: CustomizationState['step']) => void;

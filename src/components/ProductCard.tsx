@@ -5,6 +5,7 @@ import { ShopifyProduct } from '@/lib/shopify';
 import { ProductCustomizer } from '@/components/customizer/ProductCustomizer';
 import { findProductByHandle, matchProductByTitle, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
 import { useLang } from '@/lib/langContext';
+import { categoryLabel } from '@/lib/productLabels';
 
 // SKUs marked as popular — shown with badge on product card
 const POPULAR_SKUS = new Set(['ATC1000', 'S445LS', 'L445', 'ATCF2500']);
@@ -102,8 +103,11 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Info */}
         <div className="p-3.5 pb-4">
-          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[1.5px] mb-0.5">
-            {local ? `${local.shortName} · ${local.sku}` : (node.productType || '')}
+          <p
+            className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[1.5px] mb-0.5"
+            data-sku={local?.sku}
+          >
+            {local ? categoryLabel(local.category, lang) : (node.productType || '')}
           </p>
           <div className="text-[13px] font-bold text-foreground leading-tight mb-1">{node.title}</div>
 
