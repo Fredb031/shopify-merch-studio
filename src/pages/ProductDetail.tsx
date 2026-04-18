@@ -358,7 +358,7 @@ export default function ProductDetail() {
             <div className="flex items-center gap-2 flex-wrap text-xs">
               {!stockLoading && stock.totalAvailable > 0 && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold">
-                  <Package size={11} />
+                  <Package size={11} aria-hidden="true" />
                   {lang === 'en' ? 'In stock' : 'En stock'}
                 </span>
               )}
@@ -543,7 +543,7 @@ export default function ProductDetail() {
                     <ul className="space-y-1.5">
                       {desc.features.map((feature, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                          <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
                           {feature}
                         </li>
                       ))}
@@ -596,7 +596,7 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
   return (
     <div className="bg-gradient-to-br from-secondary/60 to-background border border-border rounded-xl p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Calculator size={14} className="text-[#0052CC]" />
+        <Calculator size={14} className="text-[#0052CC]" aria-hidden="true" />
         <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC]">
           {lang === 'en' ? 'Quick price estimate' : 'Estimation rapide'}
         </span>
@@ -608,7 +608,7 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
           aria-label={lang === 'en' ? 'Decrease' : 'Diminuer'}
           className="w-11 h-11 rounded-lg border border-border bg-background hover:bg-secondary active:bg-secondary/80 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
-          <Minus size={14} />
+          <Minus size={14} aria-hidden="true" />
         </button>
         <input
           type="number"
@@ -625,7 +625,7 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
           aria-label={lang === 'en' ? 'Increase' : 'Augmenter'}
           className="w-11 h-11 rounded-lg border border-border bg-background hover:bg-secondary active:bg-secondary/80 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
-          <Plus size={14} />
+          <Plus size={14} aria-hidden="true" />
         </button>
       </div>
       <div className="flex justify-between items-baseline">
@@ -645,7 +645,7 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
         <button
           type="button"
           onClick={() => setQty(12)}
-          className="w-full mt-2 text-[11px] font-bold text-emerald-700 hover:underline text-center"
+          className="w-full mt-2 text-[11px] font-bold text-emerald-700 hover:underline text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 rounded"
         >
           {lang === 'en'
             ? `+ ${12 - qty} units to unlock 10% volume discount →`
