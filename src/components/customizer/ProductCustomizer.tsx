@@ -427,19 +427,84 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     }
   };
 
-  // ALL colors stay visible — never hide one (Black + others must always
-  // be selectable). The "Real color" badge inside the canvas signals
-  // whether the picked color comes with a true per-color image.
-  const displayColors: ShopifyVariantColor[] = shopifyColors.length > 0
-    ? shopifyColors
-    : product.colors.map(c => ({
-        variantId: c.id, colorName: c.name, hex: c.hex,
-        imageDevant: c.imageDevant ?? product.imageDevant,
-        imageDos: c.imageDos ?? product.imageDos,
+  // ── Display colours ─────────────────────────────────────────────────────
+  // Source of truth for which colours show up = the LOCAL catalog
+  // (product.colors). That guarantees Black + other core colours are always
+  // pickable even when Shopify's variant list is missing one.
+  //
+  // For each local colour we:
+  //   1. Use findColorImage(sku, colourName) to get the REAL front+back
+  //      drive images so the canvas swaps to the right photo.
+  //   2. Drop colours that don't have a unique drive image AND don't have
+  //      their own hardcoded imageDevant — those were "stubs" that would
+  //      just show the generic Clean fallback and confuse the user.
+  //   3. Merge in Shopify metadata (variantId, price, sizeOptions) when the
+  //      names match, so checkout sends the right Shopify variant.
+  //
+  // We then append any Shopify-only colours not in the local catalog at
+  // the end (rare, but don't drop them silently).
+  const displayColors: ShopifyVariantColor[] = (() => {
+    const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Start with local colors, enriched with drive images.
+    const local = product.colors.map(c => {
+      const img = findColorImage(product.sku, c.nameEn) ?? findColorImage(product.sku, c.name);
+      const imageDevant = img?.front ?? c.imageDevant ?? product.imageDevant;
+      const imageDos    = img?.back  ?? c.imageDos    ?? product.imageDos;
+      return {
+        variantId: c.id,
+        colorName: c.name,
+        hex: c.hex,
+        imageDevant,
+        imageDos,
         price: product.basePrice.toString(),
         availableForSale: true,
         sizeOptions: product.sizes.map(s => ({ variantId: `${c.id}_${s}`, size: s, available: true })),
-      }));
+        hasRealImage: img?.front != null || (c.imageDevant != null && c.imageDevant !== product.imageDevant),
+      };
+    });
+
+    // Only keep colours that have EITHER a drive image OR a hardcoded
+    // unique imageDevant. Drops stubs that would render as the generic
+    // product fallback and mislead the user.
+    const filtered = local.filter(c => c.hasRealImage || c.colorName.toLowerCase() === 'noir' || c.colorName.toLowerCase() === 'black');
+
+    // Merge Shopify metadata where names match.
+    const merged = filtered.map(loc => {
+      const sm = shopifyColors.find(s => norm(s.colorName) === norm(loc.colorName));
+      if (sm) {
+        return {
+          variantId: sm.variantId,
+          colorName: loc.colorName,        // keep the local (bilingual) name
+          hex: loc.hex,                     // drive-matched hex beats Shopify's guess
+          imageDevant: loc.imageDevant,
+          imageDos: loc.imageDos,
+          price: sm.price,
+          availableForSale: sm.availableForSale,
+          sizeOptions: sm.sizeOptions,
+        };
+      }
+      // Local-only: strip hasRealImage marker before returning.
+      const { hasRealImage: _hasRealImage, ...rest } = loc;
+      void _hasRealImage;
+      return rest;
+    });
+
+    // Append Shopify-only colours not represented locally. These won't
+    // have a drive image, so use the Shopify variant image if any.
+    const mergedNames = new Set(merged.map(c => norm(c.colorName)));
+    for (const s of shopifyColors) {
+      if (mergedNames.has(norm(s.colorName))) continue;
+      merged.push(s);
+    }
+
+    // Put black first, then the rest in their original catalog order.
+    const isBlack = (name: string) => /^noir|^black/i.test(name.trim());
+    return [
+      ...merged.filter(c => isBlack(c.colorName)),
+      ...merged.filter(c => !isBlack(c.colorName)),
+    ];
+  })();
 
   return (
     <motion.div

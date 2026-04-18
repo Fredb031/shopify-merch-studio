@@ -289,37 +289,56 @@ export default function ProductDetail() {
                     </label>
 
                     {isColor && localProduct ? (
-                      /* Color: visual swatches like the customizer */
+                      /* Color swatches. Source of truth = local catalog
+                         (so Black + other core colours can't be missing
+                         when Shopify's list is incomplete). Shopify's
+                         values are appended for anything extra. Only
+                         colours with a real drive image are shown. */
                       <div className="flex flex-wrap gap-2">
-                        {option.values.map((value: string) => {
-                          const match = localProduct.colors.find(
-                            c => c.name === value || c.nameEn === value || c.id === value.toLowerCase().replace(/\s+/g, '-'),
-                          );
-                          // Fallback: use the FR/EN→hex map from shopify.ts so colors
-                          // never end up gray when the local catalog doesn't list them.
-                          const hex = match?.hex ?? colorNameToHex(value);
-                          const isSelected = currentOptions[option.name] === value;
-                          return (
-                            <button
-                              key={value}
-                              onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
-                              className={`relative w-9 h-9 rounded-full transition-all ${
-                                isSelected
-                                  ? 'ring-2 ring-primary ring-offset-2 scale-110'
-                                  : 'ring-1 ring-border hover:ring-primary/50'
-                              }`}
-                              style={{ background: hex }}
-                              aria-label={value}
-                              title={value}
-                            >
-                              {isSelected && (
-                                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                  <Check size={14} className="text-white drop-shadow" strokeWidth={3} />
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
+                        {(() => {
+                          const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                          const localNames = localProduct.colors
+                            .filter(c => !!findColorImage(localProduct.sku, c.nameEn) || !!findColorImage(localProduct.sku, c.name) || /^(black|noir)$/i.test(c.nameEn))
+                            .map(c => c.name);
+                          const extra = option.values.filter(v => !localNames.some(n => norm(n) === norm(v)));
+                          const entries = [...localNames, ...extra];
+                          // Put Black first.
+                          entries.sort((a, b) => {
+                            const ab = /^(noir|black)/i.test(a.trim()) ? 0 : 1;
+                            const bb = /^(noir|black)/i.test(b.trim()) ? 0 : 1;
+                            return ab - bb;
+                          });
+                          return entries.map((value: string) => {
+                            const match = localProduct.colors.find(
+                              c => norm(c.name) === norm(value) || norm(c.nameEn) === norm(value),
+                            );
+                            const hex = match?.hex ?? colorNameToHex(value);
+                            // Select by whichever NAME Shopify uses if it's there,
+                            // else by the local name — stays consistent.
+                            const shopifyValueForMatch = option.values.find(v => norm(v) === norm(value)) ?? value;
+                            const isSelected = norm(currentOptions[option.name] ?? '') === norm(shopifyValueForMatch);
+                            return (
+                              <button
+                                key={value}
+                                onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }))}
+                                className={`relative w-9 h-9 rounded-full transition-all ${
+                                  isSelected
+                                    ? 'ring-2 ring-primary ring-offset-2 scale-110'
+                                    : 'ring-1 ring-border hover:ring-primary/50'
+                                }`}
+                                style={{ background: hex }}
+                                aria-label={value}
+                                title={value}
+                              >
+                                {isSelected && (
+                                  <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <Check size={14} className="text-white drop-shadow" strokeWidth={3} />
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          });
+                        })()}
                       </div>
                     ) : (
                       /* Size + others: text pills */
