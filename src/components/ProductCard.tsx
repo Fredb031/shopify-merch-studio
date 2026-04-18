@@ -50,8 +50,11 @@ export function ProductCard({ product }: ProductCardProps) {
               <img
                 src={image.url}
                 alt={image.altText || node.title}
+                width={400}
+                height={400}
                 className={`w-full h-full object-cover transition-all duration-500 ${backImage ? 'group-hover:opacity-0' : 'group-hover:scale-105'}`}
                 loading="lazy"
+                decoding="async"
               />
               {backImage && (
                 <img
@@ -59,6 +62,8 @@ export function ProductCard({ product }: ProductCardProps) {
                   alt={lang === 'en'
                     ? `${local?.shortName ?? node.title} — back view`
                     : `${local?.shortName ?? node.title} — vue arrière`}
+                  width={400}
+                  height={400}
                   className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-105"
                   loading="lazy"
                   decoding="async"
