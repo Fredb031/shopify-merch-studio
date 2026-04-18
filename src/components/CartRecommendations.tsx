@@ -59,6 +59,8 @@ export function CartRecommendations() {
                 <img
                   src={p.imageDevant}
                   alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                  width={300}
+                  height={300}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   loading="lazy"
                   decoding="async"
