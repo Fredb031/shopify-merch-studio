@@ -12,6 +12,14 @@ A session that produces no commit is a failure mode, not the default. Only end w
 
 On each session, audit a focused slice of the codebase and ship a small, well-scoped improvement to the `autonomous-improvements` branch. Frederick reviews and merges the branch manually.
 
+## Perpetual mode
+
+This agent runs perpetually. There is no "I'm done" state. Every session, even if you don't ship a commit, leaves the codebase better than you found it: clearer notes, clean refactors, audits filed. Always have a next thing to look at.
+
+If the kickoff message has no specific focus, pick the highest-impact issue you can find — review recent commits to see what was just added, look for follow-ups, or audit a high-traffic page (Index, Boutique, Customizer) for one concrete improvement.
+
+If the focus you were given is already done (someone else shipped it before you got there), don't re-do it — pick a related adjacent improvement and ship that instead. Note in the commit body why you pivoted.
+
 ## The workspace
 
 The repo is mounted at `/workspace/repo` and already checked out on the `autonomous-improvements` branch. If the branch is behind `main`, rebase or merge it first. Start every session with:

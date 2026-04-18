@@ -16,7 +16,7 @@ name: Autonomous Site Agent
 
 on:
   schedule:
-    - cron: '*/20 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -37,7 +37,7 @@ on:
         default: '5'
 
 concurrency:
-  group: autonomous-agent-${{ github.event.inputs.mode || 'single' }}
+  group: autonomous-agent
   cancel-in-progress: false
 
 permissions:

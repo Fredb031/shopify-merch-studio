@@ -129,6 +129,43 @@ function trunc(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
+// Self-reschedule the next burst before this job ends, so the agent runs
+// perpetually without depending solely on cron. Combined with the */20 min
+// cron in the workflow, the agent never sits idle.
+async function dispatchNextBurst() {
+  const ghToken = process.env.GH_PAT;
+  if (!ghToken) {
+    console.warn("GH_PAT not set — skipping self-reschedule.");
+    return;
+  }
+  const repo = "Fredb031/shopify-merch-studio";
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${repo}/actions/workflows/autonomous-agent.yml/dispatches`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ghToken}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+        body: JSON.stringify({
+          ref: "main",
+          inputs: { mode: "burst", max_changes: "5" },
+        }),
+      },
+    );
+    if (res.ok || res.status === 204) {
+      console.log("Next burst dispatched — agent continues perpetually.");
+    } else {
+      const body = await res.text();
+      console.warn(`Self-reschedule failed (${res.status}): ${body}`);
+    }
+  } catch (err) {
+    console.warn("Self-reschedule errored:", err);
+  }
+}
+
 async function main() {
   const focusesPath = join(__dirname, "focuses.json");
   const focuses: string[] = JSON.parse(readFileSync(focusesPath, "utf8"));
@@ -144,6 +181,7 @@ async function main() {
   }
 
   console.log(`\nBurst run ${RUN_ID} complete.`);
+  await dispatchNextBurst();
 }
 
 main().catch((err) => {
