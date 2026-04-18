@@ -27,7 +27,7 @@ export function FeaturedProducts() {
             to="/products"
             className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:gap-3 transition-all"
           >
-            {lang === 'en' ? 'See all 22 products' : 'Voir les 22 produits'}
+            {lang === 'en' ? `See all ${PRODUCTS.length} products` : `Voir les ${PRODUCTS.length} produits`}
             <ArrowRight size={14} />
           </Link>
         </div>
