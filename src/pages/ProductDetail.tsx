@@ -53,6 +53,37 @@ export default function ProductDetail() {
     return () => { document.title = prev; };
   }, [product, localProduct, lang]);
 
+  // Inject Product JSON-LD so Google shows rich product results
+  // (price, image, brand) on SERPs. Data lives inside a script tag in
+  // <head> so the crawler picks it up regardless of client-side render.
+  useEffect(() => {
+    if (!product) return;
+    const price = parseFloat(product.priceRange.minVariantPrice.amount);
+    const currency = product.priceRange.minVariantPrice.currencyCode;
+    const image = localProduct?.imageDevant ?? product.images?.edges?.[0]?.node?.url;
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.title,
+      sku: localProduct?.sku,
+      image: image ? [image] : undefined,
+      description: product.description ?? undefined,
+      brand: { '@type': 'Brand', name: 'Vision Affichage' },
+      offers: {
+        '@type': 'Offer',
+        priceCurrency: currency,
+        price: price.toFixed(2),
+        availability: 'https://schema.org/InStock',
+        url: typeof window !== 'undefined' ? window.location.href : undefined,
+      },
+    };
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.text = JSON.stringify(schema);
+    document.head.appendChild(el);
+    return () => { document.head.removeChild(el); };
+  }, [product, localProduct]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
