@@ -20,6 +20,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
+const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
@@ -74,6 +75,7 @@ const App = () => (
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="products" element={<AdminProducts />} />
                   <Route path="vendors" element={<AdminVendors />} />
+                  <Route path="customers" element={<AdminCustomers />} />
                   <Route path="quotes" element={<AdminQuotes />} />
                   <Route path="emails" element={<AdminEmails />} />
                   <Route path="images" element={<AdminImageGen />} />
