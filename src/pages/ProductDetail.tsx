@@ -579,9 +579,10 @@ function BulkCalculator({ unitWithPrint, discountedUnit, lang }: { unitWithPrint
         <input
           type="number"
           min="1"
+          inputMode="numeric"
           value={qty}
           onChange={e => setQty(Math.max(1, parseInt(e.target.value) || 1))}
-          className="flex-1 text-center text-2xl font-extrabold bg-background border border-border rounded-lg py-1.5 outline-none focus:border-primary"
+          className="flex-1 text-center text-2xl font-extrabold bg-background border border-border rounded-lg py-1.5 outline-none focus:border-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           aria-label={lang === 'en' ? 'Quantity' : 'Quantité'}
         />
         <button
