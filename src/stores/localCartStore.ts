@@ -45,9 +45,13 @@ export const useCartStore = create<CartStore>()(
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
       applyDiscount: (code) => {
-        const rate = VALID_DISCOUNT_CODES[code.toUpperCase()];
+        // Trim + uppercase so "  vision10 " pasted from an email still
+        // matches. Without this the lookup silently fails and the UI
+        // flashes 'invalid code' for what looks like a correct code.
+        const normalized = code.trim().toUpperCase();
+        const rate = VALID_DISCOUNT_CODES[normalized];
         if (rate) {
-          set({ discountCode: code.toUpperCase(), discountApplied: true });
+          set({ discountCode: normalized, discountApplied: true });
           return true;
         }
         return false;
