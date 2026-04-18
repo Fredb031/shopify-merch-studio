@@ -4,12 +4,10 @@ import type { CartItemCustomization } from '@/types/customization';
 
 interface CartStore {
   items: CartItemCustomization[];
-  isOpen: boolean;
   discountCode: string | null;
   discountApplied: boolean;
   addItem: (item: Omit<CartItemCustomization, 'cartId' | 'addedAt'>) => void;
   removeItem: (cartId: string) => void;
-  toggleCart: () => void;
   applyDiscount: (code: string) => boolean;
   clearDiscount: () => void;
   getTotal: () => number;
@@ -27,7 +25,6 @@ export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
-      isOpen: false,
       discountCode: null,
       discountApplied: false,
 
@@ -35,14 +32,11 @@ export const useCartStore = create<CartStore>()(
         const cartId = crypto.randomUUID();
         set((state) => ({
           items: [...state.items, { ...item, cartId, addedAt: new Date() }],
-          isOpen: true,
         }));
       },
 
       removeItem: (cartId) =>
         set((state) => ({ items: state.items.filter((i) => i.cartId !== cartId) })),
-
-      toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
 
       applyDiscount: (code) => {
         // Trim + uppercase so "  vision10 " pasted from an email still
