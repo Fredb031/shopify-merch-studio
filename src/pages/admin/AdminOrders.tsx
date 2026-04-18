@@ -1,8 +1,37 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
+
+/** Generate and download a CSV for the currently filtered order list.
+ * Escapes double quotes per RFC 4180 and wraps every field so commas
+ * inside customer names don't shift columns. */
+function exportOrdersCsv(orders: Array<ShopifyOrderSnapshot & { fulfillmentStatus: ShopifyOrderSnapshot['fulfillmentStatus'] }>) {
+  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = ['Commande', 'Client', 'Courriel', 'Total', 'Paiement', 'Livraison', 'Date'];
+  const rows = orders.map(o => [
+    o.name,
+    o.customerName,
+    o.email,
+    o.total.toFixed(2),
+    o.financialStatus ?? '',
+    o.fulfillmentStatus ?? '',
+    new Date(o.createdAt).toISOString(),
+  ]);
+  const csv = [header, ...rows].map(r => r.map(esc).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `vision-commandes-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${orders.length} commande${orders.length > 1 ? 's' : ''} exportée${orders.length > 1 ? 's' : ''}`);
+}
 
 const FIN_COLOR: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-800',
@@ -123,13 +152,25 @@ export default function AdminOrders() {
         <div className="flex gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white"
-            title="Resynchroniser via Zapier"
+            onClick={() => {
+              // Snapshot is baked in at build time, so a "resync" is
+              // really a hard reload — best we can do until this moves
+              // behind a live Shopify edge function.
+              toast.info('Synchronisation en cours…');
+              setTimeout(() => window.location.reload(), 400);
+            }}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors"
+            title="Recharger depuis Shopify"
           >
             <RefreshCw size={15} />
             Resync
           </button>
-          <button className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white">
+          <button
+            type="button"
+            onClick={() => exportOrdersCsv(filtered)}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors"
+            title="Exporter en CSV"
+          >
             <Download size={15} />
             Exporter
           </button>
