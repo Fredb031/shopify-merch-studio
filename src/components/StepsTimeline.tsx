@@ -2,6 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Palette, Printer, Truck, Sparkles } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 
+/**
+ * StepsTimeline — the "From idea to doorstep in 5 business days" banner.
+ *
+ * The bar, the progress colours around each ring, and the ring borders
+ * are all animated AMBIENTLY — they move on their own without needing
+ * a hover. Nothing pops, nothing scales on mouseover. The colours just
+ * drift through the Vision blue → gold → emerald gradient.
+ */
 export function StepsTimeline() {
   const { lang } = useLang();
   const ref = useRef<HTMLElement>(null);
@@ -17,38 +25,27 @@ export function StepsTimeline() {
     return () => io.disconnect();
   }, []);
 
-  // Hovered step index — drives the colour-wipe and scaling animations.
-  // null means nothing active; defaults to -1 on mobile where hover
-  // doesn't exist so touching a step lights it up briefly.
-  const [hovered, setHovered] = useState<number | null>(null);
-
   const steps = [
     {
       icon: Palette,
       day: lang === 'en' ? 'Day 1-2' : 'Jour 1-2',
       title: lang === 'en' ? 'Design & proofing' : 'Conception & épreuve',
       desc: lang === 'en' ? 'We validate your artwork and send a digital proof' : 'On valide ton logo et t\'envoie une épreuve numérique',
-      accent: '#0052CC',    // Vision blue
-      tint:   'rgba(0,82,204,0.08)',
-      emoji:  '🎨',
+      accent: '#0052CC',
     },
     {
       icon: Printer,
       day: lang === 'en' ? 'Day 3-4' : 'Jour 3-4',
       title: lang === 'en' ? 'Local production' : 'Production locale',
       desc: lang === 'en' ? 'Printed in Québec, inspected for quality' : 'Imprimé au Québec, inspection qualité',
-      accent: '#E8A838',    // gold
-      tint:   'rgba(232,168,56,0.10)',
-      emoji:  '🖨️',
+      accent: '#E8A838',
     },
     {
       icon: Truck,
       day: lang === 'en' ? 'Day 5' : 'Jour 5',
       title: lang === 'en' ? 'Delivered to your door' : 'Livré chez toi',
       desc: lang === 'en' ? 'Tracked shipping anywhere in Canada' : 'Livraison suivie partout au Canada',
-      accent: '#10B981',    // emerald
-      tint:   'rgba(16,185,129,0.10)',
-      emoji:  '📦',
+      accent: '#10B981',
     },
   ];
 
@@ -58,6 +55,16 @@ export function StepsTimeline() {
       className="py-20 px-6 md:px-10 bg-gradient-to-b from-background to-secondary/40"
       aria-label={lang === 'en' ? 'Delivery timeline' : 'Calendrier de livraison'}
     >
+      {/* Keyframes — scoped to this component so the homepage CSS doesn't grow. */}
+      <style>{`
+        @keyframes va-bar-shift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+        @keyframes va-ring-rotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes va-halo-breath { 0%,100% { opacity: .08; transform: scale(1.05); } 50% { opacity: .22; transform: scale(1.18); } }
+        @media (prefers-reduced-motion: reduce) {
+          .va-animate-bar, .va-animate-ring, .va-animate-halo { animation: none !important; }
+        }
+      `}</style>
+
       <div className="max-w-[1060px] mx-auto">
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-3">
@@ -80,104 +87,74 @@ export function StepsTimeline() {
         </div>
 
         <div className="relative">
+          {/* Base progress rail — draws in on scroll-into-view, then the
+              coloured gradient drifts across it forever. */}
           <div
             className="absolute top-10 left-0 right-0 h-[2px] bg-border overflow-hidden"
             aria-hidden="true"
           >
             <div
-              className="h-full bg-gradient-to-r from-[#0052CC] via-[#E8A838] to-[#10B981] origin-left transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
-              style={{ transform: `scaleX(${visible ? 1 : 0})` }}
+              className="va-animate-bar h-full origin-left transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{
+                transform: `scaleX(${visible ? 1 : 0})`,
+                background: 'linear-gradient(90deg, #0052CC 0%, #E8A838 50%, #10B981 100%)',
+                backgroundSize: '200% 100%',
+                animation: visible ? 'va-bar-shift 12s linear infinite' : undefined,
+              }}
             />
-            {/* Extra glow blob that follows the hovered step so the whole
-                timeline feels responsive, not just the card that's lit. */}
-            {hovered !== null && (
-              <div
-                className="h-full absolute top-0 w-24 blur-md transition-all duration-500 ease-out"
-                style={{
-                  background: steps[hovered]?.accent,
-                  opacity: 0.6,
-                  left: `calc(${(hovered + 0.5) * (100 / steps.length)}% - 3rem)`,
-                }}
-              />
-            )}
           </div>
 
-          <div
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 relative"
-            onPointerLeave={() => setHovered(null)}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
             {steps.map((step, i) => {
               const Icon = step.icon;
-              const isActive = hovered === i;
               const accent = step.accent;
               return (
-                <button
-                  type="button"
+                <div
                   key={i}
-                  onPointerEnter={() => setHovered(i)}
-                  onFocus={() => setHovered(i)}
-                  onBlur={() => setHovered(null)}
-                  onClick={() => setHovered(i)}
-                  aria-label={`${step.day} — ${step.title}`}
-                  className={`group relative text-center rounded-2xl px-4 py-5 transition-all duration-500 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#0052CC] ${
+                  className={`text-center transition-all duration-700 ease-out ${
                     visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-                  } ${isActive ? '-translate-y-1' : ''}`}
-                  style={{
-                    transitionDelay: visible ? `${i * 180}ms` : '0ms',
-                    background: isActive ? step.tint : 'transparent',
-                  }}
+                  }`}
+                  style={{ transitionDelay: visible ? `${i * 180}ms` : '0ms' }}
                 >
                   <div className="relative w-20 h-20 mx-auto mb-5">
-                    {/* Outer halo pulses brighter on hover with the step's accent colour. */}
+                    {/* Breathing halo — subtle ambient pulse (no hover trigger) */}
                     <div
-                      className="absolute inset-0 rounded-full blur-xl transition-all duration-500"
+                      className="va-animate-halo absolute inset-0 rounded-full blur-xl"
                       style={{
                         background: accent,
-                        opacity: isActive ? 0.35 : 0.10,
-                        transform: isActive ? 'scale(1.3)' : 'scale(1.1)',
+                        animation: `va-halo-breath 6s ease-in-out ${i * 1.5}s infinite`,
+                      }}
+                      aria-hidden="true"
+                    />
+                    {/* Conic ring — slowly rotates the brand gradient around
+                        each circle so the entire timeline feels alive. */}
+                    <div
+                      className="va-animate-ring absolute -inset-[3px] rounded-full"
+                      style={{
+                        background: `conic-gradient(from 0deg, ${accent}, #E8A838, #10B981, #0052CC, ${accent})`,
+                        animation: `va-ring-rotate ${14 + i * 2}s linear infinite`,
+                        filter: 'blur(0.5px)',
                       }}
                       aria-hidden="true"
                     />
                     <div
-                      className="relative w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center transition-all duration-500"
+                      className="relative w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center"
                       style={{
                         borderColor: accent,
-                        boxShadow: isActive
-                          ? `0 14px 38px ${accent}55, inset 0 0 0 4px ${accent}14`
-                          : `0 8px 24px ${accent}26`,
-                        transform: isActive ? 'scale(1.08)' : 'scale(1)',
+                        boxShadow: `0 8px 24px ${accent}26`,
                       }}
                     >
-                      <Icon
-                        size={28}
-                        strokeWidth={2}
-                        aria-hidden="true"
-                        style={{ color: accent }}
-                        className="transition-transform duration-500 group-hover:rotate-[-4deg] group-hover:scale-110"
-                      />
+                      <Icon size={30} strokeWidth={1.75} aria-hidden="true" style={{ color: accent }} />
                     </div>
                     <div
-                      className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full text-[10px] font-extrabold flex items-center justify-center shadow-md transition-all duration-500"
-                      style={{
-                        background: isActive ? accent : '#E8A838',
-                        color: isActive ? '#FFFFFF' : '#1B3A6B',
-                        transform: isActive ? 'scale(1.15)' : 'scale(1)',
-                      }}
+                      className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full text-[10px] font-extrabold flex items-center justify-center shadow-md"
+                      style={{ background: '#E8A838', color: '#1B3A6B' }}
                     >
                       {i + 1}
                     </div>
-                    {/* Tiny floating emoji on hover — playful touch. */}
-                    <div
-                      className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-lg pointer-events-none transition-all duration-500 ${
-                        isActive ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-                      }`}
-                      aria-hidden="true"
-                    >
-                      {step.emoji}
-                    </div>
                   </div>
                   <div
-                    className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5 transition-colors duration-500"
+                    className="text-[10px] font-bold tracking-[2px] uppercase mb-1.5"
                     style={{ color: accent }}
                   >
                     {step.day}
@@ -186,16 +163,7 @@ export function StepsTimeline() {
                   <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[260px] mx-auto">
                     {step.desc}
                   </p>
-                  {/* Bottom underline that draws in on hover. */}
-                  <div
-                    className="absolute bottom-3 left-1/2 -translate-x-1/2 h-[2px] rounded-full transition-all duration-500"
-                    style={{
-                      background: accent,
-                      width: isActive ? '60%' : '0%',
-                    }}
-                    aria-hidden="true"
-                  />
-                </button>
+                </div>
               );
             })}
           </div>

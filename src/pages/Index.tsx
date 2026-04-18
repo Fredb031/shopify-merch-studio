@@ -13,6 +13,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { Shirt, Brush, PackageCheck } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/store/cartStore';
 
@@ -133,9 +134,23 @@ export default function Index() {
               {t('heroCta')}
             </Link>
             <p className="text-[11px] text-muted-foreground mt-3 font-medium">
-              {lang === 'en'
-                ? `⚡ ${SHOPIFY_STATS.ordersLast7Days} orders this week · No minimum order`
-                : `⚡ ${SHOPIFY_STATS.ordersLast7Days} commandes cette semaine · Aucun minimum`}
+              {(() => {
+                // Compute the delivery ETA live: 5 business days from
+                // today, skipping weekends. If today is a weekday, the
+                // clock starts tomorrow (business day +1).
+                const eta = new Date();
+                let added = 0;
+                while (added < 5) {
+                  eta.setDate(eta.getDate() + 1);
+                  const d = eta.getDay();
+                  if (d !== 0 && d !== 6) added++;
+                }
+                const fmt = (l: 'fr-CA' | 'en-CA') =>
+                  eta.toLocaleDateString(l, { weekday: 'long', day: 'numeric', month: 'long' });
+                return lang === 'en'
+                  ? `⚡ No minimum · Order today, receive by ${fmt('en-CA')}`
+                  : `⚡ Aucun minimum · Commande aujourd\u2019hui, reçu le ${fmt('fr-CA')}`;
+              })()}
             </p>
           </div>
 
@@ -176,16 +191,21 @@ export default function Index() {
           <div className="max-w-[1060px] mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
               {[
-                { n: '01', icon: '🛍️', key: 'step1' as const },
-                { n: '02', icon: '🎨', key: 'step2' as const },
-                { n: '03', icon: '📦', key: 'step3' as const },
-              ].map((step, i) => (
-                <div key={i} className="bg-primary-foreground/[0.04] text-center py-10 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
-                  <div className="text-3xl mb-3">{step.icon}</div>
-                  <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/30 mb-2">{lang === 'en' ? 'STEP' : 'ÉTAPE'} {step.n}</div>
-                  <div className="text-[18px] md:text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{t(step.key)}</div>
-                </div>
-              ))}
+                { n: '01', Icon: Shirt,         key: 'step1' as const },
+                { n: '02', Icon: Brush,         key: 'step2' as const },
+                { n: '03', Icon: PackageCheck,  key: 'step3' as const },
+              ].map((step, i) => {
+                const Icon = step.Icon;
+                return (
+                  <div key={i} className="bg-primary-foreground/[0.04] text-center py-10 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
+                    <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-primary-foreground/[0.08] flex items-center justify-center">
+                      <Icon className="text-primary-foreground/80" size={22} strokeWidth={1.75} aria-hidden="true" />
+                    </div>
+                    <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/30 mb-2">{lang === 'en' ? 'STEP' : 'ÉTAPE'} {step.n}</div>
+                    <div className="text-[18px] md:text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{t(step.key)}</div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
