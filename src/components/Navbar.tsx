@@ -47,7 +47,10 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         <img
           src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
           alt="Vision Affichage"
-          className="h-6"
+          width={96}
+          height={24}
+          decoding="async"
+          className="h-6 w-auto"
         />
       </Link>
 
