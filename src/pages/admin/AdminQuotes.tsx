@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, Plus } from 'lucide-react';
+import { TablePagination } from '@/components/admin/TablePagination';
+
+const PAGE_SIZE = 20;
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
 
@@ -30,6 +33,9 @@ export default function AdminQuotes() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>('all');
   const [savedQuotes, setSavedQuotes] = useState<typeof MOCK>([]);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => { setPage(0); }, [query, filter]);
 
   useEffect(() => {
     try {
@@ -78,6 +84,11 @@ export default function AdminQuotes() {
       return q.client.toLowerCase().includes(Q) || q.vendor.toLowerCase().includes(Q) || q.number.toLowerCase().includes(Q);
     });
   }, [all, query, filter]);
+
+  const paged = useMemo(
+    () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filtered, page],
+  );
 
   return (
     <div className="space-y-6">
@@ -133,7 +144,7 @@ export default function AdminQuotes() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(q => (
+              {paged.map(q => (
                 <tr key={q.id} className="border-t border-zinc-100 hover:bg-zinc-50">
                   <td className="px-4 py-3 font-mono text-xs font-bold">{q.number}</td>
                   <td className="px-4 py-3 font-semibold">{q.vendor}</td>
@@ -158,6 +169,13 @@ export default function AdminQuotes() {
             </tbody>
           </table>
         </div>
+        <TablePagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={filtered.length}
+          onPageChange={setPage}
+          itemLabel="soumissions"
+        />
       </div>
     </div>
   );
