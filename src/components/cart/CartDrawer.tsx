@@ -156,20 +156,29 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         initial={{ x:'100%' }} animate={{ x: isOpen ? '0%' : '100%' }}
         transition={{ type:'spring', stiffness:300, damping:32 }}
         className="fixed top-0 right-0 h-full w-full max-w-sm bg-card z-[500] shadow-2xl flex flex-col border-l border-border"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-drawer-title"
+        aria-hidden={!isOpen}
+        {...(!isOpen && { inert: '' as unknown as undefined })}
       >
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingBag size={16} className="text-primary" />
-            <h2 className="text-base font-extrabold text-foreground">{t('monPanier')}</h2>
+            <h2 id="cart-drawer-title" className="text-base font-extrabold text-foreground">{t('monPanier')}</h2>
             {cart.getItemCount() > 0 && (
               <span className="bg-primary text-primary-foreground text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
                 {cart.getItemCount()}
               </span>
             )}
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary">
-            <X size={14} />
+          <button
+            onClick={onClose}
+            aria-label={lang === 'en' ? 'Close cart' : 'Fermer le panier'}
+            className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          >
+            <X size={14} aria-hidden="true" />
           </button>
         </div>
 
