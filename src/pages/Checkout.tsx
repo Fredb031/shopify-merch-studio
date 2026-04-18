@@ -459,7 +459,7 @@ export default function Checkout() {
 }
 
 function Input({
-  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize,
+  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -473,7 +473,11 @@ function Input({
   ariaLabel?: string;
   /** Mobile keyboard hint — 'words' for names, 'characters' for postal codes. */
   autoCapitalize?: 'off' | 'sentences' | 'words' | 'characters';
+  /** Mobile virtual keyboard layout — e.g. 'tel' for phone numbers. */
+  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | 'decimal';
 }) {
+  // Phone inputs default to the tel keyboard for faster mobile entry.
+  const effectiveInputMode = inputMode ?? (type === 'tel' ? 'tel' : undefined);
   return (
     <input
       type={type}
@@ -487,6 +491,7 @@ function Input({
       aria-required={required}
       autoComplete={autoComplete}
       autoCapitalize={autoCapitalize}
+      inputMode={effectiveInputMode}
       required={required}
       className={`border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow ${className}`}
     />

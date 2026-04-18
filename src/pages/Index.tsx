@@ -290,7 +290,11 @@ export default function Index() {
             <div className="relative">
               <img
                 src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/c85663f5-e0c1-43ce-a427-00852120bc46.jpg?v=1763532442&width=800"
-                alt="Vision Affichage"
+                alt={lang === 'en' ? 'Samuel, founder of Vision Affichage' : 'Samuel, fondateur de Vision Affichage'}
+                width={800}
+                height={1000}
+                loading="lazy"
+                decoding="async"
                 className="w-full rounded-[22px] aspect-[4/5] object-cover"
               />
               <div className="absolute bottom-[18px] left-[18px] right-[18px] bg-card/95 backdrop-blur-[10px] rounded-xl p-3.5 flex items-center gap-3">
