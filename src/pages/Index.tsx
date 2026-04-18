@@ -4,6 +4,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { MoleGame } from '@/components/MoleGame';
 import { CinematicLoader } from '@/components/CinematicLoader';
 import { LoginModal } from '@/components/LoginModal';
+import { VideoModal } from '@/components/VideoModal';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
@@ -65,16 +66,23 @@ export default function Index() {
   const [showLoader, setShowLoader] = useState(true);
   const [loginOpen, setLoginOpen] = useState(false);
   const [heroStaggered, setHeroStaggered] = useState(false);
+  const [activeVideo, setActiveVideo] = useState<{ src?: string; poster: string; title: string; subtitle: string } | null>(null);
 
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
-    // Mini-game no longer auto-opens — accessible via floating button instead
     setTimeout(() => setHeroStaggered(true), 100);
+    // Auto-open the mini-game on first site visit only (once per browser)
+    const alreadyPlayed = typeof window !== 'undefined' && localStorage.getItem('moleGamePlayed') === 'true';
+    if (!alreadyPlayed) {
+      setTimeout(() => setShowGame(true), 650);
+    }
   }, []);
 
   const handleGameClose = (won: boolean) => {
     setShowGame(false);
-    sessionStorage.setItem('moleGamePlayed', 'true');
+    try {
+      localStorage.setItem('moleGamePlayed', 'true');
+    } catch {}
     if (won) {
       cart.applyDiscount('VISION10');
     }
@@ -87,6 +95,14 @@ export default function Index() {
       {showLoader && <CinematicLoader onComplete={handleLoaderComplete} />}
       <MoleGame isOpen={showGame} onClose={handleGameClose} />
       <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      <VideoModal
+        isOpen={activeVideo !== null}
+        onClose={() => setActiveVideo(null)}
+        src={activeVideo?.src}
+        poster={activeVideo?.poster}
+        title={activeVideo?.title}
+        subtitle={activeVideo?.subtitle}
+      />
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
@@ -242,25 +258,33 @@ export default function Index() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               {[
-                { name: 'Anthony Ouellet', co: 'Sous Pression', img: `${CDN}/preview_images/f95a004374be46dba55baf59721ce807.thumbnail.0000000000.jpg?v=1770475023&width=600` },
-                { name: 'Hubert Cazes',    co: 'Perfocazes',   img: `${CDN}/preview_images/72a54f824d3d4139b646cc3e21e1371c.thumbnail.0000000000.jpg?v=1770474993&width=600` },
-                { name: 'Luca Jalbert',   co: "L'univers de Luca Jalbert", img: `${CDN}/preview_images/40a1dafa21da49eaa892ab5ed9929163.thumbnail.0000000000.jpg?v=1770579609&width=600` },
+                { name: 'Anthony Ouellet', co: 'Sous Pression', img: `${CDN}/preview_images/f95a004374be46dba55baf59721ce807.thumbnail.0000000000.jpg?v=1770475023&width=600`, video: `${CDN}/f95a004374be46dba55baf59721ce807.HD-1080p-4.8Mbps-52069500.mp4` },
+                { name: 'Hubert Cazes',    co: 'Perfocazes',   img: `${CDN}/preview_images/72a54f824d3d4139b646cc3e21e1371c.thumbnail.0000000000.jpg?v=1770474993&width=600`, video: `${CDN}/72a54f824d3d4139b646cc3e21e1371c.HD-1080p-4.8Mbps-52069480.mp4` },
+                { name: 'Luca Jalbert',   co: "L'univers de Luca Jalbert", img: `${CDN}/preview_images/40a1dafa21da49eaa892ab5ed9929163.thumbnail.0000000000.jpg?v=1770579609&width=600`, video: `${CDN}/40a1dafa21da49eaa892ab5ed9929163.HD-1080p-4.8Mbps-52075605.mp4` },
               ].map((v, i) => (
-                <div key={i} className="bg-card border border-border rounded-[18px] overflow-hidden cursor-pointer transition-all hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.09)] group">
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setActiveVideo({ src: v.video, poster: v.img, title: v.name, subtitle: v.co })}
+                  className="bg-card border border-border rounded-[18px] overflow-hidden cursor-pointer transition-all hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.09)] group text-left p-0"
+                  aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
+                >
                   <div className="aspect-[9/12] relative bg-foreground overflow-hidden">
-                    <img src={v.img} alt={v.name} className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
+                    <img src={v.img} alt="" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-[52px] h-[52px] bg-card/[0.94] rounded-full flex items-center justify-center transition-transform group-hover:scale-110">
-                        <svg className="w-[18px] h-[18px] fill-primary ml-[3px]" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 shadow-xl">
+                        <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                       </div>
                     </div>
                   </div>
                   <div className="p-3.5 px-4">
                     <div className="text-[13px] font-bold text-foreground">{v.name}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">{v.co}</div>
-                    <div className="flex gap-0.5 mt-[7px]">{[...Array(5)].map((_, j) => <StarSvg key={j} />)}</div>
+                    <div className="flex gap-0.5 mt-[7px]" role="img" aria-label={lang === 'en' ? '5 out of 5 stars' : '5 étoiles sur 5'}>
+                      {[...Array(5)].map((_, j) => <StarSvg key={j} />)}
+                    </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -344,8 +368,8 @@ export default function Index() {
       <FadeIn>
         <section className="py-20 px-6 md:px-10 text-center">
           <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
-            <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            {lang === 'en' ? '10% discount available — Play the mini-game' : 'Rabais 10% disponible — Joue le mini-jeu'}
+            <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>
+            {lang === 'en' ? 'Rush delivery · 48-72h' : 'Livraison rapide · 48-72h'}
           </div>
           <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
             {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}
@@ -377,18 +401,6 @@ export default function Index() {
         </div>
         <span className="text-[12px] text-muted-foreground">© {new Date().getFullYear()} Vision Affichage</span>
       </footer>
-
-      {/* Floating mini-game button — persistent, non-intrusive */}
-      {!showGame && (
-        <button
-          onClick={() => setShowGame(true)}
-          className="fixed bottom-20 right-4 z-[440] bg-accent text-accent-foreground text-xs font-bold px-4 py-2.5 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center gap-1.5"
-          aria-label={lang === 'en' ? 'Play mini-game for 10% off' : 'Joue au mini-jeu pour 10% de rabais'}
-        >
-          <span className="text-sm">🎮</span>
-          <span className="hidden sm:inline">{lang === 'en' ? '10% off' : '10% rabais'}</span>
-        </button>
-      )}
 
       <BottomNav />
     </div>
