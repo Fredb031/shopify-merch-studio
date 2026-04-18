@@ -87,7 +87,8 @@ export default function Checkout() {
 
   const infoValid =
     /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email.trim()) &&
-    form.firstName && form.lastName && form.address && form.city && form.postalCode;
+    form.firstName.trim() && form.lastName.trim() && form.address.trim() &&
+    form.city.trim() && form.postalCode.trim();
 
   const handlePay = async () => {
     if (!acceptedTerms) return;
