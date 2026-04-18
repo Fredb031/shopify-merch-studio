@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   SHOPIFY_CUSTOMERS_SNAPSHOT,
   SHOPIFY_STATS,
@@ -24,10 +24,17 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+const PAGE_SIZE = 25;
+
 export default function AdminCustomers() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'paying' | 'prospects'>('all');
   const [selected, setSelected] = useState<ShopifyCustomerSnapshot | null>(null);
+  const [page, setPage] = useState(0);
+
+  // Reset pagination when the filter or search changes — otherwise
+  // filtering to 3 prospects while on page 5 shows an empty table.
+  useEffect(() => { setPage(0); }, [query, filter]);
 
   const filtered = useMemo(() => {
     return SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => {
@@ -43,6 +50,13 @@ export default function AdminCustomers() {
       );
     });
   }, [query, filter]);
+
+  // Paginated slice — don't render 1000+ table rows at once.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = useMemo(
+    () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [filtered, page],
+  );
 
   return (
     <div className="space-y-6">
@@ -120,7 +134,7 @@ export default function AdminCustomers() {
                   </td>
                 </tr>
               ) : (
-                filtered.map(c => (
+                pageItems.map(c => (
                   <tr
                     key={c.id}
                     onClick={() => setSelected(c)}
@@ -154,6 +168,37 @@ export default function AdminCustomers() {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500">
+            <span>
+              {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} sur {filtered.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0}
+                aria-label="Page précédente"
+                className="p-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="px-2 font-semibold text-zinc-700">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1}
+                aria-label="Page suivante"
+                className="p-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selected && (
