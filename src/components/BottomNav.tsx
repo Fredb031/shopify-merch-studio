@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/store/cartStore';
-import { Home, Store, Palette, ShoppingCart } from 'lucide-react';
+import { Home, Store, ShoppingCart } from 'lucide-react';
 
 export function BottomNav() {
   const location = useLocation();
@@ -10,10 +10,9 @@ export function BottomNav() {
   const itemCount = useCartStore(s => s.getItemCount());
 
   const items = [
-    { id: 'home',      label: t('accueil'),   path: '/',         icon: Home },
-    { id: 'shop',      label: t('boutique'),   path: '/products', icon: Store },
-    { id: 'customize', label: t('personnaliserProduit').split(' ')[0], path: '/products', icon: Palette },
-    { id: 'cart',      label: t('panier'),     path: '/cart',     icon: ShoppingCart },
+    { id: 'home', label: t('accueil'),  path: '/',         icon: Home },
+    { id: 'shop', label: t('boutique'), path: '/products', icon: Store },
+    { id: 'cart', label: t('panier'),   path: '/cart',     icon: ShoppingCart },
   ];
 
   const isActive = (path: string) =>
