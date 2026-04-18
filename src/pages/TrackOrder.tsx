@@ -61,7 +61,7 @@ export default function TrackOrder() {
   })();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary/40 to-background pb-20">
+    <div id="main-content" className="min-h-screen bg-gradient-to-b from-secondary/40 to-background pb-20">
       <Navbar />
 
       <main className="max-w-[760px] mx-auto px-4 md:px-8 pt-20 pb-16">

@@ -82,7 +82,7 @@ export default function Account() {
   const totalSpent = myOrders.reduce((s, o) => s + o.total, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary/30 to-background pb-20">
+    <div id="main-content" className="min-h-screen bg-gradient-to-b from-secondary/30 to-background pb-20">
       <Navbar />
 
       <main className="max-w-[920px] mx-auto px-4 md:px-8 pt-20 pb-16">
