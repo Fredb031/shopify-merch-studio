@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
 import { isValidEmail } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface VendorRecord {
   id: string;
@@ -41,6 +42,7 @@ export default function AdminVendors() {
     nameInputRef.current?.focus();
   }, [showInvite]);
   useEscapeKey(showInvite, useCallback(() => setShowInvite(false), []));
+  useBodyScrollLock(showInvite);
 
   const persist = (next: VendorRecord[]) => {
     setCustomVendors(next);

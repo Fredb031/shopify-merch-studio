@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface ProfileRow {
   id: string;
@@ -56,6 +57,7 @@ export default function AdminUsers() {
     setShowInvite(false);
     setInviteResult(null);
   }, []));
+  useBodyScrollLock(showInvite);
 
   const fetchUsers = async () => {
     setLoading(true);
