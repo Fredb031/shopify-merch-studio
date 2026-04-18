@@ -116,11 +116,24 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           <AnimatePresence>
             {cart.items.length === 0 ? (
               <motion.div key="empty" initial={{ opacity:0 }} animate={{ opacity:1 }}
-                className="flex flex-col items-center justify-center h-52 gap-3"
+                className="flex flex-col items-center justify-center py-12 px-4 text-center"
               >
-                <ShoppingBag size={38} className="text-border" />
-                <p className="text-sm text-muted-foreground font-medium">{t('panierVide')}</p>
-                <button onClick={onClose} className="text-xs font-bold text-primary underline">{t('explorerProduits')}</button>
+                <div className="relative w-24 h-24 mb-5">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-xl" aria-hidden="true" />
+                  <div className="relative w-24 h-24 rounded-full bg-secondary border-2 border-border flex items-center justify-center">
+                    <ShoppingBag size={32} className="text-[#0052CC]" strokeWidth={1.5} />
+                  </div>
+                </div>
+                <h3 className="text-lg font-extrabold text-foreground mb-1">{t('panierVide')}</h3>
+                <p className="text-xs text-muted-foreground mb-5 max-w-[240px] leading-relaxed">
+                  {t('explorerProduits')} — livré en 5 jours, aucun minimum.
+                </p>
+                <button
+                  onClick={onClose}
+                  className="text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full shadow-navy"
+                >
+                  {t('explorerProduits')}
+                </button>
               </motion.div>
             ) : (
               cart.items.map((item) => {

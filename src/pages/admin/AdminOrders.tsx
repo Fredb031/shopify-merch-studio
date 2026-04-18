@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Search, Filter, Download, RefreshCw, ExternalLink } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
@@ -55,9 +55,36 @@ export default function AdminOrders() {
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
+  const [shippedIds, setShippedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem('vision-shipped-orders') ?? '[]');
+      setShippedIds(new Set(Array.isArray(raw) ? raw : []));
+    } catch {}
+  }, []);
+
+  const markShipped = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const next = new Set(shippedIds);
+    next.add(id);
+    setShippedIds(next);
+    try {
+      localStorage.setItem('vision-shipped-orders', JSON.stringify([...next]));
+    } catch {}
+  };
+
+  const augmented = useMemo(
+    () => SHOPIFY_ORDERS_SNAPSHOT.map(o =>
+      shippedIds.has(o.id) && o.fulfillmentStatus === null
+        ? { ...o, fulfillmentStatus: 'fulfilled' as const }
+        : o,
+    ),
+    [shippedIds],
+  );
 
   const filtered = useMemo(() => {
-    return SHOPIFY_ORDERS_SNAPSHOT.filter(o => {
+    return augmented.filter(o => {
       if (statusFilter === 'paid' && o.financialStatus !== 'paid') return false;
       if (statusFilter === 'pending' && o.financialStatus !== 'pending') return false;
       if (statusFilter === 'fulfilled' && o.fulfillmentStatus !== 'fulfilled') return false;
@@ -178,6 +205,16 @@ export default function AdminOrders() {
                         <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${FUL_COLOR[o.fulfillmentStatus]}`}>
                           {FUL_LABEL[o.fulfillmentStatus]}
                         </span>
+                      ) : o.financialStatus === 'paid' ? (
+                        <button
+                          type="button"
+                          onClick={e => markShipped(o.id, e)}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md bg-zinc-100 text-zinc-700 hover:bg-emerald-100 hover:text-emerald-700 transition-colors"
+                          title="Marquer comme expédié"
+                        >
+                          <CheckCircle2 size={11} />
+                          Marquer expédié
+                        </button>
                       ) : (
                         <span className="text-[11px] text-zinc-400">À expédier</span>
                       )}
