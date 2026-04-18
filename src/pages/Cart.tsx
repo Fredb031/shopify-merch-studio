@@ -196,10 +196,11 @@ export default function Cart() {
                 <div className="flex flex-col items-end justify-between flex-shrink-0">
                   <button
                     onClick={() => handleRemoveItem(item.cartId)}
-                    className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive bg-transparent cursor-pointer transition-colors"
+                    className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 bg-transparent cursor-pointer transition-colors"
+                    aria-label={lang === 'en' ? `Remove ${item.productName}` : `Retirer ${item.productName}`}
                     title={lang === 'en' ? 'Remove' : 'Supprimer'}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
 
                   {/* Logo placement previews — both sides when user ordered
