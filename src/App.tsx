@@ -2,8 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { LangProvider } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -59,10 +57,8 @@ const LazyFallback = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LangProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <ErrorBoundary>
+      <Sonner />
+      <ErrorBoundary>
           <BrowserRouter>
             <ScrollToTop />
             <Suspense fallback={<LazyFallback />}>
@@ -138,7 +134,6 @@ const App = () => (
             </Suspense>
           </BrowserRouter>
         </ErrorBoundary>
-      </TooltipProvider>
     </LangProvider>
   </QueryClientProvider>
 );

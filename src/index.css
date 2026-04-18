@@ -73,19 +73,13 @@
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-/* ── Keyframes ── */
-@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-@keyframes fade-in-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+/* ── Keyframes (live only — dead marquee/fade-in-up/bounce-in/
+   confetti-fall removed, none of their utility classes had consumers) */
 @keyframes starburst { 0% { opacity: 1; transform: scale(0.4) translate(-50%,-50%); } 100% { opacity: 0; transform: scale(2) translate(-50%,-130%); } }
-@keyframes bounce-in { 0%,100% { transform: scale(1); } 50% { transform: scale(1.2); } }
-@keyframes confetti-fall { to { transform: translateY(110vh) rotate(840deg); opacity: 0; } }
 @keyframes staggerUp { to { opacity: 1; transform: translateY(0); } }
 @keyframes heroLogoScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes marqueeScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-/* Utility classes */
-.animate-marquee { animation: marquee 20s linear infinite; }
-.animate-fade-in-up { animation: fade-in-up 0.75s ease-out forwards; }
 .animate-starburst { animation: starburst 0.6s ease forwards; }
 
 /* Respect the OS reduced-motion preference — collapse all page-level
@@ -102,8 +96,6 @@
     scroll-behavior: auto !important;
   }
 }
-.animate-bounce-in { animation: bounce-in 0.4s ease; }
-.animate-confetti { animation: confetti-fall 3.5s ease forwards; }
 
 /* Scroll-triggered fade */
 .fi { opacity: 0; transform: translateY(18px); transition: opacity 0.75s cubic-bezier(.16,1,.3,1), transform 0.75s cubic-bezier(.16,1,.3,1); }
