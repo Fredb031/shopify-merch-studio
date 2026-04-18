@@ -85,12 +85,33 @@ export default function ProductDetail() {
         url: typeof window !== 'undefined' ? window.location.href : undefined,
       },
     };
+    // Breadcrumbs give Google the 'Home › Products › <Product>' chain
+    // to render under the URL in SERP. Independent script so the two
+    // schemas can be read separately by the crawler.
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://visionaffichage.com';
+    const productLabel = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
+    const breadcrumbs = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: lang === 'en' ? 'Home' : 'Accueil', item: `${origin}/` },
+        { '@type': 'ListItem', position: 2, name: lang === 'en' ? 'Products' : 'Produits', item: `${origin}/products` },
+        { '@type': 'ListItem', position: 3, name: productLabel },
+      ],
+    };
     const el = document.createElement('script');
     el.type = 'application/ld+json';
     el.text = JSON.stringify(schema);
     document.head.appendChild(el);
-    return () => { document.head.removeChild(el); };
-  }, [product, localProduct]);
+    const crumbsEl = document.createElement('script');
+    crumbsEl.type = 'application/ld+json';
+    crumbsEl.text = JSON.stringify(breadcrumbs);
+    document.head.appendChild(crumbsEl);
+    return () => {
+      document.head.removeChild(el);
+      document.head.removeChild(crumbsEl);
+    };
+  }, [product, localProduct, lang]);
 
   if (isLoading) {
     return (
