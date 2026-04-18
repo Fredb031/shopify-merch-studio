@@ -72,12 +72,15 @@ interface Props {
    * that side already has artwork (competitor pattern — CustomInk +
    * Printful both do this). */
   hasLogoPerSide?: { front: boolean; back: boolean };
+  /** When true, overlay a pulsing crosshair at the detected garment
+   * centre so the user can visually verify "Auto-center" is on target. */
+  showBboxCenter?: boolean;
 }
 
 export function ProductCanvas({
   product, garmentColor, hasRealColorImage, imageDevant, imageDos, logoUrl,
   currentPlacement, activeView, onViewChange, onPlacementChange, onSnapshotReady,
-  showPlacementTools = true, onBboxDetected, hasLogoPerSide,
+  showPlacementTools = true, onBboxDetected, hasLogoPerSide, showBboxCenter,
 }: Props) {
   const { t, lang } = useLang();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -85,9 +88,11 @@ export function ProductCanvas({
   const [textInput, setTextInput] = useState('');
   const [textColor, setTextColor] = useState('#FFFFFF');
   const [textFont, setTextFont] = useState('Inter, system-ui, sans-serif');
-  const [textAssets, setTextAssets] = useState<Array<{ id: string; text: string; color: string }>>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const textObjects = useRef<Map<string, any>>(new Map());
+  // Text assets are tagged with the side they belong to so a caption
+  // added on the back doesn't render on top of the front photo when
+  // the user toggles the view (and vice-versa).
+  const [textAssets, setTextAssets] = useState<Array<{ id: string; text: string; color: string; side: ProductView }>>([]);
+  const textObjects = useRef<Map<string, FabricObj & { side: ProductView }>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc      = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -101,6 +106,9 @@ export function ProductCanvas({
 
   const [ready, setReady] = useState(false);
   const [imgError, setImgError] = useState(false);
+  // Local mirror of the detected bbox so we can render a centre crosshair
+  // over the canvas without asking the parent to feed it back.
+  const [localBbox, setLocalBbox] = useState<{ cx: number; cy: number } | null>(null);
   const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''),
@@ -125,8 +133,12 @@ export function ProductCanvas({
       const natH = (el as HTMLImageElement).naturalHeight || el.height;
       if (!natW || !natH) return null;
 
-      // Offscreen canvas sized to a cheap sampling resolution
-      const SAMPLE = 200;
+      // Offscreen canvas sized to a sampling resolution. Bumped from
+      // 200 to 400 so the bbox edges line up with the actual shirt
+      // silhouette — at 200px each sample represented ~2px of the real
+      // photo, which caused visible misalignment on the "Center on
+      // garment" button for narrow or slim-fit products.
+      const SAMPLE = 400;
       const sw = SAMPLE;
       const sh = Math.round(SAMPLE * (natH / natW));
       const off = document.createElement('canvas');
@@ -136,16 +148,22 @@ export function ProductCanvas({
       ctx.drawImage(el as CanvasImageSource, 0, 0, sw, sh);
       const img = ctx.getImageData(0, 0, sw, sh).data;
 
+      // Tighter thresholds: alpha < 200 = transparent-ish, luminance >
+      // 245 = paper-white background. Catches subtle background shadows
+      // that the old 235 cutoff was including as "garment" pixels.
       let minX = sw, maxX = 0, minY = sh, maxY = 0, hit = 0;
       for (let y = 0; y < sh; y += 1) {
         for (let x = 0; x < sw; x += 1) {
           const i = (y * sw + x) * 4;
           const r = img[i], g = img[i + 1], b = img[i + 2], a = img[i + 3];
-          // Treat near-transparent OR near-white pixels as background
-          if (a < 120) continue;
+          if (a < 200) continue;                     // transparent
           const lum = (r * 299 + g * 587 + b * 114) / 1000;
-          if (lum > 235) continue; // near-white background
-          // Garment pixel
+          if (lum > 245) continue;                   // paper-white background
+          // Skip pixels that are near-white AND near-neutral saturation
+          // (catches JPEG halo around the shirt on very light backgrounds)
+          const maxChan = Math.max(r, g, b), minChan = Math.min(r, g, b);
+          const sat = maxChan === 0 ? 0 : (maxChan - minChan) / maxChan;
+          if (lum > 230 && sat < 0.05) continue;
           if (x < minX) minX = x;
           if (x > maxX) maxX = x;
           if (y < minY) minY = y;
@@ -153,7 +171,7 @@ export function ProductCanvas({
           hit++;
         }
       }
-      if (hit < 50) return null; // not enough signal — skip
+      if (hit < 200) return null; // not enough signal — skip
 
       // Map sample coordinates back to canvas coordinates.
       // The fabric image is centered with uniform scale = min(W/natW, H/natH).
@@ -297,7 +315,11 @@ export function ProductCanvas({
 
             // Report garment bbox to parent so centering buttons land on
             // the actual shirt body (not canvas whitespace).
-            onBboxDetected?.(analyzeBboxFromFabricImage(img));
+            {
+              const b = analyzeBboxFromFabricImage(img);
+              setLocalBbox(b ? { cx: b.cx, cy: b.cy } : null);
+              onBboxDetected?.(b);
+            }
 
           // Tint only if no real per-color photo. Opacity is adaptive to
           // the garment's luminance — dark colors need a stronger tint to
@@ -339,16 +361,28 @@ export function ProductCanvas({
 
           // Zone outline stays visible on BOTH front and back so the user
           // can see the safe print area on whichever side they're editing.
-          // (Logo + text objects are driven by the parent's per-side
-          // logoUrl prop, so they naturally flip when activeView changes.)
+          // (Logo is driven by the parent's per-side logoUrl prop, so
+          // it naturally flips when activeView changes.)
           if (maskRef.current) {
             maskRef.current.set('visible', true);
           }
 
-            // Layer order: photo → tint → outline → logo
+          // Show text objects only for the active view — text added on
+          // the back must not render on top of the front photo, and
+          // vice-versa.
+          textObjects.current.forEach(t => {
+            const belongsHere = t.side === activeView;
+            t.set('visible', belongsHere);
+            t.set('selectable', belongsHere);
+            t.set('evented', belongsHere);
+          });
+
+            // Layer order: photo → tint → outline → logo → text
             if (maskRef.current) canvas.bringToFront(maskRef.current);
             if (logoObj.current) canvas.bringToFront(logoObj.current);
-            textObjects.current.forEach((t) => canvas.bringToFront(t));
+            textObjects.current.forEach((t) => {
+              if (t.side === activeView) canvas.bringToFront(t);
+            });
             canvas.renderAll();
           },
           { crossOrigin: 'anonymous' },
@@ -425,7 +459,11 @@ export function ProductCanvas({
             photoObj.current = img;
 
             // Report garment bbox to parent on first photo load too.
-            onBboxDetected?.(analyzeBboxFromFabricImage(img));
+            {
+              const b = analyzeBboxFromFabricImage(img);
+              setLocalBbox(b ? { cx: b.cx, cy: b.cy } : null);
+              onBboxDetected?.(b);
+            }
 
             // Colour tint overlay — only when we DON'T have a real per-colour photo.
             // When hasRealColorImage is true, the loaded photo IS the right colour already.
@@ -825,12 +863,17 @@ export function ProductCanvas({
         transparentCorners: false,
       });
       t.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
+      // Tag the fabric object with the side it was created for. The
+      // swap-in-place effect uses this to show/hide it when activeView
+      // changes, so text on the back doesn't bleed onto the front view.
+      const side = activeView;
+      (t as FabricObj & { side: ProductView }).side = side;
       canvas.add(t);
       canvas.setActiveObject(t);
       canvas.bringToFront(t);
       canvas.renderAll();
-      textObjects.current.set(id, t);
-      setTextAssets(prev => [...prev, { id, text, color }]);
+      textObjects.current.set(id, t as FabricObj & { side: ProductView });
+      setTextAssets(prev => [...prev, { id, text, color, side }]);
     });
   };
 
@@ -890,6 +933,25 @@ export function ProductCanvas({
           aria-hidden="true"
         />
         <canvas ref={canvasElRef} className="relative w-full h-full block" style={{ touchAction: 'none' }} />
+
+        {/* Centre crosshair — ONLY shown while the user is previewing the
+            Auto-center option so they can verify it lands on the shirt,
+            not on whitespace. Positioned in canvas % so it tracks even
+            when the container resizes. */}
+        {showBboxCenter && localBbox && (
+          <div
+            className="absolute pointer-events-none"
+            style={{ left: `${localBbox.cx}%`, top: `${localBbox.cy}%`, transform: 'translate(-50%, -50%)' }}
+            aria-hidden="true"
+          >
+            <div className="relative w-12 h-12">
+              <div className="absolute inset-0 rounded-full bg-[#0052CC]/20 animate-ping" />
+              <div className="absolute inset-[30%] rounded-full bg-[#0052CC] shadow-[0_0_0_3px_rgba(255,255,255,0.9)]" />
+              <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-[#0052CC]/60" />
+              <div className="absolute top-1/2 left-0 w-full h-px -translate-y-1/2 bg-[#0052CC]/60" />
+            </div>
+          </div>
+        )}
 
         {imgError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-2">
@@ -1040,13 +1102,27 @@ export function ProductCanvas({
       )}
 
       {/* Assets panel — shows added texts with delete. Visible only while
-          placing so it doesn't clutter the color / sizes / review steps. */}
-      {showPlacementTools && textAssets.length > 0 && (
+          placing so it doesn't clutter the color / sizes / review steps.
+          Filters to the currently visible side so the list reflects what
+          the user actually sees on the canvas. */}
+      {(() => {
+        const visibleAssets = textAssets.filter(a => a.side === activeView);
+        if (!showPlacementTools || visibleAssets.length === 0) return null;
+        return (
         <div className="bg-secondary/60 border border-border rounded-xl p-2 space-y-1">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
-            {lang === 'en' ? `${textAssets.length} text element${textAssets.length > 1 ? 's' : ''}` : `${textAssets.length} élément${textAssets.length > 1 ? 's' : ''} texte`}
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1 flex items-center justify-between">
+            <span>
+              {lang === 'en'
+                ? `${visibleAssets.length} text element${visibleAssets.length > 1 ? 's' : ''}`
+                : `${visibleAssets.length} élément${visibleAssets.length > 1 ? 's' : ''} texte`}
+            </span>
+            <span className="font-normal normal-case tracking-normal text-[9px]">
+              {activeView === 'front'
+                ? (lang === 'en' ? 'on Front' : 'au Devant')
+                : (lang === 'en' ? 'on Back'  : 'au Dos')}
+            </span>
           </div>
-          {textAssets.map(a => (
+          {visibleAssets.map(a => (
             <div key={a.id} className="flex items-center gap-2 bg-background rounded-lg px-2 py-1.5">
               <span className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: a.color }} />
               <span className="flex-1 text-xs font-semibold truncate text-foreground" title={a.text}>{a.text}</span>
@@ -1061,7 +1137,8 @@ export function ProductCanvas({
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
 
       {/* Add text to garment — during placement, both views. */}
       {showPlacementTools && ready && (

@@ -104,6 +104,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shopifyColors, shopifyColor]);
 
+  // Toggled while the user hovers/focuses the "Auto-center on garment"
+  // button so a crosshair overlay on the canvas shows exactly where the
+  // click will drop the logo. Builds trust that the centring is correct.
+  const [previewCenter, setPreviewCenter] = useState(false);
+
   // Early return comes AFTER all hooks so hook call order stays stable
   // across renders. Critical for React — otherwise it crashes with
   // "Maximum update depth exceeded" once the product is missing.
@@ -579,6 +584,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 front: !!store.logoPlacement?.previewUrl,
                 back:  !!store.logoPlacementBack?.previewUrl,
               }}
+              showBboxCenter={store.step === 2 && previewCenter}
             />
           </div>
 
@@ -751,6 +757,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         ...centerOnGarment({ bbox }),
                       });
                     }}
+                    onMouseEnter={() => setPreviewCenter(true)}
+                    onMouseLeave={() => setPreviewCenter(false)}
+                    onFocus={() => setPreviewCenter(true)}
+                    onBlur={() => setPreviewCenter(false)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
                   >
                     <span aria-hidden="true">⊕</span>
