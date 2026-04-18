@@ -433,7 +433,15 @@ export default function Index() {
             <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 28s linear infinite' }}>
               {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
                 <div key={i} className="px-10 flex items-center justify-center h-[88px]">
-                  <img src={logo.src} alt={logo.alt} loading="lazy" decoding="async" className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all" />
+                  <img
+                    src={logo.src}
+                    alt={logo.alt}
+                    width={128}
+                    height={64}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all"
+                  />
                 </div>
               ))}
             </div>
