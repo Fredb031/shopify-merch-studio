@@ -61,12 +61,14 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           <div className="relative">
             <button
               onClick={() => setMenuOpen(o => !o)}
-              className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground"
+              className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
+              aria-controls="navbar-user-menu"
+              aria-label={lang === 'en' ? `Account menu for ${user.name}` : `Menu compte de ${user.name}`}
             >
-              <span className="hidden sm:inline text-muted-foreground">{user.name.split(' ')[0]}</span>
-              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[10px] font-extrabold">
+              <span className="hidden sm:inline text-muted-foreground" aria-hidden="true">{user.name.split(' ')[0]}</span>
+              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
                 {user.initials}
               </span>
             </button>
@@ -76,9 +78,10 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                 <button
                   className="fixed inset-0 z-[410] bg-transparent border-none cursor-default"
                   onClick={() => setMenuOpen(false)}
-                  aria-label="Close menu"
+                  aria-label={lang === 'en' ? 'Close menu' : 'Fermer le menu'}
                 />
                 <div
+                  id="navbar-user-menu"
                   className="absolute right-0 mt-2 w-56 bg-background border border-border rounded-xl shadow-xl z-[420] overflow-hidden"
                   role="menu"
                 >
