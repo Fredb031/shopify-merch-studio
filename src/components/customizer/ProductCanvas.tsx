@@ -641,7 +641,6 @@ export function ProductCanvas({
       fc.current?.dispose();
       fc.current = null;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
     // Init effect: only fires on first mount + on canvas resize.
     // Photo/color/view changes are handled by the swap-in-place effect above
     // so the user's logo placement survives a color pick.
@@ -770,6 +769,9 @@ export function ProductCanvas({
     });
     img.setCoords?.();
     canvas.requestRenderAll?.();
+    // Tracking individual fields intentionally — a new currentPlacement object
+    // every render would retrigger the effect and fight the user's drag.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPlacement?.x, currentPlacement?.y, currentPlacement?.width, currentPlacement?.rotation]);
 
   // ── Zone preset selector ──────────────────────────────────────────────────
@@ -951,6 +953,10 @@ export function ProductCanvas({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // removeTextAsset is stable within a render; a dep here would just force
+    // us to memoize it for no behavioural gain. The handler always reads
+    // fresh state via refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
