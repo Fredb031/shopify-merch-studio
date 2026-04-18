@@ -290,6 +290,8 @@ export default function Checkout() {
                       >
                         <input
                           type="radio"
+                          name="shipping-method"
+                          value={m}
                           checked={shippingMethod === m}
                           onChange={() => setShippingMethod(m)}
                           className="w-4 h-4 accent-primary"
