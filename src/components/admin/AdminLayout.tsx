@@ -1,10 +1,11 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
+  { to: '/admin/analytics', label: 'Analytique', icon: BarChart3 },
   { to: '/admin/orders', label: 'Commandes', icon: ShoppingBag },
   { to: '/admin/abandoned-carts', label: 'Paniers abandonnés', icon: ShoppingCart },
   { to: '/admin/products', label: 'Produits', icon: Package },

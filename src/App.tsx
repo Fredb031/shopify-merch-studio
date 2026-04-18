@@ -22,6 +22,7 @@ const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminVendors = lazy(() => import("./pages/admin/AdminVendors"));
 const AdminCustomers = lazy(() => import("./pages/admin/AdminCustomers"));
 const AdminAbandonedCarts = lazy(() => import("./pages/admin/AdminAbandonedCarts"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
@@ -78,6 +79,7 @@ const App = () => (
                   <Route path="vendors" element={<AdminVendors />} />
                   <Route path="customers" element={<AdminCustomers />} />
                   <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
+                  <Route path="analytics" element={<AdminAnalytics />} />
                   <Route path="quotes" element={<AdminQuotes />} />
                   <Route path="emails" element={<AdminEmails />} />
                   <Route path="images" element={<AdminImageGen />} />
