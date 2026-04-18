@@ -8,6 +8,7 @@ import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { StickyHelp } from '@/components/StickyHelp';
+import { QuickQuoteForm } from '@/components/QuickQuoteForm';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -162,6 +163,13 @@ export default function Index() {
 
       {/* Steps timeline — gamified delivery journey */}
       <StepsTimeline />
+
+      {/* Quick quote form — instant lead capture */}
+      <FadeIn>
+        <section className="py-20 px-6 md:px-10 bg-gradient-to-b from-secondary/40 to-background">
+          <QuickQuoteForm />
+        </section>
+      </FadeIn>
 
       {/* Steps */}
       <FadeIn>
