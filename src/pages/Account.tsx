@@ -52,13 +52,13 @@ export default function Account() {
             <div className="flex gap-3 justify-center">
               <Link
                 to="/admin/login"
-                className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy"
+                className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Sign in' : 'Se connecter'}
               </Link>
               <Link
                 to="/admin/signup"
-                className="inline-flex items-center gap-2 text-sm font-extrabold border border-border bg-background px-6 py-3 rounded-full hover:border-primary"
+                className="inline-flex items-center gap-2 text-sm font-extrabold border border-border bg-background px-6 py-3 rounded-full hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Create account' : 'Créer un compte'}
               </Link>
