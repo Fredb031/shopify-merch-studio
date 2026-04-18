@@ -123,6 +123,16 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
+  // Lock body scroll while the drawer is open — otherwise scroll wheel
+  // over the overlay keeps moving the page underneath, which reads as
+  // broken on mobile especially.
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
+
   const applyCode = () => {
     const ok = cart.applyDiscount(codeInput.toUpperCase());
     setCodeMsg(
