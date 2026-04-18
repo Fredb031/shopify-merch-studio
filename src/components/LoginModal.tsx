@@ -82,18 +82,26 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     <div
       className="fixed inset-0 z-[700] bg-foreground/60 backdrop-blur-[14px] flex items-center justify-center"
       onClick={onClose}
+      aria-hidden="true"
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-modal-title"
         className="bg-background rounded-[22px] w-[420px] max-w-[94vw] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.15)] animate-[staggerUp_0.35s_cubic-bezier(.34,1.4,.64,1)_forwards]"
         onClick={e => e.stopPropagation()}
       >
         <div className="pt-7 px-7 text-center">
           <img
             src="https://visionaffichage.com/cdn/shop/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
-            alt="Vision Affichage"
-            className="h-[22px] mx-auto mb-[18px] opacity-70"
+            alt=""
+            aria-hidden="true"
+            width={88}
+            height={22}
+            decoding="async"
+            className="h-[22px] w-auto mx-auto mb-[18px] opacity-70"
           />
-          <h2 className="text-xl font-extrabold text-foreground mb-[5px]">{title}</h2>
+          <h2 id="login-modal-title" className="text-xl font-extrabold text-foreground mb-[5px]">{title}</h2>
           <p className="text-[13px] text-muted-foreground mb-5">{subtitle}</p>
         </div>
 
