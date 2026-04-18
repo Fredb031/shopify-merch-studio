@@ -41,12 +41,23 @@ export class ErrorBoundary extends Component<Props, State> {
                 ? 'Une erreur inattendue est survenue.'
                 : 'An unexpected error occurred.')}
           </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="text-xs font-bold text-primary hover:underline"
-          >
-            {this.isFrench() ? 'Réessayer' : 'Try again'}
-          </button>
+          <div className="flex items-center gap-4 mt-1">
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="text-xs font-bold text-primary hover:underline focus:outline-none focus-visible:underline"
+            >
+              {this.isFrench() ? 'Réessayer' : 'Try again'}
+            </button>
+            {/* Fall-through for when Retry keeps failing: forcing a full
+               reload on '/' often clears React Query caches, stale
+               auth sessions, or bad persisted state. */}
+            <a
+              href="/"
+              className="text-xs font-bold text-muted-foreground hover:text-foreground focus:outline-none focus-visible:underline"
+            >
+              {this.isFrench() ? "Retour à l'accueil" : 'Back home'}
+            </a>
+          </div>
         </div>
       );
     }
