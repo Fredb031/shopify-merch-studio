@@ -104,8 +104,11 @@ export default function QuoteList() {
           <h1 className="text-2xl font-extrabold tracking-tight">Mes soumissions</h1>
           <p className="text-sm text-zinc-500 mt-1">{all.length} soumissions au total</p>
         </div>
-        <Link to="/vendor/quotes/new" className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90">
-          <Plus size={16} />
+        <Link
+          to="/vendor/quotes/new"
+          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+        >
+          <Plus size={16} aria-hidden="true" />
           Nouvelle soumission
         </Link>
       </header>
@@ -113,18 +116,21 @@ export default function QuoteList() {
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
-            <Search size={16} className="text-zinc-400" />
+            <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher par client ou numéro"
+              aria-label="Rechercher par client ou numéro"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
           <select
             value={filter}
             onChange={e => setFilter(e.target.value as Status | 'all')}
-            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC]"
+            aria-label="Filtrer par statut"
+            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
           >
             <option value="all">Tous les statuts</option>
             {Object.entries(STATUS_LABEL).map(([k, v]) => (
@@ -178,21 +184,26 @@ export default function QuoteList() {
                         <Link
                           to={`/quote/${q.id}`}
                           title="Voir"
-                          className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900"
+                          aria-label={`Voir la soumission ${q.number}`}
+                          className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                         >
-                          <Eye size={14} />
+                          <Eye size={14} aria-hidden="true" />
                         </Link>
                         <button
+                          type="button"
                           title="Dupliquer"
-                          className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900"
+                          aria-label={`Dupliquer la soumission ${q.number}`}
+                          className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                         >
-                          <Copy size={14} />
+                          <Copy size={14} aria-hidden="true" />
                         </button>
                         <button
+                          type="button"
                           title="Renvoyer"
-                          className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900"
+                          aria-label={`Renvoyer la soumission ${q.number}`}
+                          className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                         >
-                          <Send size={14} />
+                          <Send size={14} aria-hidden="true" />
                         </button>
                       </div>
                     </td>

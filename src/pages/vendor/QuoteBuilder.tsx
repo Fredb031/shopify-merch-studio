@@ -135,7 +135,12 @@ export default function QuoteBuilder() {
     <div className="min-h-screen bg-zinc-50">
       <header className="bg-white border-b border-zinc-200 px-4 md:px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link to={backHref} className="text-sm text-zinc-500 hover:text-zinc-900">← Retour</Link>
+          <Link
+            to={backHref}
+            className="text-sm text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded px-1"
+          >
+            ← Retour
+          </Link>
           <h1 className="font-extrabold text-lg">Nouvelle soumission</h1>
         </div>
         <div className="flex gap-2">
@@ -143,18 +148,18 @@ export default function QuoteBuilder() {
             type="button"
             onClick={handleSaveDraft}
             disabled={items.length === 0}
-            className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
-            <Save size={14} />
+            <Save size={14} aria-hidden="true" />
             Brouillon
           </button>
           <button
             type="button"
             onClick={handleSendToClient}
             disabled={!canSend}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
-            <Send size={14} />
+            <Send size={14} aria-hidden="true" />
             Envoyer au client
           </button>
         </div>
@@ -164,11 +169,13 @@ export default function QuoteBuilder() {
         <aside className="bg-white border-r border-zinc-200 p-4 overflow-y-auto">
           <h2 className="font-bold text-sm mb-3">Catalogue</h2>
           <div className="flex items-center gap-2 mb-4 border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
-            <Search size={14} className="text-zinc-400" />
+            <Search size={14} className="text-zinc-400" aria-hidden="true" />
             <input
+              type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher un produit"
+              aria-label="Rechercher un produit"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
@@ -178,13 +185,14 @@ export default function QuoteBuilder() {
                 key={p.sku}
                 type="button"
                 onClick={() => addProduct(p.sku)}
-                className="text-left border border-zinc-200 rounded-lg overflow-hidden hover:border-[#0052CC] hover:shadow-md transition-all bg-white group"
+                aria-label={`Ajouter ${p.name} à la soumission`}
+                className="text-left border border-zinc-200 rounded-lg overflow-hidden hover:border-[#0052CC] hover:shadow-md transition-all bg-white group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
               >
                 <div className="aspect-square bg-zinc-100 relative">
                   {p.imageDevant && <img src={p.imageDevant} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />}
                   <div className="absolute inset-0 bg-[#0052CC]/0 group-hover:bg-[#0052CC]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
-                      <Plus size={16} className="text-[#0052CC]" />
+                      <Plus size={16} className="text-[#0052CC]" aria-hidden="true" />
                     </div>
                   </div>
                 </div>
@@ -250,10 +258,10 @@ export default function QuoteBuilder() {
                       <button
                         type="button"
                         onClick={() => removeItem(it.id)}
-                        className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center"
-                        aria-label="Retirer"
+                        className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
+                        aria-label={`Retirer ${it.productName}`}
                       >
-                        <Trash2 size={15} />
+                        <Trash2 size={15} aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -289,24 +297,28 @@ export default function QuoteBuilder() {
 
           <div>
             <h2 className="font-bold text-sm mb-3">Rabais</h2>
-            <div className="flex gap-2">
+            <div className="flex gap-2" role="radiogroup" aria-label="Type de rabais">
               <button
                 type="button"
+                role="radio"
+                aria-checked={discountKind === 'percent'}
                 onClick={() => setDiscountKind('percent')}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold border ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                   discountKind === 'percent' ? 'border-[#0052CC] bg-[#0052CC]/5 text-[#0052CC]' : 'border-zinc-200 text-zinc-500'
                 }`}
               >
-                <Percent size={14} />%
+                <Percent size={14} aria-hidden="true" />%
               </button>
               <button
                 type="button"
+                role="radio"
+                aria-checked={discountKind === 'flat'}
                 onClick={() => setDiscountKind('flat')}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold border ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                   discountKind === 'flat' ? 'border-[#0052CC] bg-[#0052CC]/5 text-[#0052CC]' : 'border-zinc-200 text-zinc-500'
                 }`}
               >
-                <DollarSign size={14} />$
+                <DollarSign size={14} aria-hidden="true" />$
               </button>
             </div>
             <input

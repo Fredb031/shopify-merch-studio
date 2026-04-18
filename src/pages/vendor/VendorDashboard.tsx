@@ -37,9 +37,9 @@ export default function VendorDashboard() {
         </div>
         <Link
           to="/vendor/quotes/new"
-          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md"
+          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
-          <Plus size={16} />
+          <Plus size={16} aria-hidden="true" />
           Nouvelle soumission
         </Link>
       </header>
@@ -55,7 +55,11 @@ export default function VendorDashboard() {
         <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold">Soumissions récentes</h2>
-            <Link to="/vendor/quotes" className="text-xs font-semibold text-[#0052CC] hover:underline">
+            <Link
+              to="/vendor/quotes"
+              aria-label="Voir toutes les soumissions"
+              className="text-xs font-semibold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            >
               Voir tout →
             </Link>
           </div>
@@ -64,12 +68,12 @@ export default function VendorDashboard() {
               <Link
                 key={q.id}
                 to={`/quote/${q.id}`}
-                className="py-3 flex items-center gap-4 hover:bg-zinc-50 -mx-3 px-3 rounded-lg transition-colors"
+                className="py-3 flex items-center gap-4 hover:bg-zinc-50 -mx-3 px-3 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
               >
                 <div className="flex-1">
                   <div className="font-semibold text-sm">{q.client}</div>
                   <div className="text-xs text-zinc-500 flex items-center gap-1.5 mt-0.5">
-                    <Clock size={10} />
+                    <Clock size={10} aria-hidden="true" />
                     {q.age}
                   </div>
                 </div>
@@ -97,13 +101,13 @@ export default function VendorDashboard() {
           <div className="bg-white border border-zinc-200 rounded-2xl p-5">
             <h2 className="font-bold text-sm mb-3">Actions rapides</h2>
             <div className="space-y-2">
-              <Link to="/vendor/quotes/new" className="block text-sm font-semibold text-[#0052CC] hover:underline">
+              <Link to="/vendor/quotes/new" className="block text-sm font-semibold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded">
                 → Créer une nouvelle soumission
               </Link>
-              <Link to="/vendor/quotes?status=draft" className="block text-sm font-semibold text-[#0052CC] hover:underline">
+              <Link to="/vendor/quotes?status=draft" className="block text-sm font-semibold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded">
                 → Finir mes brouillons (2)
               </Link>
-              <Link to="/vendor/quotes?status=expired" className="block text-sm font-semibold text-[#0052CC] hover:underline">
+              <Link to="/vendor/quotes?status=expired" className="block text-sm font-semibold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded">
                 → Relancer les soumissions expirées
               </Link>
             </div>
