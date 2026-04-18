@@ -52,10 +52,7 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
   }[variant];
 
   return (
-    <span
-      className={`inline-flex items-center font-bold uppercase tracking-wider rounded-full ${sizeCls} ${variantCls} ${className}`}
-      aria-label={label}
-    >
+    <span className={`inline-flex items-center font-bold uppercase tracking-wider rounded-full ${sizeCls} ${variantCls} ${className}`}>
       <Zap size={iconSize} strokeWidth={2.5} className="flex-shrink-0" aria-hidden="true" />
       {label}
     </span>
