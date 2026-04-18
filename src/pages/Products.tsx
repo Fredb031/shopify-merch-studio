@@ -98,20 +98,23 @@ export default function Products() {
 
               {/* Desktop search */}
               <div className="relative hidden md:flex items-center mt-2">
-                <Search className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
+                <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
                 <input
-                  type="text"
+                  type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={lang === 'en' ? 'Search products…' : 'Rechercher…'}
+                  aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
                   className="pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all w-52"
                 />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 text-primary-foreground/60 hover:text-primary-foreground"
+                    aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
+                    className="absolute right-2.5 text-primary-foreground/60 hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -119,18 +122,21 @@ export default function Products() {
 
             {/* Mobile search */}
             <div className="relative flex md:hidden items-center mb-4">
-              <Search className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
+              <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
               <input
-                type="text"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={lang === 'en' ? 'Search products…' : 'Rechercher…'}
+                aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
                 className="w-full pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all"
               />
               {searchQuery && (
                 <button
+                  type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 text-primary-foreground/60 hover:text-primary-foreground"
+                  aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
+                  className="absolute right-2.5 text-primary-foreground/60 hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

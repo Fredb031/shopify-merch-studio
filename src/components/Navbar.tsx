@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
@@ -16,11 +16,20 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const [internalLoginOpen, setInternalLoginOpen] = useState(false);
   const openLogin = onOpenLogin ?? (() => setInternalLoginOpen(true));
   const itemCount = useCartStore((s) => s.getItemCount());
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the user menu on Escape so keyboard users can dismiss it
+  // without having to click outside.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
 
   const dashboardPath = user?.role === 'admin' ? '/admin' : user?.role === 'vendor' ? '/vendor' : null;
 
@@ -78,19 +87,23 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                     <Link
                       to={dashboardPath}
                       onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors"
+                      role="menuitem"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors focus:outline-none focus-visible:bg-secondary"
                     >
-                      <LayoutDashboard size={15} />
-                      {user.role === 'admin' ? 'Tableau de bord admin' : 'Tableau de bord vendeur'}
+                      <LayoutDashboard size={15} aria-hidden="true" />
+                      {lang === 'en'
+                        ? (user.role === 'admin' ? 'Admin dashboard' : 'Vendor dashboard')
+                        : (user.role === 'admin' ? 'Tableau de bord admin' : 'Tableau de bord vendeur')}
                     </Link>
                   )}
                   <Link
                     to="/account"
                     onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors"
+                    role="menuitem"
+                    className="flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors focus:outline-none focus-visible:bg-secondary"
                   >
-                    <User size={15} />
-                    Mon compte
+                    <User size={15} aria-hidden="true" />
+                    {lang === 'en' ? 'My account' : 'Mon compte'}
                   </Link>
                   <button
                     type="button"
@@ -99,10 +112,11 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                       setMenuOpen(false);
                       navigate('/');
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors border-none bg-transparent cursor-pointer text-left text-destructive"
+                    role="menuitem"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-secondary transition-colors border-none bg-transparent cursor-pointer text-left text-destructive focus:outline-none focus-visible:bg-destructive/10"
                   >
-                    <LogOut size={15} />
-                    Déconnexion
+                    <LogOut size={15} aria-hidden="true" />
+                    {lang === 'en' ? 'Sign out' : 'Déconnexion'}
                   </button>
                 </div>
               </>
