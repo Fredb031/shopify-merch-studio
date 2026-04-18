@@ -199,9 +199,9 @@ export default function ProductDetail() {
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
         <Link
           to="/products"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
         </Link>
 
@@ -363,10 +363,13 @@ export default function ProductDetail() {
                 </span>
               )}
               <button
+                type="button"
                 onClick={() => setSizeGuideOpen(true)}
-                className="inline-flex items-center gap-1 text-primary hover:underline font-bold"
+                aria-haspopup="dialog"
+                aria-expanded={sizeGuideOpen}
+                className="inline-flex items-center gap-1 text-primary hover:underline font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
               >
-                <Ruler size={11} />
+                <Ruler size={11} aria-hidden="true" />
                 {lang === 'en' ? 'Size guide' : 'Guide des tailles'}
               </button>
               <span className="text-muted-foreground">
@@ -408,7 +411,7 @@ export default function ProductDetail() {
                          when Shopify's list is incomplete). Shopify's
                          values are appended for anything extra. Only
                          colours with a real drive image are shown. */
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
                         {(() => {
                           const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                           const localNames = localProduct.colors
@@ -434,8 +437,10 @@ export default function ProductDetail() {
                             return (
                               <button
                                 key={value}
+                                type="button"
+                                role="radio"
+                                aria-checked={isSelected}
                                 onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }))}
-                                aria-pressed={isSelected}
                                 className={`relative w-11 h-11 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                   isSelected
                                     ? 'ring-2 ring-primary ring-offset-2 scale-110'
@@ -457,20 +462,26 @@ export default function ProductDetail() {
                       </div>
                     ) : (
                       /* Size + others: text pills */
-                      <div className="flex flex-wrap gap-2">
-                        {option.values.map((value: string) => (
-                          <button
-                            key={value}
-                            onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
-                            className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all ${
-                              currentOptions[option.name] === value
-                                ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
-                                : 'bg-background text-foreground border-border hover:border-primary'
-                            }`}
-                          >
-                            {value}
-                          </button>
-                        ))}
+                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
+                        {option.values.map((value: string) => {
+                          const isSel = currentOptions[option.name] === value;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              role="radio"
+                              aria-checked={isSel}
+                              onClick={() => setSelectedOptions(prev => ({ ...prev, [option.name]: value }))}
+                              className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                                isSel
+                                  ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
+                                  : 'bg-background text-foreground border-border hover:border-primary'
+                              }`}
+                            >
+                              {value}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
