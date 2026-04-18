@@ -3,7 +3,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
-import { findProductByHandle } from '@/data/products';
+import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
@@ -118,7 +118,9 @@ export default function Products() {
                   )}
                 </h1>
                 <p className="text-[13px] text-primary-foreground/60 mb-4">
-                  {lang === 'en' ? '22 customizable products · No minimum order' : '22 produits personnalisables · Aucun minimum'}
+                  {lang === 'en'
+                    ? `${PRODUCTS.length} customizable products · No minimum order`
+                    : `${PRODUCTS.length} produits personnalisables · Aucun minimum`}
                 </p>
               </div>
 
