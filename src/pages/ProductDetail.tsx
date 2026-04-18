@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { useState } from 'react';
 import { findProductByHandle, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
+import { getDescription } from '@/data/productDescriptions';
+import { categoryLabel } from '@/lib/productLabels';
+import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { useLang } from '@/lib/langContext';
 import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 
@@ -315,29 +318,50 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            {product.description && (
-              <div className="pt-3 border-t border-border">
-                <h3 className="font-bold mb-2 text-sm text-foreground">Description</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{product.description}</p>
-              </div>
-            )}
+            {localProduct && (() => {
+              const desc = getDescription(localProduct.category, lang);
+              return (
+                <>
+                  <div className="pt-3 border-t border-border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-[#0052CC] uppercase tracking-wider">
+                        {categoryLabel(localProduct.category, lang)}
+                      </span>
+                      <DeliveryBadge size="sm" variant="inline" />
+                    </div>
+                    <p className="text-base font-bold text-foreground leading-snug mb-3">
+                      {desc.tagline}
+                    </p>
+                    {desc.paragraphs.map((p, i) => (
+                      <p key={i} className="text-muted-foreground text-sm leading-relaxed mb-2">
+                        {p}
+                      </p>
+                    ))}
+                  </div>
 
-            {/* Product features from local data */}
-            {localProduct?.features && localProduct.features.length > 0 && (
-              <div className="pt-3 border-t border-border">
-                <h3 className="font-bold mb-2.5 text-sm text-foreground">
-                  {lang === 'en' ? 'Features' : 'Caractéristiques'}
-                </h3>
-                <ul className="space-y-1.5">
-                  {localProduct.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                      <Check className="w-3.5 h-3.5 text-green-600 mt-0.5 flex-shrink-0" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                  <div className="pt-3 border-t border-border">
+                    <h3 className="font-bold mb-2.5 text-sm text-foreground">
+                      {lang === 'en' ? 'Features' : 'Caractéristiques'}
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {desc.features.map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                          <Check className="w-3.5 h-3.5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="pt-3 border-t border-border bg-secondary/40 -mx-4 md:mx-0 px-4 md:px-4 py-3 md:rounded-xl">
+                    <div className="text-[11px] font-bold text-[#0052CC] uppercase tracking-wider mb-1">
+                      {lang === 'en' ? 'Best for' : 'Idéal pour'}
+                    </div>
+                    <p className="text-sm text-foreground leading-relaxed">{desc.useCase}</p>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
