@@ -466,7 +466,7 @@ export default function Index() {
           </p>
           <Link
             to="/products"
-            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block"
+            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
           >
             {t('heroCta')}
