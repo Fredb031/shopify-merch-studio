@@ -58,12 +58,22 @@ async function fetchProfile(userId: string) {
   return data as { id: string; email: string; full_name: string | null; role: UserRole; title: string | null };
 }
 
+// Emails that ALWAYS resolve to the president role, regardless of what
+// the profiles table says. This is the owner's failsafe: even if the
+// profile row is stale (e.g. mistakenly set to 'client' by an admin
+// action), Frederick stays in control of the site.
+const PRESIDENT_EMAILS = new Set<string>([
+  'contact@fredbouchard.ca',
+]);
+
 function buildUser(authUser: { id: string; email?: string }, profile: Awaited<ReturnType<typeof fetchProfile>>): AuthUser | null {
   const email = (profile?.email ?? authUser.email ?? '').toLowerCase();
   if (!email) return null;
   const name = profile?.full_name ?? email.split('@')[0];
-  // Hardcoded president fallback for the owner email if profile row hasn't been created yet
-  const role: UserRole = profile?.role ?? (email === 'contact@fredbouchard.ca' ? 'president' : 'client');
+  // Owner fallback: PRESIDENT_EMAILS beats whatever the profile row says.
+  const role: UserRole = PRESIDENT_EMAILS.has(email)
+    ? 'president'
+    : (profile?.role ?? 'client');
   const title = profile?.title ?? (role === 'president' ? 'Président' : undefined);
   return {
     id: authUser.id,
@@ -75,6 +85,35 @@ function buildUser(authUser: { id: string; email?: string }, profile: Awaited<Re
   };
 }
 
+/** Best-effort upsert of the profile row after sign-in. Guarantees that
+ * the owner's row exists and stays role='president' even if something
+ * wiped it. RLS allows users to edit their own row (id = auth.uid()). */
+async function syncOwnerProfile(authUser: { id: string; email?: string }, fullName?: string) {
+  const email = (authUser.email ?? '').toLowerCase();
+  if (!email) return;
+  const isOwner = PRESIDENT_EMAILS.has(email);
+  try {
+    // Build the row: only force role when this is a known owner email,
+    // otherwise we leave role untouched (don't overwrite legitimate
+    // manual role assignments by admins).
+    const row: Record<string, unknown> = {
+      id: authUser.id,
+      email,
+      active: true,
+    };
+    if (fullName) row.full_name = fullName;
+    if (isOwner) {
+      row.role = 'president';
+      row.title = 'Président';
+    }
+    await supabase.from('profiles').upsert(row, { onConflict: 'id' });
+  } catch (e) {
+    // Non-fatal: the user can still sign in; the email fallback in
+    // buildUser covers the owner case.
+    console.warn('[authStore] Could not upsert profile row on sign-in:', e);
+  }
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   error: null,
@@ -83,6 +122,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   hydrateFromSession: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
+      // Keep the owner's profile row consistent every time we rehydrate
+      // (first load, returning visit) — not just on manual sign-in.
+      await syncOwnerProfile(session.user);
       const profile = await fetchProfile(session.user.id);
       const user = buildUser(session.user, profile);
       set({ user, loading: false });
@@ -101,6 +143,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: friendlyError(error?.message ?? 'Connexion échouée') });
       return { ok: false };
     }
+    // Ensure the profile row exists + owner role is correct. Runs
+    // BEFORE fetchProfile so the subsequent read sees the corrected
+    // state instead of stale data.
+    await syncOwnerProfile(data.user);
     const profile = await fetchProfile(data.user.id);
     const user = buildUser(data.user, profile);
     set({ user, error: null });
@@ -109,7 +155,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   signUp: async (email, password, name) => {
     set({ error: null });
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim().toLowerCase(),
       password,
       options: {
@@ -121,6 +167,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: friendlyError(error.message) });
       return { ok: false };
     }
+    // Seed the profile row right away when we have a user. If the
+    // project requires email confirmation, data.user is still returned
+    // but the session isn't live yet — syncOwnerProfile writes are
+    // idempotent so it's fine.
+    if (data?.user) await syncOwnerProfile(data.user, name.trim());
     return { ok: true };
   },
 
@@ -169,6 +220,7 @@ if (typeof window !== 'undefined') {
   useAuthStore.getState().hydrateFromSession();
   supabase.auth.onAuthStateChange(async (_event, session) => {
     if (session?.user) {
+      await syncOwnerProfile(session.user);
       const profile = await fetchProfile(session.user.id);
       const user = buildUser(session.user, profile);
       useAuthStore.setState({ user });
