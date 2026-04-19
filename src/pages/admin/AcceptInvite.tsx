@@ -126,21 +126,24 @@ export default function AcceptInvite() {
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-2xl p-12 shadow-2xl text-center">
-            <Loader2 size={28} className="animate-spin text-[#0052CC] mx-auto" />
+          <div className="bg-white rounded-2xl p-12 shadow-2xl text-center" role="status" aria-label="Chargement de l'invitation">
+            <Loader2 size={28} className="animate-spin text-[#0052CC] mx-auto" aria-hidden="true" />
           </div>
         ) : error && !invite ? (
-          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center">
-            <AlertCircle size={28} className="text-amber-500 mx-auto mb-3" />
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center" role="alert">
+            <AlertCircle size={28} className="text-amber-500 mx-auto mb-3" aria-hidden="true" />
             <h2 className="text-lg font-extrabold mb-2">{error}</h2>
-            <Link to="/admin/login" className="text-sm font-bold text-[#0052CC] hover:underline">
+            <Link
+              to="/admin/login"
+              className="text-sm font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            >
               Retour à la connexion
             </Link>
           </div>
         ) : done ? (
-          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center">
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center" role="status">
             <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={28} strokeWidth={2.5} />
+              <CheckCircle2 size={28} strokeWidth={2.5} aria-hidden="true" />
             </div>
             <h2 className="text-lg font-extrabold mb-2">Compte activé</h2>
             <p className="text-sm text-zinc-600">Redirection vers ton tableau de bord…</p>
@@ -156,8 +159,8 @@ export default function AcceptInvite() {
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
-                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+              <div role="alert" className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
@@ -165,7 +168,7 @@ export default function AcceptInvite() {
             <label className="block">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Mot de passe (min 8)</span>
               <div className="mt-1.5 relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
                   type="password"
                   value={password}
@@ -181,7 +184,7 @@ export default function AcceptInvite() {
             <label className="block">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Confirmer</span>
               <div className="mt-1.5 relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
                   type="password"
                   value={confirm}
@@ -197,7 +200,7 @@ export default function AcceptInvite() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 hover:shadow-xl transition-all"
+              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
               {submitting ? 'Activation…' : 'Activer mon compte'}
             </button>
