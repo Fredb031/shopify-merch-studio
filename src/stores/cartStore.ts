@@ -92,17 +92,23 @@ async function addLineToShopifyCart(cartId: string, item: CartItem): Promise<{ s
     cartId,
     lines: [{ quantity: item.quantity, merchandiseId: item.variantId }],
   });
-  const userErrors = data?.data?.cartLinesAdd?.userErrors || [];
+  // storefrontApiRequest returns undefined on HTTP 402 (store plan
+  // lapsed). Without this guard, userErrors=[], the empty-check
+  // passes, and we committed a local cart line for a Shopify cart
+  // that was never actually updated.
+  if (!data?.data?.cartLinesAdd) return { success: false };
+  const userErrors = data.data.cartLinesAdd.userErrors || [];
   if (isCartNotFoundError(userErrors)) return { success: false, cartNotFound: true };
   if (userErrors.length > 0) return { success: false };
-  const lines = data?.data?.cartLinesAdd?.cart?.lines?.edges || [];
+  const lines = data.data.cartLinesAdd.cart?.lines?.edges || [];
   const newLine = lines.find((l: { node: { id: string; merchandise: { id: string } } }) => l.node.merchandise.id === item.variantId);
   return { success: true, lineId: newLine?.node?.id };
 }
 
 async function updateShopifyCartLine(cartId: string, lineId: string, quantity: number): Promise<{ success: boolean; cartNotFound?: boolean }> {
   const data = await storefrontApiRequest(CART_LINES_UPDATE_MUTATION, { cartId, lines: [{ id: lineId, quantity }] });
-  const userErrors = data?.data?.cartLinesUpdate?.userErrors || [];
+  if (!data?.data?.cartLinesUpdate) return { success: false };
+  const userErrors = data.data.cartLinesUpdate.userErrors || [];
   if (isCartNotFoundError(userErrors)) return { success: false, cartNotFound: true };
   if (userErrors.length > 0) return { success: false };
   return { success: true };
@@ -110,7 +116,8 @@ async function updateShopifyCartLine(cartId: string, lineId: string, quantity: n
 
 async function removeLineFromShopifyCart(cartId: string, lineId: string): Promise<{ success: boolean; cartNotFound?: boolean }> {
   const data = await storefrontApiRequest(CART_LINES_REMOVE_MUTATION, { cartId, lineIds: [lineId] });
-  const userErrors = data?.data?.cartLinesRemove?.userErrors || [];
+  if (!data?.data?.cartLinesRemove) return { success: false };
+  const userErrors = data.data.cartLinesRemove.userErrors || [];
   if (isCartNotFoundError(userErrors)) return { success: false, cartNotFound: true };
   if (userErrors.length > 0) return { success: false };
   return { success: true };
