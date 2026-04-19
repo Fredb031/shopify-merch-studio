@@ -296,7 +296,20 @@ export default function AdminOrders() {
                   <tr
                     key={o.id}
                     onClick={() => setSelected(o)}
-                    className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors"
+                    onKeyDown={e => {
+                      // Keyboard activation for the row — same fix as
+                      // AdminCustomers. cursor:pointer + onClick was a
+                      // mouse-only contract, leaving keyboard / SR users
+                      // unable to open the order detail.
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelected(o);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Voir les détails de la commande ${o.name}`}
+                    className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors focus:outline-none focus-visible:bg-zinc-50 focus-visible:shadow-[inset_0_0_0_2px_#0052CC]"
                   >
                     <td className="px-4 py-3 font-bold">{o.name}</td>
                     <td className="px-4 py-3">

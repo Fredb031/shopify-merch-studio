@@ -176,7 +176,20 @@ export default function AdminCustomers() {
                   <tr
                     key={c.id}
                     onClick={() => setSelected(c)}
-                    className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer"
+                    onKeyDown={e => {
+                      // Make the row keyboard-activatable. The visual cursor:pointer
+                      // and onClick suggested it was a "link" but keyboard / screen-
+                      // reader users had no way to open the customer detail without
+                      // a mouse — Tab landed on nothing, Enter did nothing.
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setSelected(c);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Voir les détails de ${fullName(c)}`}
+                    className="border-t border-zinc-100 hover:bg-zinc-50 cursor-pointer focus:outline-none focus-visible:bg-zinc-50 focus-visible:shadow-[inset_0_0_0_2px_#0052CC]"
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
