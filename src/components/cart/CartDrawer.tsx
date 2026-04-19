@@ -190,7 +190,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         {/* Header */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShoppingBag size={16} className="text-primary" />
+            <ShoppingBag size={16} className="text-primary" aria-hidden="true" />
             <h2 id="cart-drawer-title" className="text-base font-extrabold text-foreground">{t('monPanier')}</h2>
             {cart.getItemCount() > 0 && (
               <span className="bg-primary text-primary-foreground text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
@@ -217,7 +217,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <div className="relative w-24 h-24 mb-5">
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-xl" aria-hidden="true" />
                   <div className="relative w-24 h-24 rounded-full bg-secondary border-2 border-border flex items-center justify-center">
-                    <ShoppingBag size={32} className="text-[#0052CC]" strokeWidth={1.5} />
+                    <ShoppingBag size={32} className="text-[#0052CC]" strokeWidth={1.5} aria-hidden="true" />
                   </div>
                 </div>
                 <h3 className="text-lg font-extrabold text-foreground mb-1">{t('panierVide')}</h3>
@@ -305,7 +305,7 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               </div>
             ) : (
               <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
-                <Tag size={11} className="text-green-700" />
+                <Tag size={11} className="text-green-700" aria-hidden="true" />
                 <span className="text-xs font-bold text-green-700">
                   {lang === 'en' ? `Code ${cart.discountCode} applied` : `Code ${cart.discountCode} appliqué`}
                 </span>

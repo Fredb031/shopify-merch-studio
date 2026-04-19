@@ -157,7 +157,10 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
 
   return (
     <div className="flex items-center gap-4 p-3 hover:bg-zinc-50 rounded-xl transition-colors">
-      <div className="w-10 h-10 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+      <div
+        className="w-10 h-10 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center text-xs font-bold flex-shrink-0"
+        aria-hidden="true"
+      >
         {name[0]?.toUpperCase() || '?'}
       </div>
       <div className="flex-1 min-w-0">
