@@ -60,7 +60,17 @@ export function AIChat() {
   const send = async (text: string) => {
     const trimmed = text.trim();
     if (!trimmed || thinking) return;
-    setMessages(m => [...m, { role: 'user', text: trimmed, ts: Date.now() }]);
+    // Cap the transcript at 200 messages so a user who hammers the
+    // bot in one session doesn't grow the in-memory list unbounded.
+    // The DOM can handle it for a while but the scroll animation
+    // chugs badly past ~500 nodes on lower-end phones, and the
+    // knowledge-base answers are static so there's no research value
+    // in keeping ancient history.
+    const MAX_MESSAGES = 200;
+    setMessages(m => {
+      const next = [...m, { role: 'user' as const, text: trimmed, ts: Date.now() }];
+      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+    });
     setInput('');
     setThinking(true);
     setView('chat');
@@ -69,7 +79,10 @@ export function AIChat() {
       await new Promise(r => setTimeout(r, 350 + Math.random() * 400));
       const { answerQuestion } = await loadKb();
       const { answer } = answerQuestion(trimmed, lang as Lang);
-      setMessages(m => [...m, { role: 'assistant', text: answer, ts: Date.now() }]);
+      setMessages(m => {
+        const next = [...m, { role: 'assistant' as const, text: answer, ts: Date.now() }];
+        return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+      });
     } catch (err) {
       // If the KB import fails (chunk 404, offline), the user was
       // stuck on an eternal "typing…" spinner with no reply. Surface
@@ -78,7 +91,10 @@ export function AIChat() {
       const fallback = lang === 'fr'
         ? 'Désolé, je n\u2019arrive pas à charger mes réponses pour l\u2019instant. Appelle-nous au 367-380-4808 ou écris à info@visionaffichage.com.'
         : 'Sorry, I can\u2019t load my answers right now. Call us at 367-380-4808 or email info@visionaffichage.com.';
-      setMessages(m => [...m, { role: 'assistant', text: fallback, ts: Date.now() }]);
+      setMessages(m => {
+        const next = [...m, { role: 'assistant' as const, text: fallback, ts: Date.now() }];
+        return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+      });
     } finally {
       setThinking(false);
     }
