@@ -1065,7 +1065,7 @@ export function ProductCanvas({
                   ? `${sideLabel} (${lang === 'en' ? 'has artwork' : 'avec art'})`
                   : sideLabel}
                 onClick={() => onViewChange(v)}
-                className={`relative text-[10px] font-extrabold px-2.5 py-1 rounded-full transition-all ${
+                className={`relative text-[10px] font-extrabold px-2.5 py-1 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                   activeView === v
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground'
@@ -1135,9 +1135,9 @@ export function ProductCanvas({
                 onClick={fn}
                 title={label}
                 aria-label={label}
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               >
-                <Icon size={14} />
+                <Icon size={14} aria-hidden="true" />
               </button>
             ))}
           </div>
@@ -1154,9 +1154,9 @@ export function ProductCanvas({
                 onClick={fn}
                 title={label}
                 aria-label={label}
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all"
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
               >
-                <Icon size={14} />
+                <Icon size={14} aria-hidden="true" />
               </button>
             ))}
           </div>
@@ -1166,9 +1166,9 @@ export function ProductCanvas({
             onClick={removeLogo}
             title={lang === 'en' ? 'Remove logo' : 'Supprimer le logo'}
             aria-label={lang === 'en' ? 'Remove logo' : 'Supprimer le logo'}
-            className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-background transition-all"
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-background transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
           >
-            <Trash2 size={14} />
+            <Trash2 size={14} aria-hidden="true" />
           </button>
         </div>
       )}
@@ -1201,10 +1201,10 @@ export function ProductCanvas({
               <button
                 type="button"
                 onClick={() => removeTextAsset(a.id)}
-                className="w-6 h-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors"
+                className="w-6 h-6 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
                 aria-label={lang === 'en' ? `Remove text ${a.text}` : `Retirer le texte ${a.text}`}
               >
-                <X size={12} />
+                <X size={12} aria-hidden="true" />
               </button>
             </div>
           ))}
@@ -1217,7 +1217,7 @@ export function ProductCanvas({
         <div className="space-y-1.5">
           <div className="flex gap-1.5">
             <div className="flex-1 flex items-center gap-1.5 bg-secondary rounded-xl px-2.5 py-1.5 border border-border">
-              <Type size={13} className="text-muted-foreground flex-shrink-0" />
+              <Type size={13} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
               <input
                 type="text"
                 value={textInput}
@@ -1238,9 +1238,11 @@ export function ProductCanvas({
               </span>
             </div>
             <button
+              type="button"
               onClick={() => { if (textInput.trim()) { addText(textInput, textColor, textFont); setTextInput(''); } }}
               disabled={!textInput.trim()}
-              className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-xl disabled:opacity-30 hover:opacity-90 transition-all"
+              aria-label={lang === 'en' ? 'Add text to garment' : 'Ajouter le texte au vêtement'}
+              className="px-3 py-1.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-xl disabled:opacity-30 hover:opacity-90 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
             >
               {lang === 'en' ? 'Add' : 'Ajouter'}
             </button>
@@ -1258,12 +1260,13 @@ export function ProductCanvas({
                   <button
                     key={f.id}
                     type="button"
+                    role="radio"
+                    aria-checked={textFont === f.font}
                     onClick={() => setTextFont(f.font)}
-                    className={`w-7 h-7 rounded-md border text-xs font-bold transition-all ${
+                    className={`w-7 h-7 rounded-md border text-xs font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                       textFont === f.font ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border hover:border-primary'
                     }`}
                     style={f.style}
-                    aria-pressed={textFont === f.font}
                     aria-label={`${lang === 'en' ? 'Font' : 'Police'}: ${f.readable}`}
                     title={f.readable}
                   >
@@ -1285,12 +1288,13 @@ export function ProductCanvas({
                     <button
                       key={c.hex}
                       type="button"
+                      role="radio"
+                      aria-checked={textColor === c.hex}
                       onClick={() => setTextColor(c.hex)}
-                      className={`w-5 h-5 rounded-full border-2 transition-all ${
+                      className={`w-5 h-5 rounded-full border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                         textColor === c.hex ? 'ring-2 ring-primary ring-offset-1 scale-110' : 'border-border hover:scale-105'
                       }`}
                       style={{ background: c.hex, borderColor: c.hex === '#FFFFFF' ? '#cbd5e1' : c.hex }}
-                      aria-pressed={textColor === c.hex}
                       aria-label={label}
                       title={label}
                     />
