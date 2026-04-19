@@ -857,21 +857,38 @@ export function ProductCanvas({
   }, [emit, activeView]);
 
   // ── Toolbar actions ───────────────────────────────────────────────────────
+  // Center-origin aware: with originX='center', fabric's `left` is the
+  // center of the object — so snap-left/right has to target the VISIBLE
+  // edge by shifting by half the scaled width. Without this compensation
+  // (the pre-iter-153 math), every snap button was off by half a logo.
   const snapLeft = () => {
     if (!logoObj.current || !fc.current) return;
-    logoObj.current.set({ left: (fc.current.width as number) * 0.07 });
-    fc.current.renderAll(); emit(logoObj.current, 'manual');
+    const obj = logoObj.current;
+    const W = fc.current.width as number;
+    const halfW = ((obj.width ?? 0) * (obj.scaleX ?? 1)) / 2;
+    const originX = (obj as unknown as { originX?: string }).originX;
+    obj.set({ left: originX === 'center' ? W * 0.07 + halfW : W * 0.07 });
+    fc.current.renderAll(); emit(obj, 'manual');
   };
   const snapCenter = () => {
     if (!logoObj.current || !fc.current) return;
     const obj = logoObj.current;
-    obj.set({ left: ((fc.current.width as number) - (obj.width ?? 0) * (obj.scaleX ?? 1)) / 2 });
+    const W = fc.current.width as number;
+    const originX = (obj as unknown as { originX?: string }).originX;
+    obj.set({
+      left: originX === 'center'
+        ? W / 2
+        : (W - (obj.width ?? 0) * (obj.scaleX ?? 1)) / 2,
+    });
     fc.current.renderAll(); emit(obj, zoneId);
   };
   const snapRight = () => {
     if (!logoObj.current || !fc.current) return;
     const obj = logoObj.current;
-    obj.set({ left: (fc.current.width as number) * 0.93 - (obj.width ?? 0) * (obj.scaleX ?? 1) });
+    const W = fc.current.width as number;
+    const halfW = ((obj.width ?? 0) * (obj.scaleX ?? 1)) / 2;
+    const originX = (obj as unknown as { originX?: string }).originX;
+    obj.set({ left: originX === 'center' ? W * 0.93 - halfW : W * 0.93 - halfW * 2 });
     fc.current.renderAll(); emit(obj, 'manual');
   };
   const rotate = () => {
