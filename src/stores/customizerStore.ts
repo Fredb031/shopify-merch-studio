@@ -95,21 +95,37 @@ export const useCustomizerStore = create<CustomizerStore>()(
       // object URL it backs is revoked on unload anyway. We keep the
       // uploaded processedUrl (Supabase) + previewUrl so a reload still
       // shows the placed logo.
-      partialize: (state) => ({
-        productId: state.productId,
-        colorId: state.colorId,
-        logoPlacement: state.logoPlacement
-          ? { ...state.logoPlacement, originalFile: undefined }
-          : null,
-        logoPlacementBack: state.logoPlacementBack
-          ? { ...state.logoPlacementBack, originalFile: undefined }
-          : null,
-        placementSides: state.placementSides,
-        textAssets: state.textAssets,
-        sizeQuantities: state.sizeQuantities,
-        activeView: state.activeView,
-        step: state.step,
-      }),
+      //
+      // Blob URLs are only valid for the session that created them. If
+      // Supabase upload failed and we fell back to a blob previewUrl,
+      // persisting it produces a DEAD reference after reload — the
+      // canvas + cart render a broken image. Drop blob: previewUrls at
+      // persist time and use processedUrl (if it isn't also blob:) as
+      // the recovery URL so hydrated state renders something real.
+      partialize: (state) => {
+        const safe = (p: LogoPlacement | null) => {
+          if (!p) return null;
+          const clean = { ...p, originalFile: undefined } as LogoPlacement;
+          const previewIsBlob = clean.previewUrl?.startsWith('blob:');
+          const processedIsBlob = clean.processedUrl?.startsWith('blob:');
+          if (previewIsBlob) {
+            clean.previewUrl = processedIsBlob ? undefined : clean.processedUrl;
+          }
+          if (processedIsBlob) clean.processedUrl = clean.previewUrl;
+          return clean;
+        };
+        return {
+          productId: state.productId,
+          colorId: state.colorId,
+          logoPlacement: safe(state.logoPlacement),
+          logoPlacementBack: safe(state.logoPlacementBack),
+          placementSides: state.placementSides,
+          textAssets: state.textAssets,
+          sizeQuantities: state.sizeQuantities,
+          activeView: state.activeView,
+          step: state.step,
+        };
+      },
     },
   ),
 );
