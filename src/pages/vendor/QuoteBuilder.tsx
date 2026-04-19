@@ -137,19 +137,28 @@ export default function QuoteBuilder() {
   const handleSendToClient = () => {
     if (!canSend) return;
     const q = persistQuote('sent');
-    const lines = items.map(it =>
+    // Truncate the line list if the client ordered so many items that
+    // the full mailto URL would blow the browser limit (~2000 chars in
+    // IE/some mail clients, ~8000 in modern Chrome). The quote link is
+    // the authoritative source anyway — the email is just a preview.
+    const quoteUrl = `https://visionaffichage.com/quote/${q.id}`;
+    const MAX_LINES_IN_EMAIL = 12;
+    const truncated = items.length > MAX_LINES_IN_EMAIL;
+    const shown = truncated ? items.slice(0, MAX_LINES_IN_EMAIL) : items;
+    const lines = shown.map(it =>
       `• ${it.productName} (${it.color || '—'}, ${it.size}) × ${it.quantity} = ${(it.unitPrice * it.quantity).toFixed(2)} $${it.placementNote ? ` — Placement: ${it.placementNote}` : ''}`,
     ).join('\n');
     const subject = encodeURIComponent(`Ta soumission ${q.number} de Vision Affichage`);
     const body = encodeURIComponent(
       `Bonjour ${clientName || ''},\n\n` +
       `Voici ta soumission personnalisée :\n\n` +
-      `${lines}\n\n` +
+      `${lines}\n` +
+      (truncated ? `… et ${items.length - MAX_LINES_IN_EMAIL} autre${items.length - MAX_LINES_IN_EMAIL > 1 ? 's' : ''} article${items.length - MAX_LINES_IN_EMAIL > 1 ? 's' : ''} — détail complet sur la page Web.\n\n` : '\n') +
       `Sous-total : ${subtotal.toFixed(2)} $\n` +
       `${discountAmount > 0 ? `Rabais : -${discountAmount.toFixed(2)} $\n` : ''}` +
       `Taxes : ${tax.toFixed(2)} $\n` +
       `Total : ${total.toFixed(2)} $ CAD\n\n` +
-      `Pour accepter et payer : https://visionaffichage.com/quote/${q.id}\n\n` +
+      `Pour accepter et payer : ${quoteUrl}\n\n` +
       `Livraison en 5 jours ouvrables après confirmation.\n\n` +
       `— L'équipe Vision Affichage`,
     );
