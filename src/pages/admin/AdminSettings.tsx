@@ -1,8 +1,62 @@
+import { useEffect, useState } from 'react';
 import { Link2, Building2, CreditCard, Shield } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
+// localStorage key for the settings toggles. Persisting client-side only
+// since these are stub features pending real backend wiring — the keys
+// match what a future Supabase-backed sync would use.
+const SETTINGS_KEY = 'vision-admin-settings';
+
+interface SettingsState {
+  twoFactor: boolean;
+  newOrderEmail: boolean;
+  zapierWebhook: boolean;
+}
+
+const DEFAULT_SETTINGS: SettingsState = {
+  twoFactor: true,
+  newOrderEmail: true,
+  zapierWebhook: false,
+};
+
+function readSettings(): SettingsState {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return DEFAULT_SETTINGS;
+    // Coerce each field to a boolean — a devtools edit could land
+    // strings or null and break the strict aria-checked type.
+    return {
+      twoFactor: Boolean(parsed.twoFactor ?? DEFAULT_SETTINGS.twoFactor),
+      newOrderEmail: Boolean(parsed.newOrderEmail ?? DEFAULT_SETTINGS.newOrderEmail),
+      zapierWebhook: Boolean(parsed.zapierWebhook ?? DEFAULT_SETTINGS.zapierWebhook),
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
 export default function AdminSettings() {
   useDocumentTitle('Paramètres — Admin Vision Affichage');
+  const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
+
+  // Hydrate from localStorage on mount. Done in an effect rather than
+  // the useState initializer so the initial render matches SSR (we don't
+  // SSR today, but this stays consistent with the rest of the codebase).
+  useEffect(() => {
+    setSettings(readSettings());
+  }, []);
+
+  const toggle = (key: keyof SettingsState) => {
+    setSettings(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); }
+      catch { /* private mode — toggle still works in-memory */ }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-6 max-w-3xl">
       <header>
@@ -67,9 +121,9 @@ export default function AdminSettings() {
           <h2 className="font-bold">Sécurité</h2>
         </div>
         <div className="space-y-2 text-sm">
-          <Toggle label="Authentification à deux facteurs (2FA)" enabled />
-          <Toggle label="Notifications par courriel sur nouvelle commande" enabled />
-          <Toggle label="Webhook Zapier sur paiement reçu" enabled={false} />
+          <Toggle label="Authentification à deux facteurs (2FA)" enabled={settings.twoFactor} onToggle={() => toggle('twoFactor')} />
+          <Toggle label="Notifications par courriel sur nouvelle commande" enabled={settings.newOrderEmail} onToggle={() => toggle('newOrderEmail')} />
+          <Toggle label="Webhook Zapier sur paiement reçu" enabled={settings.zapierWebhook} onToggle={() => toggle('zapierWebhook')} />
         </div>
       </section>
     </div>
@@ -90,15 +144,20 @@ function Field({ label, defaultValue, placeholder, type = 'text' }: { label: str
   );
 }
 
-function Toggle({ label, enabled }: { label: string; enabled: boolean }) {
+function Toggle({ label, enabled, onToggle }: { label: string; enabled: boolean; onToggle: () => void }) {
+  // Build a stable id for the label association — avoid characters that
+  // would need escaping in CSS selectors (the toggles include '(2FA)'
+  // parens which are valid HTML but messy in querySelector strings).
+  const id = `toggle-${label.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
   return (
     <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
-      <span className="text-sm" id={`toggle-${label.replace(/\s+/g, '-')}`}>{label}</span>
+      <span className="text-sm" id={id}>{label}</span>
       <button
         type="button"
         role="switch"
         aria-checked={enabled}
-        aria-labelledby={`toggle-${label.replace(/\s+/g, '-')}`}
+        aria-labelledby={id}
+        onClick={onToggle}
         className={`relative inline-block w-9 h-5 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${enabled ? 'bg-[#0052CC]' : 'bg-zinc-300'}`}
       >
         <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} aria-hidden="true" />
