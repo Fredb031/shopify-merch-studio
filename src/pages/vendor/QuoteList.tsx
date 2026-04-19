@@ -44,6 +44,17 @@ const STATUS_COLOR: Record<Status, string> = {
   expired: 'bg-rose-50 text-rose-700',
 };
 
+const VALID_STATUSES: readonly Status[] = ['draft', 'sent', 'viewed', 'accepted', 'paid', 'expired'];
+function coerceStatus(raw: unknown): Status {
+  // Persisted quotes could carry a status from an older Status union
+  // ('pending', 'cancelled', etc), or a manual devtools edit. Without
+  // coercion the table indexed STATUS_COLOR/STATUS_LABEL by an unknown
+  // key and rendered `className={undefined}` + blank status cells.
+  return typeof raw === 'string' && (VALID_STATUSES as readonly string[]).includes(raw)
+    ? (raw as Status)
+    : 'draft';
+}
+
 export default function QuoteList() {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>('all');
@@ -87,7 +98,7 @@ export default function QuoteList() {
             items: Array.isArray(q.items) ? q.items.length : 0,
             total: typeof q.total === 'number' ? q.total : 0,
             discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
-            status: (q.status as Status) ?? 'draft',
+            status: coerceStatus(q.status),
             age,
           });
         } catch (e) {
