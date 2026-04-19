@@ -88,6 +88,13 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
                 loading={eager ? 'eager' : 'lazy'}
                 fetchPriority={eager ? 'high' : 'auto'}
                 decoding="async"
+                // Hide on load failure so the secondary-coloured
+                // aspect-ratio container shows through instead of the
+                // native broken-image glyph (tiny ⊘ icon in a gray box).
+                // A 404 on a Shopify CDN image or a yanked per-color
+                // Drive file used to render as that glyph across the
+                // whole grid — reads as "the site is broken".
+                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
               />
               {backImage && (
                 <img
@@ -100,6 +107,7 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
                   className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-105"
                   loading="lazy"
                   decoding="async"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
               )}
             </>

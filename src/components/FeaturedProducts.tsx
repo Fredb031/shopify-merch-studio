@@ -50,6 +50,7 @@ export function FeaturedProducts() {
                   loading={i < 2 ? 'eager' : 'lazy'}
                   fetchPriority={i === 0 ? 'high' : 'auto'}
                   decoding="async"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
                 <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#1B3A6B] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
                   <Star size={9} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />

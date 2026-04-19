@@ -67,6 +67,7 @@ export function CartRecommendations() {
                   className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   loading="lazy"
                   decoding="async"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
               )}
               <span className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#0052CC] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md">

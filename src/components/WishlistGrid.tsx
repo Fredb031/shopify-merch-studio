@@ -48,6 +48,7 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
                     className="w-full h-full object-cover transition-transform group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                   />
                 )}
               </div>
