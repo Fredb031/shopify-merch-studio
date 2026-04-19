@@ -70,10 +70,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       );
       return;
     }
+    if (mode === 'signup') {
+      if (password !== password2) {
+        useAuthStore.getState().setError(
+          lang === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas',
+        );
+        return;
+      }
+      if (password.length < 8) {
+        useAuthStore.getState().setError(
+          lang === 'en' ? 'Password too short (minimum 8 characters)' : 'Mot de passe trop court (minimum 8 caractères)',
+        );
+        return;
+      }
+    }
     setSubmitting(true);
     try {
       if (mode === 'signup') {
-        if (password !== password2) return;
         const res = await signUp(email, password, name);
         if (!res.ok) return;
         // Supabase signup with email confirmation returns ok=true but
