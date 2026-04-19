@@ -105,6 +105,21 @@ export default function AdminUsers() {
       toast.error('Tu ne peux pas retirer ton propre rôle Président.');
       return;
     }
+    // Last-admin guard — if downgrading the only remaining admin (who
+    // isn't a president) the team would have nobody able to manage the
+    // /admin surface. Block to prevent locking the org out of its own
+    // back office. President accounts always retain access so they
+    // count toward the safe-min as well.
+    const target = users.find(u => u.id === userId);
+    if (target && target.role === 'admin' && newRole !== 'admin') {
+      const remainingAdmins = users.filter(
+        u => u.id !== userId && (u.role === 'admin' || u.role === 'president') && u.active,
+      ).length;
+      if (remainingAdmins === 0) {
+        toast.error('Impossible : c\'est le dernier compte avec accès admin. Promote quelqu\'un d\'autre d\'abord.');
+        return;
+      }
+    }
     // Confirm any other self-demotion. An admin who clicks the wrong row
     // shouldn't silently lose their own access on a misclick — without
     // this, a Customer-row click immediately wiped their admin role and
