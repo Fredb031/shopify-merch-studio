@@ -216,15 +216,34 @@ export function colorNameToHex(name: string): string {
 }
 
 // ── Storefront API request ─────────────────────────────────────────────────
+// Hard timeout on Storefront calls. Without it a hung Shopify request
+// ties up the React Query inflight state indefinitely and the skeleton
+// spins forever. 15s is well above the normal ~300ms response time but
+// short enough to give users a useful error banner.
+const STOREFRONT_TIMEOUT_MS = 15_000;
+
 export async function storefrontApiRequest(query: string, variables: Record<string, unknown> = {}) {
-  const response = await fetch(SHOPIFY_STOREFRONT_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), STOREFRONT_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(SHOPIFY_STOREFRONT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_TOKEN,
+      },
+      body: JSON.stringify({ query, variables }),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if ((err as Error)?.name === 'AbortError') {
+      throw new Error(`Shopify Storefront request timed out after ${STOREFRONT_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  }
+  clearTimeout(timeoutId);
 
   if (response.status === 402) {
     // Read lang from localStorage since this isn't a React component

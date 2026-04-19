@@ -94,7 +94,9 @@ export function AIChat() {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        aria-label={lang === 'en' ? 'Open chat' : 'Ouvrir la conversation'}
+        aria-label={open
+          ? (lang === 'en' ? 'Close chat' : 'Fermer la conversation')
+          : (lang === 'en' ? 'Open chat' : 'Ouvrir la conversation')}
         aria-expanded={open}
         className="fixed right-4 z-[450] w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/30"
         // Float above the bottom nav (60 px) + iOS safe area + a bit
@@ -102,9 +104,12 @@ export function AIChat() {
         // that clashed with tall safe-area bezels on newer phones.
         style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)' }}
       >
-        {open ? <X size={20} /> : <MessageCircle size={22} />}
+        {open ? <X size={20} aria-hidden="true" /> : <MessageCircle size={22} aria-hidden="true" />}
         {!open && (
-          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-background animate-pulse" />
+          <span
+            className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-background animate-pulse"
+            aria-hidden="true"
+          />
         )}
       </button>
 
@@ -125,9 +130,9 @@ export function AIChat() {
                 type="button"
                 onClick={() => { setView('menu'); setActiveTopic(null); }}
                 aria-label={lang === 'en' ? 'Back to topics' : 'Retour aux sujets'}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0052CC]"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={16} aria-hidden="true" />
               </button>
             )}
             <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
@@ -202,7 +207,7 @@ export function AIChat() {
             )}
 
             {view === 'chat' && (
-              <div className="space-y-3">
+              <div className="space-y-3" role="log" aria-live="polite" aria-label={lang === 'en' ? 'Chat history' : 'Historique de la conversation'}>
                 {messages.map((m, i) => (
                   <div
                     key={i}
@@ -215,12 +220,14 @@ export function AIChat() {
                           : 'bg-white text-foreground border border-border rounded-bl-md shadow-sm'
                       }`}
                     >
+                      <span className="sr-only">{m.role === 'user' ? (lang === 'en' ? 'You: ' : 'Toi : ') : (lang === 'en' ? 'Assistant: ' : 'Assistant : ')}</span>
                       {m.text}
                     </div>
                   </div>
                 ))}
                 {thinking && (
-                  <div className="flex justify-start">
+                  <div className="flex justify-start" role="status" aria-live="polite">
+                    <span className="sr-only">{lang === 'en' ? 'Assistant is typing…' : 'L\u2019assistant écrit…'}</span>
                     <div className="bg-white text-muted-foreground border border-border rounded-2xl rounded-bl-md px-3.5 py-2 shadow-sm flex items-center gap-1">
                       {[0, 1, 2].map(i => (
                         <span
@@ -238,7 +245,7 @@ export function AIChat() {
                     <button
                       type="button"
                       onClick={backToMenu}
-                      className="text-[11px] font-bold text-[#0052CC] hover:underline"
+                      className="text-[11px] font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                     >
                       ← {lang === 'en' ? 'Browse topics' : 'Parcourir les sujets'}
                     </button>

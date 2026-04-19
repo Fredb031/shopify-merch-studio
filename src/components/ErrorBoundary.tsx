@@ -30,8 +30,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <div className="flex flex-col items-center justify-center p-8 text-center min-h-[200px]">
-          <AlertTriangle className="w-8 h-8 text-destructive mb-3" />
+        <div role="alert" className="flex flex-col items-center justify-center p-8 text-center min-h-[200px]">
+          <AlertTriangle className="w-8 h-8 text-destructive mb-3" aria-hidden="true" />
           <p className="text-sm font-bold text-foreground mb-1">
             {this.isFrench() ? 'Une erreur est survenue' : 'Something went wrong'}
           </p>
@@ -43,8 +43,9 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <div className="flex items-center gap-4 mt-1">
             <button
+              type="button"
               onClick={() => this.setState({ hasError: false, error: null })}
-              className="text-xs font-bold text-primary hover:underline focus:outline-none focus-visible:underline"
+              className="text-xs font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
             >
               {this.isFrench() ? 'Réessayer' : 'Try again'}
             </button>
@@ -53,7 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
                auth sessions, or bad persisted state. */}
             <a
               href="/"
-              className="text-xs font-bold text-muted-foreground hover:text-foreground focus:outline-none focus-visible:underline"
+              className="text-xs font-bold text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground focus-visible:ring-offset-1 rounded"
             >
               {this.isFrench() ? "Retour à l'accueil" : 'Back home'}
             </a>
