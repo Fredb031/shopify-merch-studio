@@ -132,10 +132,16 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
 
   const applyCode = () => {
-    const ok = cart.applyDiscount(codeInput.toUpperCase());
+    // No-op on empty — clicking Apply with a blank input used to
+    // flash "Code invalide" for 3 seconds, which reads as a rude
+    // error for what's clearly a user who just hasn't typed anything.
+    const trimmed = codeInput.trim();
+    if (!trimmed) return;
+    const normalizedDisplay = trimmed.toUpperCase();
+    const ok = cart.applyDiscount(trimmed);
     setCodeMsg(
       ok
-        ? { ok: true, text: lang === 'en' ? `Code ${codeInput.toUpperCase()} applied!` : `Code ${codeInput.toUpperCase()} appliqué !` }
+        ? { ok: true, text: lang === 'en' ? `Code ${normalizedDisplay} applied!` : `Code ${normalizedDisplay} appliqué !` }
         : { ok: false, text: lang === 'en' ? 'Invalid code' : 'Code invalide' }
     );
     if (codeMsgTimerRef.current) clearTimeout(codeMsgTimerRef.current);
