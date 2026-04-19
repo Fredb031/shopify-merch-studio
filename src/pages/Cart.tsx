@@ -78,7 +78,7 @@ function PromoCodeInput({
     </div>
   );
 }
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 
 /**
@@ -93,6 +93,7 @@ import { useEffect, useRef, useState } from 'react';
  */
 export default function Cart() {
   const { lang } = useLang();
+  const navigate = useNavigate();
   const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount } = useCartStore();
   const shopifyCart = useShopifyCartStore();
   const [cartOpen, setCartOpen] = useState(false);
@@ -113,11 +114,12 @@ export default function Cart() {
   const handleCheckout = () => {
     // Flip the disabled state on the button so rapid double-clicks don't
     // queue multiple navigations while the browser is transitioning.
-    // Previous code declared checkingOut but never set it — the
-    // `disabled={checkingOut}` guard was permanently false.
     setCheckingOut(true);
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
-    window.location.href = '/checkout';
+    // SPA navigation — avoid the full page reload window.location.href
+    // would trigger (re-parsing HTML, re-running vite chunks the
+    // browser already has cached, losing in-memory stores).
+    navigate('/checkout');
   };
 
   // Remove from BOTH local + Shopify cart so Shopify checkout reflects the
