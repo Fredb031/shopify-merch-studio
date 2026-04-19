@@ -130,6 +130,14 @@ interface CartStore {
   getCheckoutUrl: () => string | null;
 }
 
+// Module-level promise so concurrent addItem() calls made before the
+// first Shopify cart exists all wait on the same createShopifyCart()
+// fetch. Without this, clicking "Add to cart" twice fast when the
+// store has cartId=null spins up two independent Shopify carts (the
+// second overrides the first's items, and the user gets charged on
+// the wrong one).
+let pendingCartCreation: Promise<void> | null = null;
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -140,15 +148,23 @@ export const useCartStore = create<CartStore>()(
       isSyncing: false,
 
       addItem: async (item) => {
+        // Serialize the "no cart yet, create one" path so parallel clicks
+        // don't each kick off their own createShopifyCart.
+        if (!get().cartId && pendingCartCreation) {
+          await pendingCartCreation;
+        }
         const { items, cartId, clearCart } = get();
         const existingItem = items.find(i => i.variantId === item.variantId);
         set({ isLoading: true });
         try {
           if (!cartId) {
-            const result = await createShopifyCart({ ...item, lineId: null });
-            if (result) {
-              set({ cartId: result.cartId, checkoutUrl: result.checkoutUrl, items: [{ ...item, lineId: result.lineId }] });
-            }
+            pendingCartCreation = (async () => {
+              const result = await createShopifyCart({ ...item, lineId: null });
+              if (result) {
+                set({ cartId: result.cartId, checkoutUrl: result.checkoutUrl, items: [{ ...item, lineId: result.lineId }] });
+              }
+            })();
+            try { await pendingCartCreation; } finally { pendingCartCreation = null; }
           } else if (existingItem) {
             const newQuantity = existingItem.quantity + item.quantity;
             if (!existingItem.lineId) return;
