@@ -105,8 +105,8 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                     >
                       <LayoutDashboard size={15} aria-hidden="true" />
                       {lang === 'en'
-                        ? (user.role === 'admin' ? 'Admin dashboard' : 'Vendor dashboard')
-                        : (user.role === 'admin' ? 'Tableau de bord admin' : 'Tableau de bord vendeur')}
+                        ? (user.role === 'vendor' ? 'Vendor dashboard' : 'Admin dashboard')
+                        : (user.role === 'vendor' ? 'Tableau de bord vendeur' : 'Tableau de bord admin')}
                     </Link>
                   )}
                   <Link
