@@ -457,12 +457,13 @@ export default function Checkout() {
                   type="button"
                   disabled={!acceptedTerms || processing}
                   onClick={handlePay}
-                  className="w-full py-4 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all"
+                  aria-busy={processing}
+                  className="w-full py-4 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                 >
                   {processing ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={18} className="animate-spin" aria-hidden="true" />
                   ) : (
-                    <Lock size={16} />
+                    <Lock size={16} aria-hidden="true" />
                   )}
                   {processing
                     ? lang === 'en' ? 'Processing…' : 'Traitement…'

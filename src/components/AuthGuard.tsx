@@ -22,8 +22,14 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
   // gets bounced to /admin/login for ~50ms before the session resolves.
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center" aria-busy="true">
-        <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+      <div
+        className="min-h-[60vh] flex items-center justify-center"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+        <span className="sr-only">Loading</span>
       </div>
     );
   }

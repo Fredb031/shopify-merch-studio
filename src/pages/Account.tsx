@@ -72,8 +72,17 @@ export default function Account() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div
+        className="min-h-screen bg-background flex items-center justify-center"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div
+          className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"
+          aria-hidden="true"
+        />
+        <span className="sr-only">{lang === 'en' ? 'Loading account…' : 'Chargement du compte…'}</span>
       </div>
     );
   }
