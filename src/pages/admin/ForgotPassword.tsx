@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { normalizeInvisible } from '@/lib/utils';
+import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -14,6 +14,14 @@ export default function ForgotPassword() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Pre-validate with the same stricter regex the newsletter + checkout
+    // use. Browser type=email accepts 'a@b' which Supabase just rejects
+    // with an unfriendly message — better to catch it here and show our
+    // own error.
+    if (!isValidEmail(email)) {
+      useAuthStore.getState().setError('Adresse courriel invalide');
+      return;
+    }
     setSubmitting(true);
     try {
       const result = await sendPasswordReset(email);
