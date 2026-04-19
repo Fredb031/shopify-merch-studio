@@ -39,7 +39,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     if (!isOpen && error) clearError();
   }, [isOpen, error, clearError]);
 
-  useEscapeKey(isOpen, onClose);
+  useEscapeKey(isOpen && !submitting, onClose);
 
   useBodyScrollLock(isOpen);
 
