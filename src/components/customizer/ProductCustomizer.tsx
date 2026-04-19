@@ -365,10 +365,23 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         }
       }
 
+      // Prefer the uploaded (Supabase) URL over the blob: previewUrl so
+      // the thumbnail survives a page reload. Blob URLs are scoped to
+      // the session that created them; persisting one into localStorage
+      // means the cart thumbnail renders broken after refresh.
+      const pickPersistableLogo = (p: LogoPlacement | null): string | undefined => {
+        if (!p) return undefined;
+        const prev = p.previewUrl;
+        const proc = p.processedUrl;
+        const isBlob = (u?: string) => !!u && u.startsWith('blob:');
+        if (prev && !isBlob(prev)) return prev;
+        if (proc && !isBlob(proc)) return proc;
+        return undefined;
+      };
       for (const [, group] of byColor.entries()) {
         const colorImg = findColorImage(product.sku, group.color.colorName);
-        const linePreview = store.logoPlacement?.previewUrl
-          ?? store.logoPlacementBack?.previewUrl
+        const linePreview = pickPersistableLogo(store.logoPlacement)
+          ?? pickPersistableLogo(store.logoPlacementBack)
           ?? colorImg?.front ?? product.imageDevant;
         cartStore.addItem({
           productId: product.id,
@@ -482,9 +495,19 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         activeView: store.activeView,
         step: store.step,
         productName: product.name,
-        previewSnapshot: store.logoPlacement?.previewUrl
-          ?? store.logoPlacementBack?.previewUrl
-          ?? activeColor?.imageDevant ?? product.imageDevant,
+        previewSnapshot: (() => {
+          // Same blob:-safe resolution as the multi-color path — blob
+          // URLs don't survive a page reload, so prefer uploaded
+          // (Supabase) URLs and fall back to the product photo.
+          const isBlob = (u?: string) => !!u && u.startsWith('blob:');
+          const p = store.logoPlacement;
+          const pb = store.logoPlacementBack;
+          if (p?.previewUrl && !isBlob(p.previewUrl)) return p.previewUrl;
+          if (p?.processedUrl && !isBlob(p.processedUrl)) return p.processedUrl;
+          if (pb?.previewUrl && !isBlob(pb.previewUrl)) return pb.previewUrl;
+          if (pb?.processedUrl && !isBlob(pb.processedUrl)) return pb.processedUrl;
+          return activeColor?.imageDevant ?? product.imageDevant;
+        })(),
         unitPrice: unitPrice * discount,
         totalQuantity: totalQty,
         totalPrice,
