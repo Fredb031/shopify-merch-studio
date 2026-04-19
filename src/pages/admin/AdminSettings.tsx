@@ -11,7 +11,7 @@ export default function AdminSettings() {
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-            <Building2 size={18} />
+            <Building2 size={18} aria-hidden="true" />
           </div>
           <h2 className="font-bold">Informations de l'entreprise</h2>
         </div>
@@ -26,7 +26,7 @@ export default function AdminSettings() {
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Link2 size={18} />
+            <Link2 size={18} aria-hidden="true" />
           </div>
           <h2 className="font-bold">Connexion Shopify</h2>
         </div>
@@ -37,13 +37,18 @@ export default function AdminSettings() {
           </div>
           <span className="text-[11px] font-bold px-2 py-1 bg-emerald-100 text-emerald-700 rounded-md">Actif</span>
         </div>
-        <button className="mt-3 text-xs font-bold text-[#0052CC] hover:underline">Gérer les permissions</button>
+        <button
+          type="button"
+          className="mt-3 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+        >
+          Gérer les permissions
+        </button>
       </section>
 
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-            <CreditCard size={18} />
+            <CreditCard size={18} aria-hidden="true" />
           </div>
           <h2 className="font-bold">Paiements</h2>
         </div>
@@ -55,7 +60,7 @@ export default function AdminSettings() {
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-            <Shield size={18} />
+            <Shield size={18} aria-hidden="true" />
           </div>
           <h2 className="font-bold">Sécurité</h2>
         </div>
@@ -85,11 +90,17 @@ function Field({ label, defaultValue, placeholder, type = 'text' }: { label: str
 
 function Toggle({ label, enabled }: { label: string; enabled: boolean }) {
   return (
-    <label className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg cursor-pointer">
-      <span className="text-sm">{label}</span>
-      <span className={`relative inline-block w-9 h-5 rounded-full transition-colors ${enabled ? 'bg-[#0052CC]' : 'bg-zinc-300'}`}>
-        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-      </span>
-    </label>
+    <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg">
+      <span className="text-sm" id={`toggle-${label.replace(/\s+/g, '-')}`}>{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={enabled}
+        aria-labelledby={`toggle-${label.replace(/\s+/g, '-')}`}
+        className={`relative inline-block w-9 h-5 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${enabled ? 'bg-[#0052CC]' : 'bg-zinc-300'}`}
+      >
+        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${enabled ? 'translate-x-[18px]' : 'translate-x-0.5'}`} aria-hidden="true" />
+      </button>
+    </div>
   );
 }

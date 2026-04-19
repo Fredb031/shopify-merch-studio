@@ -71,10 +71,11 @@ export default function AdminProducts() {
             href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/products/new`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
-            <Plus size={15} />
+            <Plus size={15} aria-hidden="true" />
             Nouveau produit
+            <span className="sr-only">(ouvre Shopify dans un nouvel onglet)</span>
           </a>
         </div>
       </header>
@@ -82,18 +83,21 @@ export default function AdminProducts() {
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
-            <Search size={16} className="text-zinc-400" />
+            <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher par titre, handle, SKU…"
+              aria-label="Rechercher un produit"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
           <select
             value={typeFilter}
             onChange={e => setTypeFilter(e.target.value)}
-            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC]"
+            aria-label="Filtrer par type de produit"
+            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
           >
             {productTypes.map(t => (
               <option key={t} value={t}>{t === 'all' ? 'Tous les types' : t || 'Sans type'}</option>
@@ -110,24 +114,25 @@ export default function AdminProducts() {
                 href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/products/${p.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="border border-zinc-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-[#0052CC]/30 transition-all bg-white group"
+                aria-label={`Ouvrir ${p.title} dans Shopify${lowStock ? ' — stock épuisé' : ''} (nouvel onglet)`}
+                className="border border-zinc-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-[#0052CC]/30 transition-all bg-white group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
               >
                 <div className="aspect-square bg-zinc-100 relative">
                   {p.firstImage && (
-                    <img src={p.firstImage} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    <img src={p.firstImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                   )}
                   <span className="absolute top-2 right-2 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
                     Actif
                   </span>
                   {lowStock && (
                     <span className="absolute top-2 left-2 text-[10px] font-bold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded flex items-center gap-1">
-                      <AlertTriangle size={9} />
+                      <AlertTriangle size={9} aria-hidden="true" />
                       Stock
                     </span>
                   )}
                   <div className="absolute inset-0 bg-[#0052CC]/0 group-hover:bg-[#0052CC]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                     <span className="bg-white text-[#0052CC] px-3 py-1.5 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
-                      Voir <ExternalLink size={11} />
+                      Voir <ExternalLink size={11} aria-hidden="true" />
                     </span>
                   </div>
                 </div>
