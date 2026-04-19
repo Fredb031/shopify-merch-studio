@@ -28,7 +28,15 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
   const { lang } = useLang();
   const label = (() => {
     if (!showDate) return lang === 'en' ? '5 business days' : '5 jours ouvrables';
-    const eta = addBusinessDays(new Date(), 5);
+    // Honor the 3pm production cutoff so the badge matches the
+    // Checkout ship-by promise and the homepage hero — without this,
+    // a shopper late in the day saw an earlier date on the badge
+    // than the one Checkout quoted them.
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setHours(15, 0, 0, 0);
+    const days = now > cutoff ? 6 : 5;
+    const eta = addBusinessDays(now, days);
     const dateStr = eta.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', {
       weekday: 'short', day: 'numeric', month: 'short',
     });

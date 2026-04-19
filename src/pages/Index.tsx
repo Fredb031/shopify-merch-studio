@@ -183,12 +183,23 @@ export default function Index() {
 
           {/* "Aucun minimum + Receive by …" — sits directly under the
               marquee so the commitment (ETA) reads right after the social
-              proof. Date is live: today + 5 business days, skipping weekends. */}
+              proof. Date is live: today + 5 business days (+1 if past
+              the 3 pm cutoff, matching the Checkout ship-by promise). */}
           <p className={`text-[12px] text-foreground/80 font-semibold mb-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.58s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
             {(() => {
-              const eta = new Date();
+              const now = new Date();
+              const cutoff = new Date(now);
+              cutoff.setHours(15, 0, 0, 0);
+              const after3pm = now > cutoff;
+              // Checkout shifts by +1 business day when the order rolls
+              // past the 3pm production cutoff. Mirror that here so the
+              // homepage promise doesn't under-quote by a day for late-
+              // afternoon shoppers who then go to checkout and see a
+              // later date.
+              const eta = new Date(now);
               let added = 0;
-              while (added < 5) {
+              const target = after3pm ? 6 : 5;
+              while (added < target) {
                 eta.setDate(eta.getDate() + 1);
                 const d = eta.getDay();
                 if (d !== 0 && d !== 6) added++;
