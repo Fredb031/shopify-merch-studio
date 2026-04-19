@@ -47,7 +47,7 @@ export default function Signup() {
             className="h-9 mx-auto mb-6 opacity-90"
           />
           <h1 className="text-2xl font-extrabold text-white mb-1 flex items-center gap-2 justify-center">
-            {isPresidentEmail && <span>👑</span>}
+            {isPresidentEmail && <span aria-label="Président" title="Président">👑</span>}
             Créer un compte
           </h1>
           <p className="text-sm text-white/60">
@@ -58,9 +58,9 @@ export default function Signup() {
         </div>
 
         {done ? (
-          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center">
+          <div className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl text-center" role="status">
             <div className="w-14 h-14 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={28} strokeWidth={2.5} />
+              <CheckCircle2 size={28} strokeWidth={2.5} aria-hidden="true" />
             </div>
             <h2 className="text-lg font-extrabold mb-2">Compte créé</h2>
             <p className="text-sm text-zinc-600 mb-2">
@@ -73,7 +73,7 @@ export default function Signup() {
             <button
               type="button"
               onClick={() => navigate('/admin/login')}
-              className="text-sm font-bold text-[#0052CC] hover:underline"
+              className="text-sm font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
             >
               Aller à la connexion
             </button>
@@ -81,8 +81,8 @@ export default function Signup() {
         ) : (
           <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
             {error && (
-              <div className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
-                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+              <div role="alert" className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
@@ -90,7 +90,7 @@ export default function Signup() {
             <label className="block">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Nom complet</span>
               <div className="mt-1.5 relative">
-                <UserIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <UserIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
                   type="text"
                   value={name}
@@ -105,7 +105,7 @@ export default function Signup() {
             <label className="block">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Courriel</span>
               <div className="mt-1.5 relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
                   type="email"
                   value={email}
@@ -120,7 +120,7 @@ export default function Signup() {
             <label className="block">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Mot de passe (min 8)</span>
               <div className="mt-1.5 relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
                   type="password"
                   value={password}
@@ -136,7 +136,7 @@ export default function Signup() {
             <label className="block">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Confirmer</span>
               <div className="mt-1.5 relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
                 <input
                   type="password"
                   value={confirm}
@@ -152,13 +152,16 @@ export default function Signup() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-xl transition-all"
+              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-60 hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
               {submitting ? 'Création…' : 'Créer mon compte'}
-              {!submitting && <ArrowRight size={16} />}
+              {!submitting && <ArrowRight size={16} aria-hidden="true" />}
             </button>
 
-            <Link to="/admin/login" className="block text-center text-xs font-bold text-zinc-600 hover:text-[#0052CC]">
+            <Link
+              to="/admin/login"
+              className="block text-center text-xs font-bold text-zinc-600 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            >
               Déjà un compte ? Se connecter
             </Link>
           </form>
