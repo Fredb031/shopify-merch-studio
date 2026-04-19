@@ -36,17 +36,29 @@ export function getStoredApiKey(provider: ImageProvider): string | null {
 
 export function saveProviderConfig(provider: ImageProvider, apiKey: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem('vision-image-provider', provider);
-  if (provider !== 'none' && apiKey) {
-    localStorage.setItem(`vision-image-key-${provider}`, apiKey);
+  try {
+    localStorage.setItem('vision-image-provider', provider);
+    if (provider !== 'none' && apiKey) {
+      localStorage.setItem(`vision-image-key-${provider}`, apiKey);
+    }
+  } catch (e) {
+    // Quota / private mode — caller (admin UI) already uses a visible
+    // 'Configuration sauvegardée' toast that shouldn't flash success
+    // when we failed, but surfacing the throw crashes the admin page.
+    // Warn to console + swallow so the UI stays functional.
+    console.warn('[imageGen] saveProviderConfig failed:', e);
   }
 }
 
 export function clearProviderConfig() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem('vision-image-provider');
-  localStorage.removeItem('vision-image-key-replicate');
-  localStorage.removeItem('vision-image-key-openai');
+  try {
+    localStorage.removeItem('vision-image-provider');
+    localStorage.removeItem('vision-image-key-replicate');
+    localStorage.removeItem('vision-image-key-openai');
+  } catch (e) {
+    console.warn('[imageGen] clearProviderConfig failed:', e);
+  }
 }
 
 export async function generateImage(params: GenerateImageParams): Promise<GeneratedImage> {
