@@ -26,6 +26,7 @@ import { autoPlaceOnUpload, centerOnGarment, centerOnChest, centerOnZone } from 
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -90,6 +91,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // toast appear on an unrelated page seconds after they dismissed.
   useEscapeKey(!adding, onClose, { skipInTextInputs: true });
   useBodyScrollLock(true);
+  // Trap Tab inside the modal so keyboard users can't tab past the
+  // backdrop into the dimmed page underneath. Auto-focuses the first
+  // focusable element on mount (the close button in the header) and
+  // restores focus to the trigger element (e.g. the PDP "Customize"
+  // button) on close. role="dialog" + aria-modal alone are only screen-
+  // reader hints — browsers don't enforce focus containment.
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
 
   // Auto-select the first Shopify color on mount so a default preview is
   // always shown — users don't need a dedicated "pick color" step with
@@ -637,6 +645,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 
   return (
     <motion.div
+      ref={trapRef}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[600] flex items-end md:items-center justify-center p-0 md:p-4"
       style={{ background: 'rgba(8,14,32,.75)', backdropFilter: 'blur(18px)' }}
