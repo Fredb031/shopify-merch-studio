@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Eye, Plus } from 'lucide-react';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -39,13 +39,35 @@ function coerceStatus(raw: unknown): Status {
 }
 
 export default function AdminQuotes() {
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Status | 'all'>('all');
+  // URL-backed initial state — same pattern as AdminCustomers / AdminOrders
+  // so a reload preserves the admin's view + the URL is shareable.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialFilterRaw = searchParams.get('filter') ?? 'all';
+  const initialFilter: Status | 'all' = initialFilterRaw === 'all'
+    ? 'all'
+    : (VALID_STATUSES as readonly string[]).includes(initialFilterRaw)
+      ? (initialFilterRaw as Status)
+      : 'all';
+
+  const [query, setQuery] = useState(initialQuery);
+  const [filter, setFilter] = useState<Status | 'all'>(initialFilter);
   const [savedQuotes, setSavedQuotes] = useState<typeof MOCK>([]);
   const [page, setPage] = useState(0);
 
   useEffect(() => { setPage(0); }, [query, filter]);
   useDocumentTitle('Soumissions — Admin Vision Affichage');
+
+  // State → URL sync; replace history so each keystroke doesn't pollute back-stack.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
+    if (filter !== 'all') next.set('filter', filter); else next.delete('filter');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [query, filter, searchParams, setSearchParams]);
 
   useEffect(() => {
     try {

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
@@ -10,6 +11,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
+const VALID_STATUS_FILTERS: readonly StatusFilter[] = ['all', 'paid', 'pending', 'fulfilled', 'awaiting_fulfillment'];
 
 /** Generate and download a CSV for the currently filtered order list.
  * Escapes double quotes per RFC 4180 and wraps every field so commas
@@ -105,8 +107,17 @@ function formatRelativeTime(iso: string): string {
 const PAGE_SIZE = 25;
 
 export default function AdminOrders() {
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  // URL-backed initial state so reload preserves the admin's view.
+  // ?q=...&filter=... are accepted; an unknown filter falls back to 'all'.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialFilterRaw = searchParams.get('filter') ?? 'all';
+  const initialFilter: StatusFilter = (VALID_STATUS_FILTERS as readonly string[]).includes(initialFilterRaw)
+    ? (initialFilterRaw as StatusFilter)
+    : 'all';
+
+  const [query, setQuery] = useState(initialQuery);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialFilter);
   const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
   const [shippedIds, setShippedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(0);
@@ -115,6 +126,18 @@ export default function AdminOrders() {
   // don't strand the user on an empty page 5 after narrowing a filter.
   useEffect(() => { setPage(0); }, [query, statusFilter]);
   useDocumentTitle('Commandes — Admin Vision Affichage');
+
+  // Sync state → URL (replace history so each keystroke doesn't pollute
+  // back-stack). Reload now lands the admin exactly where they were.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
+    if (statusFilter !== 'all') next.set('filter', statusFilter); else next.delete('filter');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [query, statusFilter, searchParams, setSearchParams]);
 
   // Cancel the resync delay if the admin clicks through to a sibling
   // route in the 400ms before the reload fires — otherwise it yanks

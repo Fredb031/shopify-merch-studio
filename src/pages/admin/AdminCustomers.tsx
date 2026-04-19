@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -33,9 +34,22 @@ function formatDate(iso: string): string {
 
 const PAGE_SIZE = 25;
 
+type CustomerFilter = 'all' | 'paying' | 'prospects';
+const VALID_FILTERS: readonly CustomerFilter[] = ['all', 'paying', 'prospects'];
+
 export default function AdminCustomers() {
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<'all' | 'paying' | 'prospects'>('all');
+  // Read initial state from URL params so reload/share preserves the
+  // admin's view. ?q=... ?filter=... — defaults to '' and 'all'. Coerce
+  // the filter against the union to defend against hand-edited URLs.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialFilterRaw = searchParams.get('filter') ?? 'all';
+  const initialFilter: CustomerFilter = (VALID_FILTERS as readonly string[]).includes(initialFilterRaw)
+    ? (initialFilterRaw as CustomerFilter)
+    : 'all';
+
+  const [query, setQuery] = useState(initialQuery);
+  const [filter, setFilter] = useState<CustomerFilter>(initialFilter);
   const [selected, setSelected] = useState<ShopifyCustomerSnapshot | null>(null);
   const [page, setPage] = useState(0);
   // Distinct admin tab title — admins routinely have multiple admin
@@ -46,6 +60,20 @@ export default function AdminCustomers() {
   // Reset pagination when the filter or search changes — otherwise
   // filtering to 3 prospects while on page 5 shows an empty table.
   useEffect(() => { setPage(0); }, [query, filter]);
+
+  // Sync state → URL with `replace: true` so each keystroke / filter
+  // click doesn't pollute the back-stack. Reload now lands the admin
+  // exactly where they were instead of resetting search and filter.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
+    if (filter !== 'all') next.set('filter', filter); else next.delete('filter');
+    // Avoid a no-op setSearchParams that still appends a history entry.
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [query, filter, searchParams, setSearchParams]);
 
   // Track the resync delay so unmounting (route change between click and
   // the 400ms reload) cancels the pending location.reload — without this
