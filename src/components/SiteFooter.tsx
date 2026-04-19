@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, CheckCircle2 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
-import { isValidEmail } from '@/lib/utils';
+import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 export function SiteFooter() {
   const { lang } = useLang();
@@ -25,7 +25,13 @@ export function SiteFooter() {
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
-    const normalized = email.trim().toLowerCase();
+    // Use the same full normalization pipeline as isValidEmail applies
+    // internally (normalizeInvisible + trim + lower). Without this step,
+    // a paste with a zero-width space would pass isValidEmail (which
+    // strips invisibles before the regex check) but we'd then store the
+    // RAW pasted value in localStorage — the backend would bounce that
+    // address when a real newsletter send fires.
+    const normalized = normalizeInvisible(email).trim().toLowerCase();
     if (!isValidEmail(normalized)) {
       setEmailErr(true);
       return;
