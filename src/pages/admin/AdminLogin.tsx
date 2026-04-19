@@ -33,6 +33,13 @@ export default function AdminLogin() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Pre-validate so the user gets our friendly 'Courriel invalide'
+    // instead of Supabase's generic invalid-credentials reply when
+    // they typo a@b.
+    if (!isValidEmail(email)) {
+      useAuthStore.getState().setError('Courriel invalide');
+      return;
+    }
     setSubmitting(true);
     let result: Awaited<ReturnType<typeof signIn>>;
     try {
