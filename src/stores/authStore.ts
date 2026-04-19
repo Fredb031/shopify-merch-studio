@@ -100,14 +100,25 @@ export function isPresidentEmailCandidate(raw: string): boolean {
   return PRESIDENT_EMAILS.has(normalizeEmail(raw));
 }
 
+const VALID_ROLES: readonly UserRole[] = ['president', 'admin', 'vendor', 'client'];
+function coerceRole(raw: unknown): UserRole {
+  return typeof raw === 'string' && (VALID_ROLES as readonly string[]).includes(raw)
+    ? (raw as UserRole)
+    : 'client';
+}
+
 function buildUser(authUser: { id: string; email?: string }, profile: Awaited<ReturnType<typeof fetchProfile>>): AuthUser | null {
   const email = (profile?.email ?? authUser.email ?? '').toLowerCase();
   if (!email) return null;
   const name = profile?.full_name ?? email.split('@')[0];
   // Owner fallback: PRESIDENT_EMAILS beats whatever the profile row says.
+  // Also coerce the profile role to a valid enum value — the DB column
+  // could have a legacy/manual row with e.g. 'staff' that would then
+  // leak through fetchProfile's type assertion and break downstream
+  // role checks that assume the UserRole union.
   const role: UserRole = PRESIDENT_EMAILS.has(email)
     ? 'president'
-    : (profile?.role ?? 'client');
+    : coerceRole(profile?.role);
   const title = profile?.title ?? (role === 'president' ? 'Président' : undefined);
   return {
     id: authUser.id,
