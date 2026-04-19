@@ -32,6 +32,21 @@ export function LangProvider({ children }: { children: ReactNode }) {
     }
   }, [lang]);
 
+  // Cross-tab sync — when the user flips language in one tab, every
+  // other open tab (cart, product, checkout) should follow without a
+  // manual refresh. authStore's signOut already clears other customer-
+  // scoped state the same way, so the pattern is consistent.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== 'vision-lang' || !e.newValue) return;
+      if (e.newValue !== 'fr' && e.newValue !== 'en') return;
+      setLang(e.newValue as Lang);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const tFn = (key: TranslationKey, ...args: (string | number)[]) => translate(lang, key, ...args);
 
   return (
