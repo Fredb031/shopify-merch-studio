@@ -1,5 +1,6 @@
 import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
   SHOPIFY_STATS,
@@ -31,10 +32,31 @@ function formatRelative(iso: string): string {
   return `il y a ${Math.floor(days / 30)} mois`;
 }
 
+type AbandonedSort = 'recent' | 'value';
+const VALID_SORTS: readonly AbandonedSort[] = ['recent', 'value'];
+
 export default function AdminAbandonedCarts() {
-  const [sort, setSort] = useState<'recent' | 'value'>('value');
+  // URL-backed sort so reload preserves the admin's preferred ranking
+  // and a copied URL takes the recipient straight to "highest value
+  // first" or "newest first" without re-clicking. Defaults to 'value'.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialSortRaw = searchParams.get('sort') ?? 'value';
+  const initialSort: AbandonedSort = (VALID_SORTS as readonly string[]).includes(initialSortRaw)
+    ? (initialSortRaw as AbandonedSort)
+    : 'value';
+
+  const [sort, setSort] = useState<AbandonedSort>(initialSort);
   const [page, setPage] = useState(0);
   useDocumentTitle('Paniers abandonnés — Admin Vision Affichage');
+
+  // Sync state → URL with replace history.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (sort !== 'value') next.set('sort', sort); else next.delete('sort');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [sort, searchParams, setSearchParams]);
 
   const sorted = useMemo(() => {
     const arr = [...SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT];
