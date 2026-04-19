@@ -434,7 +434,18 @@ export default function Checkout() {
                   const cutoff = new Date(now);
                   cutoff.setHours(15, 0, 0, 0);
                   const after3pm = now > cutoff;
-                  const ship = new Date(now.getTime() + (after3pm ? 6 : 5) * 86400000);
+                  // Count BUSINESS days (skip Sat/Sun). The shipping copy
+                  // elsewhere promises "5 business days" — using calendar
+                  // days over-promised by 1-2 days any time the window
+                  // straddled a weekend (Fri pre-3pm said Wed when the
+                  // real delivery is the following Fri).
+                  const ship = new Date(now);
+                  let remaining = after3pm ? 6 : 5;
+                  while (remaining > 0) {
+                    ship.setDate(ship.getDate() + 1);
+                    const dow = ship.getDay();
+                    if (dow !== 0 && dow !== 6) remaining--;
+                  }
                   return (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
                       <span className="text-emerald-600 text-base leading-none">⚡</span>
