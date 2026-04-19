@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { WishlistGrid } from '@/components/WishlistGrid';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
+import { normalizeInvisible } from '@/lib/utils';
 
 export default function Account() {
   const { lang } = useLang();
@@ -24,11 +25,15 @@ export default function Account() {
 
   useDocumentTitle(lang === 'en' ? 'My account — Vision Affichage' : 'Mon compte — Vision Affichage');
 
-  // Match orders by customer email (best-effort with the snapshot)
+  // Match orders by customer email (best-effort with the snapshot).
+  // Strip invisibles on both sides so a Shopify-exported order email
+  // that accidentally carried a ZWSP still matches the signed-in
+  // user's normalized email.
   const myOrders = useMemo(() => {
     if (!user?.email) return [];
+    const me = normalizeInvisible(user.email).trim().toLowerCase();
     return SHOPIFY_ORDERS_SNAPSHOT
-      .filter(o => o.email.toLowerCase() === user.email)
+      .filter(o => normalizeInvisible(o.email).trim().toLowerCase() === me)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [user?.email]);
 
