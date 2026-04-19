@@ -31,36 +31,39 @@ type Params = {
 const defaultWidth = (bbox?: Bbox | null) =>
   bbox ? Math.min(bbox.w * 0.45, 38) : 34;
 
-/** Center on the garment. The horizontal centre is ALWAYS canvas 50 —
- * apparel photos are shot flat and symmetric, so bbox.cx drifts off
- * centre whenever the product photo itself isn't perfectly centred in
- * the frame (which every SanMar photo actually is slightly). The
- * vertical centre uses bbox.cy so logos still land on the shirt body
- * vertically, not on the canvas letterbox. */
+/** Center on the garment. Horizontal center uses the DETECTED bbox.cx
+ * because real product photos are often shifted a few percent off the
+ * canvas frame — forcing x=50 (canvas center) makes logos visibly
+ * lean toward the wider shoulder on asymmetric crops. When no bbox
+ * is available, fall back to 50 (best we can do).
+ *
+ * Kickflip, Printful, Custom Ink etc. all anchor to the detected
+ * silhouette center, not the canvas center, for this exact reason. */
 export function centerOnGarment(p: Params) {
   const { bbox } = p;
   return {
-    x: 50,
+    x: bbox ? bbox.cx : 50,
     y: bbox ? bbox.cy : 50,
     width: p.widthPct ?? defaultWidth(bbox),
   };
 }
 
-/** Chest point = canvas horizontal centre + vertical 25% from the top
- * of the bbox. Same symmetry argument as centerOnGarment: horizontal
- * always 50 so users stop seeing the logo lean right. */
+/** Chest point = detected garment horizontal centre + vertical 25% from
+ * the top of the bbox. If the photo is slightly off-center in the
+ * frame, bbox.cx is the real garment center and what the user
+ * perceives as "centered". */
 export function centerOnChest(p: Params) {
   const { bbox, zone } = p;
   if (bbox) {
     return {
-      x: 50,
+      x: bbox.cx,
       y: bbox.y + bbox.h * 0.25,
       width: p.widthPct ?? Math.min(bbox.w * 0.4, 34),
     };
   }
   if (zone) {
     return {
-      x: 50,                                // was zone.x+zone.width/2; for 99% of apparel that's already ~50 but enforce it
+      x: zone.x + zone.width / 2,
       y: zone.y + zone.height / 2,
       width: p.widthPct ?? zone.width * 0.9,
     };

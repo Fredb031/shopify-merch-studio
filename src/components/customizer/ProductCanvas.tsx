@@ -267,8 +267,18 @@ export function ProductCanvas({
     if (!fc.current || !obj) return;
     const W = fc.current.width as number;
     const H = fc.current.height as number;
-    const cx = (obj.left ?? 0) + ((obj.width ?? 0) * (obj.scaleX ?? 1)) / 2;
-    const cy = (obj.top ?? 0) + ((obj.height ?? 0) * (obj.scaleY ?? 1)) / 2;
+    // Logo objects now use originX/Y=center (iter fix) so obj.left/top
+    // ARE the center already. Old code added width/2 which over-shifted
+    // the emitted placement — a no-op on objects still using top-left
+    // origin (like text), but we want a single source of truth.
+    const originX = (obj as unknown as { originX?: string }).originX;
+    const originY = (obj as unknown as { originY?: string }).originY;
+    const cx = originX === 'center'
+      ? (obj.left ?? 0)
+      : (obj.left ?? 0) + ((obj.width ?? 0) * (obj.scaleX ?? 1)) / 2;
+    const cy = originY === 'center'
+      ? (obj.top ?? 0)
+      : (obj.top ?? 0) + ((obj.height ?? 0) * (obj.scaleY ?? 1)) / 2;
     onPlacementChange({
       zoneId: zone,
       mode: zone === 'manual' ? 'manual' : 'preset',
@@ -699,8 +709,14 @@ export function ProductCanvas({
           const naturalW = img.width ?? 100;
           const s = targetW / naturalW;
           img.set({
-            left: cx - (img.width  ?? 0) * s / 2,
-            top:  cy - (img.height ?? 0) * s / 2,
+            // Use originX/Y=center so left/top are the CENTER of the logo,
+            // not its top-left corner. The old math (cx - width*s/2)
+            // returned NaN/wrong position when img.width was 0 or late-
+            // resolved, visibly shifting the logo left-ish from where
+            // the user aimed. Matches the IText object's origin too.
+            originX: 'center', originY: 'center',
+            left: cx,
+            top:  cy,
             scaleX: s, scaleY: s,
             angle: currentPlacement?.rotation ?? 0,
             // Logo is only draggable / selectable during the placement
