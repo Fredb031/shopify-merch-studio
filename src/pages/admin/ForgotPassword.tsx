@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 export default function ForgotPassword() {
@@ -10,6 +11,8 @@ export default function ForgotPassword() {
   const [submitting, setSubmitting] = useState(false);
   const sendPasswordReset = useAuthStore(s => s.sendPasswordReset);
   const error = useAuthStore(s => s.error);
+  // Auth-tab disambiguation — same pattern as the other auth pages.
+  useDocumentTitle('Mot de passe oublié — Vision Affichage');
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
