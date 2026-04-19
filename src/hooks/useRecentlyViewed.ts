@@ -6,7 +6,20 @@ const MAX = 8;
 function readStorage(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string') : [];
+    if (!Array.isArray(raw)) return [];
+    // Dedup + filter non-strings + cap. track() maintains uniqueness
+    // on the write path, but a devtools edit or older build could
+    // persist duplicates. Dup handles would double-render a product
+    // in the RecentlyViewed component and trip React's list-key warning.
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of raw) {
+      if (typeof x !== 'string' || seen.has(x)) continue;
+      seen.add(x);
+      out.push(x);
+      if (out.length >= MAX) break;
+    }
+    return out;
   } catch {
     return [];
   }
