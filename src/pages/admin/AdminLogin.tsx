@@ -106,7 +106,32 @@ export default function AdminLogin() {
           {error && (
             <div role="alert" className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
               <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <span>{error}</span>
+              <div className="flex-1 space-y-1">
+                <div>{error}</div>
+                {/* Add an actionable suggestion when the failure was a
+                    bad credential — first-time admins often hit this
+                    because they haven't created their account yet, and
+                    the bare 'invalid email or password' didn't tell
+                    them where to go next. */}
+                {error.toLowerCase().includes('invalide') || error.toLowerCase().includes('invalid') ? (
+                  <div className="text-[11px] opacity-80">
+                    Pas encore de compte ?{' '}
+                    <Link
+                      to="/admin/signup"
+                      className="font-bold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 rounded"
+                    >
+                      Crée-le ici
+                    </Link>
+                    {' · '}
+                    <Link
+                      to="/admin/forgot-password"
+                      className="font-bold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 rounded"
+                    >
+                      Mot de passe oublié
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
             </div>
           )}
 
