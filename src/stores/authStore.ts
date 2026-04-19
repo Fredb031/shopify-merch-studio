@@ -1,5 +1,14 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import { normalizeInvisible } from '@/lib/utils';
+
+// Strip zero-width + control chars, lowercase, and trim. Used before
+// handing an email off to Supabase so a paste from Slack/Notion (which
+// often drags ZWSP along) doesn't return a confusing "invalid credentials"
+// rejection for a correct-looking address.
+function normalizeEmail(email: string): string {
+  return normalizeInvisible(email).trim().toLowerCase();
+}
 
 export type UserRole = 'president' | 'admin' | 'vendor' | 'client';
 
@@ -163,7 +172,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   signIn: async (email, password) => {
     set({ error: null });
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
+      email: normalizeEmail(email),
       password,
     });
     if (error || !data.user) {
@@ -189,7 +198,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   signUp: async (email, password, name) => {
     set({ error: null });
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
+      email: normalizeEmail(email),
       password,
       options: {
         data: { full_name: name.trim() },
@@ -232,7 +241,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   sendPasswordReset: async (email) => {
     set({ error: null });
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
       redirectTo: `${SITE_URL}/admin/reset-password`,
     });
     if (error) {
