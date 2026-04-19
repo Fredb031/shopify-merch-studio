@@ -16,7 +16,16 @@ const LangContext = createContext<LangContextType>({
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Lang>(() => {
-    try { return (localStorage.getItem('vision-lang') as Lang) || 'fr'; } catch { return 'fr'; }
+    // Validate before trusting — a corrupted or tampered localStorage
+    // value (older site version, browser extension, typo) would
+    // otherwise feed a string that isn't 'fr'|'en' into translate(),
+    // which indexes by those literals and would return the key path
+    // instead of real French/English text.
+    try {
+      const raw = localStorage.getItem('vision-lang');
+      if (raw === 'fr' || raw === 'en') return raw;
+    } catch { /* private mode */ }
+    return 'fr';
   });
 
   const handleSetLang = (newLang: Lang) => {
