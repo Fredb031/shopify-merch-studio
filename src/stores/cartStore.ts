@@ -138,6 +138,14 @@ interface CartStore {
 // the wrong one).
 let pendingCartCreation: Promise<void> | null = null;
 
+// Per-variant in-flight addItem promises. Rapid re-clicks on the same
+// Add-to-cart button used to race on the increment branch: both calls
+// read existingItem.quantity=N, both computed N+1, both wrote N+1 to
+// Shopify. Customer clicked twice, got charged for one. Chaining each
+// new addItem behind the previous one for the same variant makes the
+// second read see the first's committed quantity.
+const pendingAdds = new Map<string, Promise<void>>();
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
@@ -153,6 +161,13 @@ export const useCartStore = create<CartStore>()(
         if (!get().cartId && pendingCartCreation) {
           await pendingCartCreation;
         }
+        // Serialize same-variant re-clicks so the increment branch sees
+        // the prior committed quantity instead of a stale read.
+        const prior = pendingAdds.get(item.variantId);
+        if (prior) await prior;
+        let release!: () => void;
+        const slot = new Promise<void>(resolve => { release = resolve; });
+        pendingAdds.set(item.variantId, slot);
         const { items, cartId, clearCart } = get();
         const existingItem = items.find(i => i.variantId === item.variantId);
         set({ isLoading: true });
@@ -177,6 +192,10 @@ export const useCartStore = create<CartStore>()(
               // silently swallowed. (See the no-cartId branch above.)
               clearCart();
               set({ isLoading: false });
+              // Release our per-variant slot BEFORE the recursive call or
+              // the inner addItem awaits the slot we're still holding.
+              if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
+              release();
               await get().addItem(item);
               return;
             }
@@ -194,6 +213,8 @@ export const useCartStore = create<CartStore>()(
               // cart and returned silently with nothing added.
               clearCart();
               set({ isLoading: false });
+              if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
+              release();
               await get().addItem(item);
               return;
             } else if (result.success && !result.lineId) {
@@ -204,6 +225,10 @@ export const useCartStore = create<CartStore>()(
           console.error('Failed to add item:', error);
         } finally {
           set({ isLoading: false });
+          if (pendingAdds.get(item.variantId) === slot) {
+            pendingAdds.delete(item.variantId);
+          }
+          release();
         }
       },
 

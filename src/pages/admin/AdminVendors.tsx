@@ -112,9 +112,9 @@ export default function AdminVendors() {
         <button
           type="button"
           onClick={() => setShowInvite(true)}
-          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md"
+          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
-          <Plus size={15} />
+          <Plus size={15} aria-hidden="true" />
           Ajouter un vendeur
         </button>
       </header>
@@ -138,7 +138,7 @@ export default function AdminVendors() {
                     )}
                   </div>
                   <div className="text-xs text-zinc-500 truncate flex items-center gap-1">
-                    <Mail size={11} />
+                    <Mail size={11} aria-hidden="true" />
                     {v.email}
                   </div>
                 </div>
@@ -146,10 +146,11 @@ export default function AdminVendors() {
                   <button
                     type="button"
                     onClick={() => remove(v.id)}
-                    className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-rose-600 transition-all"
+                    className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-rose-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 rounded"
                     title="Retirer"
+                    aria-label={`Retirer ${v.name}`}
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={14} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -162,7 +163,7 @@ export default function AdminVendors() {
                 <div className="bg-zinc-50 rounded-lg p-2 text-center">
                   <div className="text-lg font-extrabold text-emerald-600 inline-flex items-center gap-0.5">
                     {v.conversionRate}%
-                    {v.conversionRate > 0 && <TrendingUp size={11} />}
+                    {v.conversionRate > 0 && <TrendingUp size={11} aria-hidden="true" />}
                   </div>
                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Conv.</div>
                 </div>
@@ -176,7 +177,8 @@ export default function AdminVendors() {
                 <span className="text-zinc-500">Actif {v.lastActive}</span>
                 <a
                   href={`mailto:${v.email}`}
-                  className="text-[#0052CC] font-bold hover:underline"
+                  aria-label={`Contacter ${v.name} par courriel`}
+                  className="text-[#0052CC] font-bold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                 >
                   Contacter →
                 </a>
