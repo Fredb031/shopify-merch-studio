@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Mail, Copy, Check } from 'lucide-react';
 import {
   quoteSentEmail,
@@ -63,13 +63,31 @@ export default function AdminEmails() {
   const [active, setActive] = useState<TemplateId>('quote-sent');
   const [lang, setLang] = useState<Lang>('fr');
   const [copied, setCopied] = useState(false);
+  // Track the "Copied!" indicator timer so navigating away mid-countdown
+  // doesn't fire setCopied on an unmounted component.
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const email = previewOf(active, lang);
 
-  const copyHtml = () => {
-    navigator.clipboard.writeText(email.html);
+  const copyHtml = async () => {
+    try {
+      await navigator.clipboard.writeText(email.html);
+    } catch (err) {
+      // Clipboard API can reject under iframes, non-HTTPS, or when the
+      // user has denied permission. Swallow so the UI doesn't crash,
+      // but DON'T flash the "Copied" badge for what the user didn't copy.
+      console.warn('[AdminEmails] clipboard write failed:', err);
+      return;
+    }
     setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => {
+      setCopied(false);
+      copiedTimerRef.current = null;
+    }, 1500);
   };
 
   return (

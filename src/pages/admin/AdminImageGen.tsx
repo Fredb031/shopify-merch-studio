@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Key, Zap, Download, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   generateImage,
@@ -38,6 +38,9 @@ export default function AdminImageGen() {
   const [apiKey, setApiKey] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  // Track the "saved!" toast timeout so navigating away mid-countdown
+  // doesn't leave setSavedMsg firing on an unmounted component.
+  const savedMsgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [prompt, setPrompt] = useState('');
   const [aspect, setAspect] = useState<'1:1' | '16:9' | '3:4'>('1:1');
@@ -52,12 +55,19 @@ export default function AdminImageGen() {
       const k = getStoredApiKey(p) ?? '';
       setApiKey(k);
     }
+    return () => {
+      if (savedMsgTimerRef.current) clearTimeout(savedMsgTimerRef.current);
+    };
   }, []);
 
   const handleSaveKey = () => {
     saveProviderConfig(provider, apiKey.trim());
     setSavedMsg('Configuration sauvegardée');
-    setTimeout(() => setSavedMsg(null), 2500);
+    if (savedMsgTimerRef.current) clearTimeout(savedMsgTimerRef.current);
+    savedMsgTimerRef.current = setTimeout(() => {
+      setSavedMsg(null);
+      savedMsgTimerRef.current = null;
+    }, 2500);
   };
 
   const handleClear = () => {
