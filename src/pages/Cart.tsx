@@ -23,13 +23,24 @@ function PromoCodeInput({
 }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState(false);
+  // Ref-tracked so parent unmount + rapid re-submit don't leak / fight.
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const submit = () => {
     if (!code.trim()) return;
     const ok = onApply(code.trim());
     if (!ok) {
       setError(true);
-      setTimeout(() => setError(false), 2500);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => {
+        setError(false);
+        errorTimerRef.current = null;
+      }, 2500);
     } else {
       setCode('');
     }
@@ -68,7 +79,7 @@ function PromoCodeInput({
   );
 }
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Cart page — uses the LOCAL cart store as the single source of truth.
