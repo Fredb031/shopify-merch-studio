@@ -44,7 +44,7 @@ export default function Account() {
         <div className="flex-1 flex items-center justify-center px-6 py-20 pt-24">
           <div className="text-center max-w-md">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-secondary flex items-center justify-center">
-              <UserIcon size={32} className="text-muted-foreground" />
+              <UserIcon size={32} className="text-muted-foreground" aria-hidden="true" />
             </div>
             <h1 className="text-2xl font-extrabold text-foreground mb-2">
               {lang === 'en' ? 'Sign in to your account' : 'Connecte-toi à ton compte'}
@@ -250,7 +250,7 @@ export default function Account() {
         {/* Profile info */}
         <div className="bg-white border border-border rounded-2xl p-5 md:p-6 mt-5 space-y-3">
           <h2 className="font-bold flex items-center gap-2 mb-3">
-            <UserIcon size={16} className="text-primary" />
+            <UserIcon size={16} className="text-primary" aria-hidden="true" />
             {lang === 'en' ? 'My info' : 'Mes informations'}
           </h2>
           <div className="space-y-2 text-sm">
