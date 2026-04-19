@@ -83,7 +83,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   return (
     <div
       className="fixed inset-0 z-[700] bg-foreground/60 backdrop-blur-[14px] flex items-center justify-center"
-      onClick={onClose}
+      // Don't close the modal while a sign-in is in flight — the async
+      // chain keeps running post-unmount and the success path calls
+      // navigate() on whatever route the user ended up on, which reads
+      // as "I clicked outside to dismiss, now it teleported me to
+      // /admin." Block the backdrop close while submitting.
+      onClick={() => { if (!submitting) onClose(); }}
       aria-hidden="true"
     >
       <div

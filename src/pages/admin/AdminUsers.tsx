@@ -169,17 +169,17 @@ export default function AdminUsers() {
         <button
           type="button"
           onClick={() => setShowInvite(true)}
-          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md"
+          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
-          <Plus size={15} />
+          <Plus size={15} aria-hidden="true" />
           Inviter un membre
         </button>
       </header>
 
       {error && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
+        <div role="alert" className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-900">
           <div className="flex items-start gap-2">
-            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+            <AlertCircle size={16} className="mt-0.5 flex-shrink-0" aria-hidden="true" />
             <div>
               <strong>Migration non encore appliquée ?</strong> Cette page exige que la migration{' '}
               <code className="bg-white px-1 rounded">supabase/migrations/0001_auth_quotes_invites.sql</code> ait été exécutée
@@ -316,7 +316,10 @@ export default function AdminUsers() {
             </p>
 
             {inviteResult && (
-              <div className={`p-3 rounded-lg text-xs mb-3 ${inviteResult.startsWith('Erreur') ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+              <div
+                role={inviteResult.startsWith('Erreur') ? 'alert' : 'status'}
+                className={`p-3 rounded-lg text-xs mb-3 ${inviteResult.startsWith('Erreur') ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}
+              >
                 {inviteResult}
               </div>
             )}
@@ -333,31 +336,40 @@ export default function AdminUsers() {
                   className="mt-1 w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC]" />
               </label>
               <div>
-                <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Rôle</span>
-                <div className="grid grid-cols-2 gap-2">
+                <span id="invite-role-label" className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider block mb-1.5">Rôle</span>
+                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-labelledby="invite-role-label">
                   {(['vendor', 'admin'] as const).map(r => {
                     const Icon = r === 'admin' ? ShieldCheck : User;
                     return (
                       <button
                         key={r}
                         type="button"
+                        role="radio"
+                        aria-checked={inviteRole === r}
                         onClick={() => setInviteRole(r)}
-                        className={`flex items-center gap-2 p-3 border-2 rounded-lg text-sm font-bold transition-all ${
+                        className={`flex items-center gap-2 p-3 border-2 rounded-lg text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                           inviteRole === r ? 'border-[#0052CC] bg-[#0052CC]/5 text-[#0052CC]' : 'border-zinc-200 text-zinc-600'
                         }`}
                       >
-                        <Icon size={15} />
+                        <Icon size={15} aria-hidden="true" />
                         {ROLE_LABEL[r]}
                       </button>
                     );
                   })}
                 </div>
               </div>
-              <button type="submit" disabled={inviteSubmitting}
-                className="w-full py-3 bg-[#0052CC] text-white rounded-lg text-sm font-extrabold hover:opacity-90 disabled:opacity-60">
+              <button
+                type="submit"
+                disabled={inviteSubmitting}
+                className="w-full py-3 bg-[#0052CC] text-white rounded-lg text-sm font-extrabold hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              >
                 {inviteSubmitting ? 'Envoi…' : "Envoyer l'invitation"}
               </button>
-              <button type="button" onClick={() => { setShowInvite(false); setInviteResult(null); }} className="w-full text-xs text-zinc-500 hover:text-zinc-900">
+              <button
+                type="button"
+                onClick={() => { setShowInvite(false); setInviteResult(null); }}
+                className="w-full text-xs text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+              >
                 Annuler
               </button>
             </form>
