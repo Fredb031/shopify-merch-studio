@@ -7,6 +7,7 @@
  *    duplication on step 3). The 3D viewer on the left already shows the garment.
  */
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, ChevronRight, ChevronLeft, Check, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
+  const navigate = useNavigate();
   const store    = useCustomizerStore();
   const cartStore = useCartStore();
   const shopifyCartStore = useShopifyCartStore();
@@ -536,7 +538,17 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       lang === 'en'
         ? `${product.shortName} × ${colorCount > 1 ? `${colorCount} colors` : '1 color'} added to cart!`
         : `${product.shortName} × ${colorCount > 1 ? `${colorCount} couleurs` : '1 couleur'} ajouté au panier !`,
-      { duration: 3000 },
+      {
+        duration: 5000,
+        // Inline action so the customer can jump straight to checkout
+        // instead of hunting for the cart icon. Bumped duration from 3s
+        // to 5s so the action button stays clickable long enough on
+        // touch devices where toast tap targets feel rushed at 3s.
+        action: {
+          label: lang === 'en' ? 'View cart' : 'Voir le panier',
+          onClick: () => navigate('/cart'),
+        },
+      },
     );
     } catch (err) {
       // A Shopify network blip or bad variantId would otherwise throw
