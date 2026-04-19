@@ -404,7 +404,7 @@ export default function Checkout() {
                   type="button"
                   disabled={!infoValid}
                   onClick={goNext}
-                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all"
+                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Continue to shipping' : 'Continuer à la livraison'}
                 </button>
@@ -414,7 +414,7 @@ export default function Checkout() {
             {step === 'shipping' && (
               <div className="space-y-5">
                 <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
-                  <Truck size={18} className="text-[#0052CC]" />
+                  <Truck size={18} className="text-[#0052CC]" aria-hidden="true" />
                   {lang === 'en' ? 'Shipping method' : 'Méthode de livraison'}
                 </h2>
 
@@ -450,7 +450,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold hover:shadow-xl transition-all"
+                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Continue to payment' : 'Continuer au paiement'}
                 </button>

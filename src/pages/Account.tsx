@@ -258,7 +258,7 @@ export default function Account() {
           </div>
           <Link
             to="/admin/reset-password"
-            className="inline-block mt-3 text-xs font-bold text-[#0052CC] hover:underline"
+            className="inline-block mt-3 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
           >
             {lang === 'en' ? 'Change password →' : 'Changer mon mot de passe →'}
           </Link>
@@ -267,9 +267,9 @@ export default function Account() {
         <button
           type="button"
           onClick={handleLogout}
-          className="sm:hidden w-full mt-5 inline-flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-xl text-sm font-bold text-muted-foreground"
+          className="sm:hidden w-full mt-5 inline-flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-xl text-sm font-bold text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
-          <LogOut size={14} />
+          <LogOut size={14} aria-hidden="true" />
           {lang === 'en' ? 'Sign out' : 'Déconnexion'}
         </button>
       </main>
@@ -283,7 +283,7 @@ export default function Account() {
 function Row({ icon: Icon, label, value }: { icon: typeof UserIcon; label: string; value: string }) {
   return (
     <div className="flex items-center gap-3 p-2 bg-secondary/40 rounded-lg">
-      <Icon size={14} className="text-muted-foreground flex-shrink-0" />
+      <Icon size={14} className="text-muted-foreground flex-shrink-0" aria-hidden="true" />
       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[70px]">{label}</span>
       <span className="text-sm flex-1 truncate">{value}</span>
     </div>
