@@ -136,7 +136,7 @@ export default function AdminVendors() {
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Vendeurs</h1>
-          <p className="text-sm text-zinc-500 mt-1">Gère ton équipe et leurs accès · {all.length} vendeurs</p>
+          <p className="text-sm text-zinc-500 mt-1">Gère ton équipe et leurs accès · {all.length} vendeur{all.length > 1 ? 's' : ''}</p>
         </div>
         <button
           type="button"
@@ -150,7 +150,16 @@ export default function AdminVendors() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {all.map(v => {
-          const initials = v.name.split(' ').map(n => n[0]).slice(0, 2).join('');
+          // Defensive initials — drop empty/undefined parts so a name
+          // typed as '  ' (only whitespace) or a missing field doesn't
+          // produce an empty avatar bubble.
+          const initials = (v.name || '')
+            .split(/\s+/)
+            .map(n => n[0])
+            .filter(Boolean)
+            .slice(0, 2)
+            .join('')
+            .toUpperCase() || '?';
           return (
             <div key={v.id} className="bg-white border border-zinc-200 rounded-2xl p-5 hover:shadow-lg transition-shadow group">
               <div className="flex items-center gap-3 mb-4">
