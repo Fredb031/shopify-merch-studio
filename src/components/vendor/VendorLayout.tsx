@@ -22,8 +22,12 @@ export function VendorLayout() {
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEscapeKey(mobileOpen, useCallback(() => setMobileOpen(false), []));
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = async () => {
+    // Await so the async in-memory store clears (cart/customizer reset
+    // via dynamic imports inside authStore.signOut) finish BEFORE we
+    // navigate. Mirrors the Navbar fix — without it, the home page
+    // briefly rendered with the ex-vendor's cart badge still populated.
+    await signOut();
     navigate('/');
   };
 

@@ -33,8 +33,11 @@ export function AdminLayout() {
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEscapeKey(mobileOpen, useCallback(() => setMobileOpen(false), []));
 
-  const handleLogout = () => {
-    signOut();
+  const handleLogout = async () => {
+    // Await the async signOut so the dynamic-import chain finishes
+    // clearing cart + customizer stores BEFORE we navigate home.
+    // Mirrors the Navbar + VendorLayout fixes.
+    await signOut();
     navigate('/');
   };
 
