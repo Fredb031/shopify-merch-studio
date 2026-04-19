@@ -428,19 +428,19 @@ export default function Checkout() {
                 </label>
 
                 {/* Urgency: ship-by promise. Calculated client-side from
-                    today's date. Past-3pm orders bump one business day. */}
+                    today's date. Past-3pm orders bump one business day,
+                    express cuts the window to 2-3 business days. */}
                 {(() => {
                   const now = new Date();
                   const cutoff = new Date(now);
                   cutoff.setHours(15, 0, 0, 0);
                   const after3pm = now > cutoff;
-                  // Count BUSINESS days (skip Sat/Sun). The shipping copy
-                  // elsewhere promises "5 business days" — using calendar
-                  // days over-promised by 1-2 days any time the window
-                  // straddled a weekend (Fri pre-3pm said Wed when the
-                  // real delivery is the following Fri).
+                  // Base promise matches the shipping method copy: standard
+                  // = 5 business days, express = 3. Before this, express
+                  // buyers saw the 5-day ETA even after paying for express.
+                  const baseDays = shippingMethod === 'express' ? 3 : 5;
                   const ship = new Date(now);
-                  let remaining = after3pm ? 6 : 5;
+                  let remaining = baseDays + (after3pm ? 1 : 0);
                   while (remaining > 0) {
                     ship.setDate(ship.getDate() + 1);
                     const dow = ship.getDay();
