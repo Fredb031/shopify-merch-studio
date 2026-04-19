@@ -8,7 +8,7 @@ import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
-import { normalizeInvisible } from '@/lib/utils';
+import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 type Stage = 'pending' | 'production' | 'shipped' | 'delivered';
 
@@ -130,15 +130,25 @@ export default function TrackOrder() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
                 {lang === 'en' ? 'Email used at checkout' : 'Courriel utilisé à la commande'}
               </span>
-              <input
-                type="email"
-                autoComplete="email"
-                value={emailInput}
-                onChange={e => setEmailInput(e.target.value)}
-                placeholder={lang === 'en' ? 'you@company.com' : 'toi@entreprise.ca'}
-                aria-label={lang === 'en' ? 'Email used at checkout' : 'Courriel utilisé à la commande'}
-                className="mt-1 w-full border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
-              />
+              {(() => {
+                const emailInvalid = emailInput.trim().length > 0 && !isValidEmail(emailInput);
+                return (
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={emailInput}
+                    onChange={e => setEmailInput(e.target.value)}
+                    placeholder={lang === 'en' ? 'you@company.com' : 'toi@entreprise.ca'}
+                    aria-label={lang === 'en' ? 'Email used at checkout' : 'Courriel utilisé à la commande'}
+                    aria-invalid={emailInvalid || undefined}
+                    className={`mt-1 w-full border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${
+                      emailInvalid
+                        ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                        : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                    }`}
+                  />
+                );
+              })()}
             </label>
           </div>
 
