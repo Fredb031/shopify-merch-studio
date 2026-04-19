@@ -54,32 +54,46 @@ export default function QuoteList() {
       const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
       type StoredQuote = {
         id?: string | number;
-        quoteNumber?: string;
+        number?: string;
         clientName?: string;
         clientEmail?: string;
         total?: number;
         status?: MockQuote['status'];
-        createdAt: string;
+        createdAt?: string;
         items?: unknown[];
+        discountValue?: number;
       };
-      const mapped: MockQuote[] = (Array.isArray(raw) ? (raw as StoredQuote[]) : []).map(q => {
-        const created = new Date(q.createdAt);
-        const ageMs = Date.now() - created.getTime();
-        const days = Math.floor(ageMs / 86400000);
-        const hours = Math.floor(ageMs / 3600000);
-        const age = days > 0 ? `il y a ${days}j` : hours > 0 ? `il y a ${hours}h` : 'à l\'instant';
-        return {
-          id: q.id,
-          number: q.number,
-          client: q.clientName || q.clientEmail.split('@')[0],
-          email: q.clientEmail,
-          items: q.items.length,
-          total: q.total,
-          discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
-          status: q.status as Status,
-          age,
-        };
-      });
+      // One malformed quote used to blow up .map (clientEmail.split on
+      // undefined), which the outer try swallowed and emptied the whole
+      // saved list. Use per-row try/catch and field guards so a single
+      // bad row is skipped instead of losing every quote.
+      const mapped: MockQuote[] = [];
+      const list = Array.isArray(raw) ? (raw as StoredQuote[]) : [];
+      for (const q of list) {
+        try {
+          if (!q || typeof q !== 'object') continue;
+          const created = q.createdAt ? new Date(q.createdAt) : new Date();
+          const ageMs = Date.now() - created.getTime();
+          const days = Math.floor(ageMs / 86400000);
+          const hours = Math.floor(ageMs / 3600000);
+          const age = days > 0 ? `il y a ${days}j` : hours > 0 ? `il y a ${hours}h` : 'à l\'instant';
+          const email = typeof q.clientEmail === 'string' ? q.clientEmail : '';
+          const clientFromEmail = email.includes('@') ? email.split('@')[0] : email;
+          mapped.push({
+            id: String(q.id ?? `q-${mapped.length}`),
+            number: typeof q.number === 'string' ? q.number : '—',
+            client: q.clientName || clientFromEmail || '—',
+            email,
+            items: Array.isArray(q.items) ? q.items.length : 0,
+            total: typeof q.total === 'number' ? q.total : 0,
+            discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
+            status: (q.status as Status) ?? 'draft',
+            age,
+          });
+        } catch (e) {
+          console.warn('[QuoteList] Skipping malformed quote row:', e);
+        }
+      }
       setSavedQuotes(mapped);
     } catch {
       setSavedQuotes([]);
