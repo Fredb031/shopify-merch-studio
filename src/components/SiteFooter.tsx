@@ -174,9 +174,18 @@ export function SiteFooter() {
               {lang === 'en' ? 'Reach us' : 'Nous joindre'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2 text-white/80"><Phone size={12} className="text-[#E8A838]" /> 367-380-4808</li>
-              <li className="flex items-center gap-2 text-white/80 break-all"><Mail size={12} className="text-[#E8A838]" /> info@visionaffichage.com</li>
-              <li className="flex items-center gap-2 text-white/80"><MapPin size={12} className="text-[#E8A838]" /> Québec, Canada</li>
+              <li className="flex items-center gap-2 text-white/80">
+                <Phone size={12} className="text-[#E8A838]" aria-hidden="true" />
+                <a href="tel:+13673804808" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">367-380-4808</a>
+              </li>
+              <li className="flex items-center gap-2 text-white/80 break-all">
+                <Mail size={12} className="text-[#E8A838]" aria-hidden="true" />
+                <a href="mailto:info@visionaffichage.com" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">info@visionaffichage.com</a>
+              </li>
+              <li className="flex items-center gap-2 text-white/80">
+                <MapPin size={12} className="text-[#E8A838]" aria-hidden="true" />
+                Québec, Canada
+              </li>
             </ul>
           </div>
         </div>
