@@ -53,8 +53,11 @@ export default function AdminAbandonedCarts() {
             <span>{SHOPIFY_STATS.abandonedCheckoutsCount} checkouts à recuperer</span>
           </p>
         </div>
-        <button className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white">
-          <RefreshCw size={15} />
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+        >
+          <RefreshCw size={15} aria-hidden="true" />
           Resync
         </button>
       </header>
@@ -82,13 +85,15 @@ export default function AdminAbandonedCarts() {
       <div className="bg-white border border-zinc-200 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-sm">Liste des paniers</h2>
-          <div className="inline-flex bg-zinc-100 rounded-lg p-0.5">
+          <div className="inline-flex bg-zinc-100 rounded-lg p-0.5" role="radiogroup" aria-label="Trier les paniers">
             {(['value', 'recent'] as const).map(s => (
               <button
                 key={s}
                 type="button"
+                role="radio"
+                aria-checked={sort === s}
                 onClick={() => setSort(s)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                   sort === s ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'
                 }`}
               >
@@ -116,14 +121,17 @@ export default function AdminAbandonedCarts() {
       <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-            <Send size={18} />
+            <Send size={18} aria-hidden="true" />
           </div>
           <div>
             <div className="font-bold text-sm mb-1">Activer la séquence de récupération</div>
             <div className="text-xs text-white/70 mb-3 max-w-md">
               Configurez l'envoi automatique d'un courriel de relance après 1h, 24h et 72h pour récupérer en moyenne 15-25% des paniers abandonnés.
             </div>
-            <button type="button" className="text-[11px] font-bold text-[#E8A838] hover:underline">
+            <button
+              type="button"
+              className="text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+            >
               Configurer la séquence →
             </button>
           </div>
@@ -158,18 +166,20 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
       <a
         href={`mailto:${checkout.email}?subject=Tu as oubli%C3%A9 ton panier sur Vision Affichage&body=Bonjour ${encodeURIComponent(name)},%0D%0A%0D%0AOn a remarqu%C3%A9 que tu as un panier en attente sur notre site. Tu peux le compl%C3%A9ter ici :%0D%0A${encodeURIComponent(checkout.recoveryUrl)}%0D%0A%0D%0ASi tu as des questions, n%27h%C3%A9site pas !%0D%0A%0D%0A%C3%89quipe Vision Affichage`}
         title="Envoyer un courriel de relance"
-        className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC]"
+        aria-label={`Envoyer un courriel de relance à ${name}`}
+        className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
       >
-        <Mail size={14} />
+        <Mail size={14} aria-hidden="true" />
       </a>
       <a
         href={checkout.recoveryUrl}
         target="_blank"
         rel="noopener noreferrer"
         title="Lien de récupération"
-        className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC]"
+        aria-label={`Ouvrir le lien de récupération pour ${name} (nouvel onglet)`}
+        className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
       >
-        <ExternalLink size={14} />
+        <ExternalLink size={14} aria-hidden="true" />
       </a>
     </div>
   );
