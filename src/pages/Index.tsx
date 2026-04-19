@@ -175,6 +175,7 @@ export default function Index() {
                   loading={i < 4 ? 'eager' : 'lazy'}
                   decoding="async"
                   className="h-[64px] w-auto px-8 object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
               ))}
             </div>
@@ -313,6 +314,7 @@ export default function Index() {
                 loading="lazy"
                 decoding="async"
                 className="w-full rounded-[22px] aspect-[4/5] object-cover"
+                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
               />
               <div className="absolute bottom-[18px] left-[18px] right-[18px] bg-card/95 backdrop-blur-[10px] rounded-xl p-3.5 flex items-center gap-3">
                 <div className="w-[38px] h-[38px] gradient-navy-dark rounded-[10px] flex items-center justify-center flex-shrink-0">
@@ -367,7 +369,7 @@ export default function Index() {
                           className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC] focus-visible:ring-inset"
                           aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
                         >
-                          <img src={v.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" />
+                          <img src={v.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover/play:scale-110 shadow-xl">
                               <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -464,6 +466,7 @@ export default function Index() {
                     loading="lazy"
                     decoding="async"
                     className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all"
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                   />
                 </div>
               ))}
