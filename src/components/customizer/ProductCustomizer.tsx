@@ -292,6 +292,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           unmatched.push(v);
           continue;
         }
+        // Also refuse obvious non-gid strings up front. A local-only
+        // color catalog entry can reach multiVariants via the size
+        // fallback, and its variantId is e.g. 'noir_M' — cartLinesAdd
+        // silently userErrors on it but addItem doesn't throw, so the
+        // post-call state check below wouldn't fire either. Skip here.
+        if (!v.shopifyVariantId.startsWith('gid://shopify/')) {
+          console.warn('Skipping Shopify sync — variantId is not a Shopify gid:', v.shopifyVariantId);
+          unmatched.push(v);
+          continue;
+        }
         try {
           await shopifyCartStore.addItem({
             product: minimalProduct,
@@ -304,7 +314,21 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               { name: 'Taille', value: v.size },
             ],
           });
-          succeededVariantIds.add(v.shopifyVariantId);
+          // shopifyCartStore.addItem doesn't throw on Shopify userErrors —
+          // it logs and returns without committing to items. Confirm the
+          // line actually landed by reading the store back via getState
+          // (the hook-bound `shopifyCartStore` here is the snapshot from
+          // render time, not the live post-await state). Without this
+          // check, silent rejections would still register as success and
+          // we'd commit the local cart line for a variant that was never
+          // added to Shopify.
+          const liveItems = useShopifyCartStore.getState().items;
+          const landed = liveItems.some(i => i.variantId === v.shopifyVariantId);
+          if (landed) {
+            succeededVariantIds.add(v.shopifyVariantId);
+          } else {
+            shopifyFailures.push(v);
+          }
         } catch (e) {
           console.warn('[customizer] Shopify addItem failed for', v.colorName, v.size, e);
           shopifyFailures.push(v);
