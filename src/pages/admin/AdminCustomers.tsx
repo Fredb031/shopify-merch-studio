@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search, ExternalLink, Mail, Phone, MapPin, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -41,6 +41,17 @@ export default function AdminCustomers() {
   // Reset pagination when the filter or search changes — otherwise
   // filtering to 3 prospects while on page 5 shows an empty table.
   useEffect(() => { setPage(0); }, [query, filter]);
+
+  // Track the resync delay so unmounting (route change between click and
+  // the 400ms reload) cancels the pending location.reload — without this
+  // the user would navigate to e.g. /admin/orders, then 400ms later get
+  // yanked back to /admin/customers when the reload fires.
+  const resyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+    };
+  }, []);
 
   useEscapeKey(!!selected, useCallback(() => setSelected(null), []));
   // Lock body scroll + trap focus while the customer detail drawer is
@@ -89,7 +100,8 @@ export default function AdminCustomers() {
           type="button"
           onClick={() => {
             toast.info('Synchronisation en cours…');
-            setTimeout(() => window.location.reload(), 400);
+            if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+            resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
           }}
           className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
         >
