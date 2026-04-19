@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Eye, Plus } from 'lucide-react';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
 
@@ -97,11 +98,16 @@ export default function AdminQuotes() {
   const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
 
   const filtered = useMemo(() => {
+    // Strip invisibles so a paste-from-Slack search still matches quote
+    // records that may carry ZWSP from an earlier admin save.
+    const Q = normalizeInvisible(query).trim().toLowerCase();
     return all.filter(q => {
       if (filter !== 'all' && q.status !== filter) return false;
-      if (!query.trim()) return true;
-      const Q = query.toLowerCase();
-      return q.client.toLowerCase().includes(Q) || q.vendor.toLowerCase().includes(Q) || q.number.toLowerCase().includes(Q);
+      if (!Q) return true;
+      const client = normalizeInvisible(q.client).toLowerCase();
+      const vendor = normalizeInvisible(q.vendor).toLowerCase();
+      const num = normalizeInvisible(q.number).toLowerCase();
+      return client.includes(Q) || vendor.includes(Q) || num.includes(Q);
     });
   }, [all, query, filter]);
 

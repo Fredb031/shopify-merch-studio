@@ -86,11 +86,15 @@ export default function AdminUsers() {
   };
 
   const filtered = useMemo(() => {
+    // Strip invisibles in both the search term and the indexed fields
+    // — same reasoning as AdminOrders / AdminCustomers.
+    const q = normalizeInvisible(query).trim().toLowerCase();
     return users.filter(u => {
       if (filter !== 'all' && u.role !== filter) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
-      return u.email.toLowerCase().includes(q) || (u.full_name ?? '').toLowerCase().includes(q);
+      if (!q) return true;
+      const email = normalizeInvisible(u.email).toLowerCase();
+      const name = normalizeInvisible(u.full_name ?? '').toLowerCase();
+      return email.includes(q) || name.includes(q);
     });
   }, [users, query, filter]);
 

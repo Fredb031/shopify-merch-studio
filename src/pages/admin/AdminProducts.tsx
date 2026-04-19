@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 32;
 
@@ -24,15 +25,17 @@ export default function AdminProducts() {
   }, []);
 
   const products = useMemo(() => {
+    // Same ZWSP-safe pattern as AdminOrders / AdminCustomers: a paste
+    // of an SKU or vendor name from Slack could carry a sneaky ZWSP
+    // and fall through to an empty grid.
+    const q = normalizeInvisible(query).trim().toLowerCase();
     return SHOPIFY_PRODUCTS_SNAPSHOT.filter(p => {
       if (typeFilter !== 'all' && p.productType !== typeFilter) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
-      return (
-        p.title.toLowerCase().includes(q) ||
-        p.handle.toLowerCase().includes(q) ||
-        p.vendor.toLowerCase().includes(q)
-      );
+      if (!q) return true;
+      const title = normalizeInvisible(p.title).toLowerCase();
+      const handle = normalizeInvisible(p.handle).toLowerCase();
+      const vendor = normalizeInvisible(p.vendor).toLowerCase();
+      return title.includes(q) || handle.includes(q) || vendor.includes(q);
     });
   }, [query, typeFilter]);
 
