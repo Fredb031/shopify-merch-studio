@@ -23,7 +23,11 @@ interface Props {
   colors: ShopifyVariantColor[];
   /** Already-picked variants (color × size cells). */
   variants: VariantQty[];
-  onChange: (next: VariantQty[]) => void;
+  /** Accepts a value OR a functional updater so the size stepper can
+   * do `qty + 1` atomically on the LIVE state — rapid double-clicks
+   * on `+` used to both close over the same stale qty and increment by
+   * only 1 instead of 2. */
+  onChange: React.Dispatch<React.SetStateAction<VariantQty[]>>;
 }
 
 export function MultiVariantPicker({ product, colors, variants, onChange }: Props) {
@@ -78,30 +82,31 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
     onChange(next);
   };
 
-  const setQty = (color: typeof activeColor, size: string, qty: number) => {
+  const adjustQty = (color: typeof activeColor, size: string, nextQtyFn: (curr: number) => number) => {
     if (!color) return;
-    const filtered = variants.filter(v => !(v.colorId === color.variantId && v.size === size));
-    if (qty <= 0) {
-      onChange(filtered);
-      return;
-    }
-    // Look up the actual Shopify size variant for this (color, size) combo.
-    // This ID is what cartLinesAdd needs at checkout — without it the order
-    // never reaches Shopify.
-    const sizeOpt = (color as ShopifyVariantColor).sizeOptions?.find(s => s.size === size);
-    const next = [
-      ...filtered,
-      {
-        colorId: color.variantId,
-        colorName: color.colorName,
-        hex: color.hex,
-        size,
-        qty,
-        shopifyVariantId: sizeOpt?.variantId,
-        unitPrice: (color as ShopifyVariantColor).price,
-      },
-    ];
-    onChange(next);
+    // Functional update reads the CURRENT variants at commit time, not
+    // the closure's snapshot. Rapid double-click on +/- stepper now
+    // applies both clicks against live state instead of both closing
+    // over qty=N and each producing qty=N+1.
+    onChange(prev => {
+      const current = prev.find(v => v.colorId === color.variantId && v.size === size)?.qty ?? 0;
+      const nextQty = Math.max(0, nextQtyFn(current));
+      const filtered = prev.filter(v => !(v.colorId === color.variantId && v.size === size));
+      if (nextQty <= 0) return filtered;
+      const sizeOpt = (color as ShopifyVariantColor).sizeOptions?.find(s => s.size === size);
+      return [
+        ...filtered,
+        {
+          colorId: color.variantId,
+          colorName: color.colorName,
+          hex: color.hex,
+          size,
+          qty: nextQty,
+          shopifyVariantId: sizeOpt?.variantId,
+          unitPrice: (color as ShopifyVariantColor).price,
+        },
+      ];
+    });
   };
 
   // Group variants by color for the summary chips
@@ -275,7 +280,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                 <div className="flex items-center justify-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setQty(activeColor, size, Math.max(0, qty - 1))}
+                    onClick={() => adjustQty(activeColor, size, q => q - 1)}
                     disabled={qty === 0 || unavailable}
                     aria-label={lang === 'en' ? `Decrease ${size}` : `Diminuer ${size}`}
                     className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all"
@@ -287,7 +292,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                   </span>
                   <button
                     type="button"
-                    onClick={() => setQty(activeColor, size, qty + 1)}
+                    onClick={() => adjustQty(activeColor, size, q => q + 1)}
                     disabled={unavailable}
                     aria-label={lang === 'en' ? `Increase ${size}` : `Augmenter ${size}`}
                     className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all"
