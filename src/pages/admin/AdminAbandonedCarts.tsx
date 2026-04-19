@@ -156,7 +156,11 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
   const valueColor = checkout.total >= 200 ? 'text-emerald-700' : checkout.total >= 75 ? 'text-amber-700' : 'text-zinc-500';
 
   return (
-    <div className="flex items-center gap-4 p-3 hover:bg-zinc-50 rounded-xl transition-colors">
+    // focus-within mirrors the hover state when a keyboard user tabs
+    // into one of the row's action links (Mail / ExternalLink). Without
+    // it, sighted-mouse users got the hover affordance but keyboard
+    // users had no row-level visual context to anchor focus.
+    <div className="flex items-center gap-4 p-3 hover:bg-zinc-50 focus-within:bg-zinc-50 rounded-xl transition-colors">
       <div
         className="w-10 h-10 rounded-full bg-zinc-100 text-zinc-600 flex items-center justify-center text-xs font-bold flex-shrink-0"
         aria-hidden="true"
