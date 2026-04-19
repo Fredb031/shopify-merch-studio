@@ -283,7 +283,9 @@ export default function QuoteBuilder() {
                       <input
                         value={it.placementNote}
                         onChange={e => updateItem(it.id, { placementNote: e.target.value })}
+                        maxLength={120}
                         placeholder="Ex. Coeur gauche, dos en bas"
+                        aria-label="Placement du logo"
                         className="w-full border border-zinc-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-[#0052CC]"
                       />
                     </div>
