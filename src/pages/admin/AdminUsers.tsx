@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,14 +34,35 @@ const ROLE_LABEL: Record<UserRole, string> = {
   client: 'Client',
 };
 
+const VALID_ROLE_FILTERS: readonly (UserRole | 'all')[] = ['all', 'president', 'admin', 'vendor', 'client'];
+
 export default function AdminUsers() {
   useDocumentTitle('Comptes & accès — Admin Vision Affichage');
+  // URL-backed search/filter — same pattern as the other admin tables.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = searchParams.get('q') ?? '';
+  const initialFilterRaw = searchParams.get('filter') ?? 'all';
+  const initialFilter: UserRole | 'all' = (VALID_ROLE_FILTERS as readonly string[]).includes(initialFilterRaw)
+    ? (initialFilterRaw as UserRole | 'all')
+    : 'all';
+
   const me = useAuthStore(s => s.user);
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<UserRole | 'all'>('all');
+  const [query, setQuery] = useState(initialQuery);
+  const [filter, setFilter] = useState<UserRole | 'all'>(initialFilter);
+
+  // Sync state → URL with replace history.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
+    if (filter !== 'all') next.set('filter', filter); else next.delete('filter');
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [query, filter, searchParams, setSearchParams]);
   const [showInvite, setShowInvite] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
