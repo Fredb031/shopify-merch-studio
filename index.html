@@ -58,6 +58,15 @@
     <!-- Supabase (used for AI chat, SanMar inventory, logo storage) -->
     <link rel="preconnect" href="https://fpljtwaqoldcoxgjtqgv.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://fpljtwaqoldcoxgjtqgv.supabase.co" />
+    <!-- Google Fonts — Plus Jakarta Sans + Lora are pulled via @import in
+         src/index.css. Without these preconnects the browser had to wait
+         until the CSS parsed before opening the TLS handshakes to
+         fonts.googleapis.com (CSS shell) and fonts.gstatic.com (the
+         actual font files), adding ~200-400ms of FOIT on first load.
+         The crossorigin attr is required on the gstatic preconnect
+         because the font fetches are CORS-attributed. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
     <!-- Security headers (CSP) -->
     <meta
