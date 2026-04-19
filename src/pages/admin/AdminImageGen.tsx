@@ -47,6 +47,11 @@ export default function AdminImageGen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<GeneratedImage[]>([]);
+  // Guard setState against a navigate-away mid-generation (DALL-E HD
+  // calls commonly take 8-12s; an admin who clicks away in that window
+  // would otherwise trigger React's unmounted-setState dev warning
+  // and waste the generated image on a dead component's history).
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
     const p = getStoredProvider();
@@ -57,6 +62,7 @@ export default function AdminImageGen() {
     }
     return () => {
       if (savedMsgTimerRef.current) clearTimeout(savedMsgTimerRef.current);
+      isMountedRef.current = false;
     };
   }, []);
 
@@ -82,11 +88,13 @@ export default function AdminImageGen() {
     setLoading(true);
     try {
       const img = await generateImage({ prompt: prompt.trim(), aspect });
+      if (!isMountedRef.current) return;
       setHistory(h => [img, ...h].slice(0, 12));
     } catch (err) {
+      if (!isMountedRef.current) return;
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   };
 
