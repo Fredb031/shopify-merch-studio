@@ -384,6 +384,21 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       }
     } else if (shopifyColor && totalQty > 0) {
       // ── Legacy single-color flow (fallback) ──
+      // Guard: if the selected color came from the local catalog only
+      // (no Shopify match), its variantId is a plain string like 'noir',
+      // not a real Shopify gid. Firing that at cartLinesAdd produces a
+      // silent userError, the Shopify cart stays empty, but the local
+      // cart still gets the line — checkout then 404s on the permalink.
+      // Bail with a clear error so the user knows we need help matching.
+      if (!shopifyColor.variantId.startsWith('gid://shopify/')) {
+        toast.error(
+          lang === 'en'
+            ? 'We couldn\u2019t match this color to our Shopify catalog. Call us at 367-380-4808 or pick a different color.'
+            : 'Impossible d\u2019associer cette couleur à notre catalogue Shopify. Appelle-nous au 367-380-4808 ou choisis une autre couleur.',
+          { duration: 6000 },
+        );
+        return;
+      }
       const minimalProduct: ShopifyProduct = {
         node: {
           id: shopifyColor.variantId,
