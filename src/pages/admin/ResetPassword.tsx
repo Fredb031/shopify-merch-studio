@@ -15,21 +15,29 @@ export default function ResetPassword() {
   const [done, setDone] = useState(false);
   const [tokenReady, setTokenReady] = useState(false);
 
-  // Supabase parses recovery token from URL hash automatically when client loads.
-  // We check that there's an active session before allowing the form.
+  // Supabase parses the recovery token from the URL hash asynchronously
+  // on client init. A first-mount getSession() often returns no session
+  // because the SDK hasn't processed the hash yet — users landing
+  // straight from the reset email saw "Lien invalide" flash briefly
+  // before anything. Subscribe to onAuthStateChange so the PASSWORD_RECOVERY
+  // / SIGNED_IN event flips tokenReady true the moment the SDK is ready.
   useEffect(() => {
+    let alive = true;
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
-        setTokenReady(Boolean(session));
+        if (alive && session) setTokenReady(true);
       })
       .catch((err) => {
-        // getSession can reject on network/storage failures — without
-        // a catch the promise leaked as an unhandled rejection and
-        // tokenReady stayed false forever, showing the "invalid link"
-        // screen even for real reset links.
         console.warn('[ResetPassword] getSession failed:', err);
-        setTokenReady(false);
       });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!alive) return;
+      if (session) setTokenReady(true);
+    });
+    return () => {
+      alive = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
