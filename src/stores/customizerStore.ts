@@ -157,7 +157,22 @@ export const useCustomizerStore = create<CustomizerStore>()(
         if (!validSides.includes(state.placementSides)) {
           state.placementSides = 'front';
         }
-        if (!Array.isArray(state.sizeQuantities)) state.sizeQuantities = [];
+        // Drop malformed sizeQuantity rows. A devtools edit / older build
+        // could persist {size: 'M'} (no quantity) or quantity: NaN, which
+        // would NaN-poison getTotalQuantity → getEstimatedPrice → the
+        // entire price column on the customizer ("$NaN"). Coerce to a
+        // finite, non-negative integer or drop the row.
+        if (Array.isArray(state.sizeQuantities)) {
+          state.sizeQuantities = state.sizeQuantities.flatMap(s => {
+            if (!s || typeof s !== 'object') return [];
+            if (typeof s.size !== 'string' || !s.size) return [];
+            const q = Math.floor(Number(s.quantity));
+            if (!Number.isFinite(q) || q <= 0) return [];
+            return [{ size: s.size, quantity: q }];
+          });
+        } else {
+          state.sizeQuantities = [];
+        }
         if (!Array.isArray(state.textAssets)) state.textAssets = [];
       },
     },
