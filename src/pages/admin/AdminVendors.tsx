@@ -3,6 +3,7 @@ import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
 import { isValidEmail } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface VendorRecord {
   id: string;
@@ -27,6 +28,7 @@ export default function AdminVendors() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const trapRef = useFocusTrap<HTMLDivElement>(showInvite);
 
   useEffect(() => {
     try {
@@ -180,7 +182,12 @@ export default function AdminVendors() {
           aria-labelledby="invite-vendor-title"
           onClick={() => setShowInvite(false)}
         >
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div
+            ref={trapRef}
+            tabIndex={-1}
+            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl focus:outline-none"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4">
               <h2 id="invite-vendor-title" className="text-lg font-extrabold">Inviter un vendeur</h2>
               <button

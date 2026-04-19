@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 interface ProfileRow {
   id: string;
@@ -44,6 +45,7 @@ export default function AdminUsers() {
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
   const [inviteResult, setInviteResult] = useState<string | null>(null);
   const inviteNameRef = useRef<HTMLInputElement>(null);
+  const trapRef = useFocusTrap<HTMLDivElement>(showInvite);
 
   useEffect(() => {
     fetchUsers();
@@ -270,7 +272,12 @@ export default function AdminUsers() {
           aria-labelledby="invite-member-title"
           onClick={() => { setShowInvite(false); setInviteResult(null); }}
         >
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div
+            ref={trapRef}
+            tabIndex={-1}
+            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl focus:outline-none"
+            onClick={e => e.stopPropagation()}
+          >
             <h2 id="invite-member-title" className="text-lg font-extrabold mb-1">Inviter un membre</h2>
             <p className="text-sm text-zinc-500 mb-4">
               Le membre recevra un courriel avec un lien d'activation valide 7 jours.
