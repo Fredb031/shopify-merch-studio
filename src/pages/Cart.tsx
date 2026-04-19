@@ -210,6 +210,7 @@ export default function Cart() {
                       loading="lazy"
                       decoding="async"
                       className="w-full h-full object-cover"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                     />
                   )}
                 </div>
@@ -252,6 +253,7 @@ export default function Cart() {
                         loading="lazy"
                         decoding="async"
                         className="w-9 h-9 object-contain rounded border border-border bg-white"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                       />
                     )}
                     {item.logoPlacementBack?.previewUrl && (
@@ -264,6 +266,7 @@ export default function Cart() {
                         loading="lazy"
                         decoding="async"
                         className="w-9 h-9 object-contain rounded border border-border bg-white"
+                        onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                       />
                     )}
                   </div>
