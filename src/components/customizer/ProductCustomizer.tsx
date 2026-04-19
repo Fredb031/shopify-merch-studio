@@ -460,6 +460,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         quantity: totalQty,
         selectedOptions: [{ name: 'Couleur', value: shopifyColor.colorName }],
       });
+      // addItem doesn't throw on Shopify userErrors / 402 / network
+      // drops — it logs and returns. Confirm the line actually landed
+      // before committing the local line, otherwise the cart shows an
+      // item the checkout can't reconcile (customer pays zero or the
+      // permalink 404s). Mirrors the multi-variant flow's post-check.
+      const landed = useShopifyCartStore.getState().items
+        .some(i => i.variantId === shopifyColor.variantId);
+      if (!landed) {
+        throw new Error('Shopify cart line addition failed');
+      }
 
       cartStore.addItem({
         productId: product.id,
