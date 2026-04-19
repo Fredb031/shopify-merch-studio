@@ -274,7 +274,20 @@ export function LogoUploader({
               <img src={preview} alt="Logo" className="relative w-full h-full object-contain p-4 z-10" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
               <button
                 type="button"
-                onClick={() => { setStatus('idle'); setPreview(null); setBgRemoved(false); }}
+                onClick={() => {
+                  setStatus('idle');
+                  setPreview(null);
+                  setBgRemoved(false);
+                  setCurrentFile(null);
+                  setErrorMsg(null);
+                  setQuality(null);
+                  // Clear the file input's value so re-uploading the
+                  // SAME file triggers onChange again. Without this,
+                  // a user who clicks X then picks the same file from
+                  // their picker sees nothing happen — the input's
+                  // value is unchanged so React never fires onChange.
+                  if (inputRef.current) inputRef.current.value = '';
+                }}
                 aria-label={lang === 'en' ? 'Remove uploaded logo' : 'Retirer le logo téléversé'}
                 className="absolute top-2 right-2 z-20 w-7 h-7 rounded-full bg-background shadow flex items-center justify-center text-muted-foreground hover:bg-destructive/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-1"
               >
