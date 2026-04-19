@@ -56,8 +56,12 @@ export function AdminLayout() {
         aria-label="Admin navigation"
       >
         <div className="px-6 py-6 border-b border-white/10">
-          <Link to="/admin" className="text-white font-extrabold text-lg tracking-tight flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] flex items-center justify-center text-xs">VA</span>
+          <Link
+            to="/admin"
+            aria-label="Vision Affichage — Admin dashboard"
+            className="text-white font-extrabold text-lg tracking-tight flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+          >
+            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] flex items-center justify-center text-xs" aria-hidden="true">VA</span>
             Admin
           </Link>
           <div className="text-[11px] text-white/50 mt-1">Vision Affichage</div>

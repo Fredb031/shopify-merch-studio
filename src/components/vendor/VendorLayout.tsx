@@ -47,8 +47,12 @@ export function VendorLayout() {
         aria-label="Vendor navigation"
       >
         <div className="px-6 py-6 border-b border-zinc-100">
-          <Link to="/vendor" className="font-extrabold text-lg tracking-tight flex items-center gap-2">
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center text-xs">V</span>
+          <Link
+            to="/vendor"
+            aria-label="Vision Affichage — Espace vendeur"
+            className="font-extrabold text-lg tracking-tight flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+          >
+            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center text-xs" aria-hidden="true">V</span>
             Espace vendeur
           </Link>
           <div className="text-[11px] text-zinc-500 mt-1">Vision Affichage</div>
