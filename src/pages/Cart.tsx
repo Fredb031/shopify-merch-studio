@@ -130,13 +130,25 @@ export default function Cart() {
 
   // Remove from BOTH local + Shopify cart so Shopify checkout reflects the
   // user's actual basket. Without this, deleted items still appear at pay.
+  //
+  // Don't drop a Shopify line if another local cart row still references
+  // the same variantId (happens when the same colour+size is customized
+  // twice with different placements) — the sibling row would end up with
+  // nothing on the Shopify side and the customer would be charged zero
+  // for it at checkout.
   const handleRemoveItem = async (cartId: string) => {
     const item = items.find(i => i.cartId === cartId);
     removeItem(cartId);
-    if (item?.shopifyVariantIds && item.shopifyVariantIds.length > 0) {
-      for (const variantId of item.shopifyVariantIds) {
-        try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
-      }
+    const vids = item?.shopifyVariantIds ?? [];
+    if (vids.length === 0) return;
+    const stillReferenced = new Set<string>();
+    for (const other of items) {
+      if (other.cartId === cartId) continue;
+      for (const v of other.shopifyVariantIds ?? []) stillReferenced.add(v);
+    }
+    for (const variantId of vids) {
+      if (stillReferenced.has(variantId)) continue;
+      try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
     }
   };
 

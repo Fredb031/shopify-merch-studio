@@ -100,13 +100,26 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   // Mirror remove to Shopify cart so the checkout reflects what the user
   // actually has (was a P0 in the audit — local removal alone left ghost
   // items at pay).
+  //
+  // Only drop Shopify lines for variantIds that NO remaining local line
+  // still references. Two local cart rows can share a Shopify variantId
+  // when the same colour+size was customized twice (e.g. different logo
+  // placements) — removing the Shopify line for the first row would
+  // silently wipe the Shopify side for the sibling row that's still
+  // on-screen, and the customer would get charged 0 for one of them.
   const handleRemoveItem = async (cartId: string) => {
     const item = cart.items.find(i => i.cartId === cartId);
     cart.removeItem(cartId);
-    if (item?.shopifyVariantIds && item.shopifyVariantIds.length > 0) {
-      for (const variantId of item.shopifyVariantIds) {
-        try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
-      }
+    const vids = item?.shopifyVariantIds ?? [];
+    if (vids.length === 0) return;
+    const stillReferenced = new Set<string>();
+    for (const other of cart.items) {
+      if (other.cartId === cartId) continue;
+      for (const v of other.shopifyVariantIds ?? []) stillReferenced.add(v);
+    }
+    for (const variantId of vids) {
+      if (stillReferenced.has(variantId)) continue;
+      try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
     }
   };
   const [codeInput, setCodeInput] = useState('');
