@@ -423,6 +423,17 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         : `${product.shortName} × ${colorCount > 1 ? `${colorCount} couleurs` : '1 couleur'} ajouté au panier !`,
       { duration: 3000 },
     );
+    } catch (err) {
+      // A Shopify network blip or bad variantId would otherwise throw
+      // here silently — the finally block resets `adding` but the
+      // customizer just closes with no user-visible feedback. Surface
+      // the error so the user knows to retry or call.
+      console.error('[customizer] addToCart failed:', err);
+      toast.error(
+        lang === 'en'
+          ? 'Could not add to cart. Try again or call us at 367-380-4808.'
+          : "Impossible d'ajouter au panier. Réessaie ou appelle au 367-380-4808.",
+      );
     } finally {
       setAdding(false);
     }
