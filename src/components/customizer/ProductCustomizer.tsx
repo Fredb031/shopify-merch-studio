@@ -257,70 +257,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     }
     setAdding(true);
     try {
-    // ── Multi-variant flow: emit ONE local cart line per color group AND
-    //    push each (color × size) Shopify variant to the Shopify cart store
-    //    so checkoutUrl resolves at /checkout. Without this push, the local
-    //    UI shows items but Shopify never sees them → checkout = null.
+    // ── Multi-variant flow: push each (color × size) Shopify variant to
+    //    the Shopify cart FIRST so a mid-loop failure doesn't leave the
+    //    local cart stocked with items Shopify can't fulfil. Local lines
+    //    are committed only for colours where at least one size
+    //    succeeded on Shopify's side.
     if (multiVariants.length > 0) {
-      const byColor = new Map<string, { color: VariantQty; sizes: { size: string; qty: number }[]; total: number }>();
-      for (const v of multiVariants) {
-        const existing = byColor.get(v.colorId);
-        if (existing) {
-          existing.sizes.push({ size: v.size, qty: v.qty });
-          existing.total += v.qty;
-        } else {
-          byColor.set(v.colorId, {
-            color: v,
-            sizes: [{ size: v.size, qty: v.qty }],
-            total: v.qty,
-          });
-        }
-      }
-
-      // 1) Local cart lines (for cart UI display) — track shopifyVariantIds
-      //    so removing the line later also removes from Shopify. Both
-      //    front AND back placements are carried on the cart item so
-      //    fulfillment + order detail pages can render both sides.
-      for (const [colorId, group] of byColor.entries()) {
-        const colorImg = findColorImage(product.sku, group.color.colorName);
-        const linePreview = store.logoPlacement?.previewUrl
-          ?? store.logoPlacementBack?.previewUrl
-          ?? colorImg?.front ?? product.imageDevant;
-        const variantIdsForLine = multiVariants
-          .filter(v => v.colorId === colorId && v.shopifyVariantId)
-          .map(v => v.shopifyVariantId as string);
-        cartStore.addItem({
-          productId: product.id,
-          colorId: group.color.colorId,
-          logoPlacement: store.logoPlacement,
-          logoPlacementBack: store.logoPlacementBack,
-          placementSides: store.placementSides,
-          textAssets: store.textAssets,
-          sizeQuantities: group.sizes,
-          activeView: store.activeView,
-          step: store.step,
-          productName: `${product.name} — ${group.color.colorName}`,
-          previewSnapshot: linePreview,
-          unitPrice: unitPrice * discount,
-          totalQuantity: group.total,
-          totalPrice: parseFloat((group.total * unitPrice * discount).toFixed(2)),
-          shopifyVariantIds: variantIdsForLine,
-        });
-      }
-
-      // Warn user if any picked variants couldn't match a Shopify variant
-      // ID — those will NOT reach checkout and the totals won't match.
-      const unmatched = multiVariants.filter(v => !v.shopifyVariantId);
-      if (unmatched.length > 0) {
-        toast.warning(
-          lang === 'en'
-            ? `${unmatched.length} variant${unmatched.length > 1 ? 's' : ''} couldn\u2019t match a Shopify product. We\u2019ll contact you to confirm.`
-            : `${unmatched.length} variante${unmatched.length > 1 ? 's' : ''} n\u2019a pas pu être associée à un produit Shopify. On te contactera pour confirmer.`,
-          { duration: 5000 },
-        );
-      }
-
-      // 2) Shopify cart sync — one line per (color × size) Shopify variant
+      // 1) Shopify cart sync — one line per (color × size) Shopify variant.
       const minimalProduct: ShopifyProduct = {
         node: {
           id: product.id,
@@ -336,22 +279,104 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         },
       };
 
+      const succeededVariantIds = new Set<string>();
+      const shopifyFailures: VariantQty[] = [];
+      const unmatched: VariantQty[] = [];
       for (const v of multiVariants) {
         if (!v.shopifyVariantId) {
           console.warn('Skipping Shopify sync — no variantId for', v.colorName, v.size);
+          unmatched.push(v);
           continue;
         }
-        await shopifyCartStore.addItem({
-          product: minimalProduct,
-          variantId: v.shopifyVariantId,
-          variantTitle: `${v.colorName} / ${v.size}`,
-          price: { amount: (unitPrice * discount).toFixed(2), currencyCode: 'CAD' },
-          quantity: v.qty,
-          selectedOptions: [
-            { name: 'Couleur', value: v.colorName },
-            { name: 'Taille', value: v.size },
-          ],
+        try {
+          await shopifyCartStore.addItem({
+            product: minimalProduct,
+            variantId: v.shopifyVariantId,
+            variantTitle: `${v.colorName} / ${v.size}`,
+            price: { amount: (unitPrice * discount).toFixed(2), currencyCode: 'CAD' },
+            quantity: v.qty,
+            selectedOptions: [
+              { name: 'Couleur', value: v.colorName },
+              { name: 'Taille', value: v.size },
+            ],
+          });
+          succeededVariantIds.add(v.shopifyVariantId);
+        } catch (e) {
+          console.warn('[customizer] Shopify addItem failed for', v.colorName, v.size, e);
+          shopifyFailures.push(v);
+        }
+      }
+
+      // If EVERY matched Shopify attempt failed, bail out — committing
+      // local lines at this point guarantees the cart won't reconcile at
+      // checkout. Throw so the outer catch shows the generic error toast.
+      const matchedCount = multiVariants.filter(v => !!v.shopifyVariantId).length;
+      if (matchedCount > 0 && succeededVariantIds.size === 0) {
+        throw new Error('All Shopify cart line additions failed');
+      }
+
+      // 2) Local cart lines — one per colour group, limited to the sizes
+      //    whose Shopify add actually succeeded. This keeps the local
+      //    UI and Shopify cart in lockstep when the network dropped a
+      //    subset of additions.
+      const byColor = new Map<string, { color: VariantQty; sizes: { size: string; qty: number }[]; total: number; variantIds: string[] }>();
+      for (const v of multiVariants) {
+        if (!v.shopifyVariantId || !succeededVariantIds.has(v.shopifyVariantId)) continue;
+        const existing = byColor.get(v.colorId);
+        if (existing) {
+          existing.sizes.push({ size: v.size, qty: v.qty });
+          existing.total += v.qty;
+          existing.variantIds.push(v.shopifyVariantId);
+        } else {
+          byColor.set(v.colorId, {
+            color: v,
+            sizes: [{ size: v.size, qty: v.qty }],
+            total: v.qty,
+            variantIds: [v.shopifyVariantId],
+          });
+        }
+      }
+
+      for (const [, group] of byColor.entries()) {
+        const colorImg = findColorImage(product.sku, group.color.colorName);
+        const linePreview = store.logoPlacement?.previewUrl
+          ?? store.logoPlacementBack?.previewUrl
+          ?? colorImg?.front ?? product.imageDevant;
+        cartStore.addItem({
+          productId: product.id,
+          colorId: group.color.colorId,
+          logoPlacement: store.logoPlacement,
+          logoPlacementBack: store.logoPlacementBack,
+          placementSides: store.placementSides,
+          textAssets: store.textAssets,
+          sizeQuantities: group.sizes,
+          activeView: store.activeView,
+          step: store.step,
+          productName: `${product.name} — ${group.color.colorName}`,
+          previewSnapshot: linePreview,
+          unitPrice: unitPrice * discount,
+          totalQuantity: group.total,
+          totalPrice: parseFloat((group.total * unitPrice * discount).toFixed(2)),
+          shopifyVariantIds: group.variantIds,
         });
+      }
+
+      // Surface partial-failure warnings AFTER both stores are aligned.
+      if (unmatched.length > 0) {
+        toast.warning(
+          lang === 'en'
+            ? `${unmatched.length} variant${unmatched.length > 1 ? 's' : ''} couldn\u2019t match a Shopify product. We\u2019ll contact you to confirm.`
+            : `${unmatched.length} variante${unmatched.length > 1 ? 's' : ''} n\u2019a pas pu être associée à un produit Shopify. On te contactera pour confirmer.`,
+          { duration: 5000 },
+        );
+      }
+      if (shopifyFailures.length > 0) {
+        toast.warning(
+          lang === 'en'
+            ? `${shopifyFailures.length} size${shopifyFailures.length > 1 ? 's' : ''} couldn\u2019t be added (network issue). Re-add them from the cart.`
+            : `${shopifyFailures.length} taille${shopifyFailures.length > 1 ? 's' : ''} n\u2019a pas pu être ajoutée (erreur réseau). Réessaie depuis le panier.`,
+          { duration: 5000 },
+        );
       }
     } else if (shopifyColor && totalQty > 0) {
       // ── Legacy single-color flow (fallback) ──
