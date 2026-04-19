@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@/lib/langContext';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 interface MoleGameProps {
@@ -57,6 +58,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const [hits, setHits] = useState(0);
   const [timeLeft, setTimeLeft] = useState(20);
   useEscapeKey(isOpen, useCallback(() => onClose(false), [onClose]));
+  const trapRef = useFocusTrap<HTMLDivElement>(isOpen);
   useBodyScrollLock(isOpen);
   const [moleStates, setMoleStates] = useState<('down' | 'up' | 'hit')[]>(['down', 'down', 'down']);
   const [gameStarted, setGameStarted] = useState(false);
@@ -153,7 +155,9 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[800] flex items-center justify-center"
+      ref={trapRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[800] flex items-center justify-center focus:outline-none"
       style={{ background: 'rgba(8,14,32,.82)', backdropFilter: 'blur(18px)' }}
       role="dialog"
       aria-modal="true"
