@@ -270,10 +270,17 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <input
                   value={codeInput}
                   onChange={e => setCodeInput(e.target.value.toUpperCase())}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyCode(); } }}
                   placeholder={t('codeRabais')}
+                  aria-label={t('codeRabais')}
                   className="flex-1 border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-primary font-mono bg-secondary"
                 />
-                <button onClick={applyCode} className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary transition-colors">
+                <button
+                  type="button"
+                  onClick={applyCode}
+                  disabled={!codeInput.trim()}
+                  className="bg-secondary border border-border rounded-xl px-4 py-2.5 text-xs font-extrabold text-foreground hover:border-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border transition-colors"
+                >
                   {t('appliquer')}
                 </button>
               </div>
