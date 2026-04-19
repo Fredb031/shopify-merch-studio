@@ -89,15 +89,21 @@ export const useCustomizerStore = create<CustomizerStore>()(
       // Sizes/Review); v2 collapsed to 4 (Logo/Where/Sizes/Review).
       // Mapping: v1 step N → v2 max(1, N-1). Returning users see the
       // right screen instead of a blank modal.
+      //
+      // Always merge on top of initialState so new fields added in v2+
+      // (placementSides, activeView, logoPlacementBack) have a safe
+      // default on disk. Without this, v1 users hydrated with undefined
+      // for those fields, the canvas hit an undefined comparison, and
+      // the customizer rendered blank until they re-set the product.
       migrate: (persisted: unknown, fromVersion: number) => {
         const state = persisted as Partial<CustomizationState> | null;
-        if (!state) return state;
+        if (!state) return initialState;
+        const merged: CustomizationState = { ...initialState, ...state };
         if (fromVersion < 2) {
           const old = (state.step as unknown as number | undefined) ?? 1;
-          const next = Math.max(1, Math.min(4, old - 1)) as 1 | 2 | 3 | 4;
-          return { ...state, step: next };
+          merged.step = Math.max(1, Math.min(4, old - 1)) as 1 | 2 | 3 | 4;
         }
-        return state;
+        return merged;
       },
       // Don't persist the File blob — it isn't JSON-serializable and the
       // object URL it backs is revoked on unload anyway. We keep the
