@@ -288,13 +288,27 @@ export const useAuthStore = create<AuthState>((set) => ({
 if (typeof window !== 'undefined') {
   useAuthStore.getState().hydrateFromSession();
   supabase.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user) {
-      await syncOwnerProfile(session.user);
-      const profile = await fetchProfile(session.user.id);
-      const user = buildUser(session.user, profile);
-      useAuthStore.setState({ user });
-    } else {
-      useAuthStore.setState({ user: null });
+    // Wrap the whole subscriber in try/catch. syncOwnerProfile and
+    // fetchProfile can both reject on network/RLS changes — an
+    // unhandled rejection from this callback used to surface as
+    // "Uncaught (in promise)" noise in the console, and on some
+    // supabase-js versions a throw here breaks the subscription
+    // (no subsequent auth events fire until page reload).
+    try {
+      if (session?.user) {
+        await syncOwnerProfile(session.user);
+        const profile = await fetchProfile(session.user.id);
+        const user = buildUser(session.user, profile);
+        useAuthStore.setState({ user });
+      } else {
+        useAuthStore.setState({ user: null });
+      }
+    } catch (err) {
+      console.error('[authStore] onAuthStateChange handler failed:', err);
+      // Keep the existing user state — a transient error shouldn't
+      // sign the user out mid-session. If the session itself became
+      // invalid, the next event will fire with session=null and
+      // the else branch above will clear user properly.
     }
   });
 }
