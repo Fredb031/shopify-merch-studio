@@ -228,11 +228,20 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.warn('[authStore] supabase.auth.signOut failed; clearing local state anyway:', e);
     }
     set({ user: null });
-    // Wipe customer-scoped persisted state so the next user who signs in
-    // on this browser doesn't inherit the previous session's cart / in-
-    // progress customization / admin filters.
+    // Wipe customer-scoped AND admin/vendor-scoped persisted state so the
+    // next user on this browser doesn't inherit the previous session's
+    // cart, in-progress customization, saved quotes, AI API keys, or
+    // custom vendor list. API keys are the most sensitive of these —
+    // a shared admin browser would otherwise leak the previous user's
+    // Replicate/OpenAI credentials into the next admin's settings page.
     try {
-      const keys = ['va-customizer', 'vision-cart', 'shopify-cart', 'vision-pending-checkout', 'vision-recently-viewed', 'vision-wishlist'];
+      const keys = [
+        'va-customizer', 'vision-cart', 'shopify-cart',
+        'vision-pending-checkout', 'vision-recently-viewed', 'vision-wishlist',
+        'vision-quotes', 'vision-quotes-seq',
+        'vision-shipped-orders', 'vision-vendors',
+        'vision-image-provider', 'vision-image-key-replicate', 'vision-image-key-openai',
+      ];
       keys.forEach(k => localStorage.removeItem(k));
     } catch (e) {
       console.warn('[authStore] Could not clear persisted stores on signOut:', e);
