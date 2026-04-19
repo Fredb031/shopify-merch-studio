@@ -10,6 +10,8 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-amber-50 text-amber-700',
   fulfilled: 'bg-emerald-50 text-emerald-700',
   awaiting: 'bg-blue-50 text-blue-700',
+  refunded: 'bg-rose-50 text-rose-700',
+  voided: 'bg-zinc-100 text-zinc-700',
 };
 
 export default function AdminDashboard() {
@@ -71,16 +73,27 @@ export default function AdminDashboard() {
                 if (h < 24) return `il y a ${h}h`;
                 return `il y a ${Math.floor(h / 24)}j`;
               })();
+              // Refunded / voided orders used to fall through to the
+              // 'paid' branch and render a green "Payé" badge on the
+              // dashboard — misleading for the admin trying to spot
+              // which orders actually have money in the bank.
               const statusKey = order.fulfillmentStatus === 'fulfilled'
                 ? 'fulfilled'
-                : order.financialStatus === 'pending'
-                  ? 'pending'
-                  : order.financialStatus === 'paid' && !order.fulfillmentStatus
-                    ? 'awaiting'
-                    : 'paid';
+                : order.financialStatus === 'refunded' || order.financialStatus === 'partially_refunded'
+                  ? 'refunded'
+                  : order.financialStatus === 'voided'
+                    ? 'voided'
+                    : order.financialStatus === 'pending'
+                      ? 'pending'
+                      : order.financialStatus === 'paid' && !order.fulfillmentStatus
+                        ? 'awaiting'
+                        : 'paid';
               const statusLabel = statusKey === 'fulfilled' ? 'Expédié'
                 : statusKey === 'pending' ? 'En attente'
-                : statusKey === 'awaiting' ? 'À expédier' : 'Payé';
+                : statusKey === 'awaiting' ? 'À expédier'
+                : statusKey === 'refunded' ? 'Remboursé'
+                : statusKey === 'voided' ? 'Annulé'
+                : 'Payé';
               return (
                 <div key={order.id} className="py-3 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
