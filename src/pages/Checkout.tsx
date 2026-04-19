@@ -374,7 +374,18 @@ export default function Checkout() {
                     <Input value={form.company}   onChange={v => setForm(f => ({ ...f, company: v }))}   placeholder={lang === 'en' ? 'Company (optional)' : 'Entreprise (optionnel)'} autoComplete="organization" autoCapitalize="words" className="col-span-2" />
                     <Input value={form.address}   onChange={v => setForm(f => ({ ...f, address: v }))}   placeholder={lang === 'en' ? 'Street address' : 'Adresse'} autoComplete="street-address" autoCapitalize="words" className="col-span-2" required />
                     <Input value={form.city}      onChange={v => setForm(f => ({ ...f, city: v }))}      placeholder={lang === 'en' ? 'City' : 'Ville'} autoComplete="address-level2" autoCapitalize="words" required />
-                    <Input value={form.postalCode}onChange={v => setForm(f => ({ ...f, postalCode: v.toUpperCase() }))}placeholder={lang === 'en' ? 'Postal code' : 'Code postal'} autoComplete="postal-code" autoCapitalize="characters" required />
+                    <Input
+                      value={form.postalCode}
+                      onChange={v => setForm(f => ({ ...f, postalCode: v.toUpperCase() }))}
+                      placeholder={lang === 'en' ? 'Postal code' : 'Code postal'}
+                      autoComplete="postal-code"
+                      autoCapitalize="characters"
+                      required
+                      // Show the red invalid state only AFTER the user has
+                      // typed something — empty input shouldn't look like
+                      // an error on first load.
+                      ariaInvalid={form.postalCode.trim().length > 0 && !isValidCanadianPostal}
+                    />
                     <Input value={form.phone}     onChange={v => setForm(f => ({ ...f, phone: v }))}     placeholder={lang === 'en' ? 'Phone' : 'Téléphone'} autoComplete="tel" className="col-span-2" type="tel" />
                   </div>
                 </div>
@@ -591,7 +602,7 @@ export default function Checkout() {
 }
 
 function Input({
-  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode,
+  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode, ariaInvalid,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -607,6 +618,8 @@ function Input({
   autoCapitalize?: 'off' | 'sentences' | 'words' | 'characters';
   /** Mobile virtual keyboard layout — e.g. 'tel' for phone numbers. */
   inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | 'decimal';
+  /** Screen reader + visual invalid state. */
+  ariaInvalid?: boolean;
 }) {
   // Phone inputs default to the tel keyboard for faster mobile entry.
   const effectiveInputMode = inputMode ?? (type === 'tel' ? 'tel' : undefined);
@@ -621,11 +634,12 @@ function Input({
       // announce the field correctly when focused.
       aria-label={ariaLabel ?? placeholder}
       aria-required={required}
+      aria-invalid={ariaInvalid || undefined}
       autoComplete={autoComplete}
       autoCapitalize={autoCapitalize}
       inputMode={effectiveInputMode}
       required={required}
-      className={`border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow ${className}`}
+      className={`border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${ariaInvalid ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25' : 'border-border focus:border-primary focus-visible:ring-primary/25'} ${className}`}
     />
   );
 }
