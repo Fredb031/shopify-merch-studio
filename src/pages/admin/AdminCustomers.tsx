@@ -353,10 +353,11 @@ export default function AdminCustomers() {
                   href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/customers/${selected.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline pt-2"
+                  aria-label={`Voir ${fullName(selected)} dans Shopify Admin (nouvel onglet)`}
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline pt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                 >
                   Voir dans Shopify Admin
-                  <ExternalLink size={13} />
+                  <ExternalLink size={13} aria-hidden="true" />
                 </a>
               </div>
             </div>
