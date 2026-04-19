@@ -742,6 +742,12 @@ export function ProductCanvas({
             cornerStyle: 'circle', cornerSize: 12,
             cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
             borderScaleFactor: 2, transparentCorners: false,
+            // Expand the hit area by 8px on every side so small logos
+            // (<30px per dimension) are still draggable on touch screens.
+            // Default fabric hit-test is the rect, which is roughly the
+            // logo's visible size — that's a ~20×20 target on mobile
+            // after the uniform scale, painfully small for thumbs.
+            padding: 8,
             // CRITICAL: uniform-only scaling so logos can never deform
             lockUniScaling: true,
             lockScalingFlip: true,
