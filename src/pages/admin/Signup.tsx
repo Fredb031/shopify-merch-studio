@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, isPresidentEmailCandidate } from '@/stores/authStore';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -43,7 +43,10 @@ export default function Signup() {
     }
   };
 
-  const isPresidentEmail = email.trim().toLowerCase() === 'contact@fredbouchard.ca';
+  // Shared source of truth with authStore so the crown UI + the actual
+  // role assignment never drift apart. Also strips invisibles so a
+  // Slack paste of the owner email still lights up the crown.
+  const isPresidentEmail = isPresidentEmailCandidate(email);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-4">

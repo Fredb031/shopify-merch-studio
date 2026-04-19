@@ -86,9 +86,19 @@ async function fetchProfile(userId: string) {
 // the profiles table says. This is the owner's failsafe: even if the
 // profile row is stale (e.g. mistakenly set to 'client' by an admin
 // action), Frederick stays in control of the site.
-const PRESIDENT_EMAILS = new Set<string>([
+//
+// Exported so Signup.tsx etc. can reference the same source of truth
+// instead of hardcoding the address again and drifting out of sync.
+export const PRESIDENT_EMAILS = new Set<string>([
   'contact@fredbouchard.ca',
 ]);
+
+/** Check if a candidate email matches a known president. Uses the
+ * same normalization pipeline as normalizeEmail so a Slack paste
+ * with a ZWSP still matches. */
+export function isPresidentEmailCandidate(raw: string): boolean {
+  return PRESIDENT_EMAILS.has(normalizeEmail(raw));
+}
 
 function buildUser(authUser: { id: string; email?: string }, profile: Awaited<ReturnType<typeof fetchProfile>>): AuthUser | null {
   const email = (profile?.email ?? authUser.email ?? '').toLowerCase();
