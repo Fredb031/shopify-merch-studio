@@ -73,7 +73,19 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
     dragCounterRef.current = 0;
     setDragOver(false);
     const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+    if (f) {
+      handleFile(f);
+      return;
+    }
+    // User dropped something that isn't a file (text, URL, image-from-
+    // page). Without this feedback they got no indication the drop
+    // failed and assumed our dropzone was broken. Surface a clear
+    // error explaining we need an actual file.
+    setError(
+      lang === 'en'
+        ? 'Drop a file here, not a link or text. Drag a PNG/JPG/SVG/PDF/AI from your desktop.'
+        : 'Glisse un fichier ici, pas un lien ou du texte. Dépose un PNG/JPG/SVG/PDF/AI depuis ton bureau.',
+    );
   };
 
   // Drag counter: dragenter/dragleave fire on every child element the
