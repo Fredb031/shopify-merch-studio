@@ -39,11 +39,16 @@ export function SiteFooter() {
     setEmailErr(false);
     try {
       const raw = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
-      // Defensive: older versions stored strings here; force to array.
-      const list: string[] = Array.isArray(raw) ? raw : [];
-      if (!list.includes(normalized)) {
-        list.push(normalized);
-        localStorage.setItem('vision-newsletter', JSON.stringify(list));
+      // Defensive: filter out non-strings so a corrupted row doesn't
+      // poison the Set comparison below (list.includes would miss the
+      // duplicate and we'd double-subscribe). Older builds stored raw
+      // strings; a devtools edit or hand-built JSON could slip objects
+      // in. Cap at 2000 entries so a bored actor can't balloon storage.
+      const arr: unknown[] = Array.isArray(raw) ? raw : [];
+      const clean = arr.filter((v): v is string => typeof v === 'string').slice(-2000);
+      if (!clean.includes(normalized)) {
+        clean.push(normalized);
+        localStorage.setItem('vision-newsletter', JSON.stringify(clean));
       }
     } catch { /* noop */ }
     setSubscribed(true);
