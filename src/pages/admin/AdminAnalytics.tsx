@@ -93,38 +93,44 @@ export default function AdminAnalytics() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <section className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-5">
+        <section className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="daily-revenue-heading">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-bold">Revenus quotidiens</h2>
+            <h2 id="daily-revenue-heading" className="font-bold">Revenus quotidiens</h2>
             <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">14 jours</span>
           </div>
-          <div className="flex items-end gap-1.5 h-48">
+          <div className="flex items-end gap-1.5 h-48" role="list">
             {dailyRevenue.map(([day, revenue]) => {
               const heightPct = (revenue / maxRevenue) * 100;
               const date = new Date(day);
               const label = date.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' });
               return (
-                <div key={day} className="flex-1 flex flex-col items-center gap-1.5 group">
-                  <div className="text-[10px] font-bold text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div
+                  key={day}
+                  className="flex-1 flex flex-col items-center gap-1.5 group"
+                  role="listitem"
+                  aria-label={`${label} : ${revenue.toFixed(0)} $`}
+                >
+                  <div className="text-[10px] font-bold text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
                     {revenue.toFixed(0)} $
                   </div>
                   <div
                     className="w-full bg-gradient-to-t from-[#0052CC] to-[#1B3A6B] rounded-md min-h-[4px] hover:from-[#E8A838] hover:to-[#B37D10] transition-all"
                     style={{ height: `${Math.max(heightPct, 2)}%` }}
+                    aria-hidden="true"
                   />
-                  <div className="text-[9px] text-zinc-400 whitespace-nowrap">{label}</div>
+                  <div className="text-[9px] text-zinc-400 whitespace-nowrap" aria-hidden="true">{label}</div>
                 </div>
               );
             })}
           </div>
         </section>
 
-        <section className="bg-white border border-zinc-200 rounded-2xl p-5">
-          <h2 className="font-bold mb-4">Top clients</h2>
-          <div className="space-y-3">
+        <section className="bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="top-customers-heading">
+          <h2 id="top-customers-heading" className="font-bold mb-4">Top clients</h2>
+          <ol className="space-y-3 list-none">
             {topCustomers.map((c, i) => (
-              <div key={c.id} className="flex items-center gap-3">
-                <span className="w-5 text-center text-xs font-bold text-zinc-400">{i + 1}</span>
+              <li key={c.id} className="flex items-center gap-3">
+                <span className="w-5 text-center text-xs font-bold text-zinc-400" aria-hidden="true">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold truncate">
                     {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email.split('@')[0]}
@@ -134,9 +140,9 @@ export default function AdminAnalytics() {
                 <div className="text-sm font-extrabold text-emerald-700 whitespace-nowrap">
                   {c.totalSpent.toFixed(0)} $
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
       </div>
 
