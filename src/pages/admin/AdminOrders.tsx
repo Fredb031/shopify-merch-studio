@@ -12,9 +12,20 @@ type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfill
 
 /** Generate and download a CSV for the currently filtered order list.
  * Escapes double quotes per RFC 4180 and wraps every field so commas
- * inside customer names don't shift columns. */
+ * inside customer names don't shift columns. Cells whose first char is
+ * one of '=' '+' '-' '@' are prefixed with a single tab so Excel /
+ * Google Sheets treat them as text instead of formulas — a customer
+ * named '=cmd|...' or an order note starting with '@' would otherwise
+ * execute as a formula when the admin opens the CSV (CSV injection /
+ * "formula injection", OWASP). The tab keeps the value readable while
+ * neutralising the formula trigger. */
 function exportOrdersCsv(orders: Array<ShopifyOrderSnapshot & { fulfillmentStatus: ShopifyOrderSnapshot['fulfillmentStatus'] }>) {
-  const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const esc = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return `"${s.replace(/"/g, '""')}"`;
+  };
   const header = ['Commande', 'Client', 'Courriel', 'Total', 'Paiement', 'Livraison', 'Date'];
   const rows = orders.map(o => [
     o.name,
