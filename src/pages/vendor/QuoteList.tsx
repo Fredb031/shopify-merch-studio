@@ -131,7 +131,7 @@ export default function QuoteList() {
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Mes soumissions</h1>
-          <p className="text-sm text-zinc-500 mt-1">{all.length} soumissions au total</p>
+          <p className="text-sm text-zinc-500 mt-1">{all.length} soumission{all.length > 1 ? 's' : ''} au total</p>
         </div>
         <Link
           to="/vendor/quotes/new"
