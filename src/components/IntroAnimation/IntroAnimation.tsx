@@ -31,8 +31,15 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
   const timelineRef = useRef<ReturnType<typeof gsap.timeline> | null>(null);
 
   useEffect(() => {
-    // Skip path: returning visitor → instant cross-fade
-    if (skipIfSeen && typeof window !== 'undefined' && localStorage.getItem(SEEN_KEY)) {
+    // Skip path: returning visitor → instant cross-fade. The setter
+    // already try/catches for private mode (line 61), so mirror that
+    // on the reader — Safari private windows throw SecurityError here
+    // too and the resulting uncaught exception blocked onComplete
+    // from firing, leaving the page stuck behind the intro overlay.
+    let seen = false;
+    try { seen = typeof window !== 'undefined' && !!localStorage.getItem(SEEN_KEY); }
+    catch { /* private mode — treat as never seen so the intro still plays once */ }
+    if (skipIfSeen && seen) {
       const overlay = document.getElementById('va-intro-overlay');
       if (overlay) overlay.style.display = 'none';
       onComplete();
