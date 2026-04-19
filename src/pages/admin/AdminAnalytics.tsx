@@ -127,7 +127,7 @@ export default function AdminAnalytics() {
                 <span className="w-5 text-center text-xs font-bold text-zinc-400">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold truncate">
-                    {c.firstName} {c.lastName ?? ''}
+                    {[c.firstName, c.lastName].filter(Boolean).join(' ') || c.email.split('@')[0]}
                   </div>
                   <div className="text-[11px] text-zinc-500 truncate">{c.email}</div>
                 </div>
