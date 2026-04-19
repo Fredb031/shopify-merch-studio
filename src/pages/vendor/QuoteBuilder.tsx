@@ -328,13 +328,21 @@ export default function QuoteBuilder() {
             </label>
             <label className="flex flex-col gap-1">
               <span className="text-[11px] text-zinc-500 uppercase tracking-wider">Courriel *</span>
-              <input
-                type="email"
-                value={clientEmail}
-                onChange={e => setClientEmail(e.target.value)}
-                placeholder="client@entreprise.ca"
-                className="border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC]"
-              />
+              {(() => {
+                const invalid = clientEmail.trim().length > 0 && !isValidEmail(clientEmail);
+                return (
+                  <input
+                    type="email"
+                    value={clientEmail}
+                    onChange={e => setClientEmail(e.target.value)}
+                    placeholder="client@entreprise.ca"
+                    aria-invalid={invalid || undefined}
+                    className={`border rounded-lg px-3 py-2 text-sm outline-none ${
+                      invalid ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
+                    }`}
+                  />
+                );
+              })()}
             </label>
           </div>
 
