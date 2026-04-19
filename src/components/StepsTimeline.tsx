@@ -149,6 +149,7 @@ export function StepsTimeline() {
                     <div
                       className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full text-[10px] font-extrabold flex items-center justify-center shadow-md"
                       style={{ background: '#E8A838', color: '#1B3A6B' }}
+                      aria-hidden="true"
                     >
                       {i + 1}
                     </div>

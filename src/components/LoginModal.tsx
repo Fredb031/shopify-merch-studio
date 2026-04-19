@@ -119,16 +119,17 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         {accountType ? (
           <form onSubmit={handleSubmit} className="px-6 pb-6 flex flex-col gap-2.5">
             {error && (
-              <div className="flex items-start gap-2 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
-                <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+              <div role="alert" className="flex items-start gap-2 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+                <AlertCircle size={13} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
             )}
 
             {mode === 'signup' && (
               <input
-                className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
+                className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
                 placeholder={lang === 'en' ? 'Full name' : 'Nom complet'}
+                aria-label={lang === 'en' ? 'Full name' : 'Nom complet'}
                 type="text"
                 autoComplete="name"
                 value={name}
@@ -138,8 +139,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             )}
 
             <input
-              className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
+              className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
               placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+              aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
               type="email"
               autoComplete="email"
               value={email}
@@ -151,8 +153,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             />
 
             <input
-              className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
+              className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
               placeholder={lang === 'en' ? 'Password' : 'Mot de passe'}
+              aria-label={lang === 'en' ? 'Password' : 'Mot de passe'}
               type="password"
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               value={password}
@@ -166,8 +169,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             {mode === 'signup' && (
               <>
                 <input
-                  className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary bg-background"
+                  className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
                   placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
+                  aria-label={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
                   type="password"
                   autoComplete="new-password"
                   value={password2}
@@ -175,7 +179,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   required
                 />
                 {password && password2 && password !== password2 && (
-                  <p className="text-[11px] text-rose-600 font-semibold">
+                  <p role="alert" className="text-[11px] text-rose-600 font-semibold">
                     {lang === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas'}
                   </p>
                 )}
@@ -184,7 +188,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
             <button
               type="submit"
-              className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity"
+              className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-[10px] text-sm font-extrabold cursor-pointer hover:opacity-[0.87] transition-opacity focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
             >
               {mode === 'login'
                 ? lang === 'en' ? 'Log in' : 'Se connecter'
@@ -202,7 +206,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   onClose();
                   navigate('/admin/forgot-password');
                 }}
-                className="text-[12px] text-muted-foreground font-medium bg-transparent border-none cursor-pointer hover:text-foreground hover:underline mt-1"
+                className="text-[12px] text-muted-foreground font-medium bg-transparent border-none cursor-pointer hover:text-foreground hover:underline mt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
               >
                 {lang === 'en' ? 'Forgot password?' : 'Mot de passe oublié ?'}
               </button>
@@ -214,7 +218,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 setMode(mode === 'login' ? 'signup' : 'login');
                 if (error) clearError();
               }}
-              className="text-[12px] text-primary font-semibold bg-transparent border-none cursor-pointer hover:underline mt-1"
+              className="text-[12px] text-primary font-semibold bg-transparent border-none cursor-pointer hover:underline mt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
             >
               {mode === 'login'
                 ? lang === 'en' ? "Don't have an account? Sign up" : "Pas de compte? S'inscrire"
@@ -224,7 +228,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="text-[12px] text-muted-foreground cursor-pointer underline bg-transparent border-none"
+              className="text-[12px] text-muted-foreground cursor-pointer underline bg-transparent border-none focus:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground focus-visible:ring-offset-1 rounded"
             >
               {lang === 'en' ? 'Cancel' : 'Annuler'}
             </button>

@@ -16,7 +16,7 @@ export function FeaturedProducts() {
         <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2">
-              <Star size={12} className="fill-[#E8A838] text-[#E8A838]" />
+              <Star size={12} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />
               {lang === 'en' ? 'Most ordered' : 'Les plus commandés'}
             </div>
             <h2 className="text-[clamp(28px,4vw,42px)] font-extrabold tracking-[-1px] text-foreground leading-tight">
@@ -25,10 +25,10 @@ export function FeaturedProducts() {
           </div>
           <Link
             to="/products"
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:gap-3 transition-all"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:gap-3 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
           >
             {lang === 'en' ? `See all ${PRODUCTS.length} products` : `Voir les ${PRODUCTS.length} produits`}
-            <ArrowRight size={14} />
+            <ArrowRight size={14} aria-hidden="true" />
           </Link>
         </div>
 
@@ -52,7 +52,7 @@ export function FeaturedProducts() {
                   decoding="async"
                 />
                 <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#1B3A6B] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
-                  <Star size={9} className="fill-[#E8A838] text-[#E8A838]" />
+                  <Star size={9} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />
                   {lang === 'en' ? 'Top' : 'Top'}
                 </div>
               </div>
