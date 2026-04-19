@@ -62,7 +62,7 @@ function previewOf(id: TemplateId, lang: Lang) {
 export default function AdminEmails() {
   const [active, setActive] = useState<TemplateId>('quote-sent');
   const [lang, setLang] = useState<Lang>('fr');
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');
   // Track the "Copied!" indicator timer so navigating away mid-countdown
   // doesn't fire setCopied on an unmounted component.
   const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,22 +73,30 @@ export default function AdminEmails() {
   const email = previewOf(active, lang);
 
   const copyHtml = async () => {
+    let ok = false;
     try {
-      await navigator.clipboard.writeText(email.html);
+      // navigator.clipboard is undefined in iframes / non-secure contexts —
+      // accessing .writeText on undefined throws TypeError, so guard first.
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(email.html);
+        ok = true;
+      }
     } catch (err) {
-      // Clipboard API can reject under iframes, non-HTTPS, or when the
-      // user has denied permission. Swallow so the UI doesn't crash,
-      // but DON'T flash the "Copied" badge for what the user didn't copy.
+      // Clipboard API can also reject under denied permissions or
+      // iframe restrictions — log + fall through to the failed state
+      // so the user knows to try the textarea below instead of
+      // re-clicking a button that will never work.
       console.warn('[AdminEmails] clipboard write failed:', err);
-      return;
     }
-    setCopied(true);
+    setCopyState(ok ? 'copied' : 'failed');
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     copiedTimerRef.current = setTimeout(() => {
-      setCopied(false);
+      setCopyState('idle');
       copiedTimerRef.current = null;
-    }, 1500);
+    }, ok ? 1500 : 2500);
   };
+  const copied = copyState === 'copied';
+  const copyFailed = copyState === 'failed';
 
   return (
     <div className="space-y-6">
@@ -157,11 +165,16 @@ export default function AdminEmails() {
               <button
                 type="button"
                 onClick={copyHtml}
-                aria-label={copied ? 'HTML copié' : 'Copier le HTML du courriel'}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                aria-label={copied ? 'HTML copié' : copyFailed ? 'Copie indisponible — utilise le bloc texte ci-dessous' : 'Copier le HTML du courriel'}
+                aria-live="polite"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
+                  copyFailed
+                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
+                    : 'bg-zinc-100 hover:bg-zinc-200'
+                }`}
               >
                 {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
-                {copied ? 'Copié' : 'Copier HTML'}
+                {copied ? 'Copié' : copyFailed ? 'Copie indisponible' : 'Copier HTML'}
               </button>
             </div>
           </div>
