@@ -31,9 +31,22 @@ export default function AdminLogin() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
-    const result = await signIn(email, password);
-    setSubmitting(false);
+    let result: Awaited<ReturnType<typeof signIn>>;
+    try {
+      result = await signIn(email, password);
+    } catch (err) {
+      // signIn normally returns {ok:false} with a friendly error on the
+      // store, but a thrown exception (network down, fetch reject) used
+      // to slip past the bare await and leave the button disabled
+      // forever. Always release submitting, and surface the error.
+      console.error('[AdminLogin] signIn threw:', err);
+      setSubmitting(false);
+      return;
+    } finally {
+      setSubmitting(false);
+    }
     if (!result.ok) return;
     // Clear any stale error so a back-nav to /admin/login doesn't flash
     // the previous attempt's message.
