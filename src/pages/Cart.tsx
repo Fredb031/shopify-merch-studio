@@ -136,14 +136,17 @@ export default function Cart() {
   // twice with different placements) — the sibling row would end up with
   // nothing on the Shopify side and the customer would be charged zero
   // for it at checkout.
+  //
+  // Read LIVE store state via getState after the local removal so a
+  // second rapid click doesn't see a stale snapshot and skip Shopify
+  // removals the first click already committed to dropping.
   const handleRemoveItem = async (cartId: string) => {
-    const item = items.find(i => i.cartId === cartId);
+    const item = useCartStore.getState().items.find(i => i.cartId === cartId);
     removeItem(cartId);
     const vids = item?.shopifyVariantIds ?? [];
     if (vids.length === 0) return;
     const stillReferenced = new Set<string>();
-    for (const other of items) {
-      if (other.cartId === cartId) continue;
+    for (const other of useCartStore.getState().items) {
       for (const v of other.shopifyVariantIds ?? []) stillReferenced.add(v);
     }
     for (const variantId of vids) {

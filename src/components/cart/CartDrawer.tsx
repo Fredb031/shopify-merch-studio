@@ -107,14 +107,17 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
   // placements) — removing the Shopify line for the first row would
   // silently wipe the Shopify side for the sibling row that's still
   // on-screen, and the customer would get charged 0 for one of them.
+  //
+  // Read LIVE store state via getState after the local removal so a
+  // second rapid click doesn't see a stale snapshot and skip Shopify
+  // removals the first click already committed to dropping.
   const handleRemoveItem = async (cartId: string) => {
-    const item = cart.items.find(i => i.cartId === cartId);
+    const item = useCartStore.getState().items.find(i => i.cartId === cartId);
     cart.removeItem(cartId);
     const vids = item?.shopifyVariantIds ?? [];
     if (vids.length === 0) return;
     const stillReferenced = new Set<string>();
-    for (const other of cart.items) {
-      if (other.cartId === cartId) continue;
+    for (const other of useCartStore.getState().items) {
       for (const v of other.shopifyVariantIds ?? []) stillReferenced.add(v);
     }
     for (const variantId of vids) {
