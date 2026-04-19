@@ -18,9 +18,18 @@ export default function ResetPassword() {
   // Supabase parses recovery token from URL hash automatically when client loads.
   // We check that there's an active session before allowing the form.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setTokenReady(Boolean(session));
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setTokenReady(Boolean(session));
+      })
+      .catch((err) => {
+        // getSession can reject on network/storage failures — without
+        // a catch the promise leaked as an unhandled rejection and
+        // tokenReady stayed false forever, showing the "invalid link"
+        // screen even for real reset links.
+        console.warn('[ResetPassword] getSession failed:', err);
+        setTokenReady(false);
+      });
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {
