@@ -56,6 +56,15 @@ export default function ProductDetail() {
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
   const saved = handle ? isWishlisted(handle) : false;
 
+  // React Router keeps ProductDetail mounted across /product/:handle
+  // nav — meaning selectedOptions from the previous product leaks
+  // onto the new one. If the old variant 'Color: Sky Blue' exists on
+  // A but not B, the swatch UI shows Sky Blue selected even though B
+  // has no such option. Reset on handle change.
+  useEffect(() => {
+    setSelectedOptions({});
+  }, [handle]);
+
   // Set a product-specific document title so browser tabs, bookmarks,
   // and shared links reflect the actual product instead of the default
   // site title. Restore on unmount so SPA nav doesn't leak stale titles.
