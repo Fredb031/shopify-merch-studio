@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
+import { useAuthStore } from '@/stores/authStore';
 import { useLang } from '@/lib/langContext';
 import { isValidEmail } from '@/lib/utils';
 import { Navbar } from '@/components/Navbar';
@@ -41,9 +42,31 @@ export default function Checkout() {
   const navigate = useNavigate();
   const cart = useCartStore();
   const shopifyCart = useShopifyCartStore();
+  const user = useAuthStore(s => s.user);
 
   const [step, setStep] = useState<Step>('info');
   const [form, setForm] = useState<ShippingForm>(empty);
+
+  // Pre-fill email from the signed-in user's profile so they don't
+  // have to retype what the app already knows. Only fills if the
+  // field is still empty (don't overwrite a user edit if they opt to
+  // use a different email). Split the name too when we have it.
+  const prefilledRef = useRef(false);
+  useEffect(() => {
+    if (prefilledRef.current) return;
+    if (!user) return;
+    prefilledRef.current = true;
+    setForm(prev => {
+      const updates: Partial<ShippingForm> = {};
+      if (!prev.email && user.email) updates.email = user.email;
+      if (!prev.firstName || !prev.lastName) {
+        const parts = (user.name ?? '').trim().split(/\s+/);
+        if (!prev.firstName && parts[0]) updates.firstName = parts[0];
+        if (!prev.lastName && parts.length > 1) updates.lastName = parts.slice(1).join(' ');
+      }
+      return Object.keys(updates).length ? { ...prev, ...updates } : prev;
+    });
+  }, [user]);
 
   useEffect(() => {
     const prev = document.title;
