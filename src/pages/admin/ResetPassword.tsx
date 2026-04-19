@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ResetPassword() {
@@ -9,6 +10,9 @@ export default function ResetPassword() {
   const updatePassword = useAuthStore(s => s.updatePassword);
   const error = useAuthStore(s => s.error);
   const user = useAuthStore(s => s.user);
+  // Auth-tab disambiguation — also helps the user spot this tab in
+  // history if they revisit the recovery link.
+  useDocumentTitle('Nouveau mot de passe — Vision Affichage');
 
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');

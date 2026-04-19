@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 
 export default function AdminLogin() {
@@ -12,6 +13,11 @@ export default function AdminLogin() {
   const clearError = useAuthStore(s => s.clearError);
   const user = useAuthStore(s => s.user);
   const loading = useAuthStore(s => s.loading);
+
+  // Distinguish auth tabs from the rest of the site in the browser tab
+  // strip — without a specific title, an admin with login + dashboard
+  // tabs open had to click each one to find the login form.
+  useDocumentTitle('Connexion — Vision Affichage');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

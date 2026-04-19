@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuthStore, isPresidentEmailCandidate } from '@/stores/authStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 
 export default function Signup() {
@@ -9,6 +10,8 @@ export default function Signup() {
   const signUp = useAuthStore(s => s.signUp);
   const error = useAuthStore(s => s.error);
   const clearError = useAuthStore(s => s.clearError);
+  // Same auth-tab disambiguation as AdminLogin.
+  useDocumentTitle('Créer un compte — Vision Affichage');
 
   // No hardcoded defaults — placeholder text in the inputs is enough.
   // Pre-filling Frederick's name leaked the owner's identity on a

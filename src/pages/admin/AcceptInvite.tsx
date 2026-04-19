@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 interface InviteRow {
@@ -17,6 +18,9 @@ export default function AcceptInvite() {
   const { token } = useParams();
   const navigate = useNavigate();
   const updatePassword = useAuthStore(s => s.updatePassword);
+  // Auth-tab disambiguation so an invitee who revisits the magic link
+  // (or has multiple admin tabs open) recognises this one in the strip.
+  useDocumentTitle('Activer mon compte — Vision Affichage');
 
   const [invite, setInvite] = useState<InviteRow | null>(null);
   const [loading, setLoading] = useState(true);
