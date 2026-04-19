@@ -233,25 +233,33 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               required
             />
 
-            {mode === 'signup' && (
-              <>
-                <input
-                  className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
-                  placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
-                  aria-label={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
-                  type="password"
-                  autoComplete="new-password"
-                  value={password2}
-                  onChange={e => setPassword2(e.target.value)}
-                  required
-                />
-                {password && password2 && password !== password2 && (
-                  <p role="alert" className="text-[11px] text-rose-600 font-semibold">
-                    {lang === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas'}
-                  </p>
-                )}
-              </>
-            )}
+            {mode === 'signup' && (() => {
+              const mismatch = password.length > 0 && password2.length > 0 && password !== password2;
+              return (
+                <>
+                  <input
+                    className={`border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus-visible:ring-2 bg-background ${
+                      mismatch
+                        ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                        : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                    }`}
+                    placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
+                    aria-label={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
+                    aria-invalid={mismatch || undefined}
+                    type="password"
+                    autoComplete="new-password"
+                    value={password2}
+                    onChange={e => setPassword2(e.target.value)}
+                    required
+                  />
+                  {mismatch && (
+                    <p role="alert" className="text-[11px] text-rose-600 font-semibold">
+                      {lang === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas'}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
 
             <button
               type="submit"
