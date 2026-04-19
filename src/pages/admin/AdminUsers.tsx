@@ -148,6 +148,22 @@ export default function AdminUsers() {
   };
 
   const toggleActive = async (userId: string, current: boolean) => {
+    // Same lock-out guard as updateRole — deactivating the last admin
+    // (or the user's own account when they're the last admin) leaves
+    // /admin with nobody to manage it. Block before the confirm modal
+    // so the message reads as 'this is impossible' not 'do you want to'.
+    if (current) {
+      const target = users.find(u => u.id === userId);
+      if (target && (target.role === 'admin' || target.role === 'president')) {
+        const remainingAdmins = users.filter(
+          u => u.id !== userId && (u.role === 'admin' || u.role === 'president') && u.active,
+        ).length;
+        if (remainingAdmins === 0) {
+          toast.error('Impossible : c\'est le dernier compte avec accès admin actif. Promote ou réactive quelqu\'un d\'autre d\'abord.');
+          return;
+        }
+      }
+    }
     const confirmMsg = current
       ? 'Désactiver cet utilisateur ? Il perdra l\u2019accès immédiatement.'
       : 'Réactiver cet utilisateur ?';
