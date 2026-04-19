@@ -55,7 +55,8 @@ export function CartRecommendations() {
           <Link
             key={p.sku}
             to={`/product/${p.shopifyHandle}`}
-            className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-[#0052CC]/30 hover:shadow-md transition-all"
+            aria-label={`${categoryLabel(p.category, lang)} ${p.sku} — ${lang === 'en' ? 'from' : 'à partir de'} ${p.basePrice.toFixed(2)} $`}
+            className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-[#0052CC]/30 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <div className="aspect-square bg-secondary relative overflow-hidden">
               {p.imageDevant && (
