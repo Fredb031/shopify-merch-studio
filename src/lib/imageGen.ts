@@ -81,22 +81,49 @@ export async function generateImage(params: GenerateImageParams): Promise<Genera
   throw new Error(`Fournisseur non supporté : ${provider}`);
 }
 
+// Hard timeout on image-gen calls. DALL-E HD typically returns in 8-12s
+// and Replicate Flux in 3-6s, but a hung connection (network blip,
+// provider degradation, captive portal swallowing the request) used to
+// leave the AdminImageGen 'Génération en cours…' spinner spinning
+// indefinitely with no way to recover short of a page reload. 60s is
+// well above the slowest expected response, short enough to surface a
+// useful error.
+const IMAGE_GEN_TIMEOUT_MS = 60_000;
+
+function withTimeout(): { signal: AbortSignal; cancel: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), IMAGE_GEN_TIMEOUT_MS);
+  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+}
+
 async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<GeneratedImage> {
-  const res = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'dall-e-3',
-      prompt: params.prompt,
-      size: params.size ?? '1024x1024',
-      style: params.style ?? 'natural',
-      quality: 'hd',
-      n: 1,
-    }),
-  });
+  const { signal, cancel } = withTimeout();
+  let res: Response;
+  try {
+    res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: params.prompt,
+        size: params.size ?? '1024x1024',
+        style: params.style ?? 'natural',
+        quality: 'hd',
+        n: 1,
+      }),
+      signal,
+    });
+  } catch (err) {
+    cancel();
+    if ((err as Error)?.name === 'AbortError') {
+      throw new Error(`OpenAI request timed out after ${IMAGE_GEN_TIMEOUT_MS / 1000}s`);
+    }
+    throw err;
+  }
+  cancel();
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`OpenAI error ${res.status}: ${body}`);
@@ -113,22 +140,34 @@ async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<
 async function callReplicate(params: GenerateImageParams, apiKey: string): Promise<GeneratedImage> {
   // Use Flux Schnell for fast + affordable; swap to Flux Pro for higher quality.
   const model = 'black-forest-labs/flux-schnell';
-  const res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'wait',
-    },
-    body: JSON.stringify({
-      input: {
-        prompt: params.prompt,
-        aspect_ratio: params.aspect ?? '1:1',
-        output_format: 'webp',
-        output_quality: 90,
+  const { signal, cancel } = withTimeout();
+  let res: Response;
+  try {
+    res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'wait',
       },
-    }),
-  });
+      body: JSON.stringify({
+        input: {
+          prompt: params.prompt,
+          aspect_ratio: params.aspect ?? '1:1',
+          output_format: 'webp',
+          output_quality: 90,
+        },
+      }),
+      signal,
+    });
+  } catch (err) {
+    cancel();
+    if ((err as Error)?.name === 'AbortError') {
+      throw new Error(`Replicate request timed out after ${IMAGE_GEN_TIMEOUT_MS / 1000}s`);
+    }
+    throw err;
+  }
+  cancel();
   if (!res.ok) {
     const body = await res.text();
     throw new Error(`Replicate error ${res.status}: ${body}`);
