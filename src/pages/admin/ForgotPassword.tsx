@@ -80,15 +80,25 @@ export default function ForgotPassword() {
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Courriel du compte</span>
               <div className="mt-1.5 relative">
                 <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="toi@visionaffichage.com"
-                  autoComplete="email"
-                  required
-                  className="w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/10"
-                />
+                {(() => {
+                  const invalid = email.trim().length > 0 && !isValidEmail(email);
+                  return (
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      placeholder="toi@visionaffichage.com"
+                      autoComplete="email"
+                      required
+                      aria-invalid={invalid || undefined}
+                      className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none focus:ring-2 ${
+                        invalid
+                          ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-400/20'
+                          : 'border-zinc-200 focus:border-[#0052CC] focus:ring-[#0052CC]/10'
+                      }`}
+                    />
+                  );
+                })()}
               </div>
             </label>
 
