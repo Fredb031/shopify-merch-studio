@@ -50,7 +50,17 @@ export const useCartStore = create<CartStore>()(
       },
 
       removeItem: (cartId) =>
-        set((state) => ({ items: state.items.filter((i) => i.cartId !== cartId) })),
+        set((state) => {
+          const items = state.items.filter((i) => i.cartId !== cartId);
+          // Drop the discount alongside the last item — a promo applied
+          // to a cart that's now empty looks stale ("VISION10 applied"
+          // on an empty total) and would silently re-apply on the next
+          // add. The user can always re-paste the code.
+          if (items.length === 0 && state.discountApplied) {
+            return { items, discountCode: null, discountApplied: false };
+          }
+          return { items };
+        }),
 
       applyDiscount: (code) => {
         // Trim + normalize + uppercase so "  vision10 " pasted from an
