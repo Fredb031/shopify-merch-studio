@@ -226,19 +226,20 @@ export default function AdminOrders() {
               if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
               resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
             }}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
             title="Recharger depuis Shopify"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={15} aria-hidden="true" />
             Resync
           </button>
           <button
             type="button"
             onClick={() => exportOrdersCsv(filtered)}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
             title="Exporter en CSV"
+            aria-label={`Exporter ${filtered.length} commande${filtered.length > 1 ? 's' : ''} en CSV`}
           >
-            <Download size={15} />
+            <Download size={15} aria-hidden="true" />
             Exporter
           </button>
         </div>
@@ -247,20 +248,23 @@ export default function AdminOrders() {
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
-            <Search size={16} className="text-zinc-400" />
+            <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Rechercher par client, numéro, courriel"
+              aria-label="Rechercher par client, numéro ou courriel"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter size={14} className="text-zinc-400" />
+            <Filter size={14} className="text-zinc-400" aria-hidden="true" />
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-              className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC]"
+              aria-label="Filtrer par statut"
+              className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
             >
               <option value="all">Tous les statuts</option>
               <option value="paid">Payées</option>
@@ -334,10 +338,11 @@ export default function AdminOrders() {
                         <button
                           type="button"
                           onClick={e => markShipped(o.id, e)}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md bg-zinc-100 text-zinc-700 hover:bg-emerald-100 hover:text-emerald-700 transition-colors"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md bg-zinc-100 text-zinc-700 hover:bg-emerald-100 hover:text-emerald-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                           title="Marquer comme expédié"
+                          aria-label={`Marquer ${o.name} comme expédié`}
                         >
-                          <CheckCircle2 size={11} />
+                          <CheckCircle2 size={11} aria-hidden="true" />
                           Marquer expédié
                         </button>
                       ) : (
@@ -417,10 +422,11 @@ export default function AdminOrders() {
                   href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/orders/${selected.id}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline pt-2"
+                  aria-label={`Voir ${selected.name} dans Shopify Admin (nouvel onglet)`}
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline pt-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                 >
                   Voir dans Shopify Admin
-                  <ExternalLink size={13} />
+                  <ExternalLink size={13} aria-hidden="true" />
                 </a>
               </div>
             </div>
