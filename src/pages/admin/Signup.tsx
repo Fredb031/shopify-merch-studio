@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuthStore, isPresidentEmailCandidate } from '@/stores/authStore';
+import { isValidEmail } from '@/lib/utils';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -22,6 +23,13 @@ export default function Signup() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Pre-validate with the stricter email regex — Supabase bounces
+    // 'a@b'-style inputs back with an unfriendly message. Catch here
+    // so the user gets our own friendly error before a round-trip.
+    if (!isValidEmail(email)) {
+      useAuthStore.getState().setError('Adresse courriel invalide');
+      return;
+    }
     if (password !== confirm) {
       useAuthStore.getState().setError('Les mots de passe ne correspondent pas');
       return;
