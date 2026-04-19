@@ -23,6 +23,18 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
   const [showHint, setShowHint] = useState(false);
   const startedRef = useRef(false);
   const completedRef = useRef(false);
+  // Snapshot the seen flag at construction time — not inside the
+  // useEffect which runs after the first render. Returning visitors
+  // used to see a ~16 ms flash of the black intro overlay before
+  // the useEffect fired onComplete and the parent unmounted us.
+  // Reading the flag before first render lets us skip rendering the
+  // overlay body entirely on the 'already seen' path.
+  const seenOnMountRef = useRef<boolean>(false);
+  if (seenOnMountRef.current === false && !startedRef.current) {
+    try { seenOnMountRef.current = typeof window !== 'undefined' && !!localStorage.getItem(SEEN_KEY); }
+    catch { /* private mode — play the intro */ }
+  }
+  const skipOnMount = skipIfSeen && seenOnMountRef.current;
   // Track the live GSAP timeline so we can kill it on unmount. Without
   // this, a user who clicks through to /products before the 3.35s
   // intro completes triggers the timeline's onComplete callback on an
@@ -208,6 +220,10 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       }
     };
   }, [onComplete, skipIfSeen]);
+
+  // Returning visitor: skip rendering the overlay entirely so there's
+  // no single-frame flash while the useEffect runs onComplete.
+  if (skipOnMount) return null;
 
   return (
     <div id="va-intro-overlay" aria-hidden="true">
