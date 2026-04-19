@@ -77,13 +77,24 @@ async function removeWhiteBackground(file: File): Promise<Blob> {
 }
 
 async function processBitmap(bitmap: ImageBitmap): Promise<Blob> {
+  // Cap canvas dimensions so an 8k+ logo upload doesn't OOM lower-end
+  // mobile browsers on the getImageData call. A cap of 4000px on the
+  // longest edge is well above the print DPI we need for a 40cm logo
+  // and keeps peak memory around 64 MB even in the worst case.
+  const MAX_DIM = 4000;
+  const nw = bitmap.width;
+  const nh = bitmap.height;
+  const scale = Math.min(1, MAX_DIM / Math.max(nw, nh));
+  const w = Math.max(1, Math.round(nw * scale));
+  const h = Math.max(1, Math.round(nh * scale));
+
   const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
+  canvas.width = w;
+  canvas.height = h;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('No 2D context available');
 
-  ctx.drawImage(bitmap, 0, 0);
+  ctx.drawImage(bitmap, 0, 0, w, h);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const px = imageData.data;
 
