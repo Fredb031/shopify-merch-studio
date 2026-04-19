@@ -209,7 +209,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
+    // Try Supabase first, but always clear local state afterward — if
+    // Supabase is unreachable we still want the UI to reflect 'signed out'
+    // for this session, otherwise the user sees their avatar + dashboard
+    // links on the navbar even though they just clicked 'Sign out'.
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('[authStore] supabase.auth.signOut failed; clearing local state anyway:', e);
+    }
     set({ user: null });
     // Wipe customer-scoped persisted state so the next user who signs in
     // on this browser doesn't inherit the previous session's cart / in-
