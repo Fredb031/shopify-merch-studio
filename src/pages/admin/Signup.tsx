@@ -21,6 +21,7 @@ export default function Signup() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (password !== confirm) {
       useAuthStore.getState().setError('Les mots de passe ne correspondent pas');
       return;
@@ -30,9 +31,16 @@ export default function Signup() {
       return;
     }
     setSubmitting(true);
-    const result = await signUp(email, password, name);
-    setSubmitting(false);
-    if (result.ok) setDone(true);
+    try {
+      const result = await signUp(email, password, name);
+      if (result.ok) setDone(true);
+    } catch (err) {
+      // A thrown signUp (network reject) would otherwise leave the
+      // Créer mon compte button disabled forever. Surface + release.
+      console.error('[Signup] signUp threw:', err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isPresidentEmail = email.trim().toLowerCase() === 'contact@fredbouchard.ca';
