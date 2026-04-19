@@ -90,13 +90,21 @@ export default function AdminUsers() {
       toast.error('Tu ne peux pas retirer ton propre rôle Président.');
       return;
     }
-    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-    if (error) {
-      toast.error(`Erreur : ${error.message}`);
-      return;
+    try {
+      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+      if (error) {
+        toast.error(`Erreur : ${error.message}`);
+        return;
+      }
+      setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole } : u)));
+      toast.success('Rôle mis à jour.');
+    } catch (err) {
+      // supabase-js can throw on network/DNS/CORS rejects before the
+      // response ever arrives — that previously bypassed the error
+      // branch and left the admin with no feedback.
+      console.error('[AdminUsers] updateRole threw:', err);
+      toast.error('Erreur réseau. Réessaie dans un instant.');
     }
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole } : u)));
-    toast.success('Rôle mis à jour.');
   };
 
   const toggleActive = async (userId: string, current: boolean) => {
@@ -104,13 +112,18 @@ export default function AdminUsers() {
       ? 'Désactiver cet utilisateur ? Il perdra l\u2019accès immédiatement.'
       : 'Réactiver cet utilisateur ?';
     if (!window.confirm(confirmMsg)) return;
-    const { error } = await supabase.from('profiles').update({ active: !current }).eq('id', userId);
-    if (error) {
-      toast.error(`Erreur : ${error.message}`);
-      return;
+    try {
+      const { error } = await supabase.from('profiles').update({ active: !current }).eq('id', userId);
+      if (error) {
+        toast.error(`Erreur : ${error.message}`);
+        return;
+      }
+      setUsers(prev => prev.map(u => (u.id === userId ? { ...u, active: !current } : u)));
+      toast.success(current ? 'Utilisateur désactivé.' : 'Utilisateur réactivé.');
+    } catch (err) {
+      console.error('[AdminUsers] toggleActive threw:', err);
+      toast.error('Erreur réseau. Réessaie dans un instant.');
     }
-    setUsers(prev => prev.map(u => (u.id === userId ? { ...u, active: !current } : u)));
-    toast.success(current ? 'Utilisateur désactivé.' : 'Utilisateur réactivé.');
   };
 
   const handleInvite = async (e: React.FormEvent) => {
