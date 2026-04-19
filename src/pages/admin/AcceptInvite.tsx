@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore } from '@/stores/authStore';
+import { normalizeInvisible } from '@/lib/utils';
 
 interface InviteRow {
   email: string;
@@ -101,7 +102,15 @@ export default function AcceptInvite() {
       // Security check: the logged-in session's email must match the invite.
       // Prevents someone pasting an invite link while logged in as another
       // account from accidentally taking over the invite.
-      if ((user.email ?? '').toLowerCase() !== invite.email.toLowerCase()) {
+      //
+      // Strip invisible chars before comparing — an admin could have
+      // pasted the invitee's email from Slack/Notion with a sneaky
+      // ZWSP attached; it lived in the invites row but user.email from
+      // Supabase is clean, so the strict compare falsely rejected the
+      // legitimate invitee.
+      const sessEmail = normalizeInvisible(user.email ?? '').trim().toLowerCase();
+      const inviteEmail = normalizeInvisible(invite.email).trim().toLowerCase();
+      if (sessEmail !== inviteEmail) {
         setError(`Cette invitation a été envoyée à ${invite.email}. Déconnecte-toi et ouvre le lien dans ton navigateur privé.`);
         return;
       }
