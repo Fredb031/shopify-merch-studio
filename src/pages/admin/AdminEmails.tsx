@@ -76,7 +76,7 @@ export default function AdminEmails() {
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
-          <Mail size={22} className="text-[#0052CC]" />
+          <Mail size={22} className="text-[#0052CC]" aria-hidden="true" />
           Modèles de courriels
         </h1>
         <p className="text-sm text-zinc-500 mt-1">
@@ -85,13 +85,17 @@ export default function AdminEmails() {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-5">
-        <aside className="space-y-1.5">
+        <aside className="space-y-1.5" role="tablist" aria-label="Modèles de courriels">
           {TEMPLATES.map(t => (
             <button
               key={t.id}
               type="button"
+              role="tab"
+              aria-selected={active === t.id}
+              aria-controls={`email-preview-${t.id}`}
+              id={`email-tab-${t.id}`}
               onClick={() => setActive(t.id)}
-              className={`w-full text-left p-3 rounded-xl transition-colors ${
+              className={`w-full text-left p-3 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                 active === t.id
                   ? 'bg-[#0052CC] text-white'
                   : 'bg-white border border-zinc-200 hover:border-[#0052CC]'
@@ -112,18 +116,22 @@ export default function AdminEmails() {
               <span className="font-bold">{email.subject}</span>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="inline-flex border border-zinc-200 rounded-lg overflow-hidden">
+              <div className="inline-flex border border-zinc-200 rounded-lg overflow-hidden" role="radiogroup" aria-label="Langue du courriel">
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={lang === 'fr'}
                   onClick={() => setLang('fr')}
-                  className={`px-3 py-1.5 text-xs font-bold ${lang === 'fr' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600'}`}
+                  className={`px-3 py-1.5 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-inset ${lang === 'fr' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600'}`}
                 >
                   FR
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={lang === 'en'}
                   onClick={() => setLang('en')}
-                  className={`px-3 py-1.5 text-xs font-bold ${lang === 'en' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600'}`}
+                  className={`px-3 py-1.5 text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-inset ${lang === 'en' ? 'bg-zinc-900 text-white' : 'bg-white text-zinc-600'}`}
                 >
                   EN
                 </button>
@@ -131,19 +139,25 @@ export default function AdminEmails() {
               <button
                 type="button"
                 onClick={copyHtml}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-bold"
+                aria-label={copied ? 'HTML copié' : 'Copier le HTML du courriel'}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 rounded-lg text-xs font-bold focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
               >
-                {copied ? <Check size={13} /> : <Copy size={13} />}
+                {copied ? <Check size={13} aria-hidden="true" /> : <Copy size={13} aria-hidden="true" />}
                 {copied ? 'Copié' : 'Copier HTML'}
               </button>
             </div>
           </div>
 
-          <div className="bg-zinc-100 rounded-2xl p-6 md:p-10 min-h-[400px]">
+          <div
+            className="bg-zinc-100 rounded-2xl p-6 md:p-10 min-h-[400px]"
+            role="tabpanel"
+            id={`email-preview-${active}`}
+            aria-labelledby={`email-tab-${active}`}
+          >
             <iframe
               srcDoc={email.html}
               className="w-full min-h-[600px] border-none rounded-lg bg-white shadow-lg"
-              title="Email preview"
+              title={`Aperçu du courriel — ${TEMPLATES.find(t => t.id === active)?.label ?? ''}`}
               sandbox=""
             />
           </div>
