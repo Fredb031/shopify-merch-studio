@@ -113,7 +113,18 @@ export default function AdminVendors() {
   };
 
   const remove = (id: string) => {
-    persist(customVendors.filter(v => v.id !== id));
+    // Quick guard against an accidental click on the trash icon —
+    // before this the vendor was wiped from localStorage with no
+    // confirmation and no undo. window.confirm is intentionally
+    // synchronous here so the button doesn't need a separate confirm
+    // modal flow.
+    const v = customVendors.find(x => x.id === id);
+    if (!v) return;
+    const ok = window.confirm(
+      `Retirer ${v.name} de la liste ? Cette action est irréversible.`,
+    );
+    if (!ok) return;
+    persist(customVendors.filter(x => x.id !== id));
   };
 
   const all = [...customVendors, ...SEED_VENDORS];
