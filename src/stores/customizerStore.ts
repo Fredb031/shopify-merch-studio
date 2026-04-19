@@ -140,6 +140,26 @@ export const useCustomizerStore = create<CustomizerStore>()(
           step: state.step,
         };
       },
+      // Coerce enum-like fields back to valid values on hydration.
+      // A devtools edit or a cross-version upgrade could land step=7,
+      // activeView='diagonal', or placementSides='side' on disk —
+      // rendering then hit enum lookups that return undefined and
+      // the customizer modal popped up blank. Clamp / fall back.
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        if (typeof state.step !== 'number' || state.step < 1 || state.step > 4) {
+          state.step = 1;
+        }
+        if (state.activeView !== 'front' && state.activeView !== 'back') {
+          state.activeView = 'front';
+        }
+        const validSides = ['none', 'front', 'back', 'both'];
+        if (!validSides.includes(state.placementSides)) {
+          state.placementSides = 'front';
+        }
+        if (!Array.isArray(state.sizeQuantities)) state.sizeQuantities = [];
+        if (!Array.isArray(state.textAssets)) state.textAssets = [];
+      },
     },
   ),
 );
