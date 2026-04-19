@@ -350,17 +350,27 @@ export default function Checkout() {
                     <Mail size={18} className="text-[#0052CC]" />
                     {lang === 'en' ? 'Contact' : 'Contact'}
                   </h2>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                    autoComplete="email"
-                    placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                    aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                    aria-required="true"
-                    className="w-full mt-2 border border-border rounded-lg px-3 py-2.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 transition-shadow"
-                    required
-                  />
+                  {(() => {
+                    const emailInvalid = form.email.trim().length > 0 && !isValidEmail(form.email);
+                    return (
+                      <input
+                        type="email"
+                        value={form.email}
+                        onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                        autoComplete="email"
+                        placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                        aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                        aria-required="true"
+                        aria-invalid={emailInvalid || undefined}
+                        className={`w-full mt-2 border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${
+                          emailInvalid
+                            ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                            : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                        }`}
+                        required
+                      />
+                    );
+                  })()}
                 </div>
 
                 <div>
