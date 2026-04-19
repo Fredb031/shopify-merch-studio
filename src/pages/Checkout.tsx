@@ -304,6 +304,12 @@ export default function Checkout() {
           {(['info', 'shipping', 'payment'] as const).map((s, i) => {
             const isActive = step === s;
             const isDone = stepIndex > i;
+            // Completed steps become clickable so the user can jump back
+            // to edit (typo in email, change shipping method) without
+            // hammering the Back button. The current step + future steps
+            // stay non-interactive — payment can't be reached without
+            // valid info, so jumping forward would just bounce.
+            const isClickable = isDone && !processing;
             const labels: Record<typeof s, { fr: string; en: string }> = {
               info: { fr: 'Informations', en: 'Info' },
               shipping: { fr: 'Livraison', en: 'Shipping' },
@@ -314,13 +320,11 @@ export default function Checkout() {
               : isActive
                 ? (lang === 'en' ? 'current step' : 'étape courante')
                 : (lang === 'en' ? 'upcoming' : 'à venir');
-            return (
-              <li
-                key={s}
-                className="flex items-center"
-                aria-current={isActive ? 'step' : undefined}
-                aria-label={`${labels[s][lang]} — ${stateLabel}`}
-              >
+            const actionLabel = isClickable
+              ? (lang === 'en' ? ` · click to edit` : ` · cliquer pour modifier`)
+              : '';
+            const indicator = (
+              <>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
                     isDone ? 'bg-emerald-500 text-white'
@@ -334,6 +338,28 @@ export default function Checkout() {
                 <span className={`ml-2 text-xs font-bold uppercase tracking-wider ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                   {labels[s][lang]}
                 </span>
+              </>
+            );
+            return (
+              <li
+                key={s}
+                className="flex items-center"
+                aria-current={isActive ? 'step' : undefined}
+              >
+                {isClickable ? (
+                  <button
+                    type="button"
+                    onClick={() => setStep(s)}
+                    aria-label={`${labels[s][lang]} — ${stateLabel}${actionLabel}`}
+                    className="flex items-center hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded-full"
+                  >
+                    {indicator}
+                  </button>
+                ) : (
+                  <div className="flex items-center" aria-label={`${labels[s][lang]} — ${stateLabel}`}>
+                    {indicator}
+                  </div>
+                )}
                 {i < 2 && <div className={`w-12 md:w-20 h-0.5 mx-3 ${isDone ? 'bg-emerald-500' : 'bg-zinc-200'}`} aria-hidden="true" />}
               </li>
             );
