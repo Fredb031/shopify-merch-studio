@@ -56,10 +56,15 @@ export default function TrackOrder() {
     // order number.
     const q = normalizeInvisible(searchInput).trim().toLowerCase().replace(/^#/, '');
     if (!q) return null;
+    // Require both order number AND email. Without this, anyone could
+    // type an order number and see the customer's name, total, and
+    // items — a straight customer-data leak for a public page. Real
+    // order lookup should gate on the email that paid.
     const emailQ = normalizeInvisible(emailInput).trim().toLowerCase();
+    if (!emailQ) return null;
     return SHOPIFY_ORDERS_SNAPSHOT.find(o => {
       const matchNumber = o.name.toLowerCase().replace('#', '') === q;
-      const matchEmail = !emailQ || o.email.toLowerCase() === emailQ;
+      const matchEmail = o.email.toLowerCase() === emailQ;
       return matchNumber && matchEmail;
     }) ?? null;
   }, [searchInput, emailInput]);
@@ -137,11 +142,13 @@ export default function TrackOrder() {
             </label>
           </div>
 
-          {!searchInput.trim() ? (
+          {!searchInput.trim() || !emailInput.trim() ? (
             <div className="text-center py-12">
               <Search size={32} className="text-muted-foreground/40 mx-auto mb-3" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">
-                {lang === 'en' ? 'Enter your order number above' : 'Entre ton numéro de commande ci-dessus'}
+                {lang === 'en'
+                  ? 'Enter your order number AND the email used at checkout'
+                  : 'Entre ton numéro de commande ET le courriel utilisé à la commande'}
               </p>
             </div>
           ) : !order ? (
