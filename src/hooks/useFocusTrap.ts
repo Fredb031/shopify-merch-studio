@@ -35,10 +35,18 @@ export function useFocusTrap<T extends HTMLElement = HTMLElement>(active: boolea
     // modal accessibility pattern.
     const prevActive = document.activeElement as HTMLElement | null;
 
+    // offsetParent returns null for position:fixed descendants per
+     // spec, which would otherwise exclude fixed-positioned close
+    // buttons / toolbar chrome living inside the modal from the
+    // focus trap. Fall back to getClientRects().length when the
+    // offsetParent heuristic rules a node out — any rendered box
+    // has at least one client rect, so the extra check catches
+    // fixed descendants without false-positiving on display:none.
+    const isVisible = (n: HTMLElement) =>
+      !n.hasAttribute('aria-hidden') &&
+      (n.offsetParent !== null || n.getClientRects().length > 0);
     const getFocusable = () =>
-      Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(
-        n => !n.hasAttribute('aria-hidden') && n.offsetParent !== null,
-      );
+      Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(isVisible);
 
     // Focus the first focusable child (or the container itself) so
     // keyboard users start inside the modal.
