@@ -52,11 +52,20 @@ export default function AdminLogin() {
     // the previous attempt's message.
     clearError();
     const role = result.role;
-    if (redirectTo && (
-      (role === 'president') ||
-      (role === 'admin' && redirectTo.startsWith('/admin')) ||
-      ((role === 'vendor' || role === 'admin' || role === 'president') && redirectTo.startsWith('/vendor'))
-    )) {
+    // Return the user to wherever they were trying to go (state.from
+    // set by AuthGuard) when they have permission to be there.
+    // Before this, role='client' always fell through to '/' even when
+    // the redirectTo was /account — a route that clients can access —
+    // silently dropping the back-redirect.
+    const canReach = (target: string): boolean => {
+      if (role === 'president') return true;
+      if (target.startsWith('/admin')) return role === 'admin';
+      if (target.startsWith('/vendor')) return role === 'vendor' || role === 'admin';
+      // Non-gated paths (e.g. /account, /cart, /checkout) are open to
+      // any signed-in user.
+      return true;
+    };
+    if (redirectTo && canReach(redirectTo)) {
       navigate(redirectTo, { replace: true });
       return;
     }
