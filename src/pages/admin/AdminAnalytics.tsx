@@ -149,7 +149,7 @@ export default function AdminAnalytics() {
       <section className="bg-white border border-zinc-200 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-bold">Catalogue par type de produit</h2>
-          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{SHOPIFY_PRODUCTS_SNAPSHOT.length} produits actifs</span>
+          <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{SHOPIFY_PRODUCTS_SNAPSHOT.length} produit{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''} actif{SHOPIFY_PRODUCTS_SNAPSHOT.length > 1 ? 's' : ''}</span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {productTypeRevenue.map(t => (
