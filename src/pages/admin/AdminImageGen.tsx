@@ -266,7 +266,7 @@ export default function AdminImageGen() {
             {history.map((img, i) => (
               <div key={i} className="border border-zinc-200 rounded-xl overflow-hidden">
                 <div className="aspect-square bg-zinc-100 relative group">
-                  <img src={img.url} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+                  <img src={img.url} alt={img.prompt} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                   <a
                     href={img.url}
                     download

@@ -271,7 +271,7 @@ export function LogoUploader({
             {/* Preview with checkered bg */}
             <div className="relative rounded-xl overflow-hidden border border-border" style={{ height: 140 }}>
               <div className="absolute inset-0" style={{ backgroundImage: 'repeating-conic-gradient(#e5e5e5 0% 25%, white 0% 50%)', backgroundSize: '14px 14px' }} />
-              <img src={preview} alt="Logo" className="relative w-full h-full object-contain p-4 z-10" />
+              <img src={preview} alt="Logo" className="relative w-full h-full object-contain p-4 z-10" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
               <button
                 type="button"
                 onClick={() => { setStatus('idle'); setPreview(null); setBgRemoved(false); }}

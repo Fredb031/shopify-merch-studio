@@ -119,7 +119,7 @@ export default function AdminProducts() {
               >
                 <div className="aspect-square bg-zinc-100 relative">
                   {p.firstImage && (
-                    <img src={p.firstImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                    <img src={p.firstImage} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                   )}
                   <span className="absolute top-2 right-2 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
                     Actif

@@ -1119,7 +1119,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                               style={{ backgroundImage: 'repeating-conic-gradient(#eee 0% 25%, white 0% 50%)', backgroundSize: '10px 10px' }}
                               aria-hidden="true"
                             />
-                            <img src={s.p!.previewUrl} alt={s.label} className="relative w-full h-full object-contain p-1.5" />
+                            <img src={s.p!.previewUrl} alt={s.label} className="relative w-full h-full object-contain p-1.5" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
