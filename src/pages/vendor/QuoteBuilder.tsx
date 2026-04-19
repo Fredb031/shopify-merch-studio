@@ -363,9 +363,14 @@ export default function QuoteBuilder() {
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={3}
+              maxLength={2000}
               placeholder="Instructions internes, détails spéciaux…"
               className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC] resize-none"
+              aria-label="Notes internes"
             />
+            <div className="text-[10px] text-zinc-400 mt-1 text-right font-mono">
+              {notes.length}/2000
+            </div>
           </div>
 
           <div className="border-t border-zinc-200 pt-3 space-y-1.5 text-sm">
