@@ -111,6 +111,16 @@ export default function Cart() {
     return () => { document.title = prev; };
   }, [lang, totalQty]);
 
+  // Track the safety-net timer so the normal path (navigate unmounts
+  // this component within a few ms) doesn't fire setCheckingOut on a
+  // dead component and trigger the React dev warning.
+  const checkoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (checkoutTimerRef.current) clearTimeout(checkoutTimerRef.current);
+    };
+  }, []);
+
   const handleCheckout = () => {
     // Flip the disabled state on the button so rapid double-clicks don't
     // queue multiple navigations while the browser is transitioning.
@@ -123,9 +133,12 @@ export default function Cart() {
     // If the route guard or some other middleware blocks the
     // navigation (very rare but possible with experimental router
     // configs), the button would stay disabled forever. 2s safety
-    // net to release it. Real navigation unmounts this component
-    // long before the timer fires.
-    setTimeout(() => setCheckingOut(false), 2000);
+    // net to release it.
+    if (checkoutTimerRef.current) clearTimeout(checkoutTimerRef.current);
+    checkoutTimerRef.current = setTimeout(() => {
+      setCheckingOut(false);
+      checkoutTimerRef.current = null;
+    }, 2000);
   };
 
   // Remove from BOTH local + Shopify cart so Shopify checkout reflects the
