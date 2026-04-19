@@ -8,6 +8,11 @@ export function SiteFooter() {
   const { lang } = useLang();
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  // Surfaces a soft-error line when isValidEmail rejects the submitted
+  // address. Before this, the form swallowed "a@b.c"-style inputs that
+  // pass the browser's type=email check but fail our stricter regex —
+  // the user saw nothing, assumed it worked, and never got a newsletter.
+  const [emailErr, setEmailErr] = useState(false);
   // Track the pending reset timer so we can cancel it on unmount — without
   // this, users who submit and then navigate away within 3.5s trigger a
   // state update on an unmounted component (React dev warning + wasted work).
@@ -21,7 +26,11 @@ export function SiteFooter() {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     const normalized = email.trim().toLowerCase();
-    if (!isValidEmail(normalized)) return;
+    if (!isValidEmail(normalized)) {
+      setEmailErr(true);
+      return;
+    }
+    setEmailErr(false);
     try {
       const raw = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
       // Defensive: older versions stored strings here; force to array.
@@ -76,27 +85,39 @@ export function SiteFooter() {
           ) : (
             <form
               onSubmit={handleSubscribe}
-              className="flex items-stretch self-center w-full max-w-md"
+              className="flex flex-col self-center w-full max-w-md"
               aria-label={lang === 'en' ? 'Newsletter signup' : 'Inscription à l\u2019infolettre'}
             >
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder={lang === 'en' ? 'your@email.com' : 'ton@courriel.com'}
-                aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                aria-required="true"
-                className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:border-[#E8A838] focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow"
-                autoComplete="email"
-                required
-              />
-              <button
-                type="submit"
-                disabled={!email.trim()}
-                className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
-              >
-                {lang === 'en' ? 'Subscribe' : "M'inscrire"}
-              </button>
+              <div className="flex items-stretch">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(false); }}
+                  placeholder={lang === 'en' ? 'your@email.com' : 'ton@courriel.com'}
+                  aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                  aria-required="true"
+                  aria-invalid={emailErr || undefined}
+                  className={`flex-1 px-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow ${
+                    emailErr ? 'border-rose-400/70 focus:border-rose-300' : 'border-white/20 focus:border-[#E8A838]'
+                  }`}
+                  autoComplete="email"
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={!email.trim()}
+                  className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
+                >
+                  {lang === 'en' ? 'Subscribe' : "M'inscrire"}
+                </button>
+              </div>
+              {emailErr && (
+                <p role="alert" className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1">
+                  {lang === 'en'
+                    ? 'That email doesn\u2019t look valid — double-check it and try again.'
+                    : 'Ce courriel ne semble pas valide — vérifie-le et réessaie.'}
+                </p>
+              )}
             </form>
           )}
         </div>
