@@ -122,10 +122,16 @@ export default function Checkout() {
     else navigate('/cart');
   };
 
+  // Canadian postal code: H2X 1Y2 (letter-digit-letter space? digit-letter-digit).
+  // Lenient on the space — accept with or without. Without this, the
+  // 'Continue' button enabled for 'foo' input and the user only learned
+  // at Shopify's checkout that the address was invalid.
+  const isValidCanadianPostal = /^[A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d$/i
+    .test(form.postalCode.trim());
   const infoValid =
     isValidEmail(form.email) &&
     form.firstName.trim() && form.lastName.trim() && form.address.trim() &&
-    form.city.trim() && form.postalCode.trim();
+    form.city.trim() && isValidCanadianPostal;
 
   const handlePay = async () => {
     if (!acceptedTerms) return;
