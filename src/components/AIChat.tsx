@@ -33,16 +33,66 @@ const loadKb = () => {
   return kbPromise;
 };
 
+// sessionStorage key for the in-progress chat transcript. Per-session
+// rather than persistent — closing the tab wipes the conversation, but
+// a hard reload (page nav, customizer-mid-flow refresh) preserves it.
+// Cap at 200 messages to match the in-memory MAX so we don't grow the
+// quota unbounded across reloads.
+const TRANSCRIPT_KEY = 'vision-aichat-transcript';
+const TRANSCRIPT_MAX = 200;
+
+function readTranscript(): ChatMessage[] {
+  if (typeof sessionStorage === 'undefined') return [];
+  try {
+    const raw = JSON.parse(sessionStorage.getItem(TRANSCRIPT_KEY) ?? '[]');
+    if (!Array.isArray(raw)) return [];
+    // Defensive shape coercion — a devtools edit could land non-string
+    // text or an unknown role and break the strict union downstream.
+    const VALID_ROLES = new Set(['user', 'assistant']);
+    return raw
+      .filter((m): m is ChatMessage => {
+        return !!m && typeof m === 'object'
+          && VALID_ROLES.has(m.role)
+          && typeof m.text === 'string'
+          && typeof m.ts === 'number'
+          && Number.isFinite(m.ts);
+      })
+      .slice(-TRANSCRIPT_MAX);
+  } catch {
+    return [];
+  }
+}
+
 export function AIChat() {
   const { lang } = useLang();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<ViewMode>('menu');
   const [activeTopic, setActiveTopic] = useState<KBTopic | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Hydrate from sessionStorage on first mount so a customer who refreshes
+  // mid-conversation doesn't lose context.
+  const [messages, setMessages] = useState<ChatMessage[]>(() => readTranscript());
   const [input, setInput] = useState('');
   const [thinking, setThinking] = useState(false);
   const [topics, setTopics] = useState<KBTopic[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // If we hydrated to messages, show the chat view immediately so the
+  // user sees their continued conversation instead of the topic menu.
+  useEffect(() => {
+    if (messages.length > 0) setView('chat');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist transcript on change. Keeps storage in sync with in-memory
+  // state without blocking renders. Wrapped in try/catch for private-
+  // browsing modes where setItem throws.
+  useEffect(() => {
+    if (typeof sessionStorage === 'undefined') return;
+    try {
+      if (messages.length === 0) sessionStorage.removeItem(TRANSCRIPT_KEY);
+      else sessionStorage.setItem(TRANSCRIPT_KEY, JSON.stringify(messages.slice(-TRANSCRIPT_MAX)));
+    } catch { /* private mode / quota — chat still works in-memory */ }
+  }, [messages]);
   // Synchronous in-flight flag. The `thinking` STATE doesn't propagate
   // until React commits the next render, so an Enter press immediately
   // followed by a Click (or two clicks within one frame) both saw
