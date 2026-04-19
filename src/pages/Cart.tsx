@@ -120,6 +120,12 @@ export default function Cart() {
     // would trigger (re-parsing HTML, re-running vite chunks the
     // browser already has cached, losing in-memory stores).
     navigate('/checkout');
+    // If the route guard or some other middleware blocks the
+    // navigation (very rare but possible with experimental router
+    // configs), the button would stay disabled forever. 2s safety
+    // net to release it. Real navigation unmounts this component
+    // long before the timer fires.
+    setTimeout(() => setCheckingOut(false), 2000);
   };
 
   // Remove from BOTH local + Shopify cart so Shopify checkout reflects the
