@@ -104,6 +104,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             height={22}
             decoding="async"
             className="h-[22px] w-auto mx-auto mb-[18px] opacity-70"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
           />
           <h2 id="login-modal-title" className="text-xl font-extrabold text-foreground mb-[5px]">{title}</h2>
           <p className="text-[13px] text-muted-foreground mb-5">{subtitle}</p>

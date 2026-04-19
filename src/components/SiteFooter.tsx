@@ -177,6 +177,7 @@ export function SiteFooter() {
               src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
               alt="Vision Affichage"
               className="h-5 opacity-70"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
             />
           </div>
           <div className="text-[11px] text-white/40">

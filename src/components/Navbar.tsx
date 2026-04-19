@@ -47,6 +47,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           height={24}
           decoding="async"
           className="h-6 w-auto"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
         />
       </Link>
 
