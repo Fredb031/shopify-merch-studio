@@ -225,10 +225,27 @@ export function LogoUploader({
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
+    dragCounterRef.current = 0;
     setIsDragOver(false);
     const file = e.dataTransfer.files[0];
     if (file) processFile(file);
   }, [processFile]);
+
+  // Drag counter — dragenter/dragleave fire on every child element the
+  // cursor crosses (Upload icon, the two text lines), so naive
+  // setIsDragOver(false) on dragleave used to flash the highlight off
+  // and on as the user dragged across the inner content. Increment on
+  // enter, decrement on leave, only flip the visual state at zero.
+  const dragCounterRef = useRef(0);
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounterRef.current += 1;
+    if (dragCounterRef.current === 1) setIsDragOver(true);
+  }, []);
+  const handleDragLeave = useCallback(() => {
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) setIsDragOver(false);
+  }, []);
 
   const statusLabel: Record<UploadStatus, string> = {
     idle: '',
@@ -253,8 +270,9 @@ export function LogoUploader({
               }
             }}
             onDrop={handleDrop}
-            onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-            onDragLeave={() => setIsDragOver(false)}
+            onDragOver={(e) => { e.preventDefault(); }}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
             role="button"
             tabIndex={0}
             aria-label={t('glisserLogo')}
