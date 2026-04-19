@@ -12,6 +12,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { TablePagination } from '@/components/admin/TablePagination';
+import { normalizeInvisible } from '@/lib/utils';
 
 function initials(c: ShopifyCustomerSnapshot): string {
   const first = (c.firstName?.[0] ?? '').toUpperCase();
@@ -50,17 +51,19 @@ export default function AdminCustomers() {
   const trapRef = useFocusTrap<HTMLDivElement>(!!selected);
 
   const filtered = useMemo(() => {
+    // Strip invisibles on both sides so a paste-from-Slack search term
+    // still matches customer records that might also carry ZWSP from
+    // a Shopify export.
+    const q = normalizeInvisible(query).trim().toLowerCase();
     return SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => {
       if (filter === 'paying' && c.ordersCount === 0) return false;
       if (filter === 'prospects' && c.ordersCount > 0) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
-      return (
-        c.email.toLowerCase().includes(q) ||
-        (c.firstName ?? '').toLowerCase().includes(q) ||
-        (c.lastName ?? '').toLowerCase().includes(q) ||
-        (c.city ?? '').toLowerCase().includes(q)
-      );
+      if (!q) return true;
+      const email = normalizeInvisible(c.email).toLowerCase();
+      const first = normalizeInvisible(c.firstName ?? '').toLowerCase();
+      const last  = normalizeInvisible(c.lastName ?? '').toLowerCase();
+      const city  = normalizeInvisible(c.city ?? '').toLowerCase();
+      return email.includes(q) || first.includes(q) || last.includes(q) || city.includes(q);
     });
   }, [query, filter]);
 
