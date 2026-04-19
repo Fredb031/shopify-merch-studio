@@ -64,16 +64,25 @@ export default function AdminUsers() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, email, full_name, role, title, active, created_at')
-      .order('created_at', { ascending: false });
-    if (error) {
-      setError(error.message);
-    } else {
-      setUsers((data ?? []) as ProfileRow[]);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role, title, active, created_at')
+        .order('created_at', { ascending: false });
+      if (error) {
+        setError(error.message);
+      } else {
+        setUsers((data ?? []) as ProfileRow[]);
+      }
+    } catch (err) {
+      // supabase-js throws on network/CORS/DNS rejects before the
+      // response object is built. Without this catch the loading
+      // spinner sat forever while the admin stared at an empty list.
+      console.error('[AdminUsers] fetchUsers threw:', err);
+      setError('Erreur réseau. Vérifie ta connexion et recharge la page.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const filtered = useMemo(() => {
