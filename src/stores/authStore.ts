@@ -135,16 +135,28 @@ export const useAuthStore = create<AuthState>((set) => ({
   loading: true,
 
   hydrateFromSession: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      // Keep the owner's profile row consistent every time we rehydrate
-      // (first load, returning visit) — not just on manual sign-in.
-      await syncOwnerProfile(session.user);
-      const profile = await fetchProfile(session.user.id);
-      const user = buildUser(session.user, profile);
-      set({ user, loading: false });
-    } else {
-      set({ user: null, loading: false });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Keep the owner's profile row consistent every time we rehydrate
+        // (first load, returning visit) — not just on manual sign-in.
+        await syncOwnerProfile(session.user);
+        const profile = await fetchProfile(session.user.id);
+        const user = buildUser(session.user, profile);
+        set({ user });
+      } else {
+        set({ user: null });
+      }
+    } catch (e) {
+      // Network failure, Supabase down, RLS change — any of these would
+      // throw and leave loading stuck at true, which in turn leaves
+      // every AuthGuard-wrapped admin/vendor page showing a forever-
+      // spinning skeleton. Treat the failure as 'no session' so at
+      // least the login page renders.
+      console.error('[authStore] hydrateFromSession failed:', e);
+      set({ user: null });
+    } finally {
+      set({ loading: false });
     }
   },
 
