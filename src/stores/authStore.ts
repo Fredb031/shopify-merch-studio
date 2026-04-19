@@ -237,6 +237,25 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (e) {
       console.warn('[authStore] Could not clear persisted stores on signOut:', e);
     }
+    // Reset the stores' IN-MEMORY state too. localStorage.removeItem
+    // clears the persisted payload but Zustand keeps its current
+    // in-memory state until next hydration (which only happens on
+    // page reload). Without this, the user signs out and the navbar
+    // avatar disappears but the cart badge still shows items + the
+    // customizer still has their in-progress logo. Dynamic imports
+    // avoid top-level circular deps with cartStore/localCartStore.
+    try {
+      const [{ useCartStore: useLocalCart }, { useCartStore: useShopifyCart }, { useCustomizerStore }] = await Promise.all([
+        import('@/stores/localCartStore'),
+        import('@/stores/cartStore'),
+        import('@/stores/customizerStore'),
+      ]);
+      useLocalCart.getState().clear();
+      useShopifyCart.getState().clearCart();
+      useCustomizerStore.getState().reset();
+    } catch (e) {
+      console.warn('[authStore] Could not reset in-memory stores on signOut:', e);
+    }
   },
 
   sendPasswordReset: async (email) => {
