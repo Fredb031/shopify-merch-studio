@@ -165,14 +165,32 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
       <div className={`text-sm font-extrabold min-w-[80px] text-right ${valueColor}`}>
         {checkout.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $
       </div>
-      <a
-        href={`mailto:${checkout.email}?subject=Tu as oubli%C3%A9 ton panier sur Vision Affichage&body=Bonjour ${encodeURIComponent(name)},%0D%0A%0D%0AOn a remarqu%C3%A9 que tu as un panier en attente sur notre site. Tu peux le compl%C3%A9ter ici :%0D%0A${encodeURIComponent(checkout.recoveryUrl)}%0D%0A%0D%0ASi tu as des questions, n%27h%C3%A9site pas !%0D%0A%0D%0A%C3%89quipe Vision Affichage`}
-        title="Envoyer un courriel de relance"
-        aria-label={`Envoyer un courriel de relance à ${name}`}
-        className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
-      >
-        <Mail size={14} aria-hidden="true" />
-      </a>
+      {(() => {
+        // Build the mailto URL via encodeURIComponent on each field so
+        // spaces, accents, and apostrophes are handled uniformly.
+        // The old inline template mixed hand-crafted %C3%A9 escapes with
+        // raw spaces and unencoded recipient addresses — any email with
+        // a `+alias` or a space would break the link.
+        const subject = encodeURIComponent('Tu as oublié ton panier sur Vision Affichage');
+        const body = encodeURIComponent(
+          `Bonjour ${name},\n\n` +
+          `On a remarqué que tu as un panier en attente sur notre site. Tu peux le compléter ici :\n` +
+          `${checkout.recoveryUrl}\n\n` +
+          `Si tu as des questions, n'hésite pas !\n\n` +
+          `— Équipe Vision Affichage`,
+        );
+        const mailtoHref = `mailto:${encodeURIComponent(checkout.email)}?subject=${subject}&body=${body}`;
+        return (
+          <a
+            href={mailtoHref}
+            title="Envoyer un courriel de relance"
+            aria-label={`Envoyer un courriel de relance à ${name}`}
+            className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <Mail size={14} aria-hidden="true" />
+          </a>
+        );
+      })()}
       <a
         href={checkout.recoveryUrl}
         target="_blank"
