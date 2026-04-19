@@ -51,6 +51,17 @@ export default function Checkout() {
   // have to retype what the app already knows. Only fills if the
   // field is still empty (don't overwrite a user edit if they opt to
   // use a different email). Split the name too when we have it.
+  // Track the post-redirect safety-net timers so they don't fire
+  // setProcessing on an unmounted page after Shopify navigation lands.
+  // The window.location.href redirect is synchronous but the new page
+  // hasn't mounted yet — React dev warning otherwise.
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
+
   const prefilledRef = useRef(false);
   useEffect(() => {
     if (prefilledRef.current) return;
@@ -175,11 +186,13 @@ export default function Checkout() {
         // browser extension, CSP that blocks the Shopify origin) the
         // user would be stuck on "Processing…" indefinitely. Give it
         // 4s then unstick the button so they can try again.
-        setTimeout(() => {
+        if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = setTimeout(() => {
           setProcessing(false);
           toast.error(lang === 'en'
             ? 'Redirect didn\u2019t happen. Check popup blockers + try again.'
             : 'La redirection n\u2019a pas eu lieu. Vérifie les bloqueurs de popups et réessaie.');
+          redirectTimerRef.current = null;
         }, 4000);
         return;
       }
@@ -235,11 +248,13 @@ export default function Checkout() {
       }
       window.location.href = `https://visionaffichage-com.myshopify.com/cart/${permalinkParts.join(',')}`;
       // Same no-navigation safety net as the direct checkoutUrl path.
-      setTimeout(() => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+      redirectTimerRef.current = setTimeout(() => {
         setProcessing(false);
         toast.error(lang === 'en'
           ? 'Redirect didn\u2019t happen. Check popup blockers + try again.'
           : 'La redirection n\u2019a pas eu lieu. Vérifie les bloqueurs de popups et réessaie.');
+        redirectTimerRef.current = null;
       }, 4000);
     } catch (err) {
       console.error('Checkout error:', err);
