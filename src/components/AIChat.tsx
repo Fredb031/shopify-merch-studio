@@ -32,6 +32,13 @@ export function AIChat() {
   const [thinking, setThinking] = useState(false);
   const [topics, setTopics] = useState<KBTopic[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Synchronous in-flight flag. The `thinking` STATE doesn't propagate
+  // until React commits the next render, so an Enter press immediately
+  // followed by a Click (or two clicks within one frame) both saw
+  // `thinking=false` from their captured closure and pushed a duplicate
+  // user message before the first send had a chance to flip the state.
+  // The ref updates synchronously and is checked first.
+  const sendingRef = useRef(false);
 
   // Warm-up: start loading the KB the first time the panel opens.
   // If the dynamic import fails (chunk 404, offline), log + swallow so
@@ -59,7 +66,11 @@ export function AIChat() {
 
   const send = async (text: string) => {
     const trimmed = text.trim();
-    if (!trimmed || thinking) return;
+    // Check the synchronous ref first — `thinking` state lags one render
+    // and an Enter+Click within the same frame would otherwise duplicate
+    // the user message.
+    if (!trimmed || sendingRef.current) return;
+    sendingRef.current = true;
     // Cap the transcript at 200 messages so a user who hammers the
     // bot in one session doesn't grow the in-memory list unbounded.
     // The DOM can handle it for a while but the scroll animation
@@ -97,6 +108,7 @@ export function AIChat() {
       });
     } finally {
       setThinking(false);
+      sendingRef.current = false;
     }
   };
 
