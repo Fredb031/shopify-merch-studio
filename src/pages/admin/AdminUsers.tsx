@@ -103,6 +103,16 @@ export default function AdminUsers() {
       toast.error('Tu ne peux pas retirer ton propre rôle Président.');
       return;
     }
+    // Confirm any other self-demotion. An admin who clicks the wrong row
+    // shouldn't silently lose their own access on a misclick — without
+    // this, a Customer-row click immediately wiped their admin role and
+    // the very next page nav bounced them to /admin/login.
+    if (userId === me?.id && newRole !== me?.role) {
+      const ok = window.confirm(
+        `Tu es sur le point de changer ton propre rôle (${ROLE_LABEL[me.role]} → ${ROLE_LABEL[newRole]}). Tu pourrais perdre l'accès à cette page. Continuer ?`,
+      );
+      if (!ok) return;
+    }
     try {
       const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
       if (error) {
