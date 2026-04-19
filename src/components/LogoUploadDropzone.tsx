@@ -70,10 +70,19 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    dragCounterRef.current = 0;
     setDragOver(false);
     const f = e.dataTransfer.files[0];
     if (f) handleFile(f);
   };
+
+  // Drag counter: dragenter/dragleave fire on every child element the
+  // cursor passes over (the upload icon + the two text divs inside the
+  // dropzone), so a naive setDragOver(false) on dragleave used to make
+  // the highlight flicker as the user dragged over the inner content.
+  // Increment on enter, decrement on leave, and only flip the visual
+  // state when the counter returns to zero.
+  const dragCounterRef = useRef(0);
 
   if (preview && file) {
     const isImage = file.type.startsWith('image/');
@@ -113,9 +122,16 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         onClick={() => inputRef.current?.click()}
         onDragOver={e => {
           e.preventDefault();
-          setDragOver(true);
         }}
-        onDragLeave={() => setDragOver(false)}
+        onDragEnter={e => {
+          e.preventDefault();
+          dragCounterRef.current += 1;
+          if (dragCounterRef.current === 1) setDragOver(true);
+        }}
+        onDragLeave={() => {
+          dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+          if (dragCounterRef.current === 0) setDragOver(false);
+        }}
         onDrop={onDrop}
         aria-invalid={!!error}
         aria-describedby={error ? 'logo-upload-error' : undefined}
