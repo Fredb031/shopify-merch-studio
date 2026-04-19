@@ -3,7 +3,7 @@ import { Search, Plus, Trash2, Send, Percent, DollarSign, Save } from 'lucide-re
 import { Link, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { PRODUCTS } from '@/data/products';
-import { isValidEmail } from '@/lib/utils';
+import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 interface LineItem {
   id: string;
@@ -103,12 +103,17 @@ export default function QuoteBuilder() {
       }
     })();
     const number = `Q-${new Date().getFullYear()}-${String(nextSeq).padStart(4, '0')}`;
+    // Scrub invisible chars before persisting — a vendor paste of the
+    // client name or email from Slack/Notion could carry a ZWSP that
+    // would later break QuoteList's email display + any strict match.
+    const cleanName = normalizeInvisible(clientName).trim();
+    const cleanEmail = normalizeInvisible(clientEmail).trim().toLowerCase();
     const quote = {
       id: `q-${Date.now()}`,
       number,
       status,
-      clientName,
-      clientEmail,
+      clientName: cleanName,
+      clientEmail: cleanEmail,
       items,
       subtotal,
       discountKind,
