@@ -103,12 +103,17 @@ export function summarizeStock(parts: SanmarInventoryPart[] | null): StockSummar
   if (!parts) return { totalAvailable, byColor, bySize, byColorSize };
 
   for (const p of parts) {
-    totalAvailable += p.totalQty;
-    if (p.partColor) byColor.set(p.partColor, (byColor.get(p.partColor) ?? 0) + p.totalQty);
-    if (p.labelSize) bySize.set(p.labelSize, (bySize.get(p.labelSize) ?? 0) + p.totalQty);
+    // SanMar's SOAP-to-REST gateway has been known to return null /
+    // undefined for totalQty on discontinued parts. Coerce to 0 so a
+    // single bad row doesn't turn the whole summary into NaN and
+    // render as "NaN en stock" on the PDP stock badge.
+    const qty = Number.isFinite(p.totalQty) ? p.totalQty : 0;
+    totalAvailable += qty;
+    if (p.partColor) byColor.set(p.partColor, (byColor.get(p.partColor) ?? 0) + qty);
+    if (p.labelSize) bySize.set(p.labelSize, (bySize.get(p.labelSize) ?? 0) + qty);
     if (p.partColor && p.labelSize) {
       const key = `${p.partColor}|${p.labelSize}`;
-      byColorSize.set(key, (byColorSize.get(key) ?? 0) + p.totalQty);
+      byColorSize.set(key, (byColorSize.get(key) ?? 0) + qty);
     }
   }
 
