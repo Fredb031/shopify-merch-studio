@@ -188,12 +188,18 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
         // The old inline template mixed hand-crafted %C3%A9 escapes with
         // raw spaces and unencoded recipient addresses — any email with
         // a `+alias` or a space would break the link.
-        const subject = encodeURIComponent('Tu as oublié ton panier sur Vision Affichage');
+        const subject = encodeURIComponent('Ton panier t\'attend sur Vision Affichage — 10 % offert');
+        // Include the VISION10 discount code as an incentive — abandoned-
+        // cart recovery emails convert ~15-25% better with a coupon than
+        // a bare reminder, and VISION10 is already wired through the cart
+        // store so the customer can paste it into the promo input.
         const body = encodeURIComponent(
           `Bonjour ${name},\n\n` +
-          `On a remarqué que tu as un panier en attente sur notre site. Tu peux le compléter ici :\n` +
+          `On a remarqué que tu as un panier en attente sur notre site. Pour te remercier, voici 10 % de rabais avec le code VISION10 — valide 7 jours.\n\n` +
+          `Reprendre ta commande :\n` +
           `${checkout.recoveryUrl}\n\n` +
-          `Si tu as des questions, n'hésite pas !\n\n` +
+          `Code promo : VISION10 (à coller dans le panier)\n\n` +
+          `Si tu as des questions, n'hésite pas — on est là pour t'aider.\n\n` +
           `— Équipe Vision Affichage`,
         );
         const mailtoHref = `mailto:${encodeURIComponent(checkout.email)}?subject=${subject}&body=${body}`;
