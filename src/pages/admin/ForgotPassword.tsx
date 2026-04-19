@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { normalizeInvisible } from '@/lib/utils';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -48,7 +49,7 @@ export default function ForgotPassword() {
             </div>
             <h2 className="text-lg font-extrabold mb-2">Courriel envoyé</h2>
             <p className="text-sm text-zinc-600 mb-5 leading-relaxed">
-              Si un compte existe avec <strong>{email}</strong>, tu vas recevoir un lien dans quelques secondes.
+              Si un compte existe avec <strong>{normalizeInvisible(email).trim().toLowerCase()}</strong>, tu vas recevoir un lien dans quelques secondes.
               Vérifie aussi tes spams.
             </p>
             <Link
