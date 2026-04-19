@@ -6,6 +6,7 @@ import { useAuthStore, type UserRole } from '@/stores/authStore';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { isValidEmail } from '@/lib/utils';
 
 interface ProfileRow {
   id: string;
@@ -114,20 +115,35 @@ export default function AdminUsers() {
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    setInviteSubmitting(true);
-    setInviteResult(null);
-    const { data, error } = await supabase.functions.invoke('admin-invite-vendor', {
-      body: { email: inviteEmail, full_name: inviteName, role: inviteRole },
-    });
-    setInviteSubmitting(false);
-    if (error) {
-      setInviteResult(`Erreur : ${error.message}`);
+    if (inviteSubmitting) return;
+    const trimmedEmail = inviteEmail.trim().toLowerCase();
+    if (!inviteName.trim() || !isValidEmail(trimmedEmail)) {
+      setInviteResult('Nom + courriel valides requis.');
       return;
     }
-    setInviteResult(data?.warning ?? `Invitation envoyée à ${inviteEmail}.`);
-    setInviteName('');
-    setInviteEmail('');
-    fetchUsers();
+    setInviteSubmitting(true);
+    setInviteResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-invite-vendor', {
+        body: { email: trimmedEmail, full_name: inviteName.trim(), role: inviteRole },
+      });
+      if (error) {
+        setInviteResult(`Erreur : ${error.message}`);
+        return;
+      }
+      setInviteResult(data?.warning ?? `Invitation envoyée à ${trimmedEmail}.`);
+      setInviteName('');
+      setInviteEmail('');
+      fetchUsers();
+    } catch (err) {
+      // supabase.functions.invoke can reject on network/DNS issues —
+      // without a finally this used to leave the Envoyer button
+      // disabled forever. Log + surface a generic error.
+      console.error('[AdminUsers] admin-invite-vendor threw:', err);
+      setInviteResult('Erreur réseau. Vérifie ta connexion et réessaie.');
+    } finally {
+      setInviteSubmitting(false);
+    }
   };
 
   return (
