@@ -6,6 +6,13 @@ const KEY = 'vision-wishlist';
 // quota for the cart + customizer state that shares it.
 const MAX = 50;
 
+// Cross-tab sync goes through the native 'storage' event. Same-tab
+// sync (two ProductCard instances, or ProductCard + PDP heart)
+// requires its own pub/sub: the browser never fires 'storage' on the
+// tab that wrote. Without this, liking a product in a grid card
+// didn't flip the heart on its sibling PDP heart button until reload.
+const SAME_TAB_EVENT = 'vision-wishlist-change';
+
 function readStorage(): string[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
@@ -43,6 +50,8 @@ export function useWishlist() {
       const without = prev.filter(h => h !== handle);
       const next = (without.length === prev.length ? [handle, ...prev] : without).slice(0, MAX);
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
+      // Broadcast to other useWishlist instances in the SAME tab.
+      try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
       return next;
     });
   }, []);
@@ -53,8 +62,13 @@ export function useWishlist() {
     const onStorage = (e: StorageEvent) => {
       if (e.key === KEY) setHandles(readStorage());
     };
+    const onLocal = () => setHandles(readStorage());
     window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    window.addEventListener(SAME_TAB_EVENT, onLocal);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(SAME_TAB_EVENT, onLocal);
+    };
   }, []);
 
   return { handles, toggle, has };
