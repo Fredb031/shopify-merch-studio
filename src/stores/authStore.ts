@@ -267,10 +267,19 @@ export const useAuthStore = create<AuthState>((set) => ({
         'vision-quotes', 'vision-quotes-seq',
         'vision-shipped-orders', 'vision-vendors',
         'vision-image-provider', 'vision-image-key-replicate', 'vision-image-key-openai',
+        'vision-admin-settings',
       ];
       keys.forEach(k => localStorage.removeItem(k));
     } catch (e) {
       console.warn('[authStore] Could not clear persisted stores on signOut:', e);
+    }
+    // Also wipe sessionStorage entries so the AIChat transcript and any
+    // future session-scoped admin caches don't leak across sign-out
+    // boundaries on a shared browser.
+    try {
+      sessionStorage.removeItem('vision-aichat-transcript');
+    } catch (e) {
+      console.warn('[authStore] Could not clear sessionStorage on signOut:', e);
     }
     // Reset the stores' IN-MEMORY state too. localStorage.removeItem
     // clears the persisted payload but Zustand keeps its current
