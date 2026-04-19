@@ -98,31 +98,41 @@ export default function AdminAnalytics() {
             <h2 id="daily-revenue-heading" className="font-bold">Revenus quotidiens</h2>
             <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">14 jours</span>
           </div>
-          <div className="flex items-end gap-1.5 h-48" role="list">
-            {dailyRevenue.map(([day, revenue]) => {
-              const heightPct = (revenue / maxRevenue) * 100;
-              const date = new Date(day);
-              const label = date.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' });
-              return (
-                <div
-                  key={day}
-                  className="flex-1 flex flex-col items-center gap-1.5 group"
-                  role="listitem"
-                  aria-label={`${label} : ${revenue.toFixed(0)} $`}
-                >
-                  <div className="text-[10px] font-bold text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
-                    {revenue.toFixed(0)} $
-                  </div>
+          {dailyRevenue.length === 0 ? (
+            // Snapshot empty (no orders yet) — render a labelled empty state
+            // instead of a bare h-48 box. Otherwise the role='list' is
+            // empty (invalid per WAI-ARIA, must contain ≥1 listitem) and
+            // the chart looks broken instead of just unfilled.
+            <div className="flex items-center justify-center h-48 text-sm text-zinc-400" role="status">
+              Aucune commande sur les 14 derniers jours
+            </div>
+          ) : (
+            <div className="flex items-end gap-1.5 h-48" role="list">
+              {dailyRevenue.map(([day, revenue]) => {
+                const heightPct = (revenue / maxRevenue) * 100;
+                const date = new Date(day);
+                const label = date.toLocaleDateString('fr-CA', { weekday: 'short', day: 'numeric' });
+                return (
                   <div
-                    className="w-full bg-gradient-to-t from-[#0052CC] to-[#1B3A6B] rounded-md min-h-[4px] hover:from-[#E8A838] hover:to-[#B37D10] transition-all"
-                    style={{ height: `${Math.max(heightPct, 2)}%` }}
-                    aria-hidden="true"
-                  />
-                  <div className="text-[9px] text-zinc-400 whitespace-nowrap" aria-hidden="true">{label}</div>
-                </div>
-              );
-            })}
-          </div>
+                    key={day}
+                    className="flex-1 flex flex-col items-center gap-1.5 group"
+                    role="listitem"
+                    aria-label={`${label} : ${revenue.toFixed(0)} $`}
+                  >
+                    <div className="text-[10px] font-bold text-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true">
+                      {revenue.toFixed(0)} $
+                    </div>
+                    <div
+                      className="w-full bg-gradient-to-t from-[#0052CC] to-[#1B3A6B] rounded-md min-h-[4px] hover:from-[#E8A838] hover:to-[#B37D10] transition-all"
+                      style={{ height: `${Math.max(heightPct, 2)}%` }}
+                      aria-hidden="true"
+                    />
+                    <div className="text-[9px] text-zinc-400 whitespace-nowrap" aria-hidden="true">{label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <section className="bg-white border border-zinc-200 rounded-2xl p-5" aria-labelledby="top-customers-heading">
