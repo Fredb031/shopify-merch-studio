@@ -67,6 +67,11 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
   const targetHits = 5;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const moleTimers = useRef<(ReturnType<typeof setTimeout> | null)[]>([null, null, null]);
+  // Collect the "whack feedback" timers (star-fade + mole-reset) so we
+  // can clear them on unmount. Without this, closing the game within
+  // 700 ms of a hit fired setStars on a component about to unmount,
+  // which logs a React dev warning + wastes a render.
+  const whackTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   const starId = useRef(0);
   const gameOverRef = useRef(false);
 
@@ -113,9 +118,12 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
     // reassigned .current by cleanup-time, which is exactly what the
     // react-hooks/exhaustive-deps rule warns about.
     const timers = moleTimers.current;
+    const whacks = whackTimers.current;
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       timers.forEach(t => { if (t) clearTimeout(t); });
+      whacks.forEach(t => clearTimeout(t));
+      whacks.clear();
     };
   }, [gameStarted, gameWon, scheduleMole]);
 
@@ -140,12 +148,18 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
     starId.current++;
     const sid = starId.current;
     setStars(prev => [...prev, { id: sid, x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }]);
-    setTimeout(() => setStars(prev => prev.filter(s => s.id !== sid)), 700);
+    const starTimer = setTimeout(() => {
+      whackTimers.current.delete(starTimer);
+      setStars(prev => prev.filter(s => s.id !== sid));
+    }, 700);
+    whackTimers.current.add(starTimer);
 
-    setTimeout(() => {
+    const resetTimer = setTimeout(() => {
+      whackTimers.current.delete(resetTimer);
       setMoleStates(prev => { const n = [...prev]; n[idx] = 'down'; return n; });
       if (!gameOverRef.current) scheduleMole(idx, 300 + Math.random() * 700);
     }, 180);
+    whackTimers.current.add(resetTimer);
   };
 
   if (!isOpen) return null;
