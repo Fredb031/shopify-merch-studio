@@ -85,9 +85,10 @@ export default function QuoteAccept() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition-colors print:hidden"
+            aria-label={lang === 'en' ? 'Print this quote' : 'Imprimer cette soumission'}
+            className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-border rounded-lg hover:bg-secondary transition-colors print:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
-            🖨️ {lang === 'en' ? 'Print' : 'Imprimer'}
+            <span aria-hidden="true">🖨️</span> {lang === 'en' ? 'Print' : 'Imprimer'}
           </button>
           <DeliveryBadge size="sm" />
         </div>
@@ -125,7 +126,7 @@ export default function QuoteAccept() {
           <div className="space-y-6">
             <section className="bg-white border border-border rounded-2xl p-5 md:p-6">
               <h2 className="font-extrabold text-lg mb-4 flex items-center gap-2">
-                <Check size={18} className="text-[#0052CC]" />
+                <Check size={18} className="text-[#0052CC]" aria-hidden="true" />
                 {lang === 'en' ? 'Your order' : 'Ta commande'}
               </h2>
               <div className="space-y-3">
@@ -138,7 +139,7 @@ export default function QuoteAccept() {
                         {it.color} · {lang === 'en' ? 'Size' : 'Taille'} {it.size} · {it.qty} {lang === 'en' ? 'units' : 'unités'}
                       </div>
                       <div className="text-[11px] text-[#0052CC] mt-1 font-semibold">
-                        📍 {it.placement}
+                        <span aria-hidden="true">📍</span> {it.placement}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
