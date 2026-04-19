@@ -171,7 +171,15 @@ export const useCartStore = create<CartStore>()(
             const result = await updateShopifyCartLine(cartId, existingItem.lineId, newQuantity);
             if (result.success) {
               set({ items: get().items.map(i => i.variantId === item.variantId ? { ...i, quantity: newQuantity } : i) });
-            } else if (result.cartNotFound) clearCart();
+            } else if (result.cartNotFound) {
+              // Session expired. Wipe the stale cartId and retry as a
+              // fresh-cart create so the user's latest click isn't just
+              // silently swallowed. (See the no-cartId branch above.)
+              clearCart();
+              set({ isLoading: false });
+              await get().addItem(item);
+              return;
+            }
           } else {
             const result = await addLineToShopifyCart(cartId, { ...item, lineId: null });
             if (result.success && result.lineId) {
@@ -180,7 +188,14 @@ export const useCartStore = create<CartStore>()(
               // the cart in a state where users see the item but can't touch it.
               set({ items: [...get().items, { ...item, lineId: result.lineId }] });
             } else if (result.cartNotFound) {
+              // Same recovery as the update path — clear the dead cart
+              // and retry so the user's add actually lands. Without
+              // this, clicking Add on an expired session wiped the
+              // cart and returned silently with nothing added.
               clearCart();
+              set({ isLoading: false });
+              await get().addItem(item);
+              return;
             } else if (result.success && !result.lineId) {
               console.warn('[cartStore] Shopify addLine succeeded but returned no lineId — refusing to add orphan item.');
             }
