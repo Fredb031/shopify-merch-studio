@@ -1,5 +1,5 @@
-import { Minus, Plus, Check, Copy } from 'lucide-react';
-import { useState } from 'react';
+import { Copy } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import type { Product } from '@/data/products';
 import { BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
 import { useLang } from '@/lib/langContext';
@@ -19,8 +19,15 @@ export interface VariantQty {
 
 interface Props {
   product: Product;
-  /** Colors from Shopify (preferred) or local. Always show all. */
+  /** Colors from Shopify (preferred) or local. The full set drives the
+   * "apply same sizes to all" + the bottom summary chips. */
   colors: ShopifyVariantColor[];
+  /** The colour the user is currently adding sizes to. Driven by the
+   * persistent palette in ProductCustomizer (same picker that swaps the
+   * canvas preview) — that's how we keep ONE colour palette doing both
+   * the visual preview AND the size selection, instead of two duplicate
+   * pickers fighting for the same intent. */
+  activeColor: ShopifyVariantColor | null;
   /** Already-picked variants (color × size cells). */
   variants: VariantQty[];
   /** Accepts a value OR a functional updater so the size stepper can
@@ -30,15 +37,8 @@ interface Props {
   onChange: React.Dispatch<React.SetStateAction<VariantQty[]>>;
 }
 
-export function MultiVariantPicker({ product, colors, variants, onChange }: Props) {
+export function MultiVariantPicker({ product, colors, activeColor, variants, onChange }: Props) {
   const { lang } = useLang();
-
-  // Derive list of colors the user has activated (added at least one of)
-  // PLUS a single "active" color for new picks via the color row above.
-  const [activeColorId, setActiveColorId] = useState<string>(
-    variants[0]?.colorId ?? colors[0]?.variantId ?? '',
-  );
-  const activeColor = colors.find(c => c.variantId === activeColorId) ?? colors[0];
 
   const totalQty = variants.reduce((s, v) => s + v.qty, 0);
   const hasDiscount = totalQty >= BULK_DISCOUNT_THRESHOLD;
@@ -82,7 +82,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
     onChange(next);
   };
 
-  const adjustQty = (color: typeof activeColor, size: string, nextQtyFn: (curr: number) => number) => {
+  const adjustQty = (color: ShopifyVariantColor | null, size: string, nextQtyFn: (curr: number) => number) => {
     if (!color) return;
     // Functional update reads the CURRENT variants at commit time, not
     // the closure's snapshot. Rapid double-click on +/- stepper now
@@ -93,7 +93,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
       const nextQty = Math.max(0, nextQtyFn(current));
       const filtered = prev.filter(v => !(v.colorId === color.variantId && v.size === size));
       if (nextQty <= 0) return filtered;
-      const sizeOpt = (color as ShopifyVariantColor).sizeOptions?.find(s => s.size === size);
+      const sizeOpt = color.sizeOptions?.find(s => s.size === size);
       return [
         ...filtered,
         {
@@ -103,7 +103,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
           size,
           qty: nextQty,
           shopifyVariantId: sizeOpt?.variantId,
-          unitPrice: (color as ShopifyVariantColor).price,
+          unitPrice: color.price,
         },
       ];
     });
@@ -173,57 +173,24 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
         </div>
       </div>
 
-      {/* Color picker row — pick which color you're adding sizes to */}
-      <div>
-        <div
-          id="color-picker-label"
-          className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2"
-        >
-          {lang === 'en' ? 'Choose color, then add sizes below' : 'Choisis la couleur, puis ajoute les tailles'}
-        </div>
-        {/* role='radiogroup' wires the inner role='radio' buttons into a
-            proper grouped control — without it screen readers announced
-            each colour as a standalone radio with no group context, and
-            the activeColor selection didn't read as a single-of-N. */}
-        <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-labelledby="color-picker-label">
-          {colors.map(c => {
-            const isActive = c.variantId === activeColorId;
-            const colorTotal = variants.filter(v => v.colorId === c.variantId).reduce((s, v) => s + v.qty, 0);
-            return (
-              <button
-                key={c.variantId}
-                type="button"
-                role="radio"
-                aria-checked={isActive}
-                aria-label={colorTotal > 0
-                  ? (lang === 'en' ? `${c.colorName} — ${colorTotal} in cart` : `${c.colorName} — ${colorTotal} au panier`)
-                  : c.colorName}
-                onClick={() => setActiveColorId(c.variantId)}
-                title={c.colorName}
-                className={`relative w-9 h-9 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                  isActive
-                    ? 'ring-2 ring-primary ring-offset-2 scale-110'
-                    : 'ring-1 ring-border hover:ring-primary/50'
-                }`}
-                style={{ background: c.hex }}
-              >
-                {isActive && (
-                  <Check size={13} className="absolute inset-0 m-auto text-white drop-shadow" strokeWidth={3} aria-hidden="true" />
-                )}
-                {colorTotal > 0 && (
-                  <span
-                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-primary text-primary-foreground text-[10px] font-extrabold rounded-full flex items-center justify-center px-1 shadow-sm"
-                    aria-hidden="true"
-                  >
-                    {colorTotal}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="text-[11px] font-bold text-foreground mt-2">
-          {activeColor.colorName}
+      {/* Active colour reminder — points users back to the persistent
+          palette above whenever they want to add sizes for a different
+          colour. Replaces the duplicate swatch row that used to live
+          here and confused users into thinking they had to re-pick the
+          colour twice. */}
+      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/60 border border-border">
+        <span
+          className="w-5 h-5 rounded-full ring-2 ring-primary ring-offset-1 flex-shrink-0"
+          style={{ background: activeColor.hex }}
+          aria-hidden="true"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="text-[11px] font-bold text-foreground truncate">{activeColor.colorName}</div>
+          <div className="text-[10px] text-muted-foreground">
+            {lang === 'en'
+              ? 'Adding sizes for this colour. Pick another above to switch.'
+              : 'Tu ajoutes les tailles pour cette couleur. Choisis-en une autre ci-haut pour changer.'}
+          </div>
         </div>
       </div>
 
@@ -238,7 +205,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
           <button
             type="button"
             onClick={applySameSizesToAllColors}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/40 text-primary text-[11px] font-bold hover:bg-primary/5 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-dashed border-primary/40 text-primary text-[11px] font-bold hover:bg-primary/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
           >
             <Copy size={12} aria-hidden="true" />
             {lang === 'en'
@@ -329,7 +296,7 @@ export function MultiVariantPicker({ product, colors, variants, onChange }: Prop
                 .join(' · ');
               return (
                 <div key={g.color.variantId} className="flex items-center gap-2 text-xs">
-                  <span className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: g.color.hex }} />
+                  <span className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: g.color.hex }} aria-hidden="true" />
                   <span className="font-bold flex-shrink-0">{g.color.colorName}</span>
                   <span className="text-muted-foreground truncate">{sizes}</span>
                   <span className="ml-auto font-extrabold text-primary">{g.qty}</span>

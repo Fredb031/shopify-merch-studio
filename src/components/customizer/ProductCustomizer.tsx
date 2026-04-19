@@ -1060,6 +1060,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       ? { ...product, sizes: shopifyColor.sizeOptions.map(s => s.size) }
                       : product}
                     colors={displayColors}
+                    activeColor={shopifyColor ?? displayColors[0] ?? null}
                     variants={multiVariants}
                     onChange={setMultiVariants}
                   />
