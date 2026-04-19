@@ -195,19 +195,29 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               />
             )}
 
-            <input
-              className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
-              placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-              aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={e => {
-                setEmail(e.target.value);
-                if (error) clearError();
-              }}
-              required
-            />
+            {(() => {
+              const invalid = email.trim().length > 0 && !isValidEmail(email);
+              return (
+                <input
+                  className={`border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus-visible:ring-2 bg-background ${
+                    invalid
+                      ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                      : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                  }`}
+                  placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                  aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                  aria-invalid={invalid || undefined}
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={e => {
+                    setEmail(e.target.value);
+                    if (error) clearError();
+                  }}
+                  required
+                />
+              );
+            })()}
 
             <input
               className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
