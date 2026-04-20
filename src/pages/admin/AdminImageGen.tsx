@@ -4,6 +4,7 @@ import {
   generateImage,
   getStoredProvider,
   getStoredApiKey,
+  getPromptLimit,
   saveProviderConfig,
   clearProviderConfig,
   type ImageProvider,
@@ -223,18 +224,31 @@ export default function AdminImageGen() {
           value={prompt}
           onChange={e => setPrompt(e.target.value)}
           rows={4}
-          maxLength={4000}
+          maxLength={getPromptLimit(provider)}
           placeholder="Décris l'image que tu veux générer. Soit précis : style, cadrage, éclairage, ambiance…"
           aria-label="Prompt de génération"
           aria-describedby="imagegen-prompt-count"
-          className="w-full border border-zinc-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 resize-none"
+          aria-invalid={prompt.length > getPromptLimit(provider) || undefined}
+          className={`w-full border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 resize-none ${
+            prompt.length > getPromptLimit(provider) * 0.9
+              ? 'border-amber-300 focus:border-amber-500'
+              : 'border-zinc-200 focus:border-[#0052CC]'
+          }`}
         />
         <div
           id="imagegen-prompt-count"
-          className="text-[10px] text-zinc-400 mt-1 text-right font-mono"
+          className={`text-[10px] mt-1 text-right font-mono ${
+            prompt.length > getPromptLimit(provider) * 0.9 ? 'text-amber-600' : 'text-zinc-400'
+          }`}
           aria-live="polite"
         >
-          <span className="sr-only">Caractères utilisés : </span>{prompt.length}/4000
+          <span className="sr-only">Caractères utilisés : </span>
+          {prompt.length}/{getPromptLimit(provider)}
+          {provider !== 'none' && prompt.length > getPromptLimit(provider) * 0.9 && (
+            <span className="ml-2">
+              · limite {provider === 'replicate' ? 'Replicate/Flux' : 'OpenAI/DALL-E'}
+            </span>
+          )}
         </div>
 
         <div className="mt-3 flex items-center gap-3 flex-wrap">

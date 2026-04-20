@@ -8,6 +8,22 @@
 
 export type ImageProvider = 'replicate' | 'openai' | 'none';
 
+// Provider-specific prompt length caps, derived from each vendor's docs:
+//   - OpenAI DALL-E 3: 4000 chars (their documented hard cap)
+//   - Replicate Flux Schnell: ~512 token context; ~2000 chars is a safe
+//     cap where the model doesn't start dropping content silently
+// Before this, the UI used a blanket 4000 limit regardless of provider
+// and Replicate silently truncated long prompts without telling the
+// admin, producing images that ignored the tail of the instructions.
+export const PROMPT_LIMITS: Record<Exclude<ImageProvider, 'none'>, number> = {
+  openai: 4000,
+  replicate: 2000,
+};
+
+export function getPromptLimit(provider: ImageProvider): number {
+  return provider === 'none' ? 4000 : PROMPT_LIMITS[provider];
+}
+
 export interface GenerateImageParams {
   prompt: string;
   size?: '1024x1024' | '1024x1792' | '1792x1024';
