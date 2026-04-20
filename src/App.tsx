@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { SkipLink } from "@/components/SkipLink";
-import { LangProvider } from "@/lib/langContext";
+import { LangProvider, useLang } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -63,12 +63,20 @@ const queryClient = new QueryClient({
   },
 });
 
-const LazyFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-zinc-50" role="status" aria-live="polite">
-    <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
-    <span className="sr-only">Loading</span>
-  </div>
-);
+// Bilingual Suspense fallback — the sr-only label is the only text
+// assistive tech hears while a lazy chunk is in flight. Previously it
+// was hardcoded English, so a francophone screen-reader user heard
+// "Loading" in the middle of an otherwise French flow. useLang is
+// safe here because this component is rendered inside <LangProvider>.
+const LazyFallback = () => {
+  const { lang } = useLang();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-zinc-50" role="status" aria-live="polite">
+      <div className="w-6 h-6 border-2 border-[#0052CC] border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+      <span className="sr-only">{lang === 'en' ? 'Loading' : 'Chargement'}</span>
+    </div>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
