@@ -54,8 +54,18 @@ function useFadeIn() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    // Unobserve + disconnect as soon as the element has faded in — the
+    // CSS keyframe is one-shot, so continuing to observe it burns a
+    // callback on every scroll past for the life of the page. The long
+    // home page has 10+ FadeIn nodes, so without this the observer
+    // kept paying the cost on every scrollbar movement.
     const obs = new IntersectionObserver(
-      (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }),
+      (entries) => entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in');
+          obs.unobserve(e.target);
+        }
+      }),
       { threshold: 0.1 }
     );
     obs.observe(el);
