@@ -10,12 +10,14 @@ const PAGE_SIZE = 20;
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
 
+type DiscountKind = 'percent' | 'flat';
+
 const MOCK = [
-  { id: 'q1', number: 'Q-2026-0042', vendor: 'Sophie Tremblay',      client: 'Sous Pression', items: 3, total: 1840, discount: 10, status: 'viewed'  as Status, age: 'il y a 2h' },
-  { id: 'q2', number: 'Q-2026-0041', vendor: 'Marc-André Pelletier', client: 'Perfocazes',    items: 2, total: 620,  discount: 0,  status: 'paid'    as Status, age: 'il y a 5h' },
-  { id: 'q3', number: 'Q-2026-0040', vendor: 'Sophie Tremblay',      client: 'Lacasse',       items: 5, total: 3450, discount: 15, status: 'sent'    as Status, age: 'il y a 1j' },
-  { id: 'q4', number: 'Q-2026-0039', vendor: 'Julie Gagnon',         client: 'CFP Québec',    items: 4, total: 2100, discount: 8,  status: 'viewed'  as Status, age: 'il y a 2j' },
-  { id: 'q5', number: 'Q-2026-0038', vendor: 'Marc-André Pelletier', client: 'Extreme Fab',   items: 6, total: 4250, discount: 12, status: 'paid'    as Status, age: 'il y a 3j' },
+  { id: 'q1', number: 'Q-2026-0042', vendor: 'Sophie Tremblay',      client: 'Sous Pression', items: 3, total: 1840, discount: 10, discountKind: 'percent' as DiscountKind, status: 'viewed'  as Status, age: 'il y a 2h' },
+  { id: 'q2', number: 'Q-2026-0041', vendor: 'Marc-André Pelletier', client: 'Perfocazes',    items: 2, total: 620,  discount: 0,  discountKind: 'percent' as DiscountKind, status: 'paid'    as Status, age: 'il y a 5h' },
+  { id: 'q3', number: 'Q-2026-0040', vendor: 'Sophie Tremblay',      client: 'Lacasse',       items: 5, total: 3450, discount: 15, discountKind: 'percent' as DiscountKind, status: 'sent'    as Status, age: 'il y a 1j' },
+  { id: 'q4', number: 'Q-2026-0039', vendor: 'Julie Gagnon',         client: 'CFP Québec',    items: 4, total: 2100, discount: 8,  discountKind: 'percent' as DiscountKind, status: 'viewed'  as Status, age: 'il y a 2j' },
+  { id: 'q5', number: 'Q-2026-0038', vendor: 'Marc-André Pelletier', client: 'Extreme Fab',   items: 6, total: 4250, discount: 12, discountKind: 'percent' as DiscountKind, status: 'paid'    as Status, age: 'il y a 3j' },
 ];
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -84,6 +86,7 @@ export default function AdminQuotes() {
         createdAt?: string;
         items?: unknown[];
         discountValue?: number;
+        discountKind?: string;
       };
       // Same defensive pattern as QuoteList: one malformed row used to
       // wipe every saved quote (split on undefined email). Per-row
@@ -100,6 +103,12 @@ export default function AdminQuotes() {
           const age = days > 0 ? `il y a ${days}j` : hours > 0 ? `il y a ${hours}h` : "à l'instant";
           const email = typeof q.clientEmail === 'string' ? q.clientEmail : '';
           const clientFromEmail = email.includes('@') ? email.split('@')[0] : email;
+          // Preserve discountKind so the rebate column formats correctly:
+          // a $50 flat discount must not render as '50%'. Saved quotes from
+          // QuoteBuilder carry either 'percent' or 'flat'; anything else
+          // (older rows, manually edited storage) falls back to 'percent'
+          // for backwards-compat with the previous unconditional '%' render.
+          const kind: DiscountKind = q.discountKind === 'flat' ? 'flat' : 'percent';
           mapped.push({
             id: String(q.id ?? `q-${mapped.length}`),
             number: typeof q.number === 'string' ? q.number : '—',
@@ -108,6 +117,7 @@ export default function AdminQuotes() {
             items: Array.isArray(q.items) ? q.items.length : 0,
             total: typeof q.total === 'number' ? q.total : 0,
             discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
+            discountKind: kind,
             status: coerceStatus(q.status),
             age,
           });
@@ -218,7 +228,11 @@ export default function AdminQuotes() {
                   <td className="px-4 py-3 font-semibold">{q.client}</td>
                   <td className="px-4 py-3 text-right font-bold">{q.total.toLocaleString('fr-CA')} $</td>
                   <td className="px-4 py-3 text-right text-emerald-700 font-semibold">
-                    {q.discount > 0 ? `${q.discount}%` : '—'}
+                    {q.discount > 0
+                      ? q.discountKind === 'flat'
+                        ? `${q.discount.toLocaleString('fr-CA')} $`
+                        : `${q.discount}%`
+                      : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[q.status]}`}>
