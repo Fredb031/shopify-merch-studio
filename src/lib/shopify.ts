@@ -278,6 +278,24 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
     return;
   }
 
+  // Shopify Storefront occasionally returns 5xx during deploys, regional
+  // outages, or backend incidents. Without a friendly toast these surface
+  // as a blank skeleton / ErrorBoundary fallback (via the generic throw
+  // below) — users can't tell whether it's their wifi, our site, or
+  // Shopify. Announce it in-language so they know to retry in a moment,
+  // then rethrow so React Query's retry policy still kicks in.
+  if (response.status >= 500 && response.status < 600) {
+    let isEn = false;
+    try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
+    toast.error(
+      isEn ? 'Shopify: Service temporarily unavailable' : 'Shopify : Service temporairement indisponible',
+      { description: isEn
+          ? 'Retrying… please wait a moment.'
+          : 'Nouvelle tentative… veuillez patienter un instant.' },
+    );
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
   if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
   const data = await response.json();
