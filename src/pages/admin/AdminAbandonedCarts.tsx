@@ -1,4 +1,4 @@
-import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag } from 'lucide-react';
+import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -10,6 +10,8 @@ import {
 import { StatCard } from '@/components/admin/StatCard';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
+import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 25;
 
@@ -47,24 +49,42 @@ export default function AdminAbandonedCarts() {
     : 'value';
 
   const [sort, setSort] = useState<AbandonedSort>(initialSort);
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [page, setPage] = useState(0);
   useDocumentTitle('Paniers abandonnés — Admin Vision Affichage');
+  const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
   // Sync state → URL with replace history.
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
     if (sort !== 'value') next.set('sort', sort); else next.delete('sort');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [sort, searchParams, setSearchParams]);
+  }, [sort, query, searchParams, setSearchParams]);
+
+  // Reset pagination when search changes so filtering doesn't strand
+  // the user on an empty page 5.
+  useEffect(() => { setPage(0); }, [query]);
 
   const sorted = useMemo(() => {
-    const arr = [...SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT];
+    // Filter before sort so the sorted output is already narrowed.
+    // ZWSP-strip both sides — same pattern as other admin tables.
+    const q = normalizeInvisible(query).trim().toLowerCase();
+    const base = q
+      ? SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(c => {
+          const email = normalizeInvisible(c.email).toLowerCase();
+          const name  = normalizeInvisible(c.customerName ?? '').toLowerCase();
+          return email.includes(q) || name.includes(q);
+        })
+      : SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT;
+    const arr = [...base];
     if (sort === 'value') arr.sort((a, b) => b.total - a.total);
     else arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return arr;
-  }, [sort]);
+  }, [sort, query]);
 
   // Reset page on sort change so user isn't stranded.
   useEffect(() => { setPage(0); }, [sort]);
@@ -118,8 +138,22 @@ export default function AdminAbandonedCarts() {
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-2xl p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 className="font-bold text-sm">Liste des paniers</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 w-[220px] border border-zinc-200 rounded-lg px-3 py-1.5 bg-zinc-50">
+              <Search size={14} className="text-zinc-400" aria-hidden="true" />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Rechercher  (⌘K)"
+                aria-label="Rechercher un panier par courriel ou nom"
+                aria-keyshortcuts="Meta+K Control+K"
+                className="bg-transparent border-none outline-none text-xs flex-1"
+              />
+            </div>
           <div className="inline-flex bg-zinc-100 rounded-lg p-0.5" role="radiogroup" aria-label="Trier les paniers">
             {(['value', 'recent'] as const).map(s => (
               <button
@@ -135,6 +169,7 @@ export default function AdminAbandonedCarts() {
                 {s === 'value' ? 'Plus haute valeur' : 'Plus récent'}
               </button>
             ))}
+          </div>
           </div>
         </div>
 
