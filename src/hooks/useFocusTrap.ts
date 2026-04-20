@@ -42,8 +42,13 @@ export function useFocusTrap<T extends HTMLElement = HTMLElement>(active: boolea
     // offsetParent heuristic rules a node out — any rendered box
     // has at least one client rect, so the extra check catches
     // fixed descendants without false-positiving on display:none.
+    //
+    // Check aria-hidden VALUE, not mere presence — `aria-hidden="false"`
+    // is a legitimate explicit-visible marker, and hasAttribute() would
+    // wrongly exclude those elements from the focus trap, trapping focus
+    // on a shrunken subset of the modal's actual interactive controls.
     const isVisible = (n: HTMLElement) =>
-      !n.hasAttribute('aria-hidden') &&
+      n.getAttribute('aria-hidden') !== 'true' &&
       (n.offsetParent !== null || n.getClientRects().length > 0);
     const getFocusable = () =>
       Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(isVisible);
