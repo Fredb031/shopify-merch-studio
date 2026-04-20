@@ -33,6 +33,10 @@ const SIZE_CHARTS: Record<string, Record<string, { chest: string; length: string
   },
   cap: {
     OSFA: { chest: '57-61', length: '—' },
+    // French product data ships `sizes: ['Taille unique']` for caps + toques,
+    // so without this alias the size-guide table would render zero rows and
+    // leave the user staring at a header-only modal.
+    'Taille unique': { chest: '57-61', length: '—' },
   },
 };
 
@@ -44,6 +48,10 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
     : 'tshirt';
   const chart = SIZE_CHARTS[chartKey];
   const isCap = chartKey === 'cap';
+  // Guard against the product shipping a size that isn't in the chart
+  // (e.g. a newly added '7XL' or a localized label) — otherwise tbody
+  // renders empty and the user sees column headers with no data.
+  const rows = product.sizes.filter(s => chart[s]);
 
   useEscapeKey(isOpen, onClose);
   useBodyScrollLock(isOpen);
@@ -82,42 +90,51 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
             </div>
 
             <div className="overflow-auto p-4">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b border-border">
-                    <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Size' : 'Taille'}</th>
-                    <th className="py-2 px-2 font-bold text-foreground text-xs">
-                      {isCap ? (lang === 'en' ? 'Circumference' : 'Circonférence') : (lang === 'en' ? 'Chest' : 'Poitrine')} (cm)
-                    </th>
-                    {!isCap && (
-                      <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Length' : 'Longueur'} (cm)</th>
-                    )}
-                    {chart[Object.keys(chart)[0]]?.sleeve && (
-                      <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Sleeve' : 'Manche'} (cm)</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {product.sizes.map(size => {
-                    const row = chart[size];
-                    if (!row) return null;
-                    return (
-                      <tr key={size} className="border-b border-border/50 hover:bg-secondary/50">
-                        <td className="py-2.5 px-2 font-bold text-foreground">{size}</td>
-                        <td className="py-2.5 px-2 text-muted-foreground">{row.chest}</td>
-                        {!isCap && <td className="py-2.5 px-2 text-muted-foreground">{row.length}</td>}
-                        {row.sleeve && <td className="py-2.5 px-2 text-muted-foreground">{row.sleeve}</td>}
+              {rows.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-6">
+                  {lang === 'en'
+                    ? 'Size chart not available for this product — contact us for exact measurements.'
+                    : 'Guide des tailles indisponible pour ce produit — contactez-nous pour les mesures exactes.'}
+                </p>
+              ) : (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left border-b border-border">
+                        <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Size' : 'Taille'}</th>
+                        <th className="py-2 px-2 font-bold text-foreground text-xs">
+                          {isCap ? (lang === 'en' ? 'Circumference' : 'Circonférence') : (lang === 'en' ? 'Chest' : 'Poitrine')} (cm)
+                        </th>
+                        {!isCap && (
+                          <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Length' : 'Longueur'} (cm)</th>
+                        )}
+                        {chart[Object.keys(chart)[0]]?.sleeve && (
+                          <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Sleeve' : 'Manche'} (cm)</th>
+                        )}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {rows.map(size => {
+                        const row = chart[size];
+                        return (
+                          <tr key={size} className="border-b border-border/50 hover:bg-secondary/50">
+                            <td className="py-2.5 px-2 font-bold text-foreground">{size}</td>
+                            <td className="py-2.5 px-2 text-muted-foreground">{row.chest}</td>
+                            {!isCap && <td className="py-2.5 px-2 text-muted-foreground">{row.length}</td>}
+                            {row.sleeve && <td className="py-2.5 px-2 text-muted-foreground">{row.sleeve}</td>}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
 
-              <p className="text-[11px] text-muted-foreground mt-3 text-center">
-                {lang === 'en'
-                  ? 'Measurements may vary ±2 cm. When in doubt, size up.'
-                  : 'Les mesures peuvent varier de ±2 cm. En cas de doute, prenez la taille au-dessus.'}
-              </p>
+                  <p className="text-[11px] text-muted-foreground mt-3 text-center">
+                    {lang === 'en'
+                      ? 'Measurements may vary ±2 cm. When in doubt, size up.'
+                      : 'Les mesures peuvent varier de ±2 cm. En cas de doute, prenez la taille au-dessus.'}
+                  </p>
+                </>
+              )}
             </div>
           </motion.div>
         </motion.div>
