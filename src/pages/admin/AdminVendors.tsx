@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Mail, TrendingUp, Trash2, X } from 'lucide-react';
+import { Plus, Mail, TrendingUp, Trash2, X, Search } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 
 interface VendorRecord {
   id: string;
@@ -38,21 +39,25 @@ export default function AdminVendors() {
     : 'default';
 
   const [sort, setSort] = useState<VendorSort>(initialSort);
+  const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [customVendors, setCustomVendors] = useState<VendorRecord[]>([]);
   const [showInvite, setShowInvite] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const nameInputRef = useRef<HTMLInputElement>(null);
   const trapRef = useFocusTrap<HTMLDivElement>(showInvite);
+  const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
-  // Sync sort → URL.
+  // Sync sort + search → URL.
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed); else next.delete('q');
     if (sort !== 'default') next.set('sort', sort); else next.delete('sort');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [sort, searchParams, setSearchParams]);
+  }, [sort, query, searchParams, setSearchParams]);
 
   useEffect(() => {
     try {
@@ -153,13 +158,23 @@ export default function AdminVendors() {
 
   const allUnsorted = [...customVendors, ...SEED_VENDORS];
   const all = useMemo(() => {
-    const arr = [...allUnsorted];
+    // Strip ZWSP before matching so a paste-from-Slack search term
+    // still matches vendors with invisible chars in their imported name.
+    const q = normalizeInvisible(query).trim().toLowerCase();
+    const filtered = q
+      ? allUnsorted.filter(v => {
+          const name = normalizeInvisible(v.name).toLowerCase();
+          const email = normalizeInvisible(v.email).toLowerCase();
+          return name.includes(q) || email.includes(q);
+        })
+      : allUnsorted;
+    const arr = [...filtered];
     if (sort === 'revenue') return arr.sort((a, b) => b.revenue - a.revenue);
     if (sort === 'quotes')  return arr.sort((a, b) => b.quotesSent - a.quotesSent);
     if (sort === 'conv')    return arr.sort((a, b) => b.conversionRate - a.conversionRate);
     return arr; // 'default' = custom-first then seed (insertion order)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customVendors, sort]);
+  }, [customVendors, sort, query]);
 
   return (
     <div className="space-y-6">
@@ -168,7 +183,22 @@ export default function AdminVendors() {
           <h1 className="text-2xl font-extrabold tracking-tight">Vendeurs</h1>
           <p className="text-sm text-zinc-500 mt-1">Gère ton équipe et leurs accès · {all.length} vendeur{all.length > 1 ? 's' : ''}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search — name / email. Cmd+K focuses it (same shortcut
+              pattern as the other admin tables); Esc clears + blurs. */}
+          <div className="flex items-center gap-2 w-[240px] border border-zinc-200 rounded-lg px-3 py-1.5 bg-zinc-50">
+            <Search size={14} className="text-zinc-400" aria-hidden="true" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Rechercher  (⌘K)"
+              aria-label="Rechercher un vendeur par nom ou courriel"
+              aria-keyshortcuts="Meta+K Control+K"
+              className="bg-transparent border-none outline-none text-xs flex-1"
+            />
+          </div>
           {/* Sort dropdown — admins routinely want top-revenue or
               top-quotes-sent at the top to spot performers. */}
           <label className="flex items-center gap-2 text-xs text-zinc-500">
