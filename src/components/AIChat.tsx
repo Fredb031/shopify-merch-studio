@@ -426,7 +426,7 @@ export function AIChat() {
               aria-label={lang === 'en' ? 'Your question' : 'Ta question'}
               autoCapitalize="sentences"
               autoComplete="off"
-              className="flex-1 bg-secondary border border-border rounded-full px-4 py-2 text-sm outline-none focus:border-[#0052CC]"
+              className="flex-1 bg-secondary border border-border rounded-full px-4 py-2 text-sm outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow"
               disabled={thinking}
             />
             <button
