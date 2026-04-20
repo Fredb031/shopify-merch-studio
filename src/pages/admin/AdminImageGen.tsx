@@ -131,7 +131,16 @@ export default function AdminImageGen() {
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr_auto] gap-2">
           <select
             value={provider}
-            onChange={e => setProvider(e.target.value as ImageProvider)}
+            onChange={e => {
+              // Swap the API key field to whatever's stored for the
+              // newly-selected provider. Without this, an admin
+              // switching replicate -> openai would see the old
+              // replicate token in the input and could accidentally
+              // save it under the openai storage slot.
+              const next = e.target.value as ImageProvider;
+              setProvider(next);
+              setApiKey(next === 'none' ? '' : (getStoredApiKey(next) ?? ''));
+            }}
             aria-label="Fournisseur de génération d'images"
             className="border border-zinc-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
           >
