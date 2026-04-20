@@ -226,6 +226,14 @@ export const KB_TOPICS: KBTopic[] = [
         aFr: 'Oui : option « Devant + Dos » dans le personnalisateur. Tu peux y mettre un logo différent (ou un texte) sur chaque côté. L\u2019impression dos ajoute 4 $/unité.',
         aEn: 'Yes: pick "Front + Back" in the customizer. You can add a different logo (or text) on each side. The back print adds $4/unit.',
       },
+      {
+        id: 'no-logo-design-help',
+        keywords: ['pas', 'sans', 'no', 'without', 'design', 'designer', 'aide', 'help', 'creer', 'create', 'graphiste', 'idee', 'idea'],
+        qFr: 'Je n\u2019ai pas encore de logo — pouvez-vous m\u2019aider ?',
+        qEn: 'I don\u2019t have a logo yet — can you help?',
+        aFr: 'Oui. Deux options : (1) texte seul — tu écris ton slogan ou le nom d\u2019équipe dans le personnalisateur et on choisit une typographie ensemble, c\u2019est inclus. (2) Design sur-mesure par notre graphiste — 75 $ pour un logo simple, 150 $ pour un concept complet avec 2 révisions. Écris à info@visionaffichage.com avec ton idée.',
+        aEn: 'Yes. Two options: (1) text only — type your slogan or team name in the customizer and we pick a font together, included at no cost. (2) Custom design by our in-house designer — $75 for a simple logo, $150 for a full concept with 2 revisions. Email info@visionaffichage.com with your idea.',
+      },
     ],
   },
   {
@@ -361,6 +369,14 @@ export const KB_TOPICS: KBTopic[] = [
         qEn: 'Do you offer a warranty?',
         aFr: 'Oui : 1 an sur l\u2019impression (décollement, craquelage) et 1 an sur le tissu (défaut de fabrication). Lavage à l\u2019envers, eau froide, séchage doux — ça dure des années.',
         aEn: 'Yes: 1 year on the print (peeling, cracking) and 1 year on the fabric (manufacturing defect). Wash inside out, cold water, tumble dry low — they last years.',
+      },
+      {
+        id: 'wash-care',
+        keywords: ['laver', 'lavage', 'wash', 'washing', 'care', 'entretien', 'lessive', 'secher', 'sechage', 'dry', 'repasser', 'iron', 'javel', 'bleach'],
+        qFr: 'Comment laver et entretenir les vêtements imprimés ?',
+        qEn: 'How do I wash and care for printed garments?',
+        aFr: 'Lavage à l\u2019envers à l\u2019eau froide (30 °C max), cycle doux, sans javel. Séchage à basse température ou à l\u2019air libre. Repassage à l\u2019envers, fer tiède, jamais directement sur l\u2019impression. En suivant ces règles, l\u2019impression garde son éclat plus de 50 lavages.',
+        aEn: 'Wash inside out in cold water (max 30 °C / 85 °F), gentle cycle, no bleach. Tumble dry low or air dry. Iron inside out on low heat — never directly on the print. Following these rules keeps the print sharp for 50+ washes.',
       },
       {
         id: 'quality',
