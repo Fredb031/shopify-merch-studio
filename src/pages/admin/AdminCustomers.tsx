@@ -13,6 +13,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { normalizeInvisible } from '@/lib/utils';
 
@@ -52,6 +53,8 @@ export default function AdminCustomers() {
   const [filter, setFilter] = useState<CustomerFilter>(initialFilter);
   const [selected, setSelected] = useState<ShopifyCustomerSnapshot | null>(null);
   const [page, setPage] = useState(0);
+  // Cmd+K focuses the search input; Esc clears + blurs while focused.
+  const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
   // Distinct admin tab title — admins routinely have multiple admin
   // tabs open and the bare 'Vision Affichage' from index.html made
   // them indistinguishable in the strip.
@@ -159,11 +162,13 @@ export default function AdminCustomers() {
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
             <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher par nom, courriel, ville"
+              placeholder="Rechercher par nom, courriel, ville  (⌘K)"
               aria-label="Rechercher par nom, courriel ou ville"
+              aria-keyshortcuts="Meta+K Control+K"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
