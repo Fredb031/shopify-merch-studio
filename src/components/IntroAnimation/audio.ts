@@ -201,4 +201,12 @@ export function disposeAudio(): void {
   ctxSingleton = null;
   convolverSingleton = null;
   masterGainSingleton = null;
+  // Drop tracked sources too — they belong to the now-closed context.
+  // Without this, the next intro mount creates a fresh ctx but the
+  // Set still holds OscillatorNode refs from the dead one. A later
+  // stopAllScheduledAudio() call would iterate orphan nodes (each
+  // .stop(0) throws on a closed context, harmlessly caught) and the
+  // refs would block GC of the closed context's node graph until the
+  // next dispose. Clearing here keeps the singleton state coherent.
+  activeSources.clear();
 }
