@@ -283,7 +283,14 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
 
             {/* Progress bar */}
             <div className="px-7">
-              <div className="h-[5px] bg-muted mt-2.5 mb-1 rounded-full overflow-hidden">
+              <div
+                className="h-[5px] bg-muted mt-2.5 mb-1 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={targetHits}
+                aria-valuenow={hits}
+                aria-label={lang === 'en' ? 'Moles hit' : 'Taupes frappées'}
+              >
                 <div
                   className="h-full rounded-full transition-all duration-300"
                   style={{
@@ -294,6 +301,16 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
               </div>
               <div className="text-[12px] text-muted-foreground text-center pb-3">
                 {lang === 'en' ? `${hits}/${targetHits} moles hit` : `${hits}/${targetHits} taupes frappées`}
+              </div>
+              {/* Screen-reader-only live region so each hit is announced
+                  (the visible score above updates silently otherwise —
+                  assistive-tech users can't hear their progress). Polite
+                  so it queues behind button-press feedback instead of
+                  interrupting it. */}
+              <div className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+                {hits > 0 && (lang === 'en'
+                  ? `${hits} of ${targetHits} moles hit`
+                  : `${hits} taupes sur ${targetHits} frappées`)}
               </div>
             </div>
 
