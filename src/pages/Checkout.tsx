@@ -139,10 +139,17 @@ export default function Checkout() {
   // at Shopify's checkout that the address was invalid.
   const isValidCanadianPostal = /^[A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d$/i
     .test(form.postalCode.trim());
+  // Phone is optional, but if the user typed something it must be a
+  // plausible NANP 10-digit number once punctuation is stripped.
+  // Without this, Shopify's checkout rejects the line at submission
+  // and the user has to re-enter card details.
+  const phoneTrimmed = form.phone.trim();
+  const isValidPhone = phoneTrimmed.length === 0
+    || /^\d{10}$/.test(phoneTrimmed.replace(/[^\d]/g, ''));
   const infoValid =
     isValidEmail(form.email) &&
     form.firstName.trim() && form.lastName.trim() && form.address.trim() &&
-    form.city.trim() && isValidCanadianPostal;
+    form.city.trim() && isValidCanadianPostal && isValidPhone;
 
   const handlePay = async () => {
     if (!acceptedTerms) return;
@@ -422,7 +429,17 @@ export default function Checkout() {
                       // an error on first load.
                       ariaInvalid={form.postalCode.trim().length > 0 && !isValidCanadianPostal}
                     />
-                    <Input value={form.phone}     onChange={v => setForm(f => ({ ...f, phone: v }))}     placeholder={lang === 'en' ? 'Phone' : 'Téléphone'} autoComplete="tel" className="col-span-2" type="tel" />
+                    <Input
+                      value={form.phone}
+                      onChange={v => setForm(f => ({ ...f, phone: v }))}
+                      placeholder={lang === 'en' ? 'Phone (optional)' : 'Téléphone (optionnel)'}
+                      autoComplete="tel"
+                      className="col-span-2"
+                      type="tel"
+                      // Only flag invalid once the user has typed — empty
+                      // input is allowed (phone is optional).
+                      ariaInvalid={phoneTrimmed.length > 0 && !isValidPhone}
+                    />
                   </div>
                 </div>
 
