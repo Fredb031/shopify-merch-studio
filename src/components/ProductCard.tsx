@@ -72,7 +72,11 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
         onKeyDown={onCardKey}
         role="link"
         tabIndex={0}
-        aria-label={`${local ? categoryLabel(local.category, lang) : node.title} — ${local?.sku ?? ''}`}
+        /* Title + SKU when we have a local match, else just the Shopify
+           title — joining with " — " when SKU is absent leaves a stray
+           trailing em-dash ('T-shirt — ') that screen readers read out
+           loud. */
+        aria-label={local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : node.title}
         className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* Image */}
