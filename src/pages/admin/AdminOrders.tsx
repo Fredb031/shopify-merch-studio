@@ -335,6 +335,15 @@ export default function AdminOrders() {
                       // AdminCustomers. cursor:pointer + onClick was a
                       // mouse-only contract, leaving keyboard / SR users
                       // unable to open the order detail.
+                      //
+                      // Only act when the row itself has focus. Without
+                      // this guard, a keyboard user who tabs into the
+                      // inner "Marquer expédié" button and presses Enter
+                      // fires the button's click AND the bubbled keydown
+                      // here, which opens the detail drawer on top — the
+                      // shipped action succeeded but the user is yanked
+                      // into a modal they didn't ask for.
+                      if (e.target !== e.currentTarget) return;
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         setSelected(o);
