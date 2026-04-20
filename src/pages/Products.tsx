@@ -45,7 +45,14 @@ export default function Products() {
   // /products?cat=tshirts land directly on the right filter, and so a
   // refresh or back-nav preserves the selected category.
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialCat = searchParams.get('cat') ?? 'overview';
+  // Validate ?cat=... against the known category list on first mount.
+  // Without this, pasting /products?cat=xyz landed in a weird state: the
+  // grid showed 'all products' (matchesCategory's default branch) while
+  // no tab in the filter bar was highlighted, so the user had no cue
+  // that the param was garbage. Fall back to 'overview' instead.
+  const KNOWN_CATS = new Set(['overview', 'chandails', 'tshirts', 'polos', 'headwear']);
+  const rawCat = searchParams.get('cat');
+  const initialCat = rawCat && KNOWN_CATS.has(rawCat) ? rawCat : 'overview';
   const SORT_VALUES = ['default', 'name', 'price-asc', 'price-desc'] as const;
   type SortMode = typeof SORT_VALUES[number];
   const initialSort: SortMode = (() => {
@@ -76,7 +83,8 @@ export default function Products() {
   // notice the mismatch and shove the URL back to the previous filter,
   // silently cancelling the user's nav intent.
   useEffect(() => {
-    const urlCat = searchParams.get('cat') ?? 'overview';
+    const urlCatRaw = searchParams.get('cat') ?? 'overview';
+    const urlCat = KNOWN_CATS.has(urlCatRaw) ? urlCatRaw : 'overview';
     const urlSortRaw = searchParams.get('sort') ?? 'default';
     const urlSort: SortMode = (SORT_VALUES as readonly string[]).includes(urlSortRaw)
       ? (urlSortRaw as SortMode)
