@@ -51,11 +51,21 @@ export function CartRecommendations() {
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        {recs.map(p => (
+        {recs.map(p => {
+          // Use fr-CA locale formatting so French users see '27,54 $' with
+          // a comma separator (matches the rest of the site — cart totals,
+          // quote rows, admin dashboards). en-CA also uses '27.54 $' with
+          // a space before the dollar sign, which is correct for Canadian
+          // English too, so a single formatter works for both locales.
+          const priceFmt = p.basePrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+          return (
           <Link
             key={p.sku}
             to={`/product/${p.shopifyHandle}`}
-            aria-label={`${categoryLabel(p.category, lang)} ${p.sku} — ${lang === 'en' ? 'from' : 'à partir de'} ${p.basePrice.toFixed(2)} $`}
+            aria-label={`${categoryLabel(p.category, lang)} ${p.sku} — ${lang === 'en' ? 'from' : 'à partir de'} ${priceFmt} $`}
             className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-[#0052CC]/30 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <div className="aspect-square bg-secondary relative overflow-hidden">
@@ -83,11 +93,12 @@ export function CartRecommendations() {
                 {categoryLabel(p.category, lang)}
               </div>
               <div className="text-[11px] font-bold text-[#0052CC] mt-0.5">
-                {lang === 'en' ? 'From' : 'À partir de'} {p.basePrice.toFixed(2)} $
+                {lang === 'en' ? 'From' : 'À partir de'} {priceFmt} $
               </div>
             </div>
           </Link>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
