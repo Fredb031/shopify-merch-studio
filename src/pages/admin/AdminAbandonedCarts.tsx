@@ -174,9 +174,19 @@ export default function AdminAbandonedCarts() {
         </div>
 
         <div className="space-y-2">
-          {pageItems.map(c => (
-            <CheckoutRow key={c.id} checkout={c} />
-          ))}
+          {pageItems.length === 0 ? (
+            // Empty-state when search/filter narrows results to nothing.
+            // Without this row the user just sees an empty gap between
+            // the toolbar and (hidden) pagination — looks like the page
+            // failed to load. Mirrors the AdminQuotes pattern.
+            <div className="text-center text-xs text-zinc-500 py-10">
+              {query.trim()
+                ? `Aucun panier ne correspond à « ${query.trim()} ».`
+                : 'Aucun panier abandonné pour le moment.'}
+            </div>
+          ) : (
+            pageItems.map(c => <CheckoutRow key={c.id} checkout={c} />)
+          )}
         </div>
 
         <TablePagination
