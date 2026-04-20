@@ -227,7 +227,14 @@ export default function AcceptInvite() {
                 <input
                   type="password"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => {
+                    setPassword(e.target.value);
+                    // Clear stale submit error as the user retypes so a
+                    // lingering "mots de passe ne correspondent pas" or
+                    // "trop court" warning doesn't keep shouting after
+                    // they've started fixing the problem.
+                    if (error) setError(null);
+                  }}
                   required
                   minLength={8}
                   autoComplete="new-password"
@@ -246,7 +253,10 @@ export default function AcceptInvite() {
                     <input
                       type="password"
                       value={confirm}
-                      onChange={e => setConfirm(e.target.value)}
+                      onChange={e => {
+                        setConfirm(e.target.value);
+                        if (error) setError(null);
+                      }}
                       required
                       minLength={8}
                       autoComplete="new-password"
