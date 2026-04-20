@@ -84,11 +84,23 @@ export function SiteFooter() {
             </p>
           </div>
 
+          {/* Persistent aria-live region so screen readers reliably
+              announce the "Subscribed!" confirmation. Previously the
+              status node only mounted WHEN subscribed flipped to true —
+              most SR engines (NVDA, VoiceOver) require the live region
+              to exist BEFORE its content updates; a freshly-inserted
+              aria-live element is skipped on many combos, leaving
+              assistive-tech users with no audible confirmation that
+              the form actually succeeded. */}
+          <div role="status" aria-live="polite" className="sr-only">
+            {subscribed
+              ? (lang === 'en' ? 'Subscribed! See you in your inbox.' : 'Inscrit ! À bientôt dans ta boîte courriel.')
+              : ''}
+          </div>
           {subscribed ? (
             <div
               className="flex items-center gap-3 bg-emerald-500/15 border border-emerald-400/30 rounded-2xl p-4 self-center"
-              role="status"
-              aria-live="polite"
+              aria-hidden="true"
             >
               <CheckCircle2 size={20} className="text-emerald-300 flex-shrink-0" aria-hidden="true" />
               <div>
