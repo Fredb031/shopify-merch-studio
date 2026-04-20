@@ -15,11 +15,11 @@ import { useWishlist } from '@/hooks/useWishlist';
 export function WishlistGrid({ limit = 6 }: { limit?: number }) {
   const { lang } = useLang();
   const { handles, toggle } = useWishlist();
-  // 'idle' | 'copied' | 'failed' — mirrors the AdminImageGen clipboard
-  // pattern so failures surface instead of silently no-op'ing when the
-  // browser blocks clipboard access (iframe, insecure context, Safari
-  // private mode).
-  const [shareState, setShareState] = useState<'idle' | 'copied' | 'failed'>('idle');
+  // 'idle' | 'shared' | 'copied' | 'failed' — distinguish the native
+  // share-sheet path (SMS / email / Messages) from the clipboard
+  // fallback. Saying "Copied!" after the user actually emailed their
+  // wishlist to a coworker was a small but real UX lie.
+  const [shareState, setShareState] = useState<'idle' | 'shared' | 'copied' | 'failed'>('idle');
   const shareTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
     if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
@@ -44,17 +44,19 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
       .map(p => `• ${categoryLabel(p.category, lang)} (${p.sku}) — ${origin}/product/${p.shopifyHandle}`)
       .join('\n');
     const text = `${header}\n${body}`;
-    let ok = false;
+    let nextState: 'shared' | 'copied' | 'failed' = 'failed';
     try {
       // Prefer the native share sheet on mobile. Falls back to the
-      // clipboard on desktop where navigator.share is undefined —
-      // both paths end at the same visible "copied/shared" indicator.
+      // clipboard on desktop where navigator.share is undefined.
+      // Track which path ran so the confirmation text matches what
+      // the user actually did — "Copied!" after a real send via the
+      // share sheet would be misleading.
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
         await navigator.share({ text, title: lang === 'en' ? 'My Vision Affichage wishlist' : 'Ma liste Vision Affichage' });
-        ok = true;
+        nextState = 'shared';
       } else if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
-        ok = true;
+        nextState = 'copied';
       }
     } catch (err) {
       // AbortError fires when the user dismisses the share sheet —
@@ -62,7 +64,7 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
       if ((err as Error)?.name === 'AbortError') return;
       console.warn('[WishlistGrid] share failed:', err);
     }
-    setShareState(ok ? 'copied' : 'failed');
+    setShareState(nextState);
     if (shareTimerRef.current) clearTimeout(shareTimerRef.current);
     shareTimerRef.current = setTimeout(() => {
       setShareState('idle');
@@ -84,7 +86,12 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
           aria-live="polite"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground border border-border px-3 py-1.5 rounded-full hover:border-muted-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
         >
-          {shareState === 'copied' ? (
+          {shareState === 'shared' ? (
+            <>
+              <Check size={12} className="text-emerald-600" aria-hidden="true" />
+              {lang === 'en' ? 'Shared!' : 'Partagé !'}
+            </>
+          ) : shareState === 'copied' ? (
             <>
               <Check size={12} className="text-emerald-600" aria-hidden="true" />
               {lang === 'en' ? 'Copied!' : 'Copié !'}
