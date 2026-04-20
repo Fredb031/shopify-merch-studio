@@ -31,6 +31,20 @@ type Params = {
 const defaultWidth = (bbox?: Bbox | null) =>
   bbox ? Math.min(bbox.w * 0.45, 38) : 34;
 
+/** Clamp a user-supplied widthPct to a sane range. Callers occasionally
+ * pass a stale slider value (negative after a reset) or a value in the
+ * 0–1 range that got divided by 100 twice; both blow past the zone and
+ * render the logo off-canvas or inverted. A floor of 5% keeps the logo
+ * visible enough to drag; a ceiling of 100% matches the canvas width
+ * and prevents the bbox math below from producing NaN after downstream
+ * `width / 2` operations. NaN/Infinity fall back to the default. */
+const MIN_WIDTH_PCT = 5;
+const MAX_WIDTH_PCT = 100;
+const clampWidth = (w: number | undefined, fallback: number): number => {
+  if (w === undefined || !Number.isFinite(w)) return fallback;
+  return Math.min(Math.max(w, MIN_WIDTH_PCT), MAX_WIDTH_PCT);
+};
+
 /** Center on the garment. Horizontal center uses the DETECTED bbox.cx
  * because real product photos are often shifted a few percent off the
  * canvas frame — forcing x=50 (canvas center) makes logos visibly
@@ -47,17 +61,17 @@ export function centerOnGarment(p: Params) {
     return {
       x: bbox.cx,
       y: bbox.cy,
-      width: p.widthPct ?? defaultWidth(bbox),
+      width: clampWidth(p.widthPct, defaultWidth(bbox)),
     };
   }
   if (zone) {
     return {
       x: zone.x + zone.width / 2,
       y: zone.y + zone.height / 2,
-      width: p.widthPct ?? defaultWidth(null),
+      width: clampWidth(p.widthPct, defaultWidth(null)),
     };
   }
-  return { x: 50, y: 50, width: p.widthPct ?? defaultWidth(null) };
+  return { x: 50, y: 50, width: clampWidth(p.widthPct, defaultWidth(null)) };
 }
 
 /** Chest point = detected garment horizontal centre + vertical 25% from
@@ -70,17 +84,17 @@ export function centerOnChest(p: Params) {
     return {
       x: bbox.cx,
       y: bbox.y + bbox.h * 0.25,
-      width: p.widthPct ?? Math.min(bbox.w * 0.4, 34),
+      width: clampWidth(p.widthPct, Math.min(bbox.w * 0.4, 34)),
     };
   }
   if (zone) {
     return {
       x: zone.x + zone.width / 2,
       y: zone.y + zone.height / 2,
-      width: p.widthPct ?? zone.width * 0.9,
+      width: clampWidth(p.widthPct, zone.width * 0.9),
     };
   }
-  return { x: 50, y: 37, width: 32 };
+  return { x: 50, y: 37, width: clampWidth(p.widthPct, 32) };
 }
 
 /** Center on a specific print zone (used when user picks a zone preset). */
