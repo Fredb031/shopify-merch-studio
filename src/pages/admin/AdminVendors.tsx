@@ -236,6 +236,15 @@ export default function AdminVendors() {
         </div>
       </header>
 
+      {all.length === 0 ? (
+        // Empty-state so a narrowed search (e.g. typo in the vendor's
+        // name) doesn't just show an empty grid with no explanation —
+        // admins were left staring at blank whitespace, unsure whether
+        // the page crashed or simply had no matches.
+        <div className="bg-white border border-zinc-200 rounded-2xl p-10 text-center text-sm text-zinc-500">
+          Aucun vendeur trouvé.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {all.map(v => {
           // Defensive initials — drop empty/undefined parts so a name
@@ -313,6 +322,7 @@ export default function AdminVendors() {
           );
         })}
       </div>
+      )}
 
       {showInvite && (
         <div
