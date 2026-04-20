@@ -74,9 +74,18 @@ async function call<T>(action: Action, productId: string, partId?: string, lang:
       body: JSON.stringify({ action, productId, partId, lang }),
       signal: controller.signal,
     });
+    // Surface 404 distinctly — the edge function not being deployed
+    // returns a 404 with a non-JSON HTML/text body that would otherwise
+    // blow up in res.json() and log as an opaque SyntaxError, hiding the
+    // real setup step (`supabase functions deploy sanmar-product`) from
+    // anyone debugging a fresh checkout.
+    if (res.status === 404) {
+      console.warn('[sanmar]', action, 'edge function not deployed (404) — run `supabase functions deploy sanmar-product`');
+      return null;
+    }
     const json = await res.json();
     if (!res.ok || !json.ok) {
-      console.warn('[sanmar]', action, 'failed:', json.error || json.hint);
+      console.warn('[sanmar]', action, `failed (${res.status}):`, json.error || json.hint);
       return null;
     }
     return json.data as T;
