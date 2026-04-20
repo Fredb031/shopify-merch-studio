@@ -56,11 +56,11 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
           onClick={() => onPageChange(Math.max(0, safePage - 1))}
           disabled={safePage === 0}
           aria-label="Page précédente"
-          className="p-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
         >
-          <ChevronLeft size={14} />
+          <ChevronLeft size={14} aria-hidden="true" />
         </button>
-        <span className="px-2 font-semibold text-zinc-700">
+        <span className="px-2 font-semibold text-zinc-700" aria-live="polite" aria-atomic="true">
           {safePage + 1} / {totalPages}
         </span>
         <button
@@ -68,9 +68,9 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
           onClick={() => onPageChange(Math.min(totalPages - 1, safePage + 1))}
           disabled={safePage >= totalPages - 1}
           aria-label="Page suivante"
-          className="p-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={14} aria-hidden="true" />
         </button>
       </div>
     </div>
