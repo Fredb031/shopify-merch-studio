@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Copy, Send, Eye } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
@@ -57,11 +57,42 @@ function coerceStatus(raw: unknown): Status {
     : 'draft';
 }
 
+// Accepts either `?status=` (what VendorDashboard's quick-links emit)
+// or `?filter=` (mirror of the admin URL scheme) as the initial filter
+// so deep links like "/vendor/quotes?status=draft" actually land on
+// the drafts view instead of resetting to "all".
+function readStatusParam(raw: string | null): Status | 'all' {
+  if (!raw) return 'all';
+  if (raw === 'all') return 'all';
+  return (VALID_STATUSES as readonly string[]).includes(raw) ? (raw as Status) : 'all';
+}
+
 export default function QuoteList() {
   useDocumentTitle('Mes soumissions — Vendeur Vision Affichage');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState<Status | 'all'>('all');
+  const [filter, setFilter] = useState<Status | 'all'>(
+    () => readStatusParam(searchParams.get('status') ?? searchParams.get('filter')),
+  );
   const [savedQuotes, setSavedQuotes] = useState<MockQuote[]>([]);
+
+  // Keep the URL in sync with the status filter so the view is
+  // shareable/bookmarkable and back/forward preserves the filter.
+  // Scrub both legacy `?filter=` and canonical `?status=` params so
+  // switching from a dashboard deep link doesn't leave stale ones.
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    if (filter === 'all') {
+      next.delete('status');
+      next.delete('filter');
+    } else {
+      next.set('status', filter);
+      next.delete('filter');
+    }
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [filter, searchParams, setSearchParams]);
 
   useEffect(() => {
     try {
