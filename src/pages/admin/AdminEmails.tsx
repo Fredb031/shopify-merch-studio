@@ -60,6 +60,56 @@ function previewOf(id: TemplateId, lang: Lang) {
   }
 }
 
+// Auto-sizing preview frame. Measures the rendered email's scrollHeight
+// and resizes the iframe to match, so admins don't have to scroll a
+// nested scrollbar inside the preview panel (the old min-h:600px
+// behaviour cut off long order-shipped templates). Uses allow-same-origin
+// so we can read contentDocument — safe because we author the HTML
+// source ourselves via emailTemplates.
+function EmailPreviewFrame({ html, title }: { html: string; title: string }) {
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [height, setHeight] = useState(600);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    let observer: ResizeObserver | null = null;
+    let cancelled = false;
+    const measure = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 400);
+      if (!cancelled) setHeight(h + 32);
+    };
+    const onLoad = () => {
+      measure();
+      const doc = iframe.contentDocument;
+      if (doc?.body && typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(measure);
+        observer.observe(doc.body);
+      }
+    };
+    iframe.addEventListener('load', onLoad);
+    if (iframe.contentDocument?.readyState === 'complete') onLoad();
+    return () => {
+      cancelled = true;
+      iframe.removeEventListener('load', onLoad);
+      observer?.disconnect();
+    };
+  }, [html]);
+
+  return (
+    <iframe
+      ref={iframeRef}
+      srcDoc={html}
+      className="w-full border-none rounded-lg bg-white shadow-lg transition-[height] duration-200"
+      style={{ height: `${height}px` }}
+      title={title}
+      sandbox="allow-same-origin"
+    />
+  );
+}
+
 export default function AdminEmails() {
   useDocumentTitle('Modèles de courriels — Admin Vision Affichage');
   const [active, setActive] = useState<TemplateId>('quote-sent');
@@ -187,11 +237,9 @@ export default function AdminEmails() {
             id={`email-preview-${active}`}
             aria-labelledby={`email-tab-${active}`}
           >
-            <iframe
-              srcDoc={email.html}
-              className="w-full min-h-[600px] border-none rounded-lg bg-white shadow-lg"
+            <EmailPreviewFrame
+              html={email.html}
               title={`Aperçu du courriel — ${TEMPLATES.find(t => t.id === active)?.label ?? ''}`}
-              sandbox=""
             />
           </div>
 
