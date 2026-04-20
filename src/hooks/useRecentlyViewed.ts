@@ -48,6 +48,15 @@ export function useRecentlyViewed() {
   const track = useCallback((handle: string) => {
     if (!handle) return;
     setHandles(prev => {
+      // Re-tracking the handle that's already at the front is a no-op:
+      // the user navigated back to the same product, the list ordering
+      // wouldn't change. Bail early to avoid (a) a redundant array
+      // allocation that re-renders every consumer, (b) a synchronous
+      // localStorage.setItem write, and (c) a same-tab event broadcast
+      // that re-runs readStorage() on every sibling instance. Without
+      // this, a user clicking the same PDP card twice still pays for
+      // the full write+broadcast loop.
+      if (prev[0] === handle) return prev;
       const next = [handle, ...prev.filter(h => h !== handle)].slice(0, MAX);
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
       try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
