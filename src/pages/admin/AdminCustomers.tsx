@@ -335,24 +335,43 @@ export default function AdminCustomers() {
                   </div>
                   <div className="bg-zinc-50 rounded-xl p-3">
                     <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Dépensé</div>
+                    {/* Mirror the table's '—' treatment for zero-spend
+                        prospects so the two views don't disagree — the
+                        row shows a dash but the detail panel was
+                        displaying '0,00 $', making the same customer
+                        look paying vs non-paying depending on where
+                        you read them. */}
                     <div className="text-2xl font-extrabold mt-1">
-                      {selected.totalSpent.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $
+                      {selected.totalSpent > 0
+                        ? `${selected.totalSpent.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $`
+                        : <span className="text-zinc-300">—</span>}
                     </div>
                   </div>
                 </div>
 
-                {selected.tags && (
-                  <div>
-                    <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Tags</div>
-                    <div className="flex flex-wrap gap-1">
-                      {selected.tags.split(',').map((t, i) => (
-                        <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
-                          {t.trim()}
-                        </span>
-                      ))}
+                {(() => {
+                  // Trim + drop empties up front so ',, premium,' doesn't
+                  // render two blank pills alongside the 'premium' one,
+                  // and we still hide the whole section when every entry
+                  // was whitespace (the old `selected.tags &&` guard only
+                  // caught the empty-string case).
+                  const tags = selected.tags
+                    ? selected.tags.split(',').map(t => t.trim()).filter(Boolean)
+                    : [];
+                  if (tags.length === 0) return null;
+                  return (
+                    <div>
+                      <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Tags</div>
+                      <div className="flex flex-wrap gap-1">
+                        {tags.map((t, i) => (
+                          <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-zinc-100 text-zinc-700">
+                            {t}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 <a
                   href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/customers/${selected.id}`}
