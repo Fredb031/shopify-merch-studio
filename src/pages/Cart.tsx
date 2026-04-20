@@ -4,7 +4,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
@@ -94,7 +94,7 @@ import { useEffect, useRef, useState } from 'react';
 export default function Cart() {
   const { lang } = useLang();
   const navigate = useNavigate();
-  const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount } = useCartStore();
+  const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount, clear } = useCartStore();
   const shopifyCart = useShopifyCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -312,6 +312,39 @@ export default function Cart() {
 
         {items.length > 0 && (
           <div className="space-y-3">
+            {/* Clear-cart link — needs to live here (not in the remove
+                button per-line) so users can wipe a big cart in one
+                click without clicking Trash N times. Confirm first
+                since this is destructive. Also clears the Shopify
+                shadow cart so checkout doesn't resurrect the lines. */}
+            <div className="flex justify-end mt-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  const ok = window.confirm(
+                    lang === 'en'
+                      ? `Empty your cart? This removes all ${items.length} item${items.length > 1 ? 's' : ''} and can\u2019t be undone.`
+                      : `Vider ton panier ? ${items.length} article${items.length > 1 ? 's' : ''} sera${items.length > 1 ? 'ont' : ''} retiré${items.length > 1 ? 's' : ''}, c\u2019est irréversible.`,
+                  );
+                  if (!ok) return;
+                  // Capture the Shopify variant IDs BEFORE clearing the
+                  // local store — once cleared we can't read them back.
+                  const vids = new Set<string>();
+                  for (const it of items) {
+                    for (const v of it.shopifyVariantIds ?? []) vids.add(v);
+                  }
+                  clear();
+                  for (const variantId of vids) {
+                    try { await shopifyCart.removeItem(variantId); }
+                    catch (e) { console.warn('Shopify cart removeItem failed during clear', e); }
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-destructive transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 focus-visible:ring-offset-1 rounded px-2 py-1"
+              >
+                <XCircle size={13} aria-hidden="true" />
+                {lang === 'en' ? 'Empty cart' : 'Vider le panier'}
+              </button>
+            </div>
             {/* Cross-sell — placed between cart lines and totals so it
                 catches the eye right before the customer commits to pay. */}
             <div className="mt-6">
