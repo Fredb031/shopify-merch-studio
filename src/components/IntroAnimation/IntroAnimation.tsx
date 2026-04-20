@@ -34,7 +34,23 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     try { seenOnMountRef.current = typeof window !== 'undefined' && !!localStorage.getItem(SEEN_KEY); }
     catch { /* private mode — play the intro */ }
   }
-  const skipOnMount = skipIfSeen && seenOnMountRef.current;
+  // Respect prefers-reduced-motion: a 4-second GSAP sequence with
+  // elastic scales + yoyo breathe pulses is exactly the kind of
+  // motion vestibular-sensitive users opt out of. The CSS-only guard
+  // we had before only softened the exit fade — the full timeline
+  // still played. Snapshot the media query at construction so we can
+  // skip rendering the overlay entirely on this path, matching the
+  // returning-visitor short-circuit.
+  const reduceMotionOnMountRef = useRef<boolean>(false);
+  if (reduceMotionOnMountRef.current === false && !startedRef.current) {
+    try {
+      reduceMotionOnMountRef.current =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch { /* older browser without matchMedia — play the intro */ }
+  }
+  const skipOnMount = (skipIfSeen && seenOnMountRef.current) || reduceMotionOnMountRef.current;
   // Track the live GSAP timeline so we can kill it on unmount. Without
   // this, a user who clicks through to /products before the 3.35s
   // intro completes triggers the timeline's onComplete callback on an
@@ -51,7 +67,21 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     let seen = false;
     try { seen = typeof window !== 'undefined' && !!localStorage.getItem(SEEN_KEY); }
     catch { /* private mode — treat as never seen so the intro still plays once */ }
-    if (skipIfSeen && seen) {
+    // Skip path: prefers-reduced-motion user → instant onComplete, no
+    // GSAP timeline, no audio cues. Also mark as seen so a later
+    // preference flip back to 'no-preference' doesn't replay the
+    // intro unexpectedly on the next visit.
+    let reduceMotion = false;
+    try {
+      reduceMotion =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch { /* older browser — play the intro */ }
+    if ((skipIfSeen && seen) || reduceMotion) {
+      if (reduceMotion) {
+        try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* noop */ }
+      }
       const overlay = document.getElementById('va-intro-overlay');
       if (overlay) overlay.style.display = 'none';
       onComplete();
