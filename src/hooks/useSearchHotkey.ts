@@ -25,7 +25,12 @@ export function useSearchHotkey(opts?: { onClear?: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      // CapsLock flips e.key to 'K'; the original `=== 'k'` check
+      // silently dropped the shortcut for anyone with CapsLock on,
+      // which reads like 'Cmd+K is broken on my machine'. Compare
+      // case-insensitively and skip Shift so Cmd+Shift+K (devtools-
+      // style bindings) doesn't accidentally steal focus.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'k') {
         // Don't grab Cmd+K when the user is mid-edit in a different
         // input/textarea/contentEditable surface (e.g. invite modal).
         const tag = (document.activeElement as HTMLElement | null)?.tagName;
