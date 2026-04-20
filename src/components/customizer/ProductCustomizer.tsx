@@ -345,11 +345,20 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         }
       }
 
-      // If EVERY matched Shopify attempt failed, bail out — committing
+      // If EVERY REAL-SHOPIFY-GID attempt failed, bail out — committing
       // local lines at this point guarantees the cart won't reconcile at
-      // checkout. Throw so the outer catch shows the generic error toast.
-      const matchedCount = multiVariants.filter(v => !!v.shopifyVariantId).length;
-      if (matchedCount > 0 && succeededVariantIds.size === 0) {
+      // checkout. Previously `matchedCount` counted any variant with a
+      // truthy shopifyVariantId, including local-only fake IDs like
+      // 'noir_M' that we explicitly skip above. That turned the bail
+      // condition into "any fake IDs present → throw" — blocking the
+      // add-to-cart path entirely for products whose colors are
+      // local-catalog only (the user-reported 'can't add to cart' bug).
+      // Re-check the same gid:// filter the Shopify loop uses so the
+      // denominator matches what was actually attempted.
+      const shopifyValidCount = multiVariants.filter(
+        v => !!v.shopifyVariantId && v.shopifyVariantId.startsWith('gid://shopify/'),
+      ).length;
+      if (shopifyValidCount > 0 && succeededVariantIds.size === 0) {
         throw new Error('All Shopify cart line additions failed');
       }
 
