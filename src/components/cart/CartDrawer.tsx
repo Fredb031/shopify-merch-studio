@@ -334,6 +334,30 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               {t('passerCaisse')} <ChevronRight size={15} />
             </button>
             <p className="text-center text-[11px] text-muted-foreground">{t('livraisonNote')}</p>
+            <button
+              type="button"
+              onClick={async () => {
+                const count = cart.items.length;
+                const ok = window.confirm(
+                  lang === 'en'
+                    ? `Empty your cart? This removes all ${count} item${count > 1 ? 's' : ''} and can't be undone.`
+                    : `Vider ton panier ? ${count} article${count > 1 ? 's' : ''} sera${count > 1 ? 'ont' : ''} retiré${count > 1 ? 's' : ''}, c'est irréversible.`,
+                );
+                if (!ok) return;
+                const vids = new Set<string>();
+                for (const it of cart.items) {
+                  for (const v of it.shopifyVariantIds ?? []) vids.add(v);
+                }
+                cart.clear();
+                for (const variantId of vids) {
+                  try { await shopifyCart.removeItem(variantId); }
+                  catch (e) { console.warn('Shopify cart removeItem failed during clear', e); }
+                }
+              }}
+              className="w-full text-[11px] text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 rounded"
+            >
+              {lang === 'en' ? 'Empty cart' : 'Vider le panier'}
+            </button>
           </div>
         )}
       </motion.div>
