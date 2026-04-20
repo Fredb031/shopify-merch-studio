@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Eye, Plus } from 'lucide-react';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
 
 const PAGE_SIZE = 20;
@@ -57,6 +58,7 @@ export default function AdminQuotes() {
 
   useEffect(() => { setPage(0); }, [query, filter]);
   useDocumentTitle('Soumissions — Admin Vision Affichage');
+  const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
   // State → URL sync; replace history so each keystroke doesn't pollute back-stack.
   useEffect(() => {
@@ -161,11 +163,13 @@ export default function AdminQuotes() {
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
             <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher par client, vendeur, numéro"
+              placeholder="Rechercher par client, vendeur, numéro  (⌘K)"
               aria-label="Rechercher par client, vendeur ou numéro"
+              aria-keyshortcuts="Meta+K Control+K"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>

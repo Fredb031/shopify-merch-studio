@@ -8,6 +8,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 
 interface ProfileRow {
@@ -52,6 +53,7 @@ export default function AdminUsers() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<UserRole | 'all'>(initialFilter);
+  const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
   // Sync state → URL with replace history.
   useEffect(() => {
@@ -279,11 +281,13 @@ export default function AdminUsers() {
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
             <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher par nom ou courriel"
+              placeholder="Rechercher par nom ou courriel  (⌘K)"
               aria-label="Rechercher par nom ou courriel"
+              aria-keyshortcuts="Meta+K Control+K"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>

@@ -8,6 +8,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
@@ -126,6 +127,8 @@ export default function AdminOrders() {
   // don't strand the user on an empty page 5 after narrowing a filter.
   useEffect(() => { setPage(0); }, [query, statusFilter]);
   useDocumentTitle('Commandes — Admin Vision Affichage');
+  // Cmd+K focuses the search input; Esc clears + blurs while focused.
+  const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
   // Sync state → URL (replace history so each keystroke doesn't pollute
   // back-stack). Reload now lands the admin exactly where they were.
@@ -275,11 +278,13 @@ export default function AdminOrders() {
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
             <Search size={16} className="text-zinc-400" aria-hidden="true" />
             <input
+              ref={searchRef}
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Rechercher par client, numéro, courriel"
+              placeholder="Rechercher par client, numéro, courriel  (⌘K)"
               aria-label="Rechercher par client, numéro ou courriel"
+              aria-keyshortcuts="Meta+K Control+K"
               className="bg-transparent border-none outline-none text-sm flex-1"
             />
           </div>
