@@ -5,6 +5,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
+type DiscountKind = 'percent' | 'flat';
 
 interface MockQuote {
   id: string;
@@ -14,18 +15,19 @@ interface MockQuote {
   items: number;
   total: number;
   discount: number;
+  discountKind: DiscountKind;
   status: Status;
   age: string;
 }
 
 const MOCK: MockQuote[] = [
-  { id: 'q1', number: 'Q-2026-0042', client: 'Sous Pression', email: 'anthony@sp.ca', items: 3, total: 1840, discount: 10, status: 'viewed', age: 'il y a 2h' },
-  { id: 'q2', number: 'Q-2026-0041', client: 'Perfocazes',    email: 'hubert@p.com', items: 2, total: 620,  discount: 0,  status: 'paid',   age: 'il y a 5h' },
-  { id: 'q3', number: 'Q-2026-0040', client: 'Lacasse',       email: 'marie@l.com',  items: 5, total: 3450, discount: 15, status: 'sent',   age: 'il y a 1j' },
-  { id: 'q4', number: 'Q-2026-0039', client: 'CFP Québec',    email: 'info@cfp.qc', items: 4, total: 2100, discount: 8,  status: 'viewed', age: 'il y a 2j' },
-  { id: 'q5', number: 'Q-2026-0038', client: 'Extreme Fab',   email: 'info@ef.ca',   items: 6, total: 4250, discount: 12, status: 'paid',   age: 'il y a 3j' },
-  { id: 'q6', number: 'Q-2026-0037', client: 'Draft test',    email: '',             items: 1, total: 240,  discount: 0,  status: 'draft',  age: 'il y a 5j' },
-  { id: 'q7', number: 'Q-2026-0036', client: 'Uni',           email: 'uni@u.ca',     items: 3, total: 1260, discount: 5,  status: 'expired', age: 'il y a 20j' },
+  { id: 'q1', number: 'Q-2026-0042', client: 'Sous Pression', email: 'anthony@sp.ca', items: 3, total: 1840, discount: 10, discountKind: 'percent', status: 'viewed', age: 'il y a 2h' },
+  { id: 'q2', number: 'Q-2026-0041', client: 'Perfocazes',    email: 'hubert@p.com', items: 2, total: 620,  discount: 0,  discountKind: 'percent', status: 'paid',   age: 'il y a 5h' },
+  { id: 'q3', number: 'Q-2026-0040', client: 'Lacasse',       email: 'marie@l.com',  items: 5, total: 3450, discount: 15, discountKind: 'percent', status: 'sent',   age: 'il y a 1j' },
+  { id: 'q4', number: 'Q-2026-0039', client: 'CFP Québec',    email: 'info@cfp.qc', items: 4, total: 2100, discount: 8,  discountKind: 'percent', status: 'viewed', age: 'il y a 2j' },
+  { id: 'q5', number: 'Q-2026-0038', client: 'Extreme Fab',   email: 'info@ef.ca',   items: 6, total: 4250, discount: 12, discountKind: 'percent', status: 'paid',   age: 'il y a 3j' },
+  { id: 'q6', number: 'Q-2026-0037', client: 'Draft test',    email: '',             items: 1, total: 240,  discount: 0,  discountKind: 'percent', status: 'draft',  age: 'il y a 5j' },
+  { id: 'q7', number: 'Q-2026-0036', client: 'Uni',           email: 'uni@u.ca',     items: 3, total: 1260, discount: 5,  discountKind: 'percent', status: 'expired', age: 'il y a 20j' },
 ];
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -107,6 +109,7 @@ export default function QuoteList() {
         createdAt?: string;
         items?: unknown[];
         discountValue?: number;
+        discountKind?: string;
       };
       // One malformed quote used to blow up .map (clientEmail.split on
       // undefined), which the outer try swallowed and emptied the whole
@@ -124,6 +127,12 @@ export default function QuoteList() {
           const age = days > 0 ? `il y a ${days}j` : hours > 0 ? `il y a ${hours}h` : 'à l\'instant';
           const email = typeof q.clientEmail === 'string' ? q.clientEmail : '';
           const clientFromEmail = email.includes('@') ? email.split('@')[0] : email;
+          // Preserve discountKind so the rebate column formats correctly:
+          // a $50 flat discount must not render as '50%' (same fix as
+          // AdminQuotes). QuoteBuilder persists 'percent' | 'flat';
+          // anything else falls back to 'percent' for backwards-compat
+          // with older rows that didn't carry the field.
+          const kind: DiscountKind = q.discountKind === 'flat' ? 'flat' : 'percent';
           mapped.push({
             id: String(q.id ?? `q-${mapped.length}`),
             number: typeof q.number === 'string' ? q.number : '—',
@@ -132,6 +141,7 @@ export default function QuoteList() {
             items: Array.isArray(q.items) ? q.items.length : 0,
             total: typeof q.total === 'number' ? q.total : 0,
             discount: typeof q.discountValue === 'number' ? q.discountValue : 0,
+            discountKind: kind,
             status: coerceStatus(q.status),
             age,
           });
@@ -233,7 +243,11 @@ export default function QuoteList() {
                     <td className="px-4 py-3 text-right font-semibold">{q.items}</td>
                     <td className="px-4 py-3 text-right font-bold">{q.total.toLocaleString('fr-CA')} $</td>
                     <td className="px-4 py-3 text-right text-emerald-700 font-semibold">
-                      {q.discount > 0 ? `${q.discount}%` : '—'}
+                      {q.discount > 0
+                        ? q.discountKind === 'flat'
+                          ? `${q.discount.toLocaleString('fr-CA')} $`
+                          : `${q.discount}%`
+                        : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[q.status]}`}>
