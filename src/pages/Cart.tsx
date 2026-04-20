@@ -102,6 +102,16 @@ export default function Cart() {
   const totalPrice = getTotal();
   const totalQty = getItemCount();
 
+  // Match the locale-aware money formatting used on FeaturedProducts /
+  // WishlistGrid / ProductDetailBulkCalc so French users see "27,54 $"
+  // (comma decimal) instead of "27.54 $" on the cart page. Plain
+  // .toFixed() is locale-blind and makes the cart the odd page out.
+  const fmtMoney = (n: number) =>
+    (Number.isFinite(n) ? n : 0).toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   useEffect(() => {
     const prev = document.title;
     const count = totalQty > 0 ? ` (${totalQty})` : '';
@@ -257,9 +267,9 @@ export default function Cart() {
                       : `unité${item.totalQuantity !== 1 ? 's' : ''}`}
                   </p>
                   <p className="font-extrabold text-primary mt-1.5">
-                    {(Number.isFinite(item.totalPrice) ? item.totalPrice : 0).toFixed(2)} $
+                    {fmtMoney(item.totalPrice)} $
                     <span className="text-xs font-normal text-muted-foreground ml-1">
-                      ({(Number.isFinite(item.unitPrice) ? item.unitPrice : 0).toFixed(2)} $ / {lang === 'en' ? 'unit' : 'unité'})
+                      ({fmtMoney(item.unitPrice)} $ / {lang === 'en' ? 'unit' : 'unité'})
                     </span>
                   </p>
                 </div>
@@ -361,7 +371,7 @@ export default function Cart() {
                 <div className="flex justify-between text-muted-foreground">
                   <span>{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
                   <span className="font-semibold text-foreground">
-                    {totalPrice.toFixed(2)} $
+                    {fmtMoney(totalPrice)} $
                   </span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
@@ -379,7 +389,7 @@ export default function Cart() {
                     <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 -mx-2 px-2 py-1.5 rounded-lg">
                       <span className="font-semibold">
                         ✓ {lang === 'en' ? 'Discount' : 'Rabais'} <code className="font-mono text-[11px]">{discountCode}</code>
-                        {savings > 0 && <span className="ml-2 text-[11px] text-emerald-800">-{savings.toFixed(2)} $</span>}
+                        {savings > 0 && <span className="ml-2 text-[11px] text-emerald-800">-{fmtMoney(savings)} $</span>}
                       </span>
                       <button
                         type="button"
@@ -418,7 +428,7 @@ export default function Cart() {
                   {lang === 'en' ? 'Estimated total' : 'Total estimé'}
                 </span>
                 <span className="text-2xl font-extrabold text-primary">
-                  {totalPrice.toFixed(2)} $
+                  {fmtMoney(totalPrice)} $
                 </span>
               </div>
 
