@@ -324,7 +324,12 @@ export default function AdminUsers() {
             </thead>
             <tbody>
               {filtered.map(u => {
-                const initials = (u.full_name ?? u.email).split(/[\s@]/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
+                // ?? keeps '' (only null/undefined fall through), so a legacy
+                // profile row with full_name = '' used to render a blank
+                // avatar circle and a blank display name. Fall back to the
+                // email for any empty/whitespace-only full_name too.
+                const displayName = (u.full_name ?? '').trim() || u.email;
+                const initials = displayName.split(/[\s@]/).map(s => s[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
                 const isMe = u.id === me?.id;
                 return (
                   <tr key={u.id} className="border-t border-zinc-100">
@@ -338,7 +343,7 @@ export default function AdminUsers() {
                         <div className="min-w-0">
                           <div className="font-semibold flex items-center gap-1.5">
                             {u.role === 'president' && <Crown size={12} className="text-[#E8A838]" aria-label="Président" />}
-                            {u.full_name ?? u.email.split('@')[0]}
+                            {(u.full_name ?? '').trim() || u.email.split('@')[0]}
                             {isMe && <span className="text-[10px] font-bold text-[#0052CC]">(toi)</span>}
                           </div>
                           <div className="text-xs text-zinc-500 truncate">{u.email}</div>
@@ -350,7 +355,7 @@ export default function AdminUsers() {
                         value={u.role}
                         onChange={e => updateRole(u.id, e.target.value as UserRole)}
                         disabled={isMe && u.role === 'president'}
-                        aria-label={`Rôle pour ${u.full_name ?? u.email}`}
+                        aria-label={`Rôle pour ${displayName}`}
                         className={`text-[11px] font-bold px-2 py-1 rounded-md outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${ROLE_TONE[u.role]} disabled:cursor-not-allowed`}
                       >
                         {(['president', 'admin', 'vendor', 'client'] as UserRole[]).map(r => (
@@ -372,8 +377,8 @@ export default function AdminUsers() {
                           type="button"
                           onClick={() => toggleActive(u.id, u.active)}
                           aria-label={u.active
-                            ? `Désactiver ${u.full_name ?? u.email}`
-                            : `Réactiver ${u.full_name ?? u.email}`}
+                            ? `Désactiver ${displayName}`
+                            : `Réactiver ${displayName}`}
                           className="text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                         >
                           {u.active ? 'Désactiver' : 'Réactiver'}
