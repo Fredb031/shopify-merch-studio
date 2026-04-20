@@ -73,13 +73,27 @@ function friendlyError(msg: string): string {
 const SITE_URL = typeof window !== 'undefined' ? window.location.origin : 'https://visionaffichage.com';
 
 async function fetchProfile(userId: string) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, full_name, role, title')
-    .eq('id', userId)
-    .maybeSingle();
-  if (error || !data) return null;
-  return data as { id: string; email: string; full_name: string | null; role: UserRole; title: string | null };
+  // Retry with exponential backoff on actual errors (network blip, 5xx,
+  // RLS reconfiguration in-flight). A missing row is NOT an error —
+  // maybeSingle() returns { data: null, error: null } for that case
+  // and we should not waste time/retries on a legitimate "no profile
+  // yet" outcome. Without this, a transient 500 on page load silently
+  // downgrades an admin to 'client' until they hard-refresh.
+  const delays = [0, 250, 750];
+  for (let attempt = 0; attempt < delays.length; attempt++) {
+    if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, role, title')
+      .eq('id', userId)
+      .maybeSingle();
+    if (!error) return (data as { id: string; email: string; full_name: string | null; role: UserRole; title: string | null } | null) ?? null;
+    if (attempt === delays.length - 1) {
+      console.warn('[authStore] fetchProfile gave up after retries:', error.message);
+      return null;
+    }
+  }
+  return null;
 }
 
 // Emails that ALWAYS resolve to the president role, regardless of what
