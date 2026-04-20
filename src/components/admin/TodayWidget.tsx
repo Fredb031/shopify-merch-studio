@@ -28,10 +28,15 @@ function TodayWidgetInner() {
   const pendingOrders = SHOPIFY_ORDERS_SNAPSHOT.filter(o => o.financialStatus === 'pending');
   if (pendingOrders.length > 0) {
     const total = pendingOrders.reduce((s, o) => s + o.total, 0);
+    // fr-CA locale so the amount reads '1 842,50 $' with a comma and
+    // NBSP thousands separator, matching every other admin surface
+    // (AdminOrders, AdminQuotes, AdminDashboard, ActivityFeed).
+    // .toFixed(2) alone renders '1842.50' which looks out of place
+    // sitting beside fr-CA-formatted values elsewhere on the page.
     acc.push({
       id: 'pending-payments',
       label: `${pendingOrders.length} paiement${pendingOrders.length > 1 ? 's' : ''} en attente`,
-      detail: `${total.toFixed(2)} $ à confirmer`,
+      detail: `${total.toLocaleString('fr-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $ à confirmer`,
       href: '/admin/orders?filter=pending',
       icon: AlertCircle,
       priority: 'urgent',
@@ -57,7 +62,7 @@ function TodayWidgetInner() {
     acc.push({
       id: 'recover-abandoned',
       label: `${highValueAbandoned.length} panier${highValueAbandoned.length > 1 ? 's' : ''} à récupérer`,
-      detail: `${total.toFixed(0)} $ en valeur (≥ 200 $/panier)`,
+      detail: `${total.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} $ en valeur (≥ 200 $/panier)`,
       href: '/admin/abandoned-carts',
       icon: ShoppingCart,
       priority: 'normal',
