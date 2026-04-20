@@ -257,11 +257,18 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
                     onClick={() => adjustQty(activeColor, size, q => q - 1)}
                     disabled={qty === 0 || unavailable}
                     aria-label={lang === 'en' ? `Decrease ${size}` : `Diminuer ${size}`}
-                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all"
+                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground disabled:opacity-30 hover:border-primary transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   >
                     <Minus size={12} aria-hidden="true" />
                   </button>
-                  <span className={`w-8 text-center text-sm font-black ${qty > 0 ? 'text-primary' : 'text-muted-foreground'}`}>
+                  <span
+                    className={`w-8 text-center text-sm font-black ${qty > 0 ? 'text-primary' : 'text-muted-foreground'}`}
+                    aria-live="polite"
+                    aria-atomic="true"
+                    aria-label={lang === 'en'
+                      ? `${qty} of size ${size} for ${activeColor.colorName}`
+                      : `${qty} en taille ${size} pour ${activeColor.colorName}`}
+                  >
                     {qty}
                   </span>
                   <button
@@ -269,7 +276,7 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
                     onClick={() => adjustQty(activeColor, size, q => q + 1)}
                     disabled={unavailable}
                     aria-label={lang === 'en' ? `Increase ${size}` : `Augmenter ${size}`}
-                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all"
+                    className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-30 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
                   >
                     <Plus size={12} aria-hidden="true" />
                   </button>
