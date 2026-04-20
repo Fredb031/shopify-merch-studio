@@ -138,7 +138,14 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
                   {categoryLabel(p.category, lang)}
                 </div>
                 <div className="text-[11px] text-primary font-bold mt-0.5">
-                  {lang === 'en' ? 'From' : 'À partir de'} {p.basePrice.toFixed(2)} $
+                  {/* Use locale formatter so the French build renders '27,54 $'
+                      rather than '27.54 $' — .toFixed(2) always emits '.' which
+                      looks out of place next to every other price on the page. */}
+                  {lang === 'en' ? 'From' : 'À partir de'}{' '}
+                  {p.basePrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} $
                 </div>
               </div>
             </Link>
