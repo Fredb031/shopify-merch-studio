@@ -15,13 +15,25 @@ function formatPrice(min: number, max: number): string {
   return `${min.toFixed(2)} – ${max.toFixed(2)} $`;
 }
 
+// Compute at module load — the snapshot is static, so there's no need
+// to rebuild this set inside every render. Used both to seed the filter
+// dropdown and to validate ?filter= URL params before trusting them.
+const KNOWN_PRODUCT_TYPES: ReadonlySet<string> = new Set(
+  SHOPIFY_PRODUCTS_SNAPSHOT.map(p => p.productType).filter(Boolean),
+);
+
 export default function AdminProducts() {
   // URL-backed filter state — same pattern as the other admin tables.
-  // typeFilter accepts any product-type string (validated against the
-  // snapshot's productTypes set on init).
+  // A pasted /admin/products?filter=bogus used to land on an empty grid
+  // with no tab highlighted (typeFilter stored 'bogus' verbatim, the
+  // dropdown's select didn't match any option, and the admin couldn't
+  // tell whether the grid was genuinely empty or the URL was garbage).
+  // Normalize unknown values to 'all' the same way Products.tsx does
+  // for ?cat=.
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';
-  const initialTypeFilter = searchParams.get('filter') ?? 'all';
+  const rawFilter = searchParams.get('filter') ?? 'all';
+  const initialTypeFilter = rawFilter === 'all' || KNOWN_PRODUCT_TYPES.has(rawFilter) ? rawFilter : 'all';
 
   const [query, setQuery] = useState(initialQuery);
   const [typeFilter, setTypeFilter] = useState<string>(initialTypeFilter);
@@ -52,10 +64,10 @@ export default function AdminProducts() {
     };
   }, []);
 
-  const productTypes = useMemo(() => {
-    const set = new Set(SHOPIFY_PRODUCTS_SNAPSHOT.map(p => p.productType).filter(Boolean));
-    return ['all', ...Array.from(set).sort()];
-  }, []);
+  const productTypes = useMemo(
+    () => ['all', ...Array.from(KNOWN_PRODUCT_TYPES).sort()],
+    [],
+  );
 
   const products = useMemo(() => {
     // Same ZWSP-safe pattern as AdminOrders / AdminCustomers: a paste
