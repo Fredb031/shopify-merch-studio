@@ -146,14 +146,20 @@ export default function AdminProducts() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
           {pageProducts.map(p => {
-            const lowStock = p.totalInventory <= 0;
+            // Three-tier inventory badge so admins see a reorder warning
+            // BEFORE the product goes out of stock, not after. Threshold
+            // of 10 was chosen to match the default Shopify low-stock
+            // email trigger so both signals agree.
+            const outOfStock = p.totalInventory <= 0;
+            const lowStock   = !outOfStock && p.totalInventory <= 10;
+            const stockLabel = outOfStock ? ' — stock épuisé' : lowStock ? ` — stock faible (${p.totalInventory})` : '';
             return (
               <a
                 key={p.id}
                 href={`https://${SHOPIFY_SNAPSHOT_META.shop}/admin/products/${p.id}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Ouvrir ${p.title} dans Shopify${lowStock ? ' — stock épuisé' : ''} (nouvel onglet)`}
+                aria-label={`Ouvrir ${p.title} dans Shopify${stockLabel} (nouvel onglet)`}
                 className="border border-zinc-200 rounded-xl overflow-hidden hover:shadow-lg hover:border-[#0052CC]/30 transition-all bg-white group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
               >
                 <div className="aspect-square bg-zinc-100 relative">
@@ -163,7 +169,7 @@ export default function AdminProducts() {
                   <span className="absolute top-2 right-2 text-[10px] font-bold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">
                     Actif
                   </span>
-                  {lowStock && (
+                  {outOfStock ? (
                     <span
                       className="absolute top-2 left-2 text-[10px] font-bold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded flex items-center gap-1"
                       title="Inventaire à 0 ou en backorder"
@@ -171,7 +177,15 @@ export default function AdminProducts() {
                       <AlertTriangle size={9} aria-hidden="true" />
                       Rupture
                     </span>
-                  )}
+                  ) : lowStock ? (
+                    <span
+                      className="absolute top-2 left-2 text-[10px] font-bold bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded flex items-center gap-1"
+                      title={`Inventaire bas : ${p.totalInventory} unité${p.totalInventory > 1 ? 's' : ''}`}
+                    >
+                      <AlertTriangle size={9} aria-hidden="true" />
+                      Stock faible · {p.totalInventory}
+                    </span>
+                  ) : null}
                   <div className="absolute inset-0 bg-[#0052CC]/0 group-hover:bg-[#0052CC]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                     <span className="bg-white text-[#0052CC] px-3 py-1.5 rounded-full text-xs font-bold shadow-md flex items-center gap-1">
                       Voir <ExternalLink size={11} aria-hidden="true" />
