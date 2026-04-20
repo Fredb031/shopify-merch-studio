@@ -79,12 +79,19 @@ export default function TrackOrder() {
   const currentStage: Stage | null = order ? deriveStage(order) : null;
   const currentIdx = currentStage ? STAGES.findIndex(s => s.id === currentStage) : -1;
 
-  // ETA: pending = +5 days, production = +3 days, shipped = +1 day
+  // ETA: pending = +5 days, production = +3 days, shipped = +1 day.
+  // Clamp the target to at least tomorrow so an order that's been
+  // stuck in 'pending' for longer than the stage's nominal SLA
+  // doesn't advertise an "Expected <past date>" — customers were
+  // confused by a weekday already gone by when the order was
+  // actually just running behind.
   const eta = (() => {
     if (!order || currentStage === 'delivered') return null;
     const created = new Date(order.createdAt);
     const days = currentStage === 'pending' ? 5 : currentStage === 'production' ? 3 : 1;
-    const target = new Date(created.getTime() + days * 86400000);
+    const nominal = created.getTime() + days * 86400000;
+    const floor = Date.now() + 86400000;
+    const target = new Date(Math.max(nominal, floor));
     return target.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', day: 'numeric', month: 'long' });
   })();
 
