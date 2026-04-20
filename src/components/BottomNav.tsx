@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
@@ -7,6 +8,25 @@ export function BottomNav() {
   const location = useLocation();
   const { lang, t } = useLang();
   const itemCount = useCartStore(s => s.getItemCount());
+
+  // Announce cart count changes to screen readers. The badge itself is
+  // aria-hidden (purely decorative) and the link's aria-label is only
+  // read when it receives focus, so counting changes (item added from
+  // another page, cart cleared, etc.) go silent without a live region.
+  const [announcement, setAnnouncement] = useState('');
+  const prevCountRef = useRef(itemCount);
+  useEffect(() => {
+    const prev = prevCountRef.current;
+    if (prev === itemCount) return;
+    prevCountRef.current = itemCount;
+    if (itemCount === 0) {
+      setAnnouncement(lang === 'en' ? 'Cart is empty' : 'Panier vide');
+    } else if (lang === 'en') {
+      setAnnouncement(`Cart: ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`);
+    } else {
+      setAnnouncement(`Panier : ${itemCount} ${itemCount === 1 ? 'article' : 'articles'}`);
+    }
+  }, [itemCount, lang]);
 
   const items = [
     { id: 'home', label: t('accueil'),  path: '/',         icon: Home },
@@ -72,6 +92,9 @@ export function BottomNav() {
           );
         })}
       </div>
+      <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {announcement}
+      </span>
     </nav>
   );
 }
