@@ -64,12 +64,20 @@ export default function QuoteBuilder() {
 
   const subtotal = items.reduce((s, it) => s + it.unitPrice * it.quantity, 0);
   const discountAmount = (() => {
-    const v = parseFloat(discountValue) || 0;
-    if (discountKind === 'percent') return (subtotal * v) / 100;
-    return v;
+    const v = Math.max(0, parseFloat(discountValue) || 0);
+    // Cap the discount at 100% (or the full subtotal for flat rates)
+    // so a typo like "150" in the percent input doesn't produce a
+    // negative post-tax total. Negative totals made the summary
+    // panel render like "-42.13 $" and would have been a real billing
+    // bug if the vendor didn't spot it before sending.
+    if (discountKind === 'percent') {
+      const pct = Math.min(100, v);
+      return (subtotal * pct) / 100;
+    }
+    return Math.min(subtotal, v);
   })();
-  const tax = (subtotal - discountAmount) * 0.14975;
-  const total = subtotal - discountAmount + tax;
+  const tax = Math.max(0, subtotal - discountAmount) * 0.14975;
+  const total = Math.max(0, subtotal - discountAmount) + tax;
 
   // Mirror the checkout email validation so a vendor can't "Send to
   // client" a quote addressed to "@" or "foo@" — those silently bounce
