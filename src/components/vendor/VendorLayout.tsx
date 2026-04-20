@@ -132,7 +132,7 @@ export function VendorLayout() {
           type="button"
           className="fixed inset-0 bg-black/40 z-30 md:hidden border-none"
           onClick={() => setMobileOpen(false)}
-          aria-label="Close sidebar"
+          aria-label="Fermer le menu latéral"
         />
       )}
     </div>
