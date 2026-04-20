@@ -9,16 +9,24 @@ import { storefrontApiRequest, parseProductColors, PRODUCT_FULL_QUERY } from '@/
 import type { ShopifyVariantColor } from '@/lib/shopify';
 
 export function useProductColors(handle: string | undefined) {
+  // Normalize before the cache key so callers that pass 'ATCF2500',
+  // ' atcf2500', or 'atcf2500\n' all hit the same React Query entry
+  // instead of firing three duplicate Storefront requests for the same
+  // product. Shopify handles are always lowercase by Shopify's own
+  // rules — sending the normalized form also avoids a 404-on-mismatch
+  // from the Storefront API when a stray capital slipped into the data
+  // layer.
+  const normalized = handle?.trim().toLowerCase() || undefined;
   return useQuery<ShopifyVariantColor[]>({
-    queryKey: ['product-colors', handle],
+    queryKey: ['product-colors', normalized],
     queryFn: async () => {
-      if (!handle) return [];
-      const data = await storefrontApiRequest(PRODUCT_FULL_QUERY, { handle });
+      if (!normalized) return [];
+      const data = await storefrontApiRequest(PRODUCT_FULL_QUERY, { handle: normalized });
       const product = data?.data?.product;
       if (!product) return [];
       return parseProductColors(product);
     },
-    enabled: !!handle,
+    enabled: !!normalized,
     staleTime: 5 * 60 * 1000, // 5 min cache
     // Retry transient Shopify blips with exponential backoff before
     // locking in an empty list for the 5-min staleTime. Without this,
