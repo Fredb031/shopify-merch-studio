@@ -144,7 +144,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         ) : (
           <button
             onClick={openLogin}
-            className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             <svg
               className="w-[13px] h-[13px]"
@@ -164,7 +164,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         <button
           onClick={onOpenCart}
           aria-label={`${t('panier')}${itemCount > 0 ? ` (${itemCount})` : ''}`}
-          className="flex items-center gap-[7px] text-[13px] text-muted-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground relative"
+          className="flex items-center gap-[7px] text-[13px] text-muted-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
           <svg
             width="15"
