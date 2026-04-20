@@ -11,12 +11,24 @@ interface SettingsState {
   twoFactor: boolean;
   newOrderEmail: boolean;
   zapierWebhook: boolean;
+  // Company profile — persisted so edits survive refresh. Previously
+  // the inputs were uncontrolled (defaultValue only), so typing into
+  // them did nothing visible after navigation. That reads as a broken
+  // admin panel.
+  companyName: string;
+  companyNeq: string;
+  companyEmail: string;
+  companyPhone: string;
 }
 
 const DEFAULT_SETTINGS: SettingsState = {
   twoFactor: true,
   newOrderEmail: true,
   zapierWebhook: false,
+  companyName: 'Vision Affichage',
+  companyNeq: '',
+  companyEmail: 'info@visionaffichage.com',
+  companyPhone: '367-380-4808',
 };
 
 function readSettings(): SettingsState {
@@ -25,12 +37,18 @@ function readSettings(): SettingsState {
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return DEFAULT_SETTINGS;
-    // Coerce each field to a boolean — a devtools edit could land
-    // strings or null and break the strict aria-checked type.
+    // Coerce each field — a devtools edit could land strings or null
+    // and break the strict aria-checked type on the toggles, or a
+    // non-string on the controlled company inputs.
+    const str = (v: unknown, fallback: string) => typeof v === 'string' ? v : fallback;
     return {
       twoFactor: Boolean(parsed.twoFactor ?? DEFAULT_SETTINGS.twoFactor),
       newOrderEmail: Boolean(parsed.newOrderEmail ?? DEFAULT_SETTINGS.newOrderEmail),
       zapierWebhook: Boolean(parsed.zapierWebhook ?? DEFAULT_SETTINGS.zapierWebhook),
+      companyName: str(parsed.companyName, DEFAULT_SETTINGS.companyName),
+      companyNeq: str(parsed.companyNeq, DEFAULT_SETTINGS.companyNeq),
+      companyEmail: str(parsed.companyEmail, DEFAULT_SETTINGS.companyEmail),
+      companyPhone: str(parsed.companyPhone, DEFAULT_SETTINGS.companyPhone),
     };
   } catch {
     return DEFAULT_SETTINGS;
@@ -48,11 +66,23 @@ export default function AdminSettings() {
     setSettings(readSettings());
   }, []);
 
-  const toggle = (key: keyof SettingsState) => {
+  const persist = (next: SettingsState) => {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); }
+    catch { /* private mode — state still works in-memory */ }
+  };
+
+  const toggle = (key: 'twoFactor' | 'newOrderEmail' | 'zapierWebhook') => {
     setSettings(prev => {
       const next = { ...prev, [key]: !prev[key] };
-      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); }
-      catch { /* private mode — toggle still works in-memory */ }
+      persist(next);
+      return next;
+    });
+  };
+
+  const updateField = (key: 'companyName' | 'companyNeq' | 'companyEmail' | 'companyPhone', value: string) => {
+    setSettings(prev => {
+      const next = { ...prev, [key]: value };
+      persist(next);
       return next;
     });
   };
@@ -72,10 +102,10 @@ export default function AdminSettings() {
           <h2 className="font-bold">Informations de l'entreprise</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Nom légal" defaultValue="Vision Affichage" />
-          <Field label="NEQ" defaultValue="" placeholder="Numéro d'entreprise du Québec" />
-          <Field label="Courriel général" type="email" defaultValue="info@visionaffichage.com" />
-          <Field label="Téléphone" defaultValue="367-380-4808" />
+          <Field label="Nom légal" value={settings.companyName} onChange={v => updateField('companyName', v)} />
+          <Field label="NEQ" value={settings.companyNeq} onChange={v => updateField('companyNeq', v)} placeholder="Numéro d'entreprise du Québec" />
+          <Field label="Courriel général" type="email" value={settings.companyEmail} onChange={v => updateField('companyEmail', v)} />
+          <Field label="Téléphone" value={settings.companyPhone} onChange={v => updateField('companyPhone', v)} />
         </div>
       </section>
 
@@ -137,13 +167,14 @@ export default function AdminSettings() {
   );
 }
 
-function Field({ label, defaultValue, placeholder, type = 'text' }: { label: string; defaultValue?: string; placeholder?: string; type?: string }) {
+function Field({ label, value, onChange, placeholder, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{label}</span>
       <input
         type={type}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         className="border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/10"
       />
