@@ -9,9 +9,12 @@ interface MoleGameProps {
   onClose: (won: boolean) => void;
 }
 
-// Realistic brown mole SVG — no emoji, taste-skill compliant
-const MoleSvg = ({ id, onClick }: { id: string; onClick: (e: React.MouseEvent) => void }) => (
-  <svg className="mole-svg block cursor-pointer select-none" width="86" height="90" viewBox="0 0 86 90" onClick={onClick}>
+// Realistic brown mole SVG — no emoji, taste-skill compliant.
+// aria-hidden because the clickable button wrapping this SVG owns the
+// accessible name ("Whack mole 1/2/3"). Without it, screen readers would
+// read the raw <svg> title/graphic content on top of the button label.
+const MoleSvg = ({ id }: { id: string }) => (
+  <svg className="mole-svg block select-none pointer-events-none" width="86" height="90" viewBox="0 0 86 90" aria-hidden="true" focusable="false">
     <ellipse cx="43" cy="72" rx="31" ry="25" fill="#3D2510"/>
     <ellipse cx="43" cy="74" rx="18" ry="16" fill="#6B4228"/>
     <ellipse cx="43" cy="44" rx="26" ry="24" fill="#3D2510"/>
@@ -137,7 +140,7 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
     }
   }, [hits, gameWon]);
 
-  const handleWhack = (idx: number, e: React.MouseEvent) => {
+  const handleWhack = (idx: number, e: React.MouseEvent | React.KeyboardEvent) => {
     if (moleStates[idx] !== 'up' || gameOverRef.current) return;
     e.stopPropagation();
     if (moleTimers.current[idx]) clearTimeout(moleTimers.current[idx]!);
@@ -232,10 +235,25 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
               <div className="flex justify-around items-end px-1">
                 {[0, 1, 2].map(idx => (
                   <div key={idx} className="flex flex-col items-center relative w-[120px]">
-                    {/* Mole slot */}
+                    {/* Mole slot — button so the mole is keyboard-whackable
+                        (Enter/Space) and screen-reader-announceable.
+                        Disabled while the mole is 'down' so tab order
+                        still reaches it but clicking a hidden mole is a
+                        no-op rather than a phantom hit. */}
                     <div className="absolute bottom-4 w-[90px] h-[94px] overflow-hidden flex items-end justify-center z-[2]">
-                      <div
-                        className="transition-transform select-none"
+                      <button
+                        type="button"
+                        onClick={(e) => handleWhack(idx, e)}
+                        onKeyDown={(e) => {
+                          // Space scrolls the page on default <button>
+                          // behaviour — preventDefault so pressing Space
+                          // to whack doesn't jump the dialog backdrop.
+                          // Don't prevent Enter (activates onClick natively).
+                          if (e.key === ' ') e.preventDefault();
+                        }}
+                        aria-label={lang === 'en' ? `Whack mole ${idx + 1}` : `Frapper la taupe ${idx + 1}`}
+                        aria-pressed={moleStates[idx] === 'hit'}
+                        className="transition-transform select-none bg-transparent border-none p-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--gold))] focus-visible:ring-offset-2 rounded-full"
                         style={{
                           transform: moleStates[idx] === 'up'
                             ? 'translateY(0)'
@@ -247,8 +265,8 @@ export function MoleGame({ isOpen, onClose }: MoleGameProps) {
                             : 'transform 0.22s cubic-bezier(.34,1.2,.64,1)',
                         }}
                       >
-                        <MoleSvg id={`${idx}`} onClick={(e) => handleWhack(idx, e)} />
-                      </div>
+                        <MoleSvg id={`${idx}`} />
+                      </button>
                     </div>
                     {/* Hole */}
                     <div
