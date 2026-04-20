@@ -48,10 +48,18 @@ export function useWishlist() {
   const [handles, setHandles] = useState<string[]>(readStorage);
 
   const toggle = useCallback((handle: string) => {
-    if (!handle) return;
+    // Normalize before dedupe/storage — Shopify handles are ASCII
+    // lowercase by spec, but callers sometimes hand us a trailing space
+    // from a copy-paste or mixed case from a hand-built URL. Without
+    // trim+lower, toggle('  hoodie  ') and toggle('hoodie') land in
+    // two separate entries and the heart button on the sibling card
+    // wouldn't flip off on remove. Matches the normalization the
+    // useProductColors cache key uses.
+    const norm = handle.trim().toLowerCase();
+    if (!norm) return;
     setHandles(prev => {
-      const without = prev.filter(h => h !== handle);
-      const next = (without.length === prev.length ? [handle, ...prev] : without).slice(0, MAX);
+      const without = prev.filter(h => h !== norm);
+      const next = (without.length === prev.length ? [norm, ...prev] : without).slice(0, MAX);
       try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
       // Broadcast to other useWishlist instances in the SAME tab.
       try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
@@ -59,7 +67,7 @@ export function useWishlist() {
     });
   }, []);
 
-  const has = useCallback((handle: string) => handles.includes(handle), [handles]);
+  const has = useCallback((handle: string) => handles.includes(handle.trim().toLowerCase()), [handles]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
