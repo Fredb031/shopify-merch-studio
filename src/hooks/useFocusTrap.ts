@@ -65,10 +65,26 @@ export function useFocusTrap<T extends HTMLElement = HTMLElement>(active: boolea
       if (focusable.length === 0) { e.preventDefault(); return; }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
+      // Single focusable: browser would otherwise move focus out of the
+      // modal entirely on Tab. Pin it in place.
+      if (focusable.length === 1) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+      // If focus somehow escaped the container (e.g. activeElement is
+      // the body, the container itself, or a node outside it), pull it
+      // back to the appropriate edge instead of letting Tab leak out.
+      const current = document.activeElement as HTMLElement | null;
+      if (!current || current === el || !el.contains(current)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+        return;
+      }
+      if (e.shiftKey && current === first) {
         e.preventDefault();
         last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
+      } else if (!e.shiftKey && current === last) {
         e.preventDefault();
         first.focus();
       }
