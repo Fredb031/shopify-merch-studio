@@ -536,10 +536,10 @@ export default function QuoteBuilder() {
               onClick={() => setTemplatesOpen(v => !v)}
               aria-haspopup="menu"
               aria-expanded={templatesOpen}
-              className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+              className="inline-flex items-center gap-2 text-sm font-bold px-3 min-h-[44px] md:min-h-0 md:py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
             >
               <Bookmark size={14} aria-hidden="true" />
-              Templates
+              <span className="hidden sm:inline">Templates</span>
               {templates.length > 0 && (
                 <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#1B3A6B] text-white text-[10px] font-extrabold">
                   {templates.length}
@@ -547,21 +547,45 @@ export default function QuoteBuilder() {
               )}
             </button>
             {templatesOpen && (
+              <>
+                {/* Mobile-only scrim behind the full-sheet dropdown, so
+                 *  taps outside the sheet close it the same way the
+                 *  outside-click listener does on desktop. */}
+                <div
+                  aria-hidden="true"
+                  className="md:hidden fixed inset-0 bg-black/40 z-40"
+                  onClick={() => setTemplatesOpen(false)}
+                />
               <div
                 role="menu"
                 aria-label="Quote templates"
-                className="absolute right-0 mt-2 w-[320px] bg-white border border-zinc-200 rounded-xl shadow-lg z-50 overflow-hidden"
+                className="fixed inset-x-0 bottom-0 top-auto max-h-[85vh] w-full rounded-t-2xl md:absolute md:inset-auto md:right-0 md:bottom-auto md:top-full md:mt-2 md:max-h-none md:w-[320px] md:rounded-xl bg-white border border-zinc-200 shadow-lg z-50 overflow-hidden flex flex-col"
               >
+                {/* Mobile sheet grab-handle + title so the panel reads
+                 *  as a dedicated screen instead of a rogue popover. */}
+                <div className="md:hidden flex items-center justify-between px-4 pt-3 pb-2 border-b border-zinc-100">
+                  <div className="flex-1 flex justify-center">
+                    <span className="block w-10 h-1 rounded-full bg-zinc-300" aria-hidden="true" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTemplatesOpen(false)}
+                    aria-label="Fermer"
+                    className="absolute right-3 top-2 w-11 h-11 rounded-lg text-zinc-500 hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+                  >
+                    <span aria-hidden="true" className="text-xl leading-none">×</span>
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={handleSaveTemplate}
                   disabled={items.length === 0}
-                  className="w-full flex items-center gap-2 text-left px-4 py-3 text-sm font-bold text-[#1B3A6B] hover:bg-[#1B3A6B]/5 disabled:opacity-40 disabled:cursor-not-allowed border-b border-zinc-100 focus:outline-none focus-visible:bg-[#1B3A6B]/5"
+                  className="w-full flex items-center gap-2 text-left px-4 py-3 min-h-[48px] md:min-h-0 text-sm font-bold text-[#1B3A6B] hover:bg-[#1B3A6B]/5 disabled:opacity-40 disabled:cursor-not-allowed border-b border-zinc-100 focus:outline-none focus-visible:bg-[#1B3A6B]/5"
                 >
                   <BookmarkPlus size={15} aria-hidden="true" />
                   Enregistrer comme template / Save as template
                 </button>
-                <div className="max-h-[320px] overflow-y-auto">
+                <div className="flex-1 md:max-h-[320px] overflow-y-auto">
                   {templates.length === 0 ? (
                     <div className="px-4 py-6 text-xs text-zinc-400 italic text-center">
                       Aucun template enregistré.
@@ -583,7 +607,7 @@ export default function QuoteBuilder() {
                             <button
                               type="button"
                               onClick={() => handleLoadTemplate(tpl)}
-                              className="flex-1 min-w-0 text-left px-2 py-1.5 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+                              className="flex-1 min-w-0 text-left px-2 py-1.5 min-h-[44px] md:min-h-0 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
                             >
                               <div className="text-sm font-bold text-zinc-800 truncate">
                                 {tpl.name}
@@ -600,7 +624,7 @@ export default function QuoteBuilder() {
                               type="button"
                               onClick={() => handleDeleteTemplate(tpl.id)}
                               aria-label={`Supprimer le template ${tpl.name}`}
-                              className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
+                              className="w-11 h-11 md:w-8 md:h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1"
                             >
                               <Trash2 size={14} aria-hidden="true" />
                             </button>
@@ -611,25 +635,27 @@ export default function QuoteBuilder() {
                   )}
                 </div>
               </div>
+              </>
             )}
           </div>
           <button
             type="button"
             onClick={handleSaveDraft}
             disabled={items.length === 0}
-            className="inline-flex items-center gap-2 text-sm font-bold px-3 py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-2 text-sm font-bold px-3 min-h-[44px] md:min-h-0 md:py-2 border border-zinc-200 rounded-lg bg-white hover:bg-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
             <Save size={14} aria-hidden="true" />
-            Brouillon
+            <span className="hidden sm:inline">Brouillon</span>
           </button>
           <button
             type="button"
             onClick={handleSendToClient}
             disabled={!canSend}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 min-h-[44px] md:min-h-0 md:py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             <Send size={14} aria-hidden="true" />
-            Envoyer au client
+            <span className="hidden sm:inline">Envoyer au client</span>
+            <span className="sm:hidden">Envoyer</span>
           </button>
         </div>
       </header>
@@ -740,7 +766,7 @@ export default function QuoteBuilder() {
                 role="radio"
                 aria-checked={discountKind === 'percent'}
                 onClick={() => setDiscountKind('percent')}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2 min-h-[44px] md:min-h-0 rounded-lg text-sm font-bold border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                   discountKind === 'percent' ? 'border-[#0052CC] bg-[#0052CC]/5 text-[#0052CC]' : 'border-zinc-200 text-zinc-500'
                 }`}
               >
@@ -751,7 +777,7 @@ export default function QuoteBuilder() {
                 role="radio"
                 aria-checked={discountKind === 'flat'}
                 onClick={() => setDiscountKind('flat')}
-                className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-sm font-bold border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
+                className={`flex-1 flex items-center justify-center gap-1 py-2 min-h-[44px] md:min-h-0 rounded-lg text-sm font-bold border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                   discountKind === 'flat' ? 'border-[#0052CC] bg-[#0052CC]/5 text-[#0052CC]' : 'border-zinc-200 text-zinc-500'
                 }`}
               >
@@ -903,22 +929,30 @@ function QuoteLineItemRow({
 
   return (
     <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
-      {/* Header: product identity + remove */}
-      <div className="flex gap-4 p-4 border-b border-zinc-100">
-        <img src={item.image} alt="" className="w-16 h-16 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Produit</div>
-          <div className="font-bold text-sm truncate">{item.productName}</div>
-          <div className="text-[11px] font-mono text-zinc-400">{item.productSku}</div>
+      {/* Header: product identity + remove.
+       *  Mobile: identity row on top, actions stacked below as a full-
+       *  width strip so the 44px delete target doesn't crowd the SKU
+       *  text and can grow a clone/reorder sibling later without
+       *  re-reflowing. Desktop stays one tight row. */}
+      <div className="flex flex-col md:flex-row md:items-start md:gap-4 p-4 border-b border-zinc-100">
+        <div className="flex gap-4 flex-1 min-w-0">
+          <img src={item.image} alt="" className="w-16 h-16 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Produit</div>
+            <div className="font-bold text-sm truncate">{item.productName}</div>
+            <div className="text-[11px] font-mono text-zinc-400">{item.productSku}</div>
+          </div>
         </div>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="w-8 h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 flex-shrink-0"
-          aria-label={`Retirer ${item.productName}`}
-        >
-          <Trash2 size={15} aria-hidden="true" />
-        </button>
+        <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-zinc-100 md:mt-0 md:pt-0 md:border-t-0">
+          <button
+            type="button"
+            onClick={onRemove}
+            className="w-11 h-11 md:w-8 md:h-8 rounded-lg text-zinc-400 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 flex-shrink-0"
+            aria-label={`Retirer ${item.productName}`}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {/* A2 — Color palette swatches */}
@@ -938,7 +972,7 @@ function QuoteLineItemRow({
             Aucune couleur disponible pour ce produit sur Shopify.
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex md:flex-wrap gap-2 overflow-x-auto md:overflow-visible snap-x snap-mandatory md:snap-none -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0 [scrollbar-width:thin]">
             {availableColors.map(c => {
               const selected = item.colors.includes(c.colorName);
               return (
@@ -949,7 +983,7 @@ function QuoteLineItemRow({
                   aria-pressed={selected}
                   aria-label={`${selected ? 'Retirer' : 'Ajouter'} la couleur ${c.colorName}`}
                   title={c.colorName}
-                  className={`group relative flex items-center gap-2 pl-1 pr-2.5 py-1 rounded-full border text-[12px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+                  className={`group relative flex items-center gap-2 pl-1 pr-2.5 py-1 min-h-[44px] md:min-h-0 snap-start flex-shrink-0 md:flex-shrink rounded-full border text-[12px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
                     selected
                       ? 'border-[#1B3A6B] bg-[#1B3A6B]/5 text-[#1B3A6B] shadow-sm'
                       : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
@@ -968,65 +1002,70 @@ function QuoteLineItemRow({
         )}
       </div>
 
-      {/* A3 — Size × qty matrix, one row per selected color */}
+      {/* A3 — Size × qty matrix, one row per selected color.
+       *  Mobile: horizontal scroll wrapper with the color-name column
+       *  pinned via `sticky left-0` so every qty input keeps its row
+       *  context when the vendor scrolls to XL/XXL/3XL on a phone. */}
       {item.colors.length > 0 && (
-        <div className="p-4 border-b border-zinc-100 overflow-x-auto">
+        <div className="p-4 border-b border-zinc-100">
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
             Tailles et quantités par couleur
           </h3>
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-[11px] uppercase tracking-wider text-zinc-500">
-                <th className="text-left font-semibold py-1.5 pr-3 w-[140px]">Couleur</th>
-                {SIZE_COLUMNS.map(s => (
-                  <th key={s} className="text-center font-semibold py-1.5 px-1 w-[56px]">
-                    {s}
-                  </th>
-                ))}
-                <th className="text-right font-semibold py-1.5 pl-3 w-[60px]">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {item.colors.map(colorName => {
-                const row = item.sizeQuantities[colorName] ?? {};
-                const colorHex =
-                  availableColors.find(a => a.colorName === colorName)?.hex ?? '#888';
-                const rowTotal = SIZE_COLUMNS.reduce((s, sz) => s + (row[sz] ?? 0), 0);
-                return (
-                  <tr key={colorName} className="border-t border-zinc-100">
-                    <td className="py-1.5 pr-3">
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="w-4 h-4 rounded-full border border-zinc-300 flex-shrink-0"
-                          style={{ backgroundColor: colorHex }}
-                          aria-hidden="true"
-                        />
-                        <span className="font-semibold truncate">{colorName}</span>
-                      </span>
-                    </td>
-                    {SIZE_COLUMNS.map(sz => (
-                      <td key={sz} className="py-1 px-1">
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          step={1}
-                          value={row[sz] ?? ''}
-                          onChange={e => setCellQty(colorName, sz, e.target.value)}
-                          placeholder="0"
-                          aria-label={`Quantité ${colorName} taille ${sz}`}
-                          className="w-full border border-zinc-200 rounded px-1.5 py-1 text-sm text-center outline-none focus:border-[#0052CC] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <table className="min-w-[560px] md:min-w-0 md:w-full text-sm border-collapse">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wider text-zinc-500">
+                  <th className="text-left font-semibold py-1.5 pr-3 w-[140px] sticky left-0 bg-white z-10 md:static md:bg-transparent">Couleur</th>
+                  {SIZE_COLUMNS.map(s => (
+                    <th key={s} className="text-center font-semibold py-1.5 px-1 w-[56px]">
+                      {s}
+                    </th>
+                  ))}
+                  <th className="text-right font-semibold py-1.5 pl-3 w-[60px]">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {item.colors.map(colorName => {
+                  const row = item.sizeQuantities[colorName] ?? {};
+                  const colorHex =
+                    availableColors.find(a => a.colorName === colorName)?.hex ?? '#888';
+                  const rowTotal = SIZE_COLUMNS.reduce((s, sz) => s + (row[sz] ?? 0), 0);
+                  return (
+                    <tr key={colorName} className="border-t border-zinc-100">
+                      <td className="py-1.5 pr-3 sticky left-0 bg-white z-10 md:static md:bg-transparent shadow-[2px_0_0_0_rgba(0,0,0,0.04)] md:shadow-none">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-full border border-zinc-300 flex-shrink-0"
+                            style={{ backgroundColor: colorHex }}
+                            aria-hidden="true"
+                          />
+                          <span className="font-semibold truncate">{colorName}</span>
+                        </span>
                       </td>
-                    ))}
-                    <td className="py-1.5 pl-3 text-right font-bold text-[#1B3A6B]">
-                      {rowTotal}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      {SIZE_COLUMNS.map(sz => (
+                        <td key={sz} className="py-1 px-1">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            step={1}
+                            value={row[sz] ?? ''}
+                            onChange={e => setCellQty(colorName, sz, e.target.value)}
+                            placeholder="0"
+                            aria-label={`Quantité ${colorName} taille ${sz}`}
+                            className="w-full min-h-[44px] md:min-h-0 border border-zinc-200 rounded px-1.5 py-1 text-sm text-center outline-none focus:border-[#0052CC] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+                        </td>
+                      ))}
+                      <td className="py-1.5 pl-3 text-right font-bold text-[#1B3A6B]">
+                        {rowTotal}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -1045,7 +1084,7 @@ function QuoteLineItemRow({
                 role="radio"
                 aria-checked={active}
                 onClick={() => onPatch({ placement: p })}
-                className={`flex flex-col items-center justify-center py-2 rounded-lg border text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+                className={`flex flex-col items-center justify-center py-2 min-h-[48px] md:min-h-0 rounded-lg border text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
                   active
                     ? 'border-[#1B3A6B] bg-[#1B3A6B] text-white shadow-sm'
                     : 'border-zinc-200 text-zinc-600 hover:border-zinc-400 bg-white'
