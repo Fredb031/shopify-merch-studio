@@ -1,11 +1,161 @@
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { CommandPalette } from './CommandPalette';
+
+// Categorised shortcut reference rendered inside the cheatsheet modal.
+// Kept co-located with AdminLayout because the shell is the single
+// source of truth for every global hotkey it binds (Cmd+K, ?). A later
+// extraction into its own component would only fire if a second surface
+// needed the same list; until then this lives here so the docs and the
+// behaviour stay in lockstep.
+type ShortcutRow = { keys: string[]; label: string };
+type ShortcutGroup = { title: string; rows: ShortcutRow[] };
+
+const SHORTCUT_GROUPS: ShortcutGroup[] = [
+  {
+    title: 'Navigation',
+    rows: [
+      { keys: ['Cmd/Ctrl', 'K'], label: 'Ouvrir la palette de commandes' },
+      { keys: ['?'], label: 'Afficher cet aide-mémoire' },
+      { keys: ['Esc'], label: 'Fermer la fenêtre / le menu actif' },
+    ],
+  },
+  {
+    title: 'Commandes',
+    rows: [
+      { keys: ['Click'], label: 'Cocher une commande (actions groupées)' },
+      { keys: ['Shift', 'Click'], label: 'Sélectionner une plage de commandes' },
+    ],
+  },
+  {
+    title: 'Personnalisateur',
+    rows: [
+      { keys: ['←', '↑', '→', '↓'], label: 'Déplacer l\'élément sélectionné (1 px)' },
+      { keys: ['Shift', '←/↑/→/↓'], label: 'Déplacer par pas de 5 px' },
+      { keys: ['Cmd/Ctrl', '←/↑/→/↓'], label: 'Déplacer par pas de 10 px' },
+      { keys: ['Delete'], label: 'Supprimer l\'élément sélectionné' },
+      { keys: ['Backspace'], label: 'Supprimer l\'élément sélectionné' },
+    ],
+  },
+  {
+    title: 'Général',
+    rows: [
+      { keys: ['Enter'], label: 'Confirmer / valider' },
+      { keys: ['Esc'], label: 'Annuler' },
+      { keys: ['Tab'], label: 'Focus suivant' },
+      { keys: ['Shift', 'Tab'], label: 'Focus précédent' },
+    ],
+  },
+];
+
+type ShortcutsDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+// Discoverable keyboard shortcut reference. Pressing "?" anywhere in
+// /admin/* opens this; Esc, backdrop click, and the corner close button
+// all dismiss. Chrome matches CommandPalette: white rounded card with a
+// navy (#0F2341) header strip so the docs modal reads as part of the
+// same admin surface. Focus is trapped so Tab can't leak to the dimmed
+// page underneath.
+function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
+  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+  const trapRef = useFocusTrap<HTMLDivElement>(open);
+  useEscapeKey(open, close);
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-start justify-center pt-[10vh] px-4"
+      role="presentation"
+    >
+      <button
+        type="button"
+        aria-label="Fermer l'aide-mémoire des raccourcis"
+        className="absolute inset-0 bg-black/40"
+        onClick={close}
+      />
+      <div
+        ref={trapRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="admin-shortcuts-title"
+        tabIndex={-1}
+        className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-zinc-200 overflow-hidden max-h-[80vh] flex flex-col"
+      >
+        {/* Brand-navy header strip to match CommandPalette / notifications. */}
+        <div className="px-5 py-4 bg-[#0F2341] text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <Keyboard size={18} aria-hidden="true" />
+            <h2 id="admin-shortcuts-title" className="text-sm font-bold">
+              Raccourcis clavier
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <kbd className="hidden sm:inline-block text-[10px] font-semibold text-white/80 bg-white/10 border border-white/20 rounded px-1.5 py-0.5">
+              Esc
+            </kbd>
+            <button
+              type="button"
+              onClick={close}
+              aria-label="Fermer"
+              className="w-7 h-7 rounded-md hover:bg-white/10 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 transition-colors"
+            >
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+        <div className="overflow-y-auto px-5 py-4 space-y-5">
+          {SHORTCUT_GROUPS.map(group => (
+            <section key={group.title} aria-labelledby={`shortcut-group-${group.title}`}>
+              <h3
+                id={`shortcut-group-${group.title}`}
+                className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC] mb-2"
+              >
+                {group.title}
+              </h3>
+              {/* Two-column layout: keys on the left, description on the
+                  right. grid-cols-[auto,1fr] keeps the keys column flush
+                  to its content so all rows line up regardless of key
+                  count per row. */}
+              <ul className="grid grid-cols-[auto,1fr] gap-x-5 gap-y-2">
+                {group.rows.map((row, idx) => (
+                  <li
+                    key={`${group.title}-${idx}`}
+                    className="contents text-sm"
+                  >
+                    <span className="flex flex-wrap items-center gap-1">
+                      {row.keys.map((k, i) => (
+                        <span key={`${k}-${i}`} className="flex items-center gap-1">
+                          {i > 0 && <span className="text-zinc-400 text-[11px]">+</span>}
+                          <kbd className="inline-block min-w-[22px] text-center text-[11px] font-semibold text-zinc-700 bg-zinc-100 border border-zinc-300 rounded px-1.5 py-0.5 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+                            {k}
+                          </kbd>
+                        </span>
+                      ))}
+                    </span>
+                    <span className="text-sm text-zinc-700 self-center">{row.label}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+          <p className="text-[11px] text-zinc-500 pt-2 border-t border-zinc-100">
+            Astuce : appuyez sur <kbd className="text-[10px] font-semibold text-zinc-700 bg-zinc-100 border border-zinc-300 rounded px-1 py-0.5">?</kbd> depuis n'importe quelle page admin pour rouvrir cette fenêtre.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Role-gating for the admin sidebar. Each nav entry declares the roles
 // allowed to see it; the sidebar filters itself by the current user's
@@ -107,6 +257,7 @@ export function AdminLayout() {
   const [desktopCollapsed, setDesktopCollapsed] = useState<boolean>(readInitialCollapsed);
   const [notifOpen, setNotifOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [notifsReadUntil, setNotifsReadUntil] = useState<number>(() => readNotifsReadUntil());
   const notifContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
@@ -187,6 +338,31 @@ export function AdminLayout() {
     return () => window.removeEventListener('keydown', onKey);
   }, [paletteOpen]);
 
+  // Global "?" (aka Shift+/) hotkey — opens the keyboard cheatsheet
+  // modal. Skipped while the user is typing in an editable surface so
+  // typing a literal "?" into a search field, textarea, or
+  // contenteditable never steals the keystroke. Also skipped when the
+  // command palette is already open so the two modals don't stack and
+  // fight for focus. Compares e.key against both '?' and the physical
+  // '/' slot + shift because some international layouts place the
+  // question mark on a shifted key that `e.key` reports differently.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const isQuestion = e.key === '?' || (e.shiftKey && e.key === '/');
+      if (!isQuestion) return;
+      const t = document.activeElement as HTMLElement | null;
+      const tag = t?.tagName;
+      const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable;
+      if (isEditing) return;
+      if (paletteOpen) return;
+      e.preventDefault();
+      setShortcutsOpen(prev => !prev);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [paletteOpen]);
+
   // Click-outside to dismiss the notifications dropdown. Uses
   // mousedown (not click) so a click on another trigger closes this
   // first and the new one opens immediately.
@@ -253,6 +429,7 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <aside
         id="admin-sidebar"
         className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
@@ -318,6 +495,27 @@ export function AdminLayout() {
             <span className={desktopCollapsed ? 'md:hidden' : ''}>Retour au site</span>
             <span className={desktopCollapsed ? 'hidden md:inline' : 'hidden'} aria-hidden="true">←</span>
           </Link>
+          {/* Discoverable entry-point for the keyboard cheatsheet. Mouse
+              users who never press "?" still find the reference from
+              here; the trailing kbd hint tells keyboard users the
+              shortcut that gets them here faster next time. */}
+          <button
+            type="button"
+            onClick={() => setShortcutsOpen(true)}
+            title={desktopCollapsed ? 'Raccourcis clavier (?)' : undefined}
+            aria-haspopup="dialog"
+            aria-expanded={shortcutsOpen}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center' : ''}`}
+          >
+            <Keyboard size={16} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
+            <span className={`flex-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>Raccourcis clavier</span>
+            <kbd
+              aria-hidden="true"
+              className={`text-[10px] font-semibold text-white/70 bg-white/10 border border-white/20 rounded px-1.5 py-0.5 ${desktopCollapsed ? 'md:hidden' : ''}`}
+            >
+              ?
+            </kbd>
+          </button>
           <button
             type="button"
             onClick={handleLogout}
