@@ -55,3 +55,60 @@ export function isValidCanadianPostal(value: string): boolean {
   const v = normalizeInvisible(value).trim().toUpperCase();
   return CANADIAN_POSTAL_RE.test(v);
 }
+
+/** Format a number as CAD currency in fr-CA (default) or en-CA. */
+export function formatCurrency(amount: number, lang: 'fr' | 'en' = 'fr'): string {
+  const locale = lang === 'en' ? 'en-CA' : 'fr-CA';
+  return new Intl.NumberFormat(locale, { style: 'currency', currency: 'CAD' }).format(amount);
+}
+
+/** Human-readable relative time (fr default / en) with fr-CA/en-CA absolute fallback past 30 days. */
+export function formatRelativeTime(date: Date | string | number, lang: 'fr' | 'en' = 'fr'): string {
+  const then = date instanceof Date ? date.getTime() : new Date(date).getTime();
+  if (!Number.isFinite(then)) return '';
+  const diff = Math.max(0, Date.now() - then);
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(mins / 60);
+  const days = Math.floor(hrs / 24);
+  if (lang === 'en') {
+    if (mins < 1) return 'just now';
+    if (days < 1 && hrs < 1) return `${mins} min ago`;
+    if (days < 1) return `${hrs} h ago`;
+    if (days === 1) return 'yesterday';
+    if (days <= 30) return `${days} d ago`;
+    return new Date(then).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+  if (mins < 1) return "à l'instant";
+  if (days < 1 && hrs < 1) return `il y a ${mins} min`;
+  if (days < 1) return `il y a ${hrs} h`;
+  if (days === 1) return 'hier';
+  if (days <= 30) return `il y a ${days} j`;
+  return new Date(then).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** Trailing-edge debounce: invokes `fn` `wait` ms after the last call; `.cancel()` clears pending. */
+export function debounce<T extends (...args: unknown[]) => unknown>(
+  fn: T,
+  wait: number,
+): T & { cancel: () => void } {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const debounced = ((...args: unknown[]) => {
+    if (timer !== null) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      fn(...args);
+    }, wait);
+  }) as T & { cancel: () => void };
+  debounced.cancel = () => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  return debounced;
+}
+
+/** Clamp `n` to the inclusive [min, max] range. */
+export function clamp(n: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, n));
+}
