@@ -13,6 +13,7 @@ import { TablePagination } from '@/components/admin/TablePagination';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
+import { isAutomationActive } from '@/lib/automations';
 
 const PAGE_SIZE = 25;
 
@@ -302,9 +303,26 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
           `— Équipe Vision Affichage`,
         );
         const mailtoHref = `mailto:${encodeURIComponent(checkout.email)}?subject=${subject}&body=${body}`;
+        // Gate the 1h abandoned-cart recovery send on the pause flag
+        // admins can toggle in /admin/automations. The mailto still
+        // renders as an anchor (keeps right-click / open-in-new-tab
+        // muscle memory), but an onClick preventDefault short-circuits
+        // the actual mail-client launch when paused. The 24h/72h nudges
+        // don't have a direct trigger here; this is the single visible
+        // send point for abandoned-cart recovery in-app.
+        const handleRecoveryClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+          if (!isAutomationActive('abandoned-cart-1h')) {
+            e.preventDefault();
+            console.info('[automation] skipped paused automation:', 'abandoned-cart-1h');
+            toast.warning('Relance de panier suspendue', {
+              description: 'L\u2019automatisation « abandoned-cart-1h » est en pause dans /admin/automations.',
+            });
+          }
+        };
         return (
           <a
             href={mailtoHref}
+            onClick={handleRecoveryClick}
             title="Envoyer un courriel de relance"
             aria-label={`Envoyer un courriel de relance à ${name}`}
             className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"

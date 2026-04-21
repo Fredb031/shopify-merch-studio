@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { PRODUCTS } from '@/data/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import { isAutomationActive } from '@/lib/automations';
 
 interface LineItem {
   id: string;
@@ -151,6 +152,17 @@ export default function QuoteBuilder() {
 
   const handleSendToClient = () => {
     if (!canSend) return;
+    // Honor the /admin/automations pause toggle. When an admin has
+    // flipped 'quote-requested-admin' to paused, don't compose the
+    // mailto — surface a toast so the vendor knows why nothing opened
+    // and log so we can confirm the gate actually fired in the console.
+    if (!isAutomationActive('quote-requested-admin')) {
+      console.info('[automation] skipped paused automation:', 'quote-requested-admin');
+      toast.warning('Envoi de soumission suspendu', {
+        description: 'L\u2019automatisation « Quote requested » est en pause dans /admin/automations.',
+      });
+      return;
+    }
     const q = persistQuote('sent');
     // Truncate the line list if the client ordered so many items that
     // the full mailto URL would blow the browser limit (~2000 chars in

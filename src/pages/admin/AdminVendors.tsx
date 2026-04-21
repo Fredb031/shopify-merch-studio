@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Mail, TrendingUp, Trash2, X, Search } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import { isAutomationActive } from '@/lib/automations';
 import { plural } from '@/lib/i18n';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -138,6 +139,19 @@ export default function AdminVendors() {
     };
     persist([v, ...customVendors]);
     setInviteError(null);
+    // Gate the welcome mailto on the /admin/automations pause flag.
+    // The vendor is saved to the list either way (we already persisted
+    // above) — the pause only suppresses the outbound invite email so
+    // the admin can silently queue vendors without blasting them with
+    // the VISION10 coupon template while copy is under review.
+    if (!isAutomationActive('new-customer-welcome')) {
+      console.info('[automation] skipped paused automation:', 'new-customer-welcome');
+      setInviteError('Invitation enregistrée — courriel de bienvenue en pause (/admin/automations).');
+      setNewName('');
+      setNewEmail('');
+      setShowInvite(false);
+      return;
+    }
     // Pre-fill an invitation mailto
     const subject = encodeURIComponent('Invitation à rejoindre Vision Affichage');
     const body = encodeURIComponent(

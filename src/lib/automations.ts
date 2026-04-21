@@ -250,3 +250,20 @@ export function getAutomationsWithFlags(): Automation[] {
     status: flags[a.id] ?? a.status,
   }));
 }
+
+/**
+ * Gate helper for trigger sites. Returns `true` when the automation is
+ * active (the default) and `false` only when an admin has explicitly
+ * flipped it to 'paused' via /admin/automations. Trigger sites call this
+ * and short-circuit the send when the answer is `false` — that's the
+ * whole point of the pause toggle.
+ *
+ * Defaulting to active on unknown/missing ids is deliberate: adding a
+ * new trigger site for an automation id that nobody has touched yet
+ * should just fire, without forcing a prior write to localStorage.
+ */
+export function isAutomationActive(id: string): boolean {
+  const flags = readAutomationFlags();
+  // active by default; only 'paused' short-circuits
+  return flags[id] !== 'paused';
+}
