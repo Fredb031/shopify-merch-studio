@@ -103,8 +103,15 @@ export default function ProductDetail() {
   // <head> so the crawler picks it up regardless of client-side render.
   useEffect(() => {
     if (!product) return;
-    const price = parseFloat(product.priceRange.minVariantPrice.amount);
-    const currency = product.priceRange.minVariantPrice.currencyCode;
+    // Guard against a partial Shopify response (see the main-render
+    // comment) — if priceRange is missing we just skip the JSON-LD
+    // injection rather than throwing from inside a useEffect (which
+    // unmounts the page).
+    const amount = product.priceRange?.minVariantPrice?.amount;
+    const currency = product.priceRange?.minVariantPrice?.currencyCode;
+    if (amount === undefined || currency === undefined) return;
+    const price = parseFloat(amount);
+    if (!Number.isFinite(price)) return;
     const image = localProduct?.imageDevant ?? product.images?.edges?.[0]?.node?.url;
     const schema = {
       '@context': 'https://schema.org',
@@ -219,15 +226,30 @@ export default function ProductDetail() {
     );
   }
 
-  // Prefer clean Drive images over Shopify CDN (which has VOTRE LOGO embedded)
-  const shopifyImages = product.images.edges;
+  // Prefer clean Drive images over Shopify CDN (which has VOTRE LOGO embedded).
+  //
+  // Defensive: Shopify Storefront can legitimately return a product
+  // with missing images/options/variants/priceRange nesting when the
+  // response is partial — throttled request, half-indexed product,
+  // a newly unpublished variant that strips its media edges, or the
+  // transport layer handing back a truncated payload on a flaky
+  // connection. Before this, `product.images.edges` / `product.options.filter(...)`
+  // / `product.variants.edges.find(...)` would throw TypeError at
+  // render, the ErrorBoundary would catch it, and the customer would
+  // see the generic "something went wrong" screen and assume the whole
+  // store is down — the reported "can't access the store" symptom.
+  // Coalesce each unchecked access to an empty array so the PDP
+  // degrades gracefully (no swatches, fallback price) instead of
+  // crashing the entire route. Matches the da587ec price.amount guard.
+  const shopifyImages = product.images?.edges ?? [];
   const images = localProduct
     ? [
         { node: { url: localProduct.imageDevant, altText: `${localProduct.shortName} devant` } },
         { node: { url: localProduct.imageDos, altText: `${localProduct.shortName} dos` } },
       ]
     : shopifyImages;
-  const options = product.options.filter(
+  const productOptions: Array<{ name: string; values: string[] }> = product.options ?? [];
+  const options = productOptions.filter(
     (o: { name: string; values: string[] }) =>
       !(o.values.length === 1 && o.values[0] === 'Default Title'),
   );
@@ -236,13 +258,14 @@ export default function ProductDetail() {
     ...selectedOptions,
   };
 
+  const variantEdges = product.variants?.edges ?? [];
   const selectedVariant =
-    product.variants.edges.find(
+    variantEdges.find(
       (v: { node: { selectedOptions: Array<{ name: string; value: string }> } }) =>
         v.node.selectedOptions.every(
           (so: { name: string; value: string }) => currentOptions[so.name] === so.value,
         ),
-    )?.node || product.variants.edges[0]?.node || null;
+    )?.node || variantEdges[0]?.node || null;
 
   // Defence in depth: Shopify Storefront normally ships price on every
   // variant, but intermittent schema hiccups / partial cache hydration
@@ -287,7 +310,7 @@ export default function ProductDetail() {
     return undefined;
   })();
 
-  const currency = product.priceRange.minVariantPrice.currencyCode;
+  const currency = product.priceRange?.minVariantPrice?.currencyCode ?? '';
 
   // Check whether a given option value is available given the other
   // currently selected options. e.g. if Color=Black is picked, is
@@ -302,7 +325,7 @@ export default function ProductDetail() {
   const isOptionValueAvailable = (optionName: string, candidateValue: string): boolean => {
     const probe = { ...currentOptions, [optionName]: candidateValue };
     // Any variant that fully matches probe AND is available?
-    return product.variants.edges.some(
+    return variantEdges.some(
       (v: { node: { availableForSale: boolean; selectedOptions: Array<{ name: string; value: string }> } }) =>
         v.node.availableForSale &&
         v.node.selectedOptions.every(
