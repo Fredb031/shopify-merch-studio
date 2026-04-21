@@ -11,9 +11,24 @@ import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
-import { PRODUCTS } from '@/data/products';
+import { PRODUCTS, type Product } from '@/data/products';
+import { categoryLabel } from '@/lib/productLabels';
 import { readLS, writeLS } from '@/lib/storage';
 import type { CartItemCustomization } from '@/types/customization';
+
+// Task 5.2 — match-style cross-sell. Generic "also bought" rows are
+// noise for a merch cart: what actually helps a company putting
+// together a kit is category-coherent pairings (hoodies round out
+// with a cap + a tee, tees round out with a hoodie + a cap, etc.).
+// The map is keyed by the DOMINANT category in the cart and lists the
+// SKUs of the recommended partners in priority order. Keep this small
+// and editable — swapping a SKU here is the whole tuning surface.
+const crossSellMap: Record<string, string[]> = {
+  hoodie: ['ATC6606', 'ATC1000'],   // cap + tee
+  tshirt: ['ATCF2500', 'ATC6606'],   // hoodie + cap
+  cap: ['ATC1000', 'ATCF2500'],      // tee + hoodie
+  polo: ['ATC6606', 'S445LS'],       // cap + long-sleeve polo
+};
 
 // Save-for-later list persisted independently of the active cart so it
 // survives an "empty cart" click and a Shopify-side sync clear. Same
@@ -553,6 +568,136 @@ export default function Cart() {
             })}
           </ul>
         )}
+
+        {/* Task 5.2 — "Complète ta commande" match-style upsell row.
+            Lives BELOW the cart items so buyers see category-coherent
+            pairings (hoodie → cap+tee, tee → hoodie+cap, cap → tee+hoodie,
+            polo → cap+long-sleeve polo) before they hit the totals. We
+            pick a dominant category from the cart (the one with the
+            most line-items), resolve the seed SKUs from crossSellMap,
+            then pad up to 4 by pulling other products in the same
+            target categories that aren't already in the cart. Hidden
+            entirely when the cart is empty — same guard as items.length
+            above. */}
+        {items.length > 0 && (() => {
+          const categoryCount = new Map<string, number>();
+          for (const it of items) {
+            const cat = PRODUCTS.find(p => p.id === it.productId)?.category;
+            if (!cat) continue;
+            categoryCount.set(cat, (categoryCount.get(cat) ?? 0) + 1);
+          }
+          if (categoryCount.size === 0) return null;
+          // Dominant category = most line-items. Stable tie-break on
+          // insertion order so the UI doesn't flicker between equal
+          // categories across renders.
+          let dominant: string | null = null;
+          let topCount = 0;
+          for (const [cat, count] of categoryCount) {
+            if (count > topCount) { dominant = cat; topCount = count; }
+          }
+          if (!dominant) return null;
+          const seedSkus = crossSellMap[dominant];
+          if (!seedSkus || seedSkus.length === 0) return null;
+
+          const inCartIds = new Set(items.map(it => it.productId));
+          const picks: typeof PRODUCTS = [];
+          // 1. Seed SKUs from the map in order, skipping any that are
+          //    already in the cart (recommending what the buyer just
+          //    added is noise).
+          for (const sku of seedSkus) {
+            const prod = PRODUCTS.find(p => p.sku === sku);
+            if (prod && !inCartIds.has(prod.id) && !picks.some(x => x.id === prod.id)) {
+              picks.push(prod);
+            }
+          }
+          // 2. Pad up to 4 with other products sharing the same target
+           //    categories as the seeds (e.g. seed = ATC6606 cap → pad
+           //    with other caps). Keeps recommendations category-coherent
+           //    with the pairing intent even when a seed was filtered out.
+          const targetCategories = new Set(
+            seedSkus
+              .map(s => PRODUCTS.find(p => p.sku === s)?.category)
+              .filter((c): c is Product['category'] => !!c),
+          );
+          for (const p of PRODUCTS) {
+            if (picks.length >= 4) break;
+            if (inCartIds.has(p.id)) continue;
+            if (picks.some(x => x.id === p.id)) continue;
+            if (targetCategories.has(p.category)) picks.push(p);
+          }
+          if (picks.length === 0) return null;
+
+          return (
+            <section
+              aria-label={lang === 'en' ? 'Complete your order' : 'Complète ta commande'}
+              className="mt-8"
+            >
+              <div className="mb-3">
+                <h2 className="text-lg font-extrabold tracking-tight text-foreground">
+                  {lang === 'en' ? 'Complete your order' : 'Complète ta commande'}
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {lang === 'en'
+                    ? 'Pairs the team will actually wear together — same kit, one shipment.'
+                    : 'Des agencements que l\u2019équipe portera vraiment — même kit, un seul envoi.'}
+                </p>
+              </div>
+              {/* Horizontal scroll on mobile, 3-col grid from md+ up. The
+                  overflow strip uses snap-x so the cards align as the
+                  user flicks through them on touch. Desktop ignores the
+                  snap + overflow entirely because flex-wrap → grid. */}
+              <ul
+                className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-6 px-6 md:mx-0 md:px-0 pb-2 md:pb-0 list-none"
+                role="list"
+              >
+                {picks.map(p => {
+                  const priceFmt = p.basePrice.toLocaleString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  });
+                  return (
+                    <li
+                      key={p.sku}
+                      className="snap-start flex-shrink-0 w-[46%] sm:w-[38%] md:w-auto"
+                    >
+                      <Link
+                        to={`/product/${p.shopifyHandle}`}
+                        aria-label={`${categoryLabel(p.category, lang)} ${p.sku} — ${lang === 'en' ? 'from' : 'à partir de'} ${priceFmt} $`}
+                        className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-[#0052CC]/40 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                      >
+                        <div className="aspect-square bg-secondary relative overflow-hidden">
+                          {p.imageDevant && (
+                            <img
+                              src={p.imageDevant}
+                              alt={`${categoryLabel(p.category, lang)} ${p.sku}`}
+                              width={300}
+                              height={300}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                              loading="lazy"
+                              decoding="async"
+                              onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                            />
+                          )}
+                        </div>
+                        <div className="p-2.5">
+                          <div className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/70 truncate">
+                            {p.sku}
+                          </div>
+                          <div className="text-[12px] font-extrabold text-foreground truncate">
+                            {categoryLabel(p.category, lang)}
+                          </div>
+                          <div className="text-[11px] font-bold text-[#0052CC] mt-0.5">
+                            {lang === 'en' ? 'From' : 'À partir de'} {priceFmt} $
+                          </div>
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })()}
 
         {savedItems.length > 0 && (
           <section
