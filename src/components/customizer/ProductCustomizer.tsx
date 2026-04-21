@@ -1131,32 +1131,61 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     </button>
                   </div>
 
-                  {/* Per-color breakdown — only when multi-variant flow was used */}
+                  {/* Per-color × size itemized breakdown — mockup-style confirmation.
+                      Each (color × size) cell is its own line with qty × unit → line total,
+                      so the customer sees exactly what they're paying for. Only shown when
+                      the multi-variant flow was used. */}
                   {multiVariants.length > 0 && (
                     <div className="bg-secondary/70 rounded-xl p-3 border border-border">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
-                        {lang === 'en' ? 'Your selection' : 'Ta sélection'}
+                      <div className="flex items-center justify-between mb-2.5">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {lang === 'en' ? 'Itemized breakdown' : 'Détail par article'}
+                        </div>
+                        <div className="text-[10px] font-bold text-muted-foreground">
+                          {new Set(multiVariants.map(v => v.colorId)).size} {lang === 'en' ? (new Set(multiVariants.map(v => v.colorId)).size === 1 ? 'color' : 'colors') : (new Set(multiVariants.map(v => v.colorId)).size === 1 ? 'couleur' : 'couleurs')}
+                          {' · '}
+                          {multiVariants.length} {lang === 'en' ? (multiVariants.length === 1 ? 'row' : 'rows') : (multiVariants.length === 1 ? 'ligne' : 'lignes')}
+                        </div>
                       </div>
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         {Array.from(
-                          multiVariants.reduce<Map<string, { name: string; hex: string; lines: string[]; qty: number }>>((acc, v) => {
+                          multiVariants.reduce<Map<string, { name: string; hex: string; sizes: { size: string; qty: number }[]; qty: number }>>((acc, v) => {
                             const existing = acc.get(v.colorId);
                             if (existing) {
-                              existing.lines.push(`${v.size}×${v.qty}`);
+                              existing.sizes.push({ size: v.size, qty: v.qty });
                               existing.qty += v.qty;
                             } else {
-                              acc.set(v.colorId, { name: v.colorName, hex: v.hex, lines: [`${v.size}×${v.qty}`], qty: v.qty });
+                              acc.set(v.colorId, { name: v.colorName, hex: v.hex, sizes: [{ size: v.size, qty: v.qty }], qty: v.qty });
                             }
                             return acc;
                           }, new Map()).values(),
-                        ).map(g => (
-                          <div key={g.name} className="flex items-center gap-2 text-xs">
-                            <span className="w-3 h-3 rounded-full ring-1 ring-border flex-shrink-0" style={{ background: g.hex }} />
-                            <span className="font-bold flex-shrink-0">{g.name}</span>
-                            <span className="text-muted-foreground truncate">{g.lines.join(' · ')}</span>
-                            <span className="ml-auto font-extrabold text-primary">{g.qty}</span>
-                          </div>
-                        ))}
+                        ).map(g => {
+                          const groupLineTotal = parseFloat((g.qty * unitPrice).toFixed(2));
+                          return (
+                            <div key={g.name} className="rounded-lg bg-background/70 border border-border/60 p-2.5">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="w-3.5 h-3.5 rounded-full ring-1 ring-border flex-shrink-0 shadow-sm" style={{ background: g.hex }} />
+                                <span className="font-extrabold text-xs flex-shrink-0">{g.name}</span>
+                                <span className="ml-auto text-[11px] font-bold text-foreground/70">
+                                  {g.qty} × {unitPrice.toFixed(2)} $
+                                  <span className="ml-1.5 font-black text-foreground">= {groupLineTotal.toFixed(2)} $</span>
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {g.sizes.map((s, i) => (
+                                  <span
+                                    key={`${s.size}-${i}`}
+                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-secondary text-[10px] font-bold text-foreground/80"
+                                  >
+                                    <span className="uppercase tracking-wide">{s.size}</span>
+                                    <span className="text-muted-foreground">×</span>
+                                    <span className="text-primary">{s.qty}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -1188,36 +1217,77 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         <span className="font-bold">{v}</span>
                       </div>
                     ))}
-                    {hasDiscount && (
-                      <div className="flex justify-between text-sm text-green-700">
-                        <span>{t('rabaisQuantite')}</span>
-                        <span className="font-bold">−{Math.round(BULK_DISCOUNT_RATE * 100)}%</span>
-                      </div>
-                    )}
-                    <div className="border-t border-border pt-2.5 flex justify-between">
+
+                    {/* Line totals — subtotal (before discount) → savings → total.
+                        This reads like a professional invoice so the customer
+                        can see exactly where each dollar goes. */}
+                    {(() => {
+                      const subtotal = parseFloat((totalQty * unitPrice).toFixed(2));
+                      const savings  = parseFloat((subtotal - totalPrice).toFixed(2));
+                      return (
+                        <>
+                          <div className="border-t border-border/60 pt-2.5 flex justify-between text-sm">
+                            <span className="text-muted-foreground">
+                              {lang === 'en' ? 'Subtotal' : 'Sous-total'}
+                            </span>
+                            <span className={`font-bold ${hasDiscount ? 'text-muted-foreground line-through decoration-muted-foreground/40' : ''}`}>
+                              {subtotal.toFixed(2)} $
+                            </span>
+                          </div>
+                          {hasDiscount ? (
+                            <div className="flex items-center justify-between text-sm -mt-0.5">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wide">
+                                  −{Math.round(BULK_DISCOUNT_RATE * 100)}%
+                                </span>
+                                <span className="text-emerald-700 font-bold">{t('rabaisQuantite')}</span>
+                              </span>
+                              <span className="font-black text-emerald-600">
+                                −{savings.toFixed(2)} $
+                              </span>
+                            </div>
+                          ) : (
+                            totalQty > 0 && totalQty < BULK_DISCOUNT_THRESHOLD && (
+                              <div className="flex items-center justify-between text-[11px] text-muted-foreground -mt-0.5">
+                                <span className="italic">
+                                  {lang === 'en'
+                                    ? `Add ${BULK_DISCOUNT_THRESHOLD - totalQty} more to unlock −${Math.round(BULK_DISCOUNT_RATE * 100)}%`
+                                    : `Ajoute ${BULK_DISCOUNT_THRESHOLD - totalQty} de plus pour débloquer −${Math.round(BULK_DISCOUNT_RATE * 100)}%`}
+                                </span>
+                              </div>
+                            )
+                          )}
+                        </>
+                      );
+                    })()}
+                    <div className="border-t border-border pt-2.5 flex items-baseline justify-between">
                       <span className="font-black">{t('totalEstime')}</span>
-                      <span className="font-black text-primary text-lg">{totalPrice.toFixed(2)} $</span>
+                      <span className="font-black text-primary text-xl tracking-tight">{totalPrice.toFixed(2)} $</span>
                     </div>
                   </div>
 
-                  {/* Larger preview card — replaces the cramped 48px thumbnail.
-                      Shows whichever side(s) have a placement. Each side
-                      has an inline edit + remove so the user can adjust
-                      without going back through the whole flow. */}
+                  {/* Larger mockup-style preview card — 96px thumbnail reads
+                      like a professional confirmation. Shows whichever side(s)
+                      have a placement. Each side has inline edit + remove so
+                      the customer can adjust without going back through the
+                      whole flow. */}
                   {(store.logoPlacement?.previewUrl || store.logoPlacementBack?.previewUrl) && (
-                    <div className="p-3 bg-secondary rounded-xl border border-border space-y-2">
+                    <div className="p-3.5 bg-secondary rounded-xl border border-border space-y-3">
                       {([
                         { key: 'front' as const, p: store.logoPlacement,     label: lang === 'en' ? 'Front' : 'Devant' },
                         { key: 'back'  as const, p: store.logoPlacementBack, label: lang === 'en' ? 'Back'  : 'Dos' },
                       ]).filter(s => !!s.p?.previewUrl).map(s => (
-                        <div key={s.key} className="flex gap-3 items-center">
-                          <div className="relative w-16 h-16 rounded-lg border border-border bg-white overflow-hidden flex-shrink-0">
+                        <div key={s.key} className="flex gap-3.5 items-center">
+                          <div className="relative w-24 h-24 rounded-xl border border-border bg-white overflow-hidden flex-shrink-0 shadow-sm">
                             <div
                               className="absolute inset-0"
                               style={{ backgroundImage: 'repeating-conic-gradient(#eee 0% 25%, white 0% 50%)', backgroundSize: '10px 10px' }}
                               aria-hidden="true"
                             />
-                            <img src={s.p!.previewUrl} alt={s.label} className="relative w-full h-full object-contain p-1.5" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                            <img src={s.p!.previewUrl} alt={s.label} className="relative w-full h-full object-contain p-2" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-primary/90 text-primary-foreground text-[9px] font-black uppercase tracking-wider shadow-sm">
+                              {s.label}
+                            </span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
@@ -1226,7 +1296,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                                 <span className="text-[10px] text-muted-foreground">· {lang === 'en' ? 'manual' : 'manuel'}</span>
                               )}
                             </div>
-                            <p className="text-xs font-bold truncate">{product.shortName}</p>
+                            <p className="text-sm font-black truncate">{product.shortName}</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               {lang === 'en' ? 'Zone' : 'Zone'}: <span className="font-semibold text-foreground">{s.p?.zoneId}</span>
                             </p>
@@ -1270,8 +1340,17 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           </div>
                         </div>
                       ))}
-                      <div className="text-[11px] text-muted-foreground pt-1.5 border-t border-border/50">
-                        {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')} · {totalPrice.toFixed(2)} $
+                      <div className="flex items-center gap-2 pt-2 border-t border-border/50 text-[11px]">
+                        <span className="text-muted-foreground">
+                          {totalQty} {t(totalQty !== 1 ? 'unitPluralLabel' : 'unitLabel')}
+                        </span>
+                        <span className="text-muted-foreground/50">·</span>
+                        <span className="font-extrabold text-foreground">{totalPrice.toFixed(2)} $</span>
+                        {hasDiscount && (
+                          <span className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-wider">
+                            −{Math.round(BULK_DISCOUNT_RATE * 100)}%
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
