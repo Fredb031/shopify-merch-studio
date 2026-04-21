@@ -106,6 +106,7 @@ export function AdminLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState<boolean>(readInitialCollapsed);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [notifsReadUntil, setNotifsReadUntil] = useState<number>(() => readNotifsReadUntil());
   const notifContainerRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
@@ -159,6 +160,32 @@ export function AdminLayout() {
   // Close notifications dropdown on Escape + route change.
   useEscapeKey(notifOpen, useCallback(() => setNotifOpen(false), []));
   useEffect(() => { setNotifOpen(false); }, [location.pathname]);
+
+  // Global Cmd+K / Ctrl+K hotkey — bound here (not inside the palette)
+  // so every /admin route shares one keyboard policy owned by the shell.
+  // We deliberately ignore the shortcut while focus sits in an editable
+  // surface so typing "K" with Cmd held (rare, but e.g. international
+  // keyboards, dead-key combinations, or someone selecting text with
+  // Shift+Cmd+K modifier combos) never swallows a keystroke mid-edit.
+  // CapsLock flips `e.key` to 'K', so we compare case-insensitively.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
+      if (e.key.toLowerCase() !== 'k') return;
+      const t = document.activeElement as HTMLElement | null;
+      const tag = t?.tagName;
+      const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable;
+      // Allow Cmd+K while the palette's own input has focus so the user
+      // can toggle it closed again from inside — the palette sits above
+      // the rest of the shell so its input is safe to treat as "not
+      // editing something you'd lose."
+      if (isEditing && !paletteOpen) return;
+      e.preventDefault();
+      setPaletteOpen(prev => !prev);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [paletteOpen]);
 
   // Click-outside to dismiss the notifications dropdown. Uses
   // mousedown (not click) so a click on another trigger closes this
@@ -225,7 +252,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
-      <CommandPalette />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       <aside
         id="admin-sidebar"
         className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${

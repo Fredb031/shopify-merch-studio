@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, ShoppingBag, Package, UserCircle, FileText,
-  Users, KeyRound, Mail, Sparkles, Settings, Search,
+  Users, KeyRound, Mail, Sparkles, Settings, Search, Zap,
 } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -13,10 +13,11 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
  * power users from hunting through the sidebar on narrow windows or
  * hopping pages via the address bar.
  *
- * The global binding deliberately skips text inputs so the shortcut
- * never eats a keystroke while someone is mid-edit (notes field, email
- * composer, search boxes). Escape dismisses via useEscapeKey; Tab is
- * contained via useFocusTrap so focus can't leak to the dimmed page.
+ * The global hotkey is bound from AdminLayout so the shell owns keyboard
+ * policy for every /admin route; the palette itself only manages the
+ * open/filter/navigate interactions once AdminLayout flips `open`.
+ * Escape dismisses via useEscapeKey; Tab is contained via useFocusTrap
+ * so focus can't leak to the dimmed page.
  */
 type PaletteItem = {
   label: string;
@@ -28,44 +29,36 @@ type PaletteItem = {
 const ITEMS: PaletteItem[] = [
   { label: 'Dashboard', to: '/admin', icon: LayoutDashboard, keywords: 'tableau de bord home accueil' },
   { label: 'Orders', to: '/admin/orders', icon: ShoppingBag, keywords: 'commandes' },
-  { label: 'Products', to: '/admin/products', icon: Package, keywords: 'produits catalogue' },
   { label: 'Customers', to: '/admin/customers', icon: UserCircle, keywords: 'clients' },
-  { label: 'Quotes', to: '/admin/quotes', icon: FileText, keywords: 'soumissions devis' },
+  { label: 'Products', to: '/admin/products', icon: Package, keywords: 'produits catalogue' },
   { label: 'Vendors', to: '/admin/vendors', icon: Users, keywords: 'vendeurs equipe' },
+  { label: 'Quotes', to: '/admin/quotes', icon: FileText, keywords: 'soumissions devis' },
   { label: 'Users', to: '/admin/users', icon: KeyRound, keywords: 'comptes acces users' },
   { label: 'Emails', to: '/admin/emails', icon: Mail, keywords: 'courriels messages' },
+  { label: 'Automations', to: '/admin/automations', icon: Zap, keywords: 'automatisations workflows zaps' },
   { label: 'Images', to: '/admin/images', icon: Sparkles, keywords: 'generation ai ia images' },
   { label: 'Settings', to: '/admin/settings', icon: Settings, keywords: 'parametres configuration' },
 ];
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+type CommandPaletteProps = {
+  /** Controlled open state — owned by AdminLayout so the Cmd+K hotkey
+   *  lives alongside the rest of the admin shell's keyboard policy. */
+  open: boolean;
+  /** Fired whenever the palette wants to change its own state (Escape,
+   *  backdrop click, successful navigation). AdminLayout flips its
+   *  state in response. */
+  onOpenChange: (open: boolean) => void;
+};
+
+export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const trapRef = useFocusTrap<HTMLDivElement>(open);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
   useEscapeKey(open, close);
-
-  // Bind Cmd+K / Ctrl+K globally — but ignore when focus sits in a
-  // text-editing surface so we never clobber what the user is typing.
-  // CapsLock flips e.key to 'K', so compare case-insensitively.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
-      if (e.key.toLowerCase() !== 'k') return;
-      const t = document.activeElement as HTMLElement | null;
-      const tag = t?.tagName;
-      const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable;
-      if (isEditing) return;
-      e.preventDefault();
-      setOpen(prev => !prev);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
 
   // Reset transient state each time we reopen so the palette never
   // surfaces a stale search / selection.
@@ -96,9 +89,9 @@ export function CommandPalette() {
   }, [filtered.length, active]);
 
   const go = useCallback((to: string) => {
-    setOpen(false);
+    onOpenChange(false);
     navigate(to);
-  }, [navigate]);
+  }, [navigate, onOpenChange]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'ArrowDown') {
