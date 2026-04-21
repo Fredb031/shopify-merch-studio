@@ -66,12 +66,26 @@ export function LogoUploader({
   const [bgRemoved, setBgRemoved] = useState(false);
   const [quality, setQuality] = useState<QualityCheck | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Track every blob URL we createObjectURL so we can revoke them on
-  // replace / unmount. Without this, memory grows on every upload.
+  // Track every blob URL we createObjectURL so we can revoke superseded
+  // ones on replace / unmount. Without this, memory grows on every upload.
+  //
+  // CRITICAL: URLs we hand off to the parent via onLogoReady live beyond
+  // this component's lifecycle — they end up inside the fabric canvas,
+  // the Step 4 review thumbnail, and the customizer store. Revoking them
+  // on unmount (which fires as soon as the user advances from Step 1
+  // because AnimatePresence tears the step-1 tree down) kills those
+  // downstream renders — canvas rebuilds on window resize would load
+  // a dead blob and render nothing, and the review thumbnail shows a
+  // broken image. Keep handed-off URLs alive; revoke only the
+  // intermediate ones superseded during BG removal or manual retry.
   const blobUrlsRef = useRef<string[]>([]);
+  const handedOffUrlsRef = useRef<Set<string>>(new Set());
   const trackBlobUrl = (url: string) => {
     blobUrlsRef.current.push(url);
     return url;
+  };
+  const markHandedOff = (url: string | null | undefined) => {
+    if (url && url.startsWith('blob:')) handedOffUrlsRef.current.add(url);
   };
   // Track mount state so the long-running processFile / handleManualRemoveBg
   // chains don't setState on an unmounted component when the customizer
@@ -81,7 +95,9 @@ export function LogoUploader({
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      const keep = handedOffUrlsRef.current;
       blobUrlsRef.current.forEach(u => {
+        if (keep.has(u)) return;
         try { URL.revokeObjectURL(u); } catch { /* already revoked */ }
       });
       blobUrlsRef.current = [];
@@ -138,6 +154,8 @@ export function LogoUploader({
           const uploadedUrl = await uploadLogo(trimmedBlob, file.name);
           if (!isMountedRef.current) return;
           safeSetStatus('done');
+          markHandedOff(noBgUrl);
+          markHandedOff(uploadedUrl ?? noBgUrl);
           onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, file);
         } catch (uploadErr) {
           // Supabase upload failed but BG-removal worked — surface a soft
@@ -147,6 +165,7 @@ export function LogoUploader({
           console.warn('[LogoUploader] Supabase upload failed:', uploadErr);
           if (!isMountedRef.current) return;
           safeSetStatus('done');
+          markHandedOff(noBgUrl);
           onLogoReady(noBgUrl, noBgUrl, file);
           safeSetErrorMsg(lang === 'en'
             ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
@@ -165,6 +184,7 @@ export function LogoUploader({
         const fallbackUrl = trackBlobUrl(URL.createObjectURL(fallbackBlob));
         safeSetStatus('done');
         safeSetPreview(fallbackUrl);
+        markHandedOff(fallbackUrl);
         onLogoReady(fallbackUrl, fallbackUrl, file);
         safeSetErrorMsg(lang === 'en'
           ? 'Couldn\u2019t auto-remove the background. Your logo will print with its original background — tap "Remove background" below to try again.'
@@ -172,6 +192,7 @@ export function LogoUploader({
       }
     } else {
       safeSetStatus('done');
+      markHandedOff(localUrl);
       onLogoReady(localUrl, localUrl, file);
     }
   }, [onLogoReady, lang]);
@@ -209,6 +230,8 @@ export function LogoUploader({
       const uploadedUrl = await uploadLogo(trimmedBlob, currentFile.name);
       if (!isMountedRef.current) return;
       safeSetStatus('done');
+      markHandedOff(noBgUrl);
+      markHandedOff(uploadedUrl ?? noBgUrl);
       onLogoReady(noBgUrl, uploadedUrl ?? noBgUrl, currentFile);
     } catch (uploadErr) {
       // Upload failed but BG-removal worked — commit the BG-removed URL
@@ -216,6 +239,7 @@ export function LogoUploader({
       console.warn('[LogoUploader] Supabase upload (manual BG) failed:', uploadErr);
       if (!isMountedRef.current) return;
       safeSetStatus('done');
+      markHandedOff(noBgUrl);
       onLogoReady(noBgUrl, noBgUrl, currentFile);
       safeSetErrorMsg(lang === 'en'
         ? 'Logo saved locally — we\u2019ll finish uploading when you place the order.'
