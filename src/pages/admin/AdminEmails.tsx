@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Mail, Copy, Check, Pencil, RotateCcw, Save, Eye, X, Send, Trash2 } from 'lucide-react';
+import { Mail, Copy, Check, Pencil, RotateCcw, Save, Eye, X, Send, Trash2, Download, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   quoteSentEmail,
@@ -917,6 +917,63 @@ function formatTimestamp(iso: string): string {
   }
 }
 
+/** Full fr-CA date+time for CSV export rows. Renders year/month/day
+ * plus HH:MM:SS so the exported file correlates 1:1 with Zapier logs
+ * (which are second-precise) without relying on the ISO string that
+ * Excel occasionally mis-parses as UTC when a sheet's locale is EN-US. */
+function formatCsvTimestamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('fr-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+/** Generate and download a CSV of the recent-sends ledger. Columns:
+ * Date, Destinataire, Sujet, Type, Statut. Mirrors the AdminOrders
+ * helper — UTF-8 BOM so Excel reads accents without a manual encoding
+ * prompt, RFC-4180 escaping, and formula-injection neutralisation:
+ * cells starting with `=` `+` `-` `@` `\t` or `\r` get a leading tab so
+ * Excel/Sheets treat them as text instead of executing them (a
+ * malicious recipient like `=cmd|...` would otherwise run on open). */
+function exportSentLogCsv(entries: SentLogEntry[]): void {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const statusLabel = (e: SentLogEntry) => (e.status === 'ok' ? 'Envoyé' : 'Échec');
+  const header = ['Date', 'Destinataire', 'Sujet', 'Type', 'Statut'];
+  const rows = entries.map(e => [
+    formatCsvTimestamp(e.sentAt),
+    e.to,
+    e.subject,
+    e.template ?? '—',
+    statusLabel(e),
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `emails-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${entries.length} envoi${entries.length > 1 ? 's' : ''} exporté${entries.length > 1 ? 's' : ''}`);
+}
+
 // Verbose absolute timestamp for the cell's title tooltip. The compact
 // `formatTimestamp` above drops year + seconds to stay scannable, which
 // is fine most of the time but falls down when an admin needs to
@@ -945,20 +1002,71 @@ function RecentSendsPanel({ entries, onClear, onRefresh }: {
   onClear: () => void;
   onRefresh: () => void;
 }) {
-  const visible = entries.slice(0, 10);
+  // Controls for the recent-sends ledger. Kept local to the panel
+  // because they don't affect any other surface — resetting the page
+  // state on every refresh would wipe a mid-session filter.
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ok' | 'fail'>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [search, setSearch] = useState<string>('');
+
+  // Distinct template/type keys present in the log. We derive this from
+  // `entries` (not a static list) so the dropdown reflects reality —
+  // old deprecated template keys still show up until the admin clears
+  // the log, and new ones appear without a code change.
+  const availableTypes = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of entries) {
+      if (e.template) set.add(e.template);
+    }
+    return Array.from(set).sort();
+  }, [entries]);
+
+  // Apply all three filters before slicing to the visible window — we
+  // want "last 10 that match" rather than "10 newest, then filter"
+  // (the latter would show an empty table whenever the ten most recent
+  // entries all happened to be successes and the admin was searching
+  // for a failure).
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return entries.filter(e => {
+      if (statusFilter !== 'all' && e.status !== statusFilter) return false;
+      if (typeFilter !== 'all' && (e.template ?? '') !== typeFilter) return false;
+      if (q.length > 0 && !e.to.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [entries, statusFilter, typeFilter, search]);
+
+  const visible = filtered.slice(0, 10);
+  const filtersActive = statusFilter !== 'all' || typeFilter !== 'all' || search.trim().length > 0;
+
   return (
     <section aria-label="Envois récents" className="bg-white border border-zinc-200 rounded-2xl p-4">
-      <div className="flex items-center justify-between gap-2 mb-3">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Send size={14} className="text-[#1B3A6B]" aria-hidden="true" />
           <h2 className="font-bold text-sm text-[#1B3A6B]">Envois récents</h2>
-          <span className="text-[11px] text-zinc-500">({entries.length} au total · 10 derniers)</span>
+          <span className="text-[11px] text-zinc-500">
+            ({entries.length} au total
+            {filtersActive ? ` · ${filtered.length} filtré${filtered.length > 1 ? 's' : ''}` : ''}
+            {' '}· 10 derniers)
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => exportSentLogCsv(filtered)}
+            disabled={filtered.length === 0}
+            title={filtered.length === 0 ? 'Aucun envoi à exporter' : `Exporter ${filtered.length} envoi${filtered.length > 1 ? 's' : ''} en CSV`}
+            aria-label={filtered.length === 0 ? 'Aucun envoi à exporter' : `Exporter ${filtered.length} envoi${filtered.length > 1 ? 's' : ''} en CSV`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <Download size={11} aria-hidden="true" />
+            Exporter CSV
+          </button>
           <button
             type="button"
             onClick={onRefresh}
-            className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+            className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-800 underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded"
           >
             Rafraîchir
           </button>
@@ -966,7 +1074,7 @@ function RecentSendsPanel({ entries, onClear, onRefresh }: {
             <button
               type="button"
               onClick={onClear}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 rounded"
               aria-label="Effacer le journal des envois"
             >
               <Trash2 size={11} aria-hidden="true" />
@@ -975,9 +1083,64 @@ function RecentSendsPanel({ entries, onClear, onRefresh }: {
           )}
         </div>
       </div>
-      {visible.length === 0 ? (
+      {entries.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 mb-3 pb-3 border-b border-zinc-100">
+          <label className="relative flex-1 min-w-[180px]">
+            <span className="sr-only">Rechercher par destinataire</span>
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher par destinataire…"
+              className="w-full pl-7 pr-2 py-1 rounded-lg border border-zinc-300 bg-white text-[11px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus:border-transparent"
+            />
+          </label>
+          <label className="flex items-center gap-1.5">
+            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Statut</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'ok' | 'fail')}
+              className="px-2 py-1 rounded-lg border border-zinc-300 bg-white text-[11px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus:border-transparent"
+            >
+              <option value="all">Tout</option>
+              <option value="ok">Envoyé</option>
+              <option value="fail">Échec</option>
+            </select>
+          </label>
+          {availableTypes.length > 1 && (
+            <label className="flex items-center gap-1.5">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Type</span>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="px-2 py-1 rounded-lg border border-zinc-300 bg-white text-[11px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus:border-transparent"
+              >
+                <option value="all">Tout</option>
+                {availableTypes.map(t => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={() => { setStatusFilter('all'); setTypeFilter('all'); setSearch(''); }}
+              className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-800 underline underline-offset-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] rounded"
+            >
+              Réinitialiser
+            </button>
+          )}
+        </div>
+      )}
+      {entries.length === 0 ? (
         <div className="text-center py-6 text-xs text-zinc-500">
           Aucun courriel test envoyé pour l'instant. Ouvre un modèle et clique <strong>Envoyer un test</strong>.
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="text-center py-6 text-xs text-zinc-500">
+          Aucun envoi ne correspond aux filtres actuels.
         </div>
       ) : (
         <div className="overflow-x-auto">
