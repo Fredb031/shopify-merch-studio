@@ -4,7 +4,8 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Truck } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Truck, Minus, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
@@ -94,10 +95,16 @@ import { useEffect, useRef, useState } from 'react';
 export default function Cart() {
   const { lang } = useLang();
   const navigate = useNavigate();
-  const { items, removeItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount, clear } = useCartStore();
+  const { items, removeItem, updateItemQuantity, rollbackItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount, clear } = useCartStore();
   const shopifyCart = useShopifyCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  // Per-row in-flight flag so rapid +/- clicks can't race against each
+  // other (the Shopify mutation is async — the 2nd click would see a
+  // stale post-optimistic snapshot as "truth" and mask the 1st failure).
+  // Also used to disable the buttons + dim the row while the background
+  // sync is inflight so the user sees something is happening.
+  const [pendingRows, setPendingRows] = useState<Record<string, boolean>>({});
 
   const totalPrice = getTotal();
   const totalQty = getItemCount();
@@ -178,6 +185,106 @@ export default function Cart() {
     }
   };
 
+  // Optimistic quantity update on a cart row.
+  //
+  // 1. Snapshot the row (so we can revert on failure).
+  // 2. Scale sizeQuantities + totalPrice locally so the UI reflects
+  //    the change instantly — the user sees the number tick up/down
+  //    and the total recomputes with zero latency, which is the whole
+  //    point of optimistic UI.
+  // 3. Fire the Shopify sync in the background for each variant that
+  //    backs this row, scaling each variant's Shopify quantity by the
+  //    same ratio so the Size×Color breakdown stays consistent at
+  //    checkout.
+  // 4. On ANY Shopify failure (network drop, userError, cart-not-found
+  //    that wasn't auto-recovered), revert the local row to the
+  //    snapshot AND toast the user so they know their change didn't
+  //    stick — otherwise they'd click Checkout and be surprised by a
+  //    different total on Shopify's side.
+  const handleQuantityChange = async (cartId: string, delta: number) => {
+    // Guard against double-clicks while a sync is in flight for this
+    // row. The optimistic update is still committed instantly, but
+    // stacking mutations on the same variant races the per-variant
+    // in-flight queue in stores/cartStore.ts and can silently clobber
+    // each other's intended quantity.
+    if (pendingRows[cartId]) return;
+    const snapshot = useCartStore.getState().items.find(i => i.cartId === cartId);
+    if (!snapshot) return;
+    const currentTotal = Math.max(1, snapshot.totalQuantity || 1);
+    const nextTotal = Math.max(0, currentTotal + delta);
+    if (nextTotal === currentTotal) return;
+    if (nextTotal === 0) {
+      // Decrementing to zero = remove. Route through the shared remove
+      // handler so the Shopify mirror logic (sibling-reference check,
+      // etc) runs exactly once.
+      await handleRemoveItem(cartId);
+      return;
+    }
+    // Capture the PRE-optimistic Shopify quantities so we can scale
+    // them by the ratio the user actually wants, not by the already-
+    // updated local state.
+    const ratio = nextTotal / currentTotal;
+    const vids = snapshot.shopifyVariantIds ?? [];
+    const shopifyBefore = new Map<string, number>();
+    for (const vid of vids) {
+      const line = shopifyCart.items.find(i => i.variantId === vid);
+      if (line) shopifyBefore.set(vid, line.quantity);
+    }
+
+    // --- Optimistic commit ---
+    updateItemQuantity(cartId, nextTotal);
+    setPendingRows(prev => ({ ...prev, [cartId]: true }));
+
+    // --- Background Shopify sync ---
+    try {
+      if (vids.length > 0) {
+        const failures: string[] = [];
+        for (const vid of vids) {
+          const before = shopifyBefore.get(vid);
+          if (!before || before <= 0) continue;
+          const nextQty = Math.max(1, Math.round(before * ratio));
+          try {
+            await shopifyCart.updateQuantity(vid, nextQty);
+          } catch (e) {
+            console.warn('Shopify updateQuantity failed', vid, e);
+            failures.push(vid);
+          }
+        }
+        // The Shopify store swallows errors internally (logs + returns);
+        // detect a silent failure by reading back state and comparing
+        // to what we intended. If any variant didn't move, treat the
+        // whole row as failed so the user's pricing is never wrong.
+        const shopifyAfter = useShopifyCartStore.getState().items;
+        const silentMismatch = vids.some(vid => {
+          const before = shopifyBefore.get(vid);
+          if (!before || before <= 0) return false;
+          const expected = Math.max(1, Math.round(before * ratio));
+          const actual = shopifyAfter.find(i => i.variantId === vid)?.quantity;
+          return actual !== expected;
+        });
+        if (failures.length > 0 || silentMismatch) {
+          throw new Error('shopify-sync-failed');
+        }
+      }
+    } catch (_err) {
+      // Revert local state + toast. Only revert if the row is still
+      // there — the user might have removed it while we awaited.
+      rollbackItem(snapshot);
+      toast.error(
+        lang === 'en'
+          ? 'Couldn\u2019t update quantity. Please try again.'
+          : 'Impossible de mettre à jour la quantité. Réessaie.',
+        { duration: 4000 },
+      );
+    } finally {
+      setPendingRows(prev => {
+        const next = { ...prev };
+        delete next[cartId];
+        return next;
+      });
+    }
+  };
+
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
       <Navbar onOpenCart={() => setCartOpen(true)} />
@@ -238,10 +345,12 @@ export default function Cart() {
           </div>
         ) : (
           <ul className="space-y-3 list-none p-0" aria-label={lang === 'en' ? 'Cart items' : 'Articles au panier'}>
-            {items.map((item) => (
+            {items.map((item) => {
+              const pending = !!pendingRows[item.cartId];
+              return (
               <li
                 key={item.cartId}
-                className="flex gap-4 p-4 rounded-2xl border border-border bg-card"
+                className={`flex gap-4 p-4 rounded-2xl border border-border bg-card transition-opacity ${pending ? 'opacity-80' : ''}`}
               >
                 {/* Preview image — logo preview or product photo */}
                 <div className="w-20 h-20 bg-secondary rounded-xl overflow-hidden flex-shrink-0">
@@ -272,6 +381,45 @@ export default function Cart() {
                       ({fmtMoney(item.unitPrice)} $ / {lang === 'en' ? 'unit' : 'unité'})
                     </span>
                   </p>
+                  {/* Quantity stepper — optimistic: local state updates
+                      instantly, Shopify sync fires in the background,
+                      revert + toast if the sync fails. aria-live on the
+                      value so screen readers announce the update
+                      without having to re-focus the row. */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="inline-flex items-center rounded-full border border-border bg-secondary/60 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => handleQuantityChange(item.cartId, -1)}
+                        disabled={pending || item.totalQuantity <= 1}
+                        aria-label={lang === 'en' ? `Decrease quantity for ${item.productName}` : `Diminuer la quantité de ${item.productName}`}
+                        className="w-9 h-9 flex items-center justify-center text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-colors"
+                      >
+                        <Minus className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <span
+                        className="min-w-[2.25rem] text-center text-sm font-bold tabular-nums select-none"
+                        aria-live="polite"
+                        aria-atomic="true"
+                      >
+                        {item.totalQuantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleQuantityChange(item.cartId, +1)}
+                        disabled={pending}
+                        aria-label={lang === 'en' ? `Increase quantity for ${item.productName}` : `Augmenter la quantité de ${item.productName}`}
+                        className="w-9 h-9 flex items-center justify-center text-foreground hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                    {pending && (
+                      <span className="text-[10px] text-muted-foreground" aria-hidden="true">
+                        {lang === 'en' ? 'Saving…' : 'Enregistrement…'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col items-end justify-between flex-shrink-0">
@@ -316,7 +464,8 @@ export default function Cart() {
                   </div>
                 </div>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
 

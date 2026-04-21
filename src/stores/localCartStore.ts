@@ -22,6 +22,18 @@ interface CartStore {
   discountApplied: boolean;
   addItem: (item: Omit<CartItemCustomization, 'cartId' | 'addedAt'>) => void;
   removeItem: (cartId: string) => void;
+  /**
+   * Optimistic row-level quantity update. Scales sizeQuantities
+   * proportionally so Size×Qty breakdown stays consistent, recomputes
+   * totalQuantity + totalPrice from unitPrice. Callers that need to
+   * mirror to Shopify should read the snapshot BEFORE calling and
+   * pass it back to rollbackItem on failure.
+   */
+  updateItemQuantity: (cartId: string, newTotalQuantity: number) => void;
+  /** Restore a previous item snapshot — used to revert an optimistic
+   * update when the background Shopify sync fails. No-op if the item
+   * has since been removed. */
+  rollbackItem: (snapshot: CartItemCustomization) => void;
   applyDiscount: (code: string) => boolean;
   clearDiscount: () => void;
   getTotal: () => number;
@@ -60,6 +72,83 @@ export const useCartStore = create<CartStore>()(
             return { items, discountCode: null, discountApplied: false };
           }
           return { items };
+        }),
+
+      // Scale sizeQuantities proportionally to the new row total so the
+      // Size×Qty breakdown stays valid (e.g. S:1 M:2 at total=3 → at
+      // total=6 becomes S:2 M:4). Rounding can drift by 1 on odd ratios;
+      // the final size absorbs the drift so sum(sizeQuantities) exactly
+      // matches newTotalQuantity (otherwise totalQuantity and the sum
+      // disagree and downstream pricing/Shopify sync gets confused).
+      updateItemQuantity: (cartId, newTotalQuantity) =>
+        set((state) => {
+          const n = Math.max(0, Math.floor(Number.isFinite(newTotalQuantity) ? newTotalQuantity : 0));
+          if (n === 0) {
+            // Treat a decrement-to-zero as a remove so we don't leave
+            // empty rows cluttering the cart page. Mirrors the Shopify
+            // updateQuantity behaviour in stores/cartStore.ts.
+            const items = state.items.filter(i => i.cartId !== cartId);
+            if (items.length === 0 && state.discountApplied) {
+              return { items, discountCode: null, discountApplied: false };
+            }
+            return { items };
+          }
+          const items = state.items.map(it => {
+            if (it.cartId !== cartId) return it;
+            const prevTotal = Math.max(1, it.totalQuantity || 1);
+            const ratio = n / prevTotal;
+            const activeSizes = (it.sizeQuantities ?? []).filter(s => s.quantity > 0);
+            let scaled: typeof it.sizeQuantities;
+            if (activeSizes.length === 0) {
+              // Defensive: no size breakdown to scale. Treat as a single
+              // implicit bucket so the update still lands.
+              scaled = it.sizeQuantities ?? [];
+            } else {
+              scaled = (it.sizeQuantities ?? []).map(s =>
+                s.quantity > 0 ? { ...s, quantity: Math.max(1, Math.round(s.quantity * ratio)) } : s,
+              );
+              const sum = scaled.reduce((acc, s) => acc + (s.quantity > 0 ? s.quantity : 0), 0);
+              const drift = n - sum;
+              if (drift !== 0) {
+                // Walk the active sizes from last to first and shift by
+                // drift, clamping to >=1 so we never create a phantom row.
+                for (let i = scaled.length - 1; i >= 0 && drift !== 0; i--) {
+                  if (scaled[i].quantity <= 0) continue;
+                  const next = Math.max(1, scaled[i].quantity + drift);
+                  const applied = next - scaled[i].quantity;
+                  scaled[i] = { ...scaled[i], quantity: next };
+                  // Once we've absorbed the full drift, stop.
+                  if (applied === drift) break;
+                }
+              }
+            }
+            const unitPrice = Number.isFinite(it.unitPrice) ? it.unitPrice : 0;
+            return {
+              ...it,
+              sizeQuantities: scaled,
+              totalQuantity: n,
+              totalPrice: parseFloat((unitPrice * n).toFixed(2)),
+            };
+          });
+          return { items };
+        }),
+
+      // Used by cart-row optimistic UI to revert a failed Shopify sync
+      // without having to track the diff by hand. Only rewrites the
+      // mutable row fields so we don't clobber any concurrent edits
+      // to unrelated rows.
+      rollbackItem: (snapshot) =>
+        set((state) => {
+          const exists = state.items.some(i => i.cartId === snapshot.cartId);
+          if (!exists) {
+            // Row was removed between the failing request and this
+            // rollback. Re-inserting it silently would confuse the user
+            // more than the lost revert, so leave the cart alone.
+            return state;
+          }
+          return {
+            items: state.items.map(i => (i.cartId === snapshot.cartId ? snapshot : i)),
+          };
         }),
 
       applyDiscount: (code) => {
