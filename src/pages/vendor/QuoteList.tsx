@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Copy, Send, Eye, Download, FileText } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
+import { downloadCsv } from '@/lib/csv';
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
 type DiscountKind = 'percent' | 'flat';
@@ -67,20 +68,14 @@ function formatQuoteDate(iso: string | undefined): string {
 
 /** Generate and download a CSV for the vendor's currently filtered
  * quote list. Columns (in this order): Numéro, Client, Courriel, Statut,
- * Total, Créé, Expire. Mirrors the AdminQuotes helper verbatim — same
- * formula-injection guard (OWASP CSV injection), RFC 4180 quoting, UTF-8
- * BOM so Excel decodes accents without a prompt. Total is plain numeric
- * (2 decimals, no '$') so the column stays parseable as a number.
- * Filename is `mes-devis-YYYY-MM-DD.csv` — vendor-flavoured to distinguish
- * from the admin-wide `quotes-YYYY-MM-DD.csv` when both land in the same
+ * Total, Créé, Expire. Delegates RFC 4180 quoting + CSV-injection guard
+ * + UTF-8 BOM to the shared @/lib/csv helper so the vendor export stays
+ * in lockstep with admin exports. Total is plain numeric (2 decimals,
+ * no '$') so the column stays parseable as a number. Filename is
+ * `mes-devis-YYYY-MM-DD.csv` — vendor-flavoured to distinguish from the
+ * admin-wide `quotes-YYYY-MM-DD.csv` when both land in the same
  * Downloads folder. */
 function exportQuotesCsv(rows: MockQuote[]) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const header = ['Numéro', 'Client', 'Courriel', 'Statut', 'Total', 'Créé', 'Expire'];
   const body = rows.map(q => [
     q.number,
@@ -92,16 +87,8 @@ function exportQuotesCsv(rows: MockQuote[]) {
     formatQuoteDate(q.createdAt),
     formatQuoteDate(q.expiresAt),
   ]);
-  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `mes-devis-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const filename = `mes-devis-${new Date().toISOString().slice(0, 10)}.csv`;
+  downloadCsv([header, ...body], filename);
 }
 
 const VALID_STATUSES: readonly Status[] = ['draft', 'sent', 'viewed', 'accepted', 'paid', 'expired'];
