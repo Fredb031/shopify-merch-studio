@@ -12,7 +12,7 @@ import { useCartStore } from '@/stores/localCartStore';
  * items (people who buy hoodies also buy t-shirts, caps, etc.).
  */
 export function CartRecommendations() {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const items = useCartStore(s => s.items);
 
   if (items.length === 0) return null;
@@ -37,7 +37,7 @@ export function CartRecommendations() {
   return (
     <section
       className="bg-gradient-to-br from-secondary/50 to-background border border-border rounded-2xl p-4 md:p-5"
-      aria-label={lang === 'en' ? 'Recommended products' : 'Produits recommandés'}
+      aria-label={t('produitsRecommandesAria')}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">

@@ -84,6 +84,8 @@ export const translations = {
     tshirtName: 'T-Shirt',
     casquetteName: 'Casquette Trucker',
     tuqueName: 'Tuque sans rebords',
+    // Cart recommendations
+    produitsRecommandesAria: 'Produits recommandés',
     // MoleGame strings are inlined in MoleGame.tsx directly — no entries here
   },
   en: {
@@ -160,6 +162,7 @@ export const translations = {
     tshirtName: 'T-Shirt',
     casquetteName: 'Trucker Cap',
     tuqueName: 'Cuffless Beanie',
+    produitsRecommandesAria: 'Recommended products',
   },
 } as const;
 
