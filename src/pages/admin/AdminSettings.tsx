@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail } from 'lucide-react';
+import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 import {
@@ -181,10 +181,102 @@ export default function AdminSettings() {
       </section>
 
       <TaxesSection />
+      <CommissionsSection />
       <DiscountCodesSection />
       <BulkPricingSection />
       <ZapierOutlookSection />
     </div>
+  );
+}
+
+// ───────────────────────── Commissions section ─────────────────────────
+//
+// Single knob: the commission rate paid to salesmen per order. Stored
+// as a fraction in appSettings.commissionRate; entered here as a percent
+// so admins think in whole numbers. Validated into [0, 50]% — the
+// upstream clamp in saveSettings already stops > 50 %, but we surface
+// the same bound here so the input gives immediate feedback instead of
+// silently clamping the stored value.
+
+function CommissionsSection() {
+  const settings = useAppSettings();
+  const [ratePct, setRatePct] = useState<string>(
+    String((settings.commissionRate * 100).toFixed(2)).replace(/\.?0+$/, ''),
+  );
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Keep in sync with cross-tab updates.
+  useEffect(() => {
+    setRatePct(String((settings.commissionRate * 100).toFixed(2)).replace(/\.?0+$/, ''));
+  }, [settings.commissionRate]);
+
+  const rateNum = Number(ratePct);
+  const rateError = !Number.isFinite(rateNum) || rateNum < 0 || rateNum > 50;
+  const dirty = Math.abs(rateNum / 100 - settings.commissionRate) > 1e-9;
+
+  // $100 order preview so the admin sees the commission impact in
+  // dollar terms before committing the change.
+  const previewBase = 100;
+  const previewCommission = (Number.isFinite(rateNum) ? rateNum : 0) / 100 * previewBase;
+
+  const save = () => {
+    if (rateError) return;
+    saveAppSettings({ commissionRate: rateNum / 100 });
+    setSavedAt(Date.now());
+  };
+
+  const resetDefault = () => {
+    setRatePct(String((DEFAULT_APP_SETTINGS.commissionRate * 100).toFixed(2)).replace(/\.?0+$/, ''));
+  };
+
+  return (
+    <section className="bg-white border border-zinc-200 rounded-2xl p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg bg-[#E8A838]/20 text-[#B37D10] flex items-center justify-center">
+          <DollarSign size={18} aria-hidden="true" />
+        </div>
+        <div>
+          <h2 className="font-bold">Commissions <span className="text-xs font-normal text-zinc-500">· Commissions</span></h2>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Taux payé aux vendeurs sur chaque commande créditée ·{' '}
+            <span className="italic">Rate paid to salesmen per credited order.</span>
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <NumberField
+          label="Taux de commission % · Commission rate %"
+          value={ratePct}
+          onChange={setRatePct}
+          min={0}
+          max={50}
+          step={0.1}
+          error={rateError ? 'Entre 0 et 50 · Between 0 and 50' : undefined}
+        />
+      </div>
+      <div className="mt-3 p-3 bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-lg text-xs text-[#4a3509]">
+        <div className="font-bold mb-1">Exemple · commande de 100 $ · Example · $100 order</div>
+        <div>Commission: {previewCommission.toFixed(2)} $ ({(Number.isFinite(rateNum) ? rateNum : 0).toFixed(2)} %)</div>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={save}
+          disabled={rateError || !dirty}
+          className="inline-flex items-center gap-1.5 bg-[#0052CC] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0043a8] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+        >
+          <Save size={12} aria-hidden="true" /> Enregistrer · Save
+        </button>
+        <button
+          type="button"
+          onClick={resetDefault}
+          className="text-xs font-semibold text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+        >
+          Réinitialiser (10 %) · Reset (10%)
+        </button>
+        {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré · Saved</span> : null}
+      </div>
+    </section>
   );
 }
 

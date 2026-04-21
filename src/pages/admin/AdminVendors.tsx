@@ -10,6 +10,11 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { readLS, writeLS } from '@/lib/storage';
+import {
+  getVendorCommissions,
+  filterSummaryByMonth,
+  currentYearMonth,
+} from '@/lib/commissions';
 
 interface VendorRecord {
   id: string;
@@ -274,6 +279,13 @@ export default function AdminVendors() {
             .slice(0, 2)
             .join('')
             .toUpperCase() || '?';
+          // MTD commission numbers pulled live from the commissions lib
+          // so the admin sees paid vs pending per vendor without
+          // leaving this page. Filtering by currentYearMonth avoids
+          // showing lifetime totals (which would make MTD columns lie).
+          const fullSummary = getVendorCommissions(v.id);
+          const mtd = filterSummaryByMonth(fullSummary, currentYearMonth());
+          const fmtMoney = (n: number) => n.toLocaleString('fr-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' $';
           return (
             <div key={v.id} className="bg-white border border-zinc-200 rounded-2xl p-5 hover:shadow-lg transition-shadow group">
               <div className="flex items-center gap-3 mb-4">
@@ -322,6 +334,26 @@ export default function AdminVendors() {
                 <div className="bg-zinc-50 rounded-lg p-2 text-center">
                   <div className="text-lg font-extrabold text-zinc-900">{(v.revenue / 1000).toFixed(0)}k</div>
                   <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Ventes</div>
+                </div>
+              </div>
+
+              {/* Commission MTD strip — only meaningful for vendors the
+                  commission lib knows about (seed IDs 1-3 for now).
+                  For custom-invited vendors with 0 credited orders we
+                  still render the strip so layout stays consistent;
+                  the numbers just read 0 $. */}
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-lg p-2 text-center" title="Month-to-date commission">
+                  <div className="text-sm font-extrabold text-[#B37D10]">{fmtMoney(mtd.totalCommission)}</div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Comm. MTD</div>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 text-center" title="Commission paid">
+                  <div className="text-sm font-extrabold text-emerald-700">{fmtMoney(mtd.paidCommission)}</div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Payée</div>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center" title="Commission pending">
+                  <div className="text-sm font-extrabold text-amber-700">{fmtMoney(mtd.pendingCommission)}</div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider">En attente</div>
                 </div>
               </div>
 

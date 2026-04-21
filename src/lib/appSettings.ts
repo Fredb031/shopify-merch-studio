@@ -22,6 +22,9 @@ export interface AppSettings {
   bulkRate: number;
   /** Discount code → rate (fraction). Keys are uppercase. */
   discountCodes: Record<string, number>;
+  /** Salesman commission rate as a fraction (0.10 == 10%). Used by
+   *  src/lib/commissions.ts to compute per-order payouts. */
+  commissionRate: number;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -34,6 +37,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
     VISION15: 0.15,
     VISION20: 0.20,
   },
+  commissionRate: 0.10,
 };
 
 const STORAGE_KEY = 'vision-app-settings';
@@ -84,6 +88,7 @@ export function getSettings(): AppSettings {
     bulkThreshold: clampThreshold(parsed.bulkThreshold, DEFAULT_APP_SETTINGS.bulkThreshold),
     bulkRate: clampFraction(parsed.bulkRate, DEFAULT_APP_SETTINGS.bulkRate, 0.95),
     discountCodes: Object.keys(codes).length > 0 ? codes : { ...DEFAULT_APP_SETTINGS.discountCodes },
+    commissionRate: clampFraction(parsed.commissionRate, DEFAULT_APP_SETTINGS.commissionRate, 0.5),
   };
 }
 
@@ -106,6 +111,7 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
     discountCodes: Object.keys(merged.discountCodes).length > 0
       ? merged.discountCodes
       : { ...DEFAULT_APP_SETTINGS.discountCodes },
+    commissionRate: clampFraction(merged.commissionRate, DEFAULT_APP_SETTINGS.commissionRate, 0.5),
   };
   // Private mode or storage quota — state still works in-memory for
   // the current session. Fire the event either way (below) so open
