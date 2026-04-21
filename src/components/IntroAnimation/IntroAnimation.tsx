@@ -50,7 +50,26 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     } catch { /* older browser without matchMedia — play the intro */ }
   }
-  const skipOnMount = (skipIfSeen && seenOnMountRef.current) || reduceMotionOnMountRef.current;
+  // Low-power / data-saver mode: if the user has Data Saver turned on
+  // (Chrome/Edge expose it via navigator.connection.saveData), they've
+  // explicitly asked the browser to cut non-essential payloads. A 4s
+  // branded intro with Web Audio synthesis is exactly that kind of
+  // non-essential payload. Skipping here lines up with how we already
+  // bail for prefers-reduced-motion and prevents a phone on cellular
+  // from burning CPU + battery on the elastic/yoyo tween chain.
+  const saveDataOnMountRef = useRef<boolean>(false);
+  if (saveDataOnMountRef.current === false && !startedRef.current) {
+    try {
+      const conn = typeof navigator !== 'undefined'
+        ? (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+        : undefined;
+      saveDataOnMountRef.current = conn?.saveData === true;
+    } catch { /* connection API not available — play the intro */ }
+  }
+  const skipOnMount =
+    (skipIfSeen && seenOnMountRef.current) ||
+    reduceMotionOnMountRef.current ||
+    saveDataOnMountRef.current;
   // Track the live GSAP timeline so we can kill it on unmount. Without
   // this, a user who clicks through to /products before the 3.35s
   // intro completes triggers the timeline's onComplete callback on an
@@ -78,8 +97,18 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
         typeof window.matchMedia === 'function' &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     } catch { /* older browser — play the intro */ }
-    if ((skipIfSeen && seen) || reduceMotion) {
-      if (reduceMotion) {
+    // Skip path: Data Saver / low-power mode → mirror reduced-motion
+    // behavior. Mark as seen so flipping Data Saver off later doesn't
+    // replay the intro on the next visit.
+    let saveData = false;
+    try {
+      const conn = typeof navigator !== 'undefined'
+        ? (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
+        : undefined;
+      saveData = conn?.saveData === true;
+    } catch { /* connection API not available — play the intro */ }
+    if ((skipIfSeen && seen) || reduceMotion || saveData) {
+      if (reduceMotion || saveData) {
         try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* noop */ }
       }
       const overlay = document.getElementById('va-intro-overlay');
