@@ -73,9 +73,17 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
 
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
   const saved = isWishlisted(handle);
+  // Key-based remount pattern: bumping `burstKey` swaps the absolute
+  // overlay with a fresh DOM node, which restarts the CSS keyframe
+  // animation. Only bumped on ADD (not remove) — removing is meant to
+  // feel like the heart quietly clearing, not a second celebration.
+  const [burstKey, setBurstKey] = useState(0);
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (handle) toggleWishlist(handle);
+    if (!handle) return;
+    const wasAdding = !saved;
+    toggleWishlist(handle);
+    if (wasAdding) setBurstKey(k => k + 1);
   };
 
   const handleCardClick = () => { if (handle) navigate(`/product/${handle}`); };
@@ -164,7 +172,13 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
 
           {/* Wishlist heart — lets users save from the grid without
               opening the PDP. stopPropagation so the card's link
-              handler doesn't also fire. */}
+              handler doesn't also fire.
+              Burst: on ADD, remount a particle overlay (keyed on
+              burstKey) so CSS keyframes restart from frame 0. Particles
+              sit in an overflow-visible span so they fan outside the
+              button's 9x9 bounds without being clipped. Reduced-motion
+              users get the color flip and nothing else — see the
+              @media rule inlined below. */}
           <button
             type="button"
             onClick={handleWishlistClick}
@@ -177,8 +191,84 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
                 ? 'border-[#E8A838] text-[#B37D10]'
                 : 'border-white/70 text-muted-foreground hover:text-foreground hover:border-border'
             }`}
+            style={{ overflow: 'visible' }}
           >
-            <Heart size={15} fill={saved ? '#E8A838' : 'none'} strokeWidth={2} aria-hidden="true" />
+            <span
+              key={burstKey}
+              className="pc-heart-burst relative inline-flex items-center justify-center"
+              aria-hidden="true"
+            >
+              <Heart
+                size={15}
+                fill={saved ? '#E8362B' : 'none'}
+                color={saved ? '#E8362B' : 'currentColor'}
+                strokeWidth={2}
+                className="pc-heart-icon"
+                aria-hidden="true"
+              />
+              {burstKey > 0 && saved && (
+                <span className="pc-heart-particles" aria-hidden="true">
+                  {[0, 1, 2, 3, 4, 5].map(i => (
+                    <span key={i} className={`pc-heart-particle pc-heart-particle-${i}`} />
+                  ))}
+                </span>
+              )}
+            </span>
+            <style>{`
+              @keyframes pc-heart-pulse {
+                0%   { transform: scale(1); }
+                40%  { transform: scale(1.35); }
+                100% { transform: scale(1); }
+              }
+              @keyframes pc-heart-flash {
+                0%   { filter: brightness(1.4) saturate(1.4); }
+                60%  { filter: brightness(1.1) saturate(1.1); }
+                100% { filter: none; }
+              }
+              @keyframes pc-heart-particle-out {
+                0%   { transform: translate(-50%, -50%) translate(0, 0) scale(0.4); opacity: 1; }
+                60%  { opacity: 1; }
+                100% { transform: translate(-50%, -50%) translate(var(--pc-dx), var(--pc-dy)) scale(0.9); opacity: 0; }
+              }
+              .pc-heart-burst .pc-heart-icon {
+                animation: pc-heart-pulse 400ms ease-out, pc-heart-flash 400ms ease-out;
+                transform-origin: center;
+                will-change: transform;
+              }
+              .pc-heart-particles {
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                width: 0;
+                height: 0;
+                pointer-events: none;
+              }
+              .pc-heart-particle {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 5px;
+                height: 5px;
+                margin-left: -2.5px;
+                margin-top: -2.5px;
+                border-radius: 9999px;
+                background: #E8362B;
+                box-shadow: 0 0 3px rgba(232, 54, 43, 0.6);
+                transform: translate(-50%, -50%);
+                animation: pc-heart-particle-out 520ms ease-out forwards;
+                will-change: transform, opacity;
+              }
+              .pc-heart-particle-0 { --pc-dx: 14px;  --pc-dy: -14px; }
+              .pc-heart-particle-1 { --pc-dx: 18px;  --pc-dy: 2px;   }
+              .pc-heart-particle-2 { --pc-dx: 10px;  --pc-dy: 16px;  }
+              .pc-heart-particle-3 { --pc-dx: -10px; --pc-dy: 16px;  }
+              .pc-heart-particle-4 { --pc-dx: -18px; --pc-dy: 2px;   }
+              .pc-heart-particle-5 { --pc-dx: -14px; --pc-dy: -14px; }
+              @media (prefers-reduced-motion: reduce) {
+                .pc-heart-burst .pc-heart-icon { animation: none; }
+                .pc-heart-particles { display: none; }
+              }
+            `}</style>
           </button>
 
           {/* Customize CTA — visible on mobile, fade-in on desktop hover */}
