@@ -32,6 +32,7 @@ const AdminQuotes = lazy(() => import("./pages/admin/AdminQuotes"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminEmails = lazy(() => import("./pages/admin/AdminEmails"));
 const AdminImageGen = lazy(() => import("./pages/admin/AdminImageGen"));
+const AdminAutomations = lazy(() => import("./pages/admin/AdminAutomations"));
 const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
 const Signup = lazy(() => import("./pages/admin/Signup"));
 const ForgotPassword = lazy(() => import("./pages/admin/ForgotPassword"));
@@ -122,6 +123,7 @@ const App = () => (
                   <Route path="emails" element={<AdminEmails />} />
                   <Route path="emails/templates" element={<AdminEmails />} />
                   <Route path="images" element={<AdminImageGen />} />
+                  <Route path="automations" element={<AdminAutomations />} />
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
 

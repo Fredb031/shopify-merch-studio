@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/admin/vendors', label: 'Vendeurs', icon: Users },
   { to: '/admin/users', label: 'Comptes & accès', icon: KeyRound },
   { to: '/admin/emails', label: 'Courriels', icon: Mail },
+  { to: '/admin/automations', label: 'Automatisations', icon: Zap },
   { to: '/admin/images', label: 'Génération d\'images', icon: Sparkles },
   { to: '/admin/settings', label: 'Paramètres', icon: Settings },
 ];
