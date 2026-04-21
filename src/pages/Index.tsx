@@ -314,6 +314,56 @@ export default function Index() {
     };
   }, [lang]);
 
+  // LocalBusiness JSON-LD schema — Task 8.17. Gives Google the
+  // Maps-style business-card fields (hours, geo, phone, priceRange)
+  // it needs to render the local-pack / knowledge-panel treatment
+  // in SERP. Runs alongside the Organization graph above — Google
+  // accepts both and merges signals. Mirrors the same inject/cleanup
+  // pattern: build the graph, <script type="application/ld+json">,
+  // append to <head>, remove on unmount. `data-local-business-ld`
+  // marker prevents duplicate injection if Index remounts.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.head.querySelector('script[data-local-business-ld]')) return;
+    const localBusinessSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'LocalBusiness',
+      name: 'Vision Affichage',
+      image: 'https://visionaffichage.com/logo.svg',
+      priceRange: '$$',
+      address: {
+        '@type': 'PostalAddress',
+        // TODO(owner): fill in street address + postal code before publishing
+        streetAddress: '<owner fills in>',
+        addressLocality: 'Saint-Hyacinthe',
+        addressRegion: 'QC',
+        postalCode: '<owner fills in>',
+        addressCountry: 'CA',
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: 45.62,
+        longitude: -72.95,
+      },
+      telephone: '+1-367-380-4808',
+      email: 'info@visionaffichage.com',
+      openingHours: 'Mo-Fr 08:00-17:00',
+      url: 'https://visionaffichage.com',
+      sameAs: [
+        'https://instagram.com/visionaffichage',
+        'https://facebook.com/visionaffichage',
+      ],
+    };
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.dataset.localBusinessLd = 'true';
+    el.text = JSON.stringify(localBusinessSchema);
+    document.head.appendChild(el);
+    return () => {
+      if (el.parentNode) document.head.removeChild(el);
+    };
+  }, []);
+
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
     loaderTimersRef.current.push(setTimeout(() => setHeroStaggered(true), 100));
