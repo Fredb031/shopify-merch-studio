@@ -56,12 +56,51 @@ export interface RemoveBgProgress {
 
 export type RemoveBgProgressCallback = (progress: RemoveBgProgress) => void;
 
+/**
+ * Return type of {@link removeBackground} — always a Blob (PNG for the canvas
+ * path, whatever remove.bg returns for the API path). Exported so callers can
+ * annotate helpers that forward the result without importing Blob directly.
+ */
+export type RemoveBgResult = Blob;
+
+/**
+ * Named error surfaced by {@link removeBackground} and its helpers. Carries
+ * an optional HTTP `status` (for remote failures) and a stable `code` string
+ * (`'no-canvas-context'`, `'canvas-to-blob-failed'`, `'aborted'`, `'timeout'`,
+ * `'http-error'`) so callers can branch on shape instead of string-matching
+ * error messages. Instances pass `instanceof RemoveBgError` checks across the
+ * async boundary — they're plain Error subclasses, no Proxy trickery.
+ */
+export class RemoveBgError extends Error {
+  readonly status?: number;
+  readonly code?: string;
+  constructor(message: string, opts: { status?: number; code?: string; cause?: unknown } = {}) {
+    super(message);
+    this.name = 'RemoveBgError';
+    this.status = opts.status;
+    this.code = opts.code;
+    // Preserve cause when supported (ES2022); ignored on older targets.
+    if (opts.cause !== undefined) {
+      try { (this as { cause?: unknown }).cause = opts.cause; } catch { /* readonly in some runtimes */ }
+    }
+  }
+}
+
 const noop: RemoveBgProgressCallback = () => {};
 
+/**
+ * Remove the background from an image file, preferring the remove.bg API when
+ * `VITE_REMOVE_BG_API_KEY` is configured and falling back to an in-browser
+ * canvas luminance pass otherwise. SVGs pass through untouched. Accepts an
+ * optional progress callback and an optional AbortSignal so React effects can
+ * cancel the work on unmount; the remote call always has a 30s hard timeout
+ * regardless of the external signal.
+ */
 export async function removeBackground(
   file: File,
   onProgress: RemoveBgProgressCallback = noop,
-): Promise<Blob> {
+  signal?: AbortSignal,
+): Promise<RemoveBgResult> {
   const startedAt = (typeof performance !== 'undefined' && performance.now)
     ? performance.now()
     : Date.now();
@@ -83,6 +122,13 @@ export async function removeBackground(
 
   report('start');
 
+  // Honour an already-aborted external signal up-front. Throwing here matches
+  // the DOM fetch contract: callers that pass an aborted signal expect to
+  // observe the abort, not silently get a processed Blob back.
+  if (signal?.aborted) {
+    throw new RemoveBgError('removeBackground aborted before start', { code: 'aborted' });
+  }
+
   // SVGs are already transparent
   if (file.type === 'image/svg+xml') return file;
 
@@ -92,6 +138,15 @@ export async function removeBackground(
   if (apiKey && apiKey !== '') {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REMOTE_BG_TIMEOUT_MS);
+    // Link the caller's AbortSignal to our internal controller so unmount /
+    // user-cancel can short-circuit the fetch. We don't expose the internal
+    // controller's signal to the caller — the combined effect is observable
+    // on the returned promise (it rejects / falls back when either fires).
+    const onExternalAbort = () => controller.abort();
+    if (signal) {
+      if (signal.aborted) controller.abort();
+      else signal.addEventListener('abort', onExternalAbort, { once: true });
+    }
     report('api-request');
     try {
       const formData = new FormData();
@@ -106,6 +161,7 @@ export async function removeBackground(
       });
 
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onExternalAbort);
       if (res.ok) {
         report('api-success');
         return await res.blob();
@@ -114,7 +170,14 @@ export async function removeBackground(
       report('api-fallback', `http-${res.status}`);
     } catch (err) {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onExternalAbort);
       if ((err as Error)?.name === 'AbortError') {
+        // If the CALLER aborted (not just our internal timeout), propagate as
+        // RemoveBgError so the effect's cleanup can treat it as a real cancel
+        // rather than a silent fallback into the canvas pass.
+        if (signal?.aborted) {
+          throw new RemoveBgError('removeBackground aborted by caller', { code: 'aborted', cause: err });
+        }
         console.warn(`remove.bg timed out after ${REMOTE_BG_TIMEOUT_MS}ms — falling back to canvas`);
         report('api-fallback', 'timeout');
       } else {
@@ -122,6 +185,11 @@ export async function removeBackground(
         report('api-fallback', 'network');
       }
     }
+  }
+
+  // Check again before kicking off the (potentially expensive) canvas pass.
+  if (signal?.aborted) {
+    throw new RemoveBgError('removeBackground aborted before canvas fallback', { code: 'aborted' });
   }
 
   // ── Strategy 2: in-browser canvas fallback ───────────────────────────────
@@ -191,7 +259,7 @@ async function processBitmap(
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('No 2D context available');
+  if (!ctx) throw new RemoveBgError('No 2D context available', { code: 'no-canvas-context' });
 
   ctx.drawImage(bitmap, 0, 0, w, h);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -237,7 +305,9 @@ async function processBitmap(
 
   return await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error('canvas.toBlob failed'))),
+      (blob) => (blob
+        ? resolve(blob)
+        : reject(new RemoveBgError('canvas.toBlob failed', { code: 'canvas-to-blob-failed' }))),
       'image/png',
     );
   });
