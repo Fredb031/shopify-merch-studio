@@ -160,7 +160,7 @@ export function SiteFooter() {
         </div>
 
         {/* Link columns */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-10 border-b border-white/10">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 py-10 border-b border-white/10">
           <div>
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
               {lang === 'en' ? 'Shop' : 'Boutique'}
@@ -192,6 +192,24 @@ export function SiteFooter() {
               <li><Link to="/track" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Track an order' : 'Suivre une commande'}</Link></li>
               <li><Link to="/account" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'My account' : 'Mon compte'}</Link></li>
               <li><a href="mailto:info@visionaffichage.com" className="text-white/80 hover:text-[#E8A838]">Contact</a></li>
+            </ul>
+          </div>
+
+          {/* Legal — Task 14.8. Previously nothing in the footer linked to
+              /privacy, /terms, /returns, /accessibility, so those routes
+              were undiscoverable and (until this commit) 404'd. Kept as a
+              column for parity with the other sections; hover underline
+              reinforces "these are terms/agreements you can click to read"
+              versus the hue-shift used for marketing links above. */}
+          <div>
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3">
+              {lang === 'en' ? 'Legal' : 'Légal'}
+            </h4>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/privacy" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Privacy policy' : 'Politique de confidentialité'}</Link></li>
+              <li><Link to="/terms" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Terms of service' : "Conditions d'utilisation"}</Link></li>
+              <li><Link to="/returns" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Return policy' : 'Politique de retour'}</Link></li>
+              <li><Link to="/accessibility" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Accessibility' : 'Accessibilité'}</Link></li>
             </ul>
           </div>
 

@@ -52,6 +52,15 @@ const QuoteList = lazy(() => import("./pages/vendor/QuoteList"));
 // Client-facing (lazy)
 const QuoteAccept = lazy(() => import("./pages/QuoteAccept"));
 
+// Legal stubs (lazy) — placeholder pages behind /privacy, /terms,
+// /returns, /accessibility. Real copy is owner-uploaded; we lazy-load
+// because these are link-from-footer-only routes that don't need to
+// land in the main bundle.
+const Privacy = lazy(() => import("./pages/legal/Privacy"));
+const Terms = lazy(() => import("./pages/legal/Terms"));
+const Returns = lazy(() => import("./pages/legal/Returns"));
+const Accessibility = lazy(() => import("./pages/legal/Accessibility"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -196,6 +205,11 @@ const App = () => (
                 />
 
                 <Route path="/quote/:id" element={<QuoteAccept />} />
+
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/returns" element={<Returns />} />
+                <Route path="/accessibility" element={<Accessibility />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
