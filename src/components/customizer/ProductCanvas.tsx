@@ -1270,7 +1270,7 @@ export function ProductCanvas({
           style={{ background: 'radial-gradient(circle at 70% 30%, rgba(255,255,255,0.7) 0%, transparent 60%)' }}
           aria-hidden="true"
         />
-        <canvas ref={canvasElRef} className="relative w-full h-full block" style={{ touchAction: 'none' }} />
+        <canvas ref={canvasElRef} className="relative w-full h-full block" style={{ touchAction: 'manipulation' }} />
 
         {/* Centre crosshair — ONLY shown while the user is previewing the
             Auto-center option so they can verify it lands on the shirt,
