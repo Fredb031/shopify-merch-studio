@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Mail, TrendingUp, Trash2, X, Search, Download, Crown, Medal, Award, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Mail, TrendingUp, Trash2, X, Search, Download, Crown, Medal, Award, ArrowUp, ArrowDown, Pencil } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
 import { plural } from '@/lib/i18n';
@@ -46,6 +46,25 @@ type SortDir = 'asc' | 'desc';
 const VALID_SORTS: readonly VendorSort[] = ['default', 'sales', 'commission', 'orders', 'quotes', 'conv'];
 const LEGACY_SORT_MAP: Record<string, VendorSort> = { revenue: 'sales' };
 
+// Per-vendor display-name overrides. Same persistence pattern as the
+// customer-tag overrides in AdminCustomerDetail — keyed by vendor id,
+// local-only (not pushed to Shopify), and a hydration guard drops any
+// non-string / missing entries so a corrupted blob can't crash the
+// grid on mount.
+const VENDOR_NAME_OVERRIDES_KEY = 'vision-vendor-name-overrides';
+type VendorNameOverrides = Record<string, string>;
+function loadVendorNameOverrides(): VendorNameOverrides {
+  const raw = readLS<unknown>(VENDOR_NAME_OVERRIDES_KEY, {});
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const out: VendorNameOverrides = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof k === 'string' && typeof v === 'string' && v.trim().length >= 2) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 // Build a list of YYYY-MM keys going back `monthsBack` months from
 // today, inclusive of the current month, newest first. Used to
 // populate the month picker dropdown.
@@ -86,6 +105,14 @@ export default function AdminVendors() {
   const [month, setMonth] = useState<string>(initialMonth);
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [customVendors, setCustomVendors] = useState<VendorRecord[]>([]);
+  // Name-override store — lets admin/president rename any vendor card
+  // inline (task 9.6). Kept local to this component; render helpers
+  // below read `displayName(v)` instead of `v.name` directly.
+  const [nameOverrides, setNameOverrides] = useState<VendorNameOverrides>({});
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
+  const nameEditInputRef = useRef<HTMLInputElement | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -127,6 +154,24 @@ export default function AdminVendors() {
     ) as VendorRecord[];
     setCustomVendors(clean);
   }, []);
+
+  // Hydrate vendor-name overrides once on mount — readLS + the
+  // loadVendorNameOverrides guard above ensure a malformed blob
+  // (wrong shape, empty-string entries, non-string values) degrades
+  // gracefully to an empty map instead of crashing the grid.
+  useEffect(() => {
+    setNameOverrides(loadVendorNameOverrides());
+  }, []);
+
+  // Autofocus + select-all the inline rename input whenever we enter
+  // edit mode — mirrors AdminCustomerDetail's tag rename pattern so
+  // Enter/blur/Escape behave identically across admin surfaces.
+  useEffect(() => {
+    if (editingNameId !== null) {
+      nameEditInputRef.current?.focus();
+      nameEditInputRef.current?.select();
+    }
+  }, [editingNameId]);
 
   useEffect(() => {
     if (!showInvite) return;
@@ -222,8 +267,9 @@ export default function AdminVendors() {
     // modal flow.
     const v = customVendors.find(x => x.id === id);
     if (!v) return;
+    const label = nameOverrides[v.id] ?? v.name;
     const ok = window.confirm(
-      `Retirer ${v.name} de la liste ? Cette action est irréversible.`,
+      `Retirer ${label} de la liste ? Cette action est irréversible.`,
     );
     if (!ok) return;
     persist(customVendors.filter(x => x.id !== id));
@@ -236,6 +282,76 @@ export default function AdminVendors() {
   // the current month.
   const user = useAuthStore(s => s.user);
   const canExport = Boolean(user && hasPermission(user.role, 'orders:read'));
+  // Only admin/president can inline-rename vendors (task 9.6). Salesman
+  // and others see the read-only display — no pencil cue, no click-to-
+  // edit handler attached to the name. The role check stays local (no
+  // separate `vendors:write` perm yet) so the gate is unambiguous.
+  const canRenameVendors = Boolean(user && (user.role === 'admin' || user.role === 'president'));
+  const displayName = useCallback(
+    (v: VendorRecord) => nameOverrides[v.id] ?? v.name,
+    [nameOverrides],
+  );
+  // Begin rename — copy the current display name into the draft and
+  // clear any prior error. Gated by canRenameVendors at the call site.
+  const beginNameEdit = useCallback((v: VendorRecord) => {
+    setEditingNameId(v.id);
+    setNameDraft(displayName(v));
+    setNameError(null);
+  }, [displayName]);
+  const cancelNameEdit = useCallback(() => {
+    setEditingNameId(null);
+    setNameDraft('');
+    setNameError(null);
+  }, []);
+  // Persist a rename:
+  //   - trim + min-length 2 (silently reverts on empty/too-short)
+  //   - no-op if the trimmed value equals the current display (keeps
+  //     localStorage clean; no unnecessary write)
+  //   - collision guard against every OTHER vendor's display name
+  //     (case-insensitive, ZWSP-stripped) — show inline toast instead
+  //     of clobbering a second vendor with the same label
+  //   - a trimmed value equal to the base (seed) name drops the
+  //     override entry entirely so the store doesn't bloat forever
+  const commitNameEdit = useCallback(() => {
+    if (editingNameId === null) return;
+    const id = editingNameId;
+    const trimmed = normalizeInvisible(nameDraft).trim();
+    const vendor = [...customVendors, ...SEED_VENDORS].find(x => x.id === id);
+    if (!vendor) { cancelNameEdit(); return; }
+    if (trimmed.length < 2) { cancelNameEdit(); return; }
+    const current = nameOverrides[id] ?? vendor.name;
+    if (trimmed === current) { cancelNameEdit(); return; }
+    const lowered = trimmed.toLowerCase();
+    const collision = [...customVendors, ...SEED_VENDORS].some(other => {
+      if (other.id === id) return false;
+      const otherName = nameOverrides[other.id] ?? other.name;
+      return normalizeInvisible(otherName).trim().toLowerCase() === lowered;
+    });
+    if (collision) {
+      setNameError(`Un autre vendeur porte déjà le nom « ${trimmed} ».`);
+      // Keep the input open so the admin can correct the draft —
+      // otherwise the toast would flash and disappear on blur.
+      nameEditInputRef.current?.focus();
+      nameEditInputRef.current?.select();
+      return;
+    }
+    setNameOverrides(prev => {
+      const next: VendorNameOverrides = { ...prev };
+      if (trimmed === vendor.name) {
+        // Rename back to seed → drop the override entry.
+        delete next[id];
+      } else {
+        next[id] = trimmed;
+      }
+      if (!writeLS(VENDOR_NAME_OVERRIDES_KEY, next)) {
+        console.warn('[AdminVendors] Could not persist vendor-name override (quota or storage disabled)');
+      }
+      return next;
+    });
+    setEditingNameId(null);
+    setNameDraft('');
+    setNameError(null);
+  }, [editingNameId, nameDraft, customVendors, nameOverrides, cancelNameEdit]);
   const exportHasRows = useMemo(() => {
     for (const v of [...SEED_VENDORS, ...customVendors]) {
       const m = filterSummaryByMonth(getVendorCommissions(v.id), month);
@@ -244,8 +360,34 @@ export default function AdminVendors() {
     return false;
   }, [customVendors, month]);
 
+  // Drop an override entry when its vendor is removed, so a later
+  // re-invite of a different vendor that happens to reuse the id can't
+  // silently inherit the old rename. customVendors is the source of
+  // truth here — seed vendors never get removed, so their overrides
+  // persist across sessions as intended.
+  useEffect(() => {
+    const liveIds = new Set<string>([...customVendors.map(v => v.id), ...SEED_VENDORS.map(v => v.id)]);
+    setNameOverrides(prev => {
+      let changed = false;
+      const next: VendorNameOverrides = {};
+      for (const [k, v] of Object.entries(prev)) {
+        if (liveIds.has(k)) next[k] = v;
+        else changed = true;
+      }
+      if (!changed) return prev;
+      writeLS(VENDOR_NAME_OVERRIDES_KEY, next);
+      return next;
+    });
+  }, [customVendors]);
+
   const onExportAllCsv = useCallback(() => {
-    const vendors = [...SEED_VENDORS, ...customVendors].map(v => ({ id: v.id, name: v.name }));
+    // Export with override-aware names so the finance CSV matches what
+    // the admin sees in the UI — otherwise a vendor renamed via task
+    // 9.6 would surface with their old seed name in the export.
+    const vendors = [...SEED_VENDORS, ...customVendors].map(v => ({
+      id: v.id,
+      name: nameOverrides[v.id] ?? v.name,
+    }));
     const csv = exportAllVendorsCommissionsCsv(vendors, month);
     // UTF-8 BOM keeps Excel-on-Windows happy with Québécois accents.
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
@@ -257,7 +399,7 @@ export default function AdminVendors() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [customVendors, month]);
+  }, [customVendors, month, nameOverrides]);
 
   const allUnsorted = [...customVendors, ...SEED_VENDORS];
   // Fold the MTD commission rollup onto each vendor so both the
@@ -291,7 +433,12 @@ export default function AdminVendors() {
     const q = normalizeInvisible(query).trim().toLowerCase();
     const filtered = q
       ? enriched.filter(v => {
-          const name = normalizeInvisible(v.name).toLowerCase();
+          // Search the override-aware display name so a vendor renamed
+          // inline via task 9.6 is still reachable by their new label
+          // (AND by the seed name, since overrides only REPLACE in the
+          // display layer — base name is searched too via enriched.name
+          // when no override exists).
+          const name = normalizeInvisible(nameOverrides[v.id] ?? v.name).toLowerCase();
           const email = normalizeInvisible(v.email).toLowerCase();
           return name.includes(q) || email.includes(q);
         })
@@ -311,7 +458,7 @@ export default function AdminVendors() {
     };
     arr.sort((a, b) => (keyFor(a) - keyFor(b)) * dir);
     return arr;
-  }, [enriched, sort, sortDir, query]);
+  }, [enriched, sort, sortDir, query, nameOverrides]);
 
   // Leaderboard is always sorted by MTD sales desc so the ranking is
   // stable regardless of the column the admin chose for the card grid
@@ -465,7 +612,7 @@ export default function AdminVendors() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">
-                      {v.name}
+                      {displayName(v)}
                       {v.isCustom && (
                         <span className="ml-1.5 text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded align-middle">
                           Nouveau
@@ -550,10 +697,13 @@ export default function AdminVendors() {
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {all.map(v => {
+          const shownName = displayName(v);
+          const isEditingName = editingNameId === v.id;
           // Defensive initials — drop empty/undefined parts so a name
           // typed as '  ' (only whitespace) or a missing field doesn't
-          // produce an empty avatar bubble.
-          const initials = (v.name || '')
+          // produce an empty avatar bubble. Reads the override-aware
+          // display name so inline rename updates the avatar too.
+          const initials = (shownName || '')
             .split(/\s+/)
             .map(n => n[0])
             .filter(Boolean)
@@ -571,14 +721,74 @@ export default function AdminVendors() {
                   {initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold truncate flex items-center gap-1.5">
-                    {v.name}
-                    {v.isCustom && (
-                      <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                        Nouveau
-                      </span>
-                    )}
-                  </div>
+                  {isEditingName ? (
+                    // Inline rename — same keyboard contract as
+                    // AdminCustomerDetail tags: Enter commits, Escape
+                    // reverts, blur commits. The collision-toast below
+                    // only appears for THIS vendor to keep the error
+                    // local to the input the admin is touching.
+                    <div className="flex flex-col gap-1">
+                      <input
+                        ref={nameEditInputRef}
+                        type="text"
+                        value={nameDraft}
+                        onChange={e => { setNameDraft(e.target.value); if (nameError) setNameError(null); }}
+                        onBlur={commitNameEdit}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            commitNameEdit();
+                          } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            cancelNameEdit();
+                          }
+                        }}
+                        aria-label={`Renommer le vendeur ${v.name}`}
+                        aria-invalid={nameError ? true : undefined}
+                        className={`w-full font-bold text-sm bg-white border rounded-lg px-2 py-1 outline-none ring-2 ${
+                          nameError
+                            ? 'border-rose-400 ring-rose-500/20'
+                            : 'border-[#0052CC] ring-[#0052CC]/20'
+                        }`}
+                      />
+                      {nameError && (
+                        <div role="alert" className="text-[11px] font-semibold text-rose-600">
+                          {nameError}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="font-bold truncate flex items-center gap-1.5">
+                      {canRenameVendors ? (
+                        // Click-to-edit — a subtle pencil cue on hover
+                        // tells the admin the label is actionable
+                        // without cluttering the resting state. The
+                        // button is visually flush with the text so it
+                        // reads as a label, not a form control.
+                        <button
+                          type="button"
+                          onClick={() => beginNameEdit(v)}
+                          className="group/name inline-flex items-center gap-1.5 truncate text-left hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                          title="Renommer"
+                          aria-label={`Renommer ${shownName}`}
+                        >
+                          <span className="truncate">{shownName}</span>
+                          <Pencil
+                            size={11}
+                            aria-hidden="true"
+                            className="opacity-0 group-hover/name:opacity-60 transition-opacity shrink-0"
+                          />
+                        </button>
+                      ) : (
+                        <span className="truncate">{shownName}</span>
+                      )}
+                      {v.isCustom && (
+                        <span className="text-[9px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded shrink-0">
+                          Nouveau
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="text-xs text-zinc-500 truncate flex items-center gap-1">
                     <Mail size={11} aria-hidden="true" />
                     {v.email}
@@ -590,7 +800,7 @@ export default function AdminVendors() {
                     onClick={() => remove(v.id)}
                     className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-zinc-400 hover:text-rose-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1 rounded"
                     title="Retirer"
-                    aria-label={`Retirer ${v.name}`}
+                    aria-label={`Retirer ${shownName}`}
                   >
                     <Trash2 size={14} aria-hidden="true" />
                   </button>
@@ -649,7 +859,7 @@ export default function AdminVendors() {
                 <span className="text-zinc-500">Actif {v.lastActive}</span>
                 <a
                   href={`mailto:${v.email}`}
-                  aria-label={`Contacter ${v.name} par courriel`}
+                  aria-label={`Contacter ${shownName} par courriel`}
                   className="text-[#0052CC] font-bold hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                 >
                   Contacter →
