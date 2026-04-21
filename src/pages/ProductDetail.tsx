@@ -13,7 +13,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
@@ -28,6 +28,8 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useProductColors } from '@/hooks/useProductColors';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -1026,6 +1028,7 @@ type GalleryShot = { url: string; alt: string; labelEn: string; labelFr: string 
 
 function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'en' }) {
   const [active, setActive] = useState(0);
+  const [zoomOpen, setZoomOpen] = useState(false);
   // When a color swatch is clicked, the parent rebuilds `shots` with new
   // URLs. Keep active index in range and snap back to the front on color
   // change so the user doesn't end up staring at a detail shot of the
@@ -1086,9 +1089,13 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
       tabIndex={0}
       className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl"
     >
-      <div
+      <button
         id={mainId}
-        className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border relative"
+        type="button"
+        onClick={() => setZoomOpen(true)}
+        aria-label={lang === 'en' ? 'Zoom image' : "Agrandir l'image"}
+        aria-haspopup="dialog"
+        className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border relative w-full block cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         aria-live="polite"
       >
         <img
@@ -1106,7 +1113,18 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
         <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none">
           {lang === 'en' ? current.labelEn : current.labelFr}
         </div>
-      </div>
+      </button>
+      {zoomOpen && (
+        <PhotoZoomOverlay
+          shots={shots}
+          startIndex={active}
+          lang={lang}
+          onClose={(finalIndex) => {
+            setZoomOpen(false);
+            if (typeof finalIndex === 'number') setActive(finalIndex);
+          }}
+        />
+      )}
 
       {shots.length > 1 && (
         <div
@@ -1139,6 +1157,157 @@ function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'e
                   aria-hidden="true"
                   width={160}
                   height={160}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                />
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Fullscreen zoom overlay: black backdrop, close X + Escape + backdrop-
+// click dismiss, focus trap (useFocusTrap), body scroll lock, arrow-key
+// cycling through siblings when multiple images exist, and
+// touch-action: pinch-zoom so mobile users can pinch the photo without
+// any custom zoom math. Kept intentionally small — this is a photo
+// viewer, not a gallery rewrite.
+function PhotoZoomOverlay({
+  shots,
+  startIndex,
+  lang,
+  onClose,
+}: {
+  shots: GalleryShot[];
+  startIndex: number;
+  lang: 'fr' | 'en';
+  onClose: (finalIndex?: number) => void;
+}) {
+  const [index, setIndex] = useState(() => {
+    if (!shots.length) return 0;
+    const clamped = ((startIndex % shots.length) + shots.length) % shots.length;
+    return clamped;
+  });
+  const trapRef = useFocusTrap<HTMLDivElement>(true);
+  useBodyScrollLock(true);
+
+  const hasMultiple = shots.length > 1;
+  const current = shots[Math.min(index, shots.length - 1)] ?? shots[0];
+
+  const step = (delta: number) => {
+    if (!shots.length) return;
+    const next = ((index + delta) % shots.length + shots.length) % shots.length;
+    setIndex(next);
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose(index);
+      } else if (e.key === 'ArrowRight' && hasMultiple) {
+        e.preventDefault();
+        step(1);
+      } else if (e.key === 'ArrowLeft' && hasMultiple) {
+        e.preventDefault();
+        step(-1);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index, hasMultiple]);
+
+  if (!current) return null;
+
+  const closeLabel = lang === 'en' ? 'Close' : 'Fermer';
+  const prevLabel = lang === 'en' ? 'Previous image' : 'Image précédente';
+  const nextLabel = lang === 'en' ? 'Next image' : 'Image suivante';
+
+  return (
+    <div
+      ref={trapRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={lang === 'en' ? 'Zoomed product image' : 'Image produit agrandie'}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90"
+      // Click the backdrop (i.e. the dialog root itself, not a child) to
+      // dismiss. Guarding on e.target === e.currentTarget prevents a
+      // click on the image or a button from bubbling up and closing
+      // the overlay unexpectedly.
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(index); }}
+    >
+      <button
+        type="button"
+        aria-label={closeLabel}
+        onClick={() => onClose(index)}
+        className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors"
+      >
+        <X className="w-6 h-6" aria-hidden="true" />
+      </button>
+
+      {hasMultiple && (
+        <button
+          type="button"
+          aria-label={prevLabel}
+          onClick={() => step(-1)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors hidden sm:inline-flex"
+        >
+          <ChevronRight className="w-6 h-6 rotate-180" aria-hidden="true" />
+        </button>
+      )}
+
+      <img
+        src={current.url}
+        alt={current.alt}
+        className="max-w-[95vw] max-h-[85vh] object-contain select-none"
+        style={{ touchAction: 'pinch-zoom' }}
+        draggable={false}
+        key={`zoom-${current.url}`}
+      />
+
+      {hasMultiple && (
+        <button
+          type="button"
+          aria-label={nextLabel}
+          onClick={() => step(1)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white transition-colors hidden sm:inline-flex"
+        >
+          <ChevronRight className="w-6 h-6" aria-hidden="true" />
+        </button>
+      )}
+
+      {hasMultiple && (
+        <div
+          role="tablist"
+          aria-label={lang === 'en' ? 'Product image thumbnails' : 'Vignettes du produit'}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 px-3 py-2 rounded-full bg-black/40 backdrop-blur-sm max-w-[90vw] overflow-x-auto"
+        >
+          {shots.map((shot, i) => {
+            const isActive = i === index;
+            return (
+              <button
+                key={`zt-${shot.url}-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => setIndex(i)}
+                aria-label={lang === 'en' ? shot.labelEn : shot.labelFr}
+                title={lang === 'en' ? shot.labelEn : shot.labelFr}
+                className={`relative flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
+                  isActive ? 'border-white' : 'border-white/30 hover:border-white/70 opacity-70 hover:opacity-100'
+                }`}
+              >
+                <img
+                  src={shot.url}
+                  alt=""
+                  aria-hidden="true"
                   loading="lazy"
                   decoding="async"
                   className="absolute inset-0 w-full h-full object-cover"
