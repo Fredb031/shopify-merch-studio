@@ -246,27 +246,48 @@ export default function Products() {
               )}
             </div>
 
-            {/* Category tabs — pill style */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1" role="tablist" aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}>
-              {CATEGORIES.map((cat) => {
-                const isActive = activeCategory === cat.id && !searchQuery;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => selectCategory(cat.id)}
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={`text-[12px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
-                      isActive
-                        ? 'bg-white text-[#1B3A6B] shadow-md'
-                        : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white'
-                    }`}
-                  >
-                    {lang === 'en' ? cat.en : cat.fr}
-                  </button>
-                );
-              })}
+            {/* Category tabs row — pill tabs on the left, sort dropdown on the right (desktop). Stacks on mobile. */}
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:flex-1 md:min-w-0" role="tablist" aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}>
+                {CATEGORIES.map((cat) => {
+                  const isActive = activeCategory === cat.id && !searchQuery;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => selectCategory(cat.id)}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`text-[12px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
+                        isActive
+                          ? 'bg-white text-[#1B3A6B] shadow-md'
+                          : 'bg-white/10 text-white/70 hover:bg-white/15 hover:text-white'
+                      }`}
+                    >
+                      {lang === 'en' ? cat.en : cat.fr}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sort dropdown — stacks under tabs on mobile, sits top-right on desktop */}
+              <div className="flex items-center gap-2 pb-1 md:pb-0 md:shrink-0">
+                <label htmlFor="sort-mode" className="text-[11px] font-semibold tracking-wide uppercase text-white/60 whitespace-nowrap">
+                  {lang === 'en' ? 'Sort' : 'Trier'}
+                </label>
+                <select
+                  id="sort-mode"
+                  value={sortMode}
+                  onChange={(e) => setSortMode(e.target.value as SortMode)}
+                  aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
+                  className="text-[12px] font-bold bg-white/10 text-white border border-white/20 rounded-full px-3 py-1.5 outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#1B3A6B] cursor-pointer hover:bg-white/15 transition-colors"
+                >
+                  <option value="default" className="text-foreground">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
+                  <option value="name" className="text-foreground">{lang === 'en' ? 'Name A–Z' : 'Nom A–Z'}</option>
+                  <option value="price-asc" className="text-foreground">{lang === 'en' ? 'Price ↑' : 'Prix ↑'}</option>
+                  <option value="price-desc" className="text-foreground">{lang === 'en' ? 'Price ↓' : 'Prix ↓'}</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -340,29 +361,15 @@ export default function Products() {
               </h2>
             )}
 
-            {/* Sort + result count — shown whenever we have something to sort */}
-            {filteredProducts.length > 1 && (
-              <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            {/* Result count — sort control lives up in the category tabs row now */}
+            {filteredProducts.length > 1 && activeCategory === 'overview' && !searchQuery && (
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-[12px] text-muted-foreground">
                   {filteredProducts.length}{' '}
                   {lang === 'en'
                     ? `product${filteredProducts.length !== 1 ? 's' : ''}`
                     : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
                 </span>
-                <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                  {lang === 'en' ? 'Sort:' : 'Trier :'}
-                  <select
-                    value={sortMode}
-                    onChange={e => setSortMode(e.target.value as SortMode)}
-                    className="text-[12px] font-semibold text-foreground bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 cursor-pointer"
-                    aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
-                  >
-                    <option value="default">{lang === 'en' ? 'Default' : 'Défaut'}</option>
-                    <option value="name">{lang === 'en' ? 'Name (A–Z)' : 'Nom (A–Z)'}</option>
-                    <option value="price-asc">{lang === 'en' ? 'Price: low → high' : 'Prix : bas → élevé'}</option>
-                    <option value="price-desc">{lang === 'en' ? 'Price: high → low' : 'Prix : élevé → bas'}</option>
-                  </select>
-                </label>
               </div>
             )}
 
