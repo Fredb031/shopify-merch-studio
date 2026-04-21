@@ -35,6 +35,10 @@ export default function Signup() {
   const handleCapsCheck = (e: React.KeyboardEvent<HTMLInputElement>) => {
     setCapsOn(e.getModifierState('CapsLock'));
   };
+  // Task 6.9 — hoisted so both the input (aria-invalid/describedby)
+  // and the inline error note below can reference the same boolean
+  // without recomputing in two places.
+  const confirmMismatch = password.length > 0 && confirm.length > 0 && password !== confirm;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +121,12 @@ export default function Signup() {
         ) : (
           <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
             {error && (
-              <div role="alert" className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+              <div
+                id="admin-signup-error"
+                role="alert"
+                aria-live="polite"
+                className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs"
+              >
                 <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{error}</span>
               </div>
@@ -201,27 +210,26 @@ export default function Signup() {
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Confirmer</span>
               <div className="mt-1.5 relative">
                 <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
-                {(() => {
-                  const mismatch = password.length > 0 && confirm.length > 0 && password !== confirm;
-                  return (
-                    <input
-                      type={showConfirm ? 'text' : 'password'}
-                      value={confirm}
-                      onChange={e => setConfirm(e.target.value)}
-                      onKeyDown={handleCapsCheck}
-                      onKeyUp={handleCapsCheck}
-                      onFocus={() => setPwdFocus('confirm')}
-                      onBlur={() => setPwdFocus(prev => (prev === 'confirm' ? null : prev))}
-                      required
-                      minLength={8}
-                      autoComplete="new-password"
-                      aria-invalid={mismatch || undefined}
-                      className={`w-full pl-10 pr-11 py-3 border rounded-xl text-sm outline-none ${
-                        mismatch ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
-                      }`}
-                    />
-                  );
-                })()}
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  onKeyDown={handleCapsCheck}
+                  onKeyUp={handleCapsCheck}
+                  onFocus={() => setPwdFocus('confirm')}
+                  onBlur={() => setPwdFocus(prev => (prev === 'confirm' ? null : prev))}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  aria-invalid={confirmMismatch || undefined}
+                  // Task 6.9 — describedby points at the inline
+                  // mismatch note below so the reason is read on
+                  // refocus, not just when the note first appears.
+                  aria-describedby={confirmMismatch ? 'admin-signup-confirm-error' : undefined}
+                  className={`w-full pl-10 pr-11 py-3 border rounded-xl text-sm outline-none ${
+                    confirmMismatch ? 'border-rose-300 focus:border-rose-500' : 'border-zinc-200 focus:border-[#0052CC]'
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(s => !s)}
@@ -235,6 +243,16 @@ export default function Signup() {
               {pwdFocus === 'confirm' && capsOn && (
                 <p className="mt-1 text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
                   <span aria-hidden="true">⇪</span> Caps Lock est activé
+                </p>
+              )}
+              {confirmMismatch && (
+                <p
+                  id="admin-signup-confirm-error"
+                  role="alert"
+                  aria-live="polite"
+                  className="mt-1 text-[11px] font-semibold text-rose-600"
+                >
+                  Les mots de passe ne correspondent pas.
                 </p>
               )}
             </label>

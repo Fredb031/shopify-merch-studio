@@ -285,13 +285,23 @@ export default function Contact() {
                   required
                   autoComplete="email"
                   aria-invalid={emailErr || undefined}
+                  // Task 6.9 — wire the input to the error span via
+                  // aria-describedby when it's visible, so a screen
+                  // reader re-announces the hint on refocus (otherwise
+                  // role=alert only fires once when the span mounts).
+                  aria-describedby={emailErr ? 'contact-email-error' : undefined}
                   className={`w-full px-3.5 py-2.5 text-sm rounded-xl border bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow ${
                     emailErr ? 'border-rose-400 focus:border-rose-500' : 'border-zinc-300 focus:border-[#0052CC]'
                   }`}
                   placeholder={lang === 'en' ? 'you@email.com' : 'vous@courriel.com'}
                 />
                 {emailErr ? (
-                  <span role="alert" className="text-[11px] text-rose-600 font-semibold mt-1 block">
+                  <span
+                    id="contact-email-error"
+                    role="alert"
+                    aria-live="polite"
+                    className="text-[11px] text-rose-600 font-semibold mt-1 block"
+                  >
                     {lang === 'en'
                       ? 'That email doesn\u2019t look valid — please double-check.'
                       : 'Ce courriel ne semble pas valide — vérifie-le.'}

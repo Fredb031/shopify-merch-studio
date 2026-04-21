@@ -142,6 +142,10 @@ export function SiteFooter() {
                   aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
                   aria-required="true"
                   aria-invalid={emailErr || undefined}
+                  // Task 6.9 — point the input at the error message id
+                  // so SRs re-read the hint when the user refocuses
+                  // the field after the role=alert one-shot announce.
+                  aria-describedby={emailErr ? 'footer-newsletter-error' : undefined}
                   className={`w-full pl-9 pr-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow ${
                     emailErr ? 'border-rose-400/70 focus:border-rose-300' : 'border-white/20 focus:border-[#E8A838]'
                   }`}
@@ -158,7 +162,12 @@ export function SiteFooter() {
               </SubmitButton>
             </div>
             {emailErr ? (
-              <p role="alert" className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1">
+              <p
+                id="footer-newsletter-error"
+                role="alert"
+                aria-live="polite"
+                className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1"
+              >
                 {lang === 'en'
                   ? 'That email doesn\u2019t look valid — double-check it and try again.'
                   : 'Ce courriel ne semble pas valide — vérifie-le et réessaie.'}

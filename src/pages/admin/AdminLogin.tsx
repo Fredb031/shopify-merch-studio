@@ -144,7 +144,12 @@ export default function AdminLogin() {
 
         <form onSubmit={onSubmit} className="bg-white rounded-2xl p-6 md:p-8 shadow-2xl space-y-4">
           {error && (
-            <div role="alert" className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs">
+            <div
+              id="admin-login-error"
+              role="alert"
+              aria-live="polite"
+              className="flex items-start gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-lg text-xs"
+            >
               <AlertCircle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
               <div className="flex-1 space-y-1">
                 <div>{error}</div>
@@ -192,7 +197,13 @@ export default function AdminLogin() {
                     placeholder="admin@visionaffichage.com"
                     autoComplete="email"
                     required
-                    aria-invalid={invalid || undefined}
+                    aria-invalid={invalid || error ? true : undefined}
+                    // Task 6.9 — when the backend rejects creds, the
+                    // form-level error banner carries the detail the
+                    // email input needs; point describedby at it so
+                    // SRs read the reason on refocus rather than just
+                    // announcing "invalid email" without context.
+                    aria-describedby={error ? 'admin-login-error' : undefined}
                     className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none focus:ring-2 ${
                       invalid
                         ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-400/20'
