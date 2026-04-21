@@ -188,6 +188,9 @@ export default function AdminVendors() {
   const [sortDir, setSortDir] = useState<SortDir>(initialDir);
   const [month, setMonth] = useState<string>(initialMonth);
   const [status, setStatus] = useState<StatusFilter>(initialStatus);
+  // Roving-focus ref array for the status radiogroup — arrow keys move
+  // focus + selection across the 3 segments (all/active/inactive).
+  const statusFilterRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [customVendors, setCustomVendors] = useState<VendorRecord[]>([]);
   // Name-override store — lets admin/president rename any vendor card
@@ -765,23 +768,52 @@ export default function AdminVendors() {
           "Invitation envoyée" cohort). Status is derived, not stored,
           so it stays accurate as custom vendors start transacting. */}
       <div
-        role="group"
+        role="radiogroup"
         aria-label="Filtrer les vendeurs par statut"
         className="flex items-center gap-2 flex-wrap text-xs bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-2"
+        onKeyDown={e => {
+          const opts: StatusFilter[] = ['all', 'active', 'inactive'];
+          const curIdx = opts.indexOf(status);
+          let nextIdx = curIdx;
+          switch (e.key) {
+            case 'ArrowRight':
+            case 'ArrowDown':
+              nextIdx = (curIdx + 1) % opts.length;
+              break;
+            case 'ArrowLeft':
+            case 'ArrowUp':
+              nextIdx = (curIdx - 1 + opts.length) % opts.length;
+              break;
+            case 'Home':
+              nextIdx = 0;
+              break;
+            case 'End':
+              nextIdx = opts.length - 1;
+              break;
+            default:
+              return;
+          }
+          e.preventDefault();
+          setStatus(opts[nextIdx]);
+          statusFilterRefs.current[nextIdx]?.focus();
+        }}
       >
         <span className="text-zinc-500 font-semibold mr-1">Statut :</span>
         {([
           { key: 'all',      label: 'Tout' },
           { key: 'active',   label: 'Actif' },
           { key: 'inactive', label: 'Inactif' },
-        ] as Array<{ key: StatusFilter; label: string }>).map(seg => {
+        ] as Array<{ key: StatusFilter; label: string }>).map((seg, idx) => {
           const active = status === seg.key;
           return (
             <button
               key={seg.key}
+              ref={el => { statusFilterRefs.current[idx] = el; }}
               type="button"
+              role="radio"
+              aria-checked={active}
+              tabIndex={active ? 0 : -1}
               onClick={() => setStatus(seg.key)}
-              aria-pressed={active}
               className={`inline-flex items-center px-2.5 py-1 rounded-lg font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
                 active
                   ? 'bg-[#0052CC] text-white shadow-sm'
