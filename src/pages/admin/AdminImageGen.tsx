@@ -90,6 +90,18 @@ export default function AdminImageGen() {
     clearProviderConfig();
     setProvider('none');
     setApiKey('');
+    // Kill the "Configuration sauvegardée" toast + its pending timer so
+    // it doesn't linger after an immediate Save → Clear. Without this,
+    // clearing right after saving leaves a stale green success message
+    // reading "Configuration sauvegardée" next to a now-empty key field,
+    // implying the cleared state is what got saved. Reset the error too
+    // in case a prior save failed and left the rose banner visible.
+    if (savedMsgTimerRef.current) {
+      clearTimeout(savedMsgTimerRef.current);
+      savedMsgTimerRef.current = null;
+    }
+    setSavedMsg(null);
+    setError(null);
   };
 
   const handleGenerate = async () => {
