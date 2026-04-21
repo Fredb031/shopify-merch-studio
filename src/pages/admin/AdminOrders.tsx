@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2, Archive, Truck, X, FileDown, Loader2 } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, ExternalLink, CheckCircle2, Archive, Truck, X, FileDown, Loader2, LayoutList, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_SNAPSHOT_META, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 import { getOrderLogos, LOGO_STATE_COLOR, LOGO_STATE_LABEL, type OrderLogoAttachment } from '@/data/orderLogos';
@@ -16,6 +16,42 @@ import { buildLogoFilename, triggerBlobDownload } from '@/lib/logoVectorize';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 const VALID_STATUS_FILTERS: readonly StatusFilter[] = ['all', 'paid', 'pending', 'fulfilled', 'awaiting_fulfillment'];
+
+type OrdersView = 'table' | 'timeline';
+const VALID_VIEWS: readonly OrdersView[] = ['table', 'timeline'];
+const VIEW_STORAGE_KEY = 'vision-admin-orders-view';
+
+/** Group orders by their createdAt calendar day (local tz). Returns
+ * an array of [dayKey, orders] tuples sorted most-recent-first. dayKey
+ * is an ISO yyyy-mm-dd string so it's stable across renders and Intl
+ * formatting is deferred to the render site. */
+function groupByDay(orders: ReadonlyArray<ShopifyOrderSnapshot>): Array<[string, ShopifyOrderSnapshot[]]> {
+  const bucket = new Map<string, ShopifyOrderSnapshot[]>();
+  for (const o of orders) {
+    const d = new Date(o.createdAt);
+    // yyyy-mm-dd in local tz — using toISOString() would shift late-night
+    // Montreal orders into the next UTC day and break the grouping the
+    // admin expects ("orders from Tuesday" stays on Tuesday).
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const arr = bucket.get(key);
+    if (arr) arr.push(o); else bucket.set(key, [o]);
+  }
+  const out = Array.from(bucket.entries());
+  out.sort((a, b) => (a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0));
+  // Within a day, newest first by timestamp.
+  for (const [, list] of out) {
+    list.sort((x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime());
+  }
+  return out;
+}
+
+const DAY_HEADER_FMT = new Intl.DateTimeFormat('fr-CA', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+});
+const TIME_FMT = new Intl.DateTimeFormat('fr-CA', { hour: '2-digit', minute: '2-digit' });
 
 /** Generate and download a CSV for the currently filtered order list.
  * Escapes double quotes per RFC 4180 and wraps every field so commas
@@ -257,8 +293,24 @@ export default function AdminOrders() {
     ? (initialFilterRaw as StatusFilter)
     : 'all';
 
+  // View toggle state: URL > localStorage > default('table'). Kept in
+  // sync with both stores so a reload OR a deep-link both restore the
+  // admin's chosen layout.
+  const initialViewRaw = searchParams.get('view');
+  const initialView: OrdersView = (() => {
+    if (initialViewRaw && (VALID_VIEWS as readonly string[]).includes(initialViewRaw)) {
+      return initialViewRaw as OrdersView;
+    }
+    const stored = readLS<unknown>(VIEW_STORAGE_KEY, 'table');
+    if (typeof stored === 'string' && (VALID_VIEWS as readonly string[]).includes(stored)) {
+      return stored as OrdersView;
+    }
+    return 'table';
+  })();
+
   const [query, setQuery] = useState(initialQuery);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(initialFilter);
+  const [view, setView] = useState<OrdersView>(initialView);
   const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
   const [shippedIds, setShippedIds] = useState<Set<number>>(new Set());
   const [archivedIds, setArchivedIds] = useState<Set<number>>(new Set());
@@ -289,10 +341,17 @@ export default function AdminOrders() {
     const trimmed = query.trim();
     if (trimmed) next.set('q', trimmed); else next.delete('q');
     if (statusFilter !== 'all') next.set('filter', statusFilter); else next.delete('filter');
+    if (view !== 'table') next.set('view', view); else next.delete('view');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [query, statusFilter, searchParams, setSearchParams]);
+  }, [query, statusFilter, view, searchParams, setSearchParams]);
+
+  // Persist view choice to localStorage so a hard reload (no URL param)
+  // still restores the admin's last layout.
+  useEffect(() => {
+    writeLS(VIEW_STORAGE_KEY, view);
+  }, [view]);
 
   // Cancel the resync delay if the admin clicks through to a sibling
   // route in the 400ms before the reload fires — otherwise it yanks
@@ -456,6 +515,14 @@ export default function AdminOrders() {
   const pageItems = useMemo(
     () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
     [filtered, page],
+  );
+
+  // Timeline groups the full filtered set (no pagination) — day cards are
+  // already a visual break, and scanning by date breaks if page 2 starts
+  // mid-day. Same filter + sort state the table uses, just re-bucketed.
+  const grouped = useMemo(
+    () => (view === 'timeline' ? groupByDay(filtered) : []),
+    [filtered, view],
   );
 
   // Select-all applies to the current filtered view (all pages) so the
@@ -646,8 +713,37 @@ export default function AdminOrders() {
               </span>
             )}
           </label>
+          {/* 2-button segmented control: Table vs Timeline. Visually a
+              single pill with an active-fill on the chosen side so the
+              control reads as "one setting, two modes" rather than two
+              independent buttons. role=tablist/tab gives AT the same
+              semantics. */}
+          <div role="tablist" aria-label="Vue des commandes" className="inline-flex items-center gap-0 p-0.5 rounded-lg border border-zinc-200 bg-zinc-50">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'table'}
+              onClick={() => setView('table')}
+              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] ${view === 'table' ? 'bg-white text-[#0052CC] shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}
+            >
+              <LayoutList size={13} aria-hidden="true" />
+              Tableau
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'timeline'}
+              onClick={() => setView('timeline')}
+              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] ${view === 'timeline' ? 'bg-white text-[#0052CC] shadow-sm' : 'text-zinc-600 hover:text-zinc-900'}`}
+            >
+              <Clock size={13} aria-hidden="true" />
+              Timeline
+            </button>
+          </div>
         </div>
 
+        {view === 'table' ? (
+        <>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-[11px] font-bold text-zinc-500 tracking-wider uppercase">
@@ -768,6 +864,79 @@ export default function AdminOrders() {
           onPageChange={setPage}
           itemLabel="commandes"
         />
+        </>
+        ) : (
+          <div className="p-4 md:p-6">
+            {grouped.length === 0 ? (
+              <div className="text-center py-12 text-zinc-400 text-sm">
+                Aucune commande trouvée
+              </div>
+            ) : (
+              <ol className="space-y-6" aria-label="Commandes groupées par jour">
+                {grouped.map(([dayKey, dayOrders]) => (
+                  <li key={dayKey}>
+                    {/* Sticky day header: rides with the scroll so the
+                        admin always knows which day they're scanning.
+                        top-0 of the nearest scroll container; the admin
+                        shell handles the page scroll, so sticky here
+                        pins to the viewport top under the page chrome. */}
+                    <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-zinc-200 -mx-4 md:-mx-6 px-4 md:px-6 py-2 mb-3 flex items-center justify-between">
+                      <h3 className="text-xs font-extrabold uppercase tracking-wider text-zinc-700">
+                        {DAY_HEADER_FMT.format(new Date(dayOrders[0].createdAt))}
+                      </h3>
+                      <span className="text-[11px] font-bold text-zinc-400">
+                        {dayOrders.length} commande{dayOrders.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {dayOrders.map(o => (
+                        <button
+                          key={o.id}
+                          type="button"
+                          onClick={() => setSelected(o)}
+                          aria-label={`Voir les détails de la commande ${o.name}`}
+                          className="text-left bg-white border border-zinc-200 rounded-xl p-3 hover:border-[#0052CC] hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="min-w-0">
+                              <div className="text-[11px] font-bold text-zinc-500 tabular-nums">
+                                {TIME_FMT.format(new Date(o.createdAt))}
+                              </div>
+                              <div className="font-bold text-sm truncate">{o.customerName.trim() || '—'}</div>
+                              <div className="text-xs text-zinc-500 font-semibold">{o.name}</div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className="font-extrabold text-sm">
+                                {o.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $
+                              </div>
+                              <div className="text-[10px] text-zinc-400 uppercase tracking-wider">
+                                {o.itemsCount} art.
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-1.5 flex-wrap">
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${FIN_COLOR[o.financialStatus ?? ''] ?? 'bg-zinc-100 text-zinc-700'}`}>
+                              {FIN_LABEL[o.financialStatus ?? ''] ?? '—'}
+                            </span>
+                            {o.fulfillmentStatus ? (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${FUL_COLOR[o.fulfillmentStatus]}`}>
+                                {FUL_LABEL[o.fulfillmentStatus]}
+                              </span>
+                            ) : o.financialStatus === 'paid' ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600">
+                                À expédier
+                              </span>
+                            ) : null}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
+        )}
       </div>
 
       {selected && (
