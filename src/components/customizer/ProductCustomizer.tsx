@@ -422,6 +422,36 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     { id: 3 as const, label: lang === 'en' ? 'Review'  : 'Récap',    shortLabel: lang === 'en' ? 'Review' : 'Récap',       done: false },
   ];
 
+  // Task 17.5 — Stepper tick animation.
+  // When a step transitions false → true on `done` we remount its check
+  // icon via a bumped key so the CSS keyframe restarts cleanly. The
+  // previous-state ref guards against the first-render flash: steps that
+  // were already done when the modal mounts (rare after reset(), but
+  // possible during hot-reload) should NOT animate all at once. A
+  // null-initialised ref means "never seen" and we treat it as not-done
+  // on first paint so a user who completes Step 1 during this session
+  // still gets the reward animation.
+  const prevDoneRef = useRef<Record<number, boolean | undefined>>({});
+  const [tickAnimKeys, setTickAnimKeys] = useState<Record<number, number>>({});
+  useEffect(() => {
+    setTickAnimKeys(prev => {
+      let next = prev;
+      for (const s of STEPS) {
+        const was = prevDoneRef.current[s.id];
+        if (was === false && s.done === true) {
+          // Transition: bump the key so React remounts the Check and
+          // the keyframe animation plays again.
+          if (next === prev) next = { ...prev };
+          next[s.id] = (next[s.id] ?? 0) + 1;
+        }
+        prevDoneRef.current[s.id] = s.done;
+      }
+      return next;
+    });
+    // STEPS is rebuilt every render; track the done flags explicitly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [STEPS[0].done, STEPS[1].done, STEPS[2].done]);
+
   const canNext = () => {
     if (store.step === 1) {
       // Need either "no logo" OR a placed logo on every picked side.
@@ -807,6 +837,45 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             <p className="text-xs text-muted-foreground">{t('personnaliseTonProduit')}</p>
           </div>
 
+          {/* Task 17.5 — scoped keyframes for the step-complete tick.
+              Kept inline so this commit touches exactly one file and
+              can't drift from the JSX that consumes it. Default: fade
+              + scale from 0.6/0 → 1/1 over 300ms with a soft easing
+              (back-out bite gives the tick a "landed" feel). The
+              prefers-reduced-motion branch drops the scale and just
+              fades so vestibular-sensitive users still get a state
+              change, minus the motion. Emerald tint matches the
+              existing brand secondary on done chips. */}
+          <style>{`
+            @keyframes customizerStepTickIn {
+              from { opacity: 0; transform: scale(0.6); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+            @keyframes customizerStepTickInReduced {
+              from { opacity: 0; }
+              to   { opacity: 1; }
+            }
+            .customizer-step-tick {
+              display: inline-flex;
+              /* Tick inherits the pill's foreground (white on navy
+                 primary) so contrast stays high. The reward signal is
+                 carried by the scale+fade; a hue flip would fight the
+                 brand progress-bar gradient beneath. A subtle emerald
+                 drop-shadow gives the transition a brand-matching beat
+                 without touching the tick colour. */
+              color: inherit;
+              transform-origin: center;
+              filter: drop-shadow(0 0 2px rgba(5, 150, 105, 0.65)); /* emerald-600 at 65% */
+              animation: customizerStepTickIn 300ms cubic-bezier(0.34, 1.36, 0.64, 1) both;
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .customizer-step-tick {
+                animation: customizerStepTickInReduced 300ms ease-out both;
+                transform: none;
+              }
+            }
+          `}</style>
+
           {/* Horizontal progress bar — each step is a segment that
               brightens as the user advances. A thick fill underneath the
               labels makes the current step unambiguous at a glance, and
@@ -853,7 +922,27 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         : 'bg-border text-muted-foreground'
                       }`}
                     >
-                      {isDone ? <Check size={9} strokeWidth={4} /> : s.id}
+                      {isDone ? (
+                        // Task 17.5 — keyed remount + CSS keyframe so the
+                        // tick fades + scales in each time a step flips
+                        // to done. `tickAnimKeys[s.id]` bumps only on the
+                        // transition; the first-mount render of an
+                        // already-done step has no entry in the map so
+                        // it paints statically (no flash). Reduced-motion
+                        // variant skips the scale via a media query.
+                        <span
+                          key={`tick-${s.id}-${tickAnimKeys[s.id] ?? 0}`}
+                          className={
+                            tickAnimKeys[s.id]
+                              ? 'customizer-step-tick'
+                              : 'inline-flex'
+                          }
+                        >
+                          <Check size={9} strokeWidth={4} />
+                        </span>
+                      ) : (
+                        s.id
+                      )}
                     </span>
                     <span className="truncate">
                       <span className="sm:hidden">{s.shortLabel}</span>
