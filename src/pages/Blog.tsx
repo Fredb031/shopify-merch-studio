@@ -1,5 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight, Calendar, Search } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useLang } from '@/lib/langContext';
@@ -85,6 +86,10 @@ const formatDate = (iso: string, lang: 'fr' | 'en') => {
   }
 };
 
+/** Blog hub — lists every merch-tips post with a case-insensitive
+ *  title/excerpt search, an "Aucun article" empty state, and a Blog
+ *  JSON-LD graph so SERP can surface the listing. Post detail lives in
+ *  BlogPost.tsx and is not touched here. */
 export default function Blog() {
   const { lang } = useLang();
   useDocumentTitle(
@@ -93,6 +98,52 @@ export default function Blog() {
       ? 'Merch tips, fabric guides, and production playbooks from the Vision Affichage team.'
       : 'Conseils merch, guides de tissu et playbooks de production de l\u2019équipe Vision Affichage.',
   );
+
+  // Local search state — debounce isn't needed for five cards, the
+  // `useMemo` below re-filters in O(n) on every keystroke and the
+  // bilingual matcher lowercases both sides so accent-free queries
+  // still hit accented titles ("broderie" still matches "Broderie").
+  const [query, setQuery] = useState('');
+  const normalizedQuery = query.trim().toLowerCase();
+  const visiblePosts = useMemo(() => {
+    if (!normalizedQuery) return POSTS;
+    return POSTS.filter(post => {
+      const title = (lang === 'en' ? post.titleEn : post.titleFr).toLowerCase();
+      const excerpt = (lang === 'en' ? post.excerptEn : post.excerptFr).toLowerCase();
+      return title.includes(normalizedQuery) || excerpt.includes(normalizedQuery);
+    });
+  }, [normalizedQuery, lang]);
+
+  // Blog JSON-LD schema — feeds Google the post listing so the hub
+  // can surface as a rich SERP card with article names + URLs. Mirrors
+  // the Organization/FAQ injection pattern used on Index: build the
+  // graph, append <script type="application/ld+json"> to <head>, strip
+  // on unmount. Dataset marker prevents duplicates if the hub remounts
+  // (e.g. nav back from a post) before the previous cleanup fires.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.head.querySelector('script[data-blog-ld]')) return;
+    const blogSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Blog',
+      name: lang === 'en' ? 'Vision Affichage Blog' : 'Blogue Vision Affichage',
+      url: 'https://visionaffichage.com/blog',
+      blogPost: POSTS.map(post => ({
+        '@type': 'BlogPosting',
+        headline: lang === 'en' ? post.titleEn : post.titleFr,
+        url: `https://visionaffichage.com/blog/${post.slug}`,
+        datePublished: post.publishDate,
+      })),
+    };
+    const el = document.createElement('script');
+    el.type = 'application/ld+json';
+    el.dataset.blogLd = 'true';
+    el.text = JSON.stringify(blogSchema);
+    document.head.appendChild(el);
+    return () => {
+      if (el.parentNode) document.head.removeChild(el);
+    };
+  }, [lang]);
 
   return (
     <div className="min-h-screen bg-zinc-50 flex flex-col">
@@ -112,37 +163,83 @@ export default function Blog() {
           </p>
         </div>
 
+        {/* Search row — small, keyboard-first; the icon is decorative,
+            the <label> is visually hidden but screen-reader reachable so
+            the input exposes its purpose without adding visual label
+            chrome. Five posts today means filtering is snappy; the
+            control scales naturally as the archive grows. */}
+        <div className="mb-6 md:mb-8">
+          <label htmlFor="blog-search" className="sr-only">
+            {lang === 'en' ? 'Search articles' : 'Rechercher un article'}
+          </label>
+          <div className="relative max-w-[420px]">
+            <Search
+              size={16}
+              aria-hidden="true"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+            />
+            <input
+              id="blog-search"
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={
+                lang === 'en'
+                  ? 'Search articles…'
+                  : 'Rechercher un article…'
+              }
+              className="w-full rounded-full border border-zinc-200 bg-white pl-9 pr-4 py-2.5 text-sm text-[#0F2341] placeholder:text-zinc-400 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:border-[#0052CC]/40 transition-colors"
+            />
+          </div>
+        </div>
+
         {/* Card grid — layout mirrors the case-studies scaffold so the two
             content surfaces read as a single family. 2-up on md, 3-up on
             lg; cards grow with content so an eventual longer excerpt
             doesn't clip the "Lire" CTA. */}
-        <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-          {POSTS.map(post => (
-            <li key={post.slug}>
-              <Link
-                to={`/blog/${post.slug}`}
-                className="group block h-full bg-white rounded-2xl border border-zinc-200 p-5 md:p-6 shadow-sm hover:shadow-md hover:border-[#E8A838]/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
-              >
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 mb-3">
-                  <Calendar size={12} aria-hidden="true" className="text-[#E8A838]" />
-                  <time dateTime={post.publishDate}>
-                    {formatDate(post.publishDate, lang)}
-                  </time>
-                </div>
-                <h2 className="text-lg md:text-xl font-extrabold text-[#0F2341] tracking-[-0.3px] mb-2 group-hover:text-[#0052CC] transition-colors">
-                  {lang === 'en' ? post.titleEn : post.titleFr}
-                </h2>
-                <p className="text-sm text-zinc-600 leading-relaxed mb-4">
-                  {lang === 'en' ? post.excerptEn : post.excerptFr}
-                </p>
-                <span className="inline-flex items-center gap-1 text-sm font-bold text-[#0052CC] group-hover:gap-2 transition-all">
-                  {lang === 'en' ? 'Read' : 'Lire'}
-                  <ArrowRight size={14} aria-hidden="true" />
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        {visiblePosts.length === 0 ? (
+          <div
+            role="status"
+            className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 md:p-10 text-center"
+          >
+            <p className="text-base font-bold text-[#0F2341] mb-1">
+              {lang === 'en' ? 'No posts' : 'Aucun article'}
+            </p>
+            <p className="text-sm text-zinc-600">
+              {lang === 'en'
+                ? 'No article matches your search. Try a different keyword.'
+                : 'Aucun article ne correspond à ta recherche. Essaie un autre mot-clé.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            {visiblePosts.map(post => (
+              <li key={post.slug}>
+                <Link
+                  to={`/blog/${post.slug}`}
+                  className="group block h-full bg-white rounded-2xl border border-zinc-200 p-5 md:p-6 shadow-sm hover:shadow-md hover:border-[#E8A838]/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+                >
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 mb-3">
+                    <Calendar size={12} aria-hidden="true" className="text-[#E8A838]" />
+                    <time dateTime={post.publishDate}>
+                      {formatDate(post.publishDate, lang)}
+                    </time>
+                  </div>
+                  <h2 className="text-lg md:text-xl font-extrabold text-[#0F2341] tracking-[-0.3px] mb-2 group-hover:text-[#0052CC] transition-colors">
+                    {lang === 'en' ? post.titleEn : post.titleFr}
+                  </h2>
+                  <p className="text-sm text-zinc-600 leading-relaxed mb-4">
+                    {lang === 'en' ? post.excerptEn : post.excerptFr}
+                  </p>
+                  <span className="inline-flex items-center gap-1 text-sm font-bold text-[#0052CC] group-hover:gap-2 transition-all">
+                    {lang === 'en' ? 'Read' : 'Lire'}
+                    <ArrowRight size={14} aria-hidden="true" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </main>
       <SiteFooter />
     </div>
