@@ -11,7 +11,7 @@ import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
-import { useEffect, useState, Suspense, lazy } from 'react';
+import { useEffect, useState, Suspense, lazy, useMemo, useRef, type KeyboardEventHandler } from 'react';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
@@ -317,7 +317,7 @@ export default function ProductDetail() {
         </Link>
 
         <div className="grid md:grid-cols-[1.1fr_1fr] gap-8 lg:gap-14 items-start">
-          {/* Images — main photo swaps when a color option is picked */}
+          {/* Images — main photo + thumbnail strip; main swaps when a color option is picked */}
           {(() => {
             const pickedColor = (() => {
               if (!localProduct) return null;
@@ -328,55 +328,58 @@ export default function ProductDetail() {
               return findColorImage(localProduct.sku, value);
             })();
 
-            // Front always reflects the picked color when available
+            // Front/back always reflect the picked color when available.
+            // Extra Shopify CDN shots (detail/logo/fit) become additional
+            // thumbnails so users can inspect the garment before customizing.
             const frontUrl = pickedColor?.front ?? images[0]?.node?.url ?? localProduct?.imageDevant;
             const backUrl = pickedColor?.back ?? images[1]?.node?.url ?? localProduct?.imageDos;
 
-            return (
-              <div>
-                <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border group relative">
-                  {frontUrl ? (
-                    <>
-                      <img
-                        src={frontUrl}
-                        alt={product.title}
-                        width={800}
-                        height={800}
-                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500 group-hover:opacity-0"
-                        key={`front-${frontUrl}`}
-                        loading="eager"
-                        fetchPriority="high"
-                        decoding="async"
-                        onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                      />
-                      {backUrl && (
-                        <img
-                          src={backUrl}
-                          alt={`${product.title} — dos`}
-                          width={800}
-                          height={800}
-                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                          key={`back-${backUrl}`}
-                          loading="lazy"
-                          decoding="async"
-                          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                        />
-                      )}
-                      <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none transition-opacity duration-300 opacity-100 group-hover:opacity-0">
-                        {lang === 'en' ? 'Hover for back' : 'Survol pour dos'}
-                      </div>
-                      <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-foreground/90 text-background shadow-sm pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
-                        {lang === 'en' ? 'Back' : 'Dos'}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                      {lang === 'en' ? 'No image' : "Pas d'image"}
-                    </div>
-                  )}
+            const shots: GalleryShot[] = [];
+            if (frontUrl) {
+              shots.push({
+                url: frontUrl,
+                alt: product.title,
+                labelEn: 'Front',
+                labelFr: 'Devant',
+              });
+            }
+            if (backUrl && backUrl !== frontUrl) {
+              shots.push({
+                url: backUrl,
+                alt: `${product.title} — dos`,
+                labelEn: 'Back',
+                labelFr: 'Dos',
+              });
+            }
+            // Detail shots: any Shopify CDN image past the first two that
+            // isn't already represented by front/back. De-dup on URL so a
+            // SKU where Shopify's image[0/1] matches the Drive front/back
+            // (or appears again later) doesn't produce duplicate thumbs.
+            const seen = new Set(shots.map(s => s.url));
+            const extras = (shopifyImages ?? []) as Array<{ node: { url: string; altText?: string | null } }>;
+            for (let i = 0; i < extras.length && shots.length < 5; i++) {
+              const node = extras[i]?.node;
+              if (!node?.url || seen.has(node.url)) continue;
+              seen.add(node.url);
+              shots.push({
+                url: node.url,
+                alt: node.altText || `${product.title} — ${lang === 'en' ? 'detail' : 'détail'} ${shots.length}`,
+                labelEn: `Detail ${shots.length - 1}`,
+                labelFr: `Détail ${shots.length - 1}`,
+              });
+            }
+
+            if (shots.length === 0) {
+              return (
+                <div>
+                  <div className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border flex items-center justify-center text-muted-foreground text-sm">
+                    {lang === 'en' ? 'No image' : "Pas d'image"}
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            }
+
+            return <ProductGallery shots={shots} lang={lang} />;
           })()}
 
           {/* Info */}
@@ -766,6 +769,137 @@ export default function ProductDetail() {
 
       <AIChat />
       <BottomNav />
+    </div>
+  );
+}
+
+type GalleryShot = { url: string; alt: string; labelEn: string; labelFr: string };
+
+function ProductGallery({ shots, lang }: { shots: GalleryShot[]; lang: 'fr' | 'en' }) {
+  const [active, setActive] = useState(0);
+  // When a color swatch is clicked, the parent rebuilds `shots` with new
+  // URLs. Keep active index in range and snap back to the front on color
+  // change so the user doesn't end up staring at a detail shot of the
+  // previous variant. Tracking the first URL is enough — it's the front
+  // photo, which is deterministic from picked color.
+  const firstUrlRef = useRef(shots[0]?.url ?? '');
+  useEffect(() => {
+    const currentFirst = shots[0]?.url ?? '';
+    if (currentFirst !== firstUrlRef.current) {
+      firstUrlRef.current = currentFirst;
+      setActive(0);
+    } else if (active >= shots.length) {
+      setActive(0);
+    }
+  }, [shots, active]);
+
+  // Build a stable id that belongs to this gallery instance so we can
+  // wire aria-controls from each thumbnail to the main image without
+  // relying on brittle DOM queries.
+  const mainId = useMemo(
+    () => `pg-main-${Math.random().toString(36).slice(2, 9)}`,
+    [],
+  );
+
+  const select = (i: number) => {
+    if (!shots.length) return;
+    const clamped = ((i % shots.length) + shots.length) % shots.length;
+    setActive(clamped);
+  };
+
+  const onKeyDown: KeyboardEventHandler<HTMLDivElement> = (e) => {
+    // Arrow keys cycle through thumbnails. Home/End jump to the ends.
+    // Only intercept when the gallery owns focus so we don't steal
+    // arrow-key behaviour from form fields elsewhere on the page.
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      select(active + 1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      select(active - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      select(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      select(shots.length - 1);
+    }
+  };
+
+  const current = shots[Math.min(active, shots.length - 1)] ?? shots[0];
+
+  return (
+    <div
+      role="group"
+      aria-roledescription={lang === 'en' ? 'Product image gallery' : "Galerie d'images du produit"}
+      aria-label={lang === 'en' ? 'Product image gallery' : "Galerie d'images du produit"}
+      onKeyDown={onKeyDown}
+      tabIndex={0}
+      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-2xl"
+    >
+      <div
+        id={mainId}
+        className="aspect-square overflow-hidden rounded-2xl bg-secondary border border-border relative"
+        aria-live="polite"
+      >
+        <img
+          src={current.url}
+          alt={current.alt}
+          width={800}
+          height={800}
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
+          key={`main-${current.url}`}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+        />
+        <div className="absolute bottom-3 left-3 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-white/90 text-foreground shadow-sm pointer-events-none">
+          {lang === 'en' ? current.labelEn : current.labelFr}
+        </div>
+      </div>
+
+      {shots.length > 1 && (
+        <div
+          role="tablist"
+          aria-label={lang === 'en' ? 'Product image thumbnails' : 'Vignettes du produit'}
+          className="mt-3 flex gap-2 overflow-x-auto pb-1"
+        >
+          {shots.map((shot, i) => {
+            const isActive = i === active;
+            return (
+              <button
+                key={`${shot.url}-${i}`}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={mainId}
+                tabIndex={isActive ? 0 : -1}
+                onClick={() => select(i)}
+                title={lang === 'en' ? shot.labelEn : shot.labelFr}
+                aria-label={lang === 'en' ? shot.labelEn : shot.labelFr}
+                className={`relative flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 bg-secondary transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                  isActive
+                    ? 'border-primary ring-1 ring-primary/40 shadow-sm'
+                    : 'border-border hover:border-primary/60 opacity-80 hover:opacity-100'
+                }`}
+              >
+                <img
+                  src={shot.url}
+                  alt=""
+                  aria-hidden="true"
+                  width={160}
+                  height={160}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                />
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
