@@ -14,6 +14,7 @@ export function BottomNav() {
   // read when it receives focus, so counting changes (item added from
   // another page, cart cleared, etc.) go silent without a live region.
   const [announcement, setAnnouncement] = useState('');
+  const [pulse, setPulse] = useState(false);
   const prevCountRef = useRef(itemCount);
   useEffect(() => {
     const prev = prevCountRef.current;
@@ -25,6 +26,14 @@ export function BottomNav() {
       setAnnouncement(`Cart: ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`);
     } else {
       setAnnouncement(`Panier : ${itemCount} ${itemCount === 1 ? 'article' : 'articles'}`);
+    }
+    // Brief scale pulse so the badge "pops" when the count changes. Pure
+    // CSS via a timed class toggle — avoids pulling in framer-motion for
+    // a 200ms flourish.
+    if (itemCount > 0) {
+      setPulse(true);
+      const id = window.setTimeout(() => setPulse(false), 240);
+      return () => window.clearTimeout(id);
     }
   }, [itemCount, lang]);
 
@@ -78,7 +87,7 @@ export function BottomNav() {
                 />
                 {item.id === 'cart' && itemCount > 0 && (
                   <span
-                    className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#0052CC] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5"
+                    className={`absolute -top-1.5 -right-2 min-w-[16px] h-[16px] bg-[#0052CC] rounded-full text-[9px] font-bold text-white flex items-center justify-center px-0.5 transition-transform duration-200 ease-out ${pulse ? 'scale-125' : 'scale-100'}`}
                     aria-hidden="true"
                   >
                     {itemCount > 99 ? '99+' : itemCount}
@@ -88,6 +97,13 @@ export function BottomNav() {
               <span className={`text-[10px] font-semibold transition-colors ${active ? 'text-[#0052CC]' : 'text-zinc-400'}`}>
                 {item.label}
               </span>
+              {/* 2px active indicator bar — sits under the label and only
+                 renders on the active tab. Matches the brand blue used
+                 elsewhere for primary active states. */}
+              <span
+                aria-hidden="true"
+                className={`mt-0.5 h-[2px] w-4 rounded-full transition-colors ${active ? 'bg-[#0052CC]' : 'bg-transparent'}`}
+              />
             </Link>
           );
         })}
