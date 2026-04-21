@@ -159,6 +159,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             aria-hidden="true"
             width={88}
             height={22}
+            // Modal only mounts after a user clicks login — lazy is safe
+            // and avoids fetching until the dialog is actually opened.
+            loading="lazy"
             decoding="async"
             className="h-[22px] w-auto mx-auto mb-[18px] opacity-70"
             onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}

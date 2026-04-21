@@ -132,6 +132,12 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           alt="Vision Affichage"
           width={96}
           height={24}
+          // Navbar logo sits above the fold on every route. Mark it
+          // eager + fetchpriority=high so Chrome treats it as an LCP
+          // candidate on text-dominant hero pages (Index, Contact, etc.)
+          // where no other <img> competes for viewport 1.
+          loading="eager"
+          fetchPriority="high"
           decoding="async"
           // block + explicit h-6/w-auto strips the inline-image baseline gap
           // so the logo's optical center lines up pixel-for-pixel with the

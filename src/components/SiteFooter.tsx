@@ -304,6 +304,10 @@ export function SiteFooter() {
             <img
               src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
               alt="Vision Affichage"
+              // Footer is always below the fold — lazy + async so it
+              // never competes with hero/product images for bandwidth.
+              loading="lazy"
+              decoding="async"
               className="h-5 opacity-70"
               onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
             />
