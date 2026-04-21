@@ -13,6 +13,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { PRODUCTS } from '@/data/products';
+import { getSettings } from '@/lib/appSettings';
 import type { CartItemCustomization } from '@/types/customization';
 
 // ── Cart item preview — shows front AND back when ordered with both sides ──
@@ -347,22 +348,48 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                   {t('appliquer')}
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
-                <Tag size={11} className="text-green-700" aria-hidden="true" />
-                <span className="text-xs font-bold text-green-700">
-                  {lang === 'en' ? `Code ${cart.discountCode} applied` : `Code ${cart.discountCode} appliqué`}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => cart.clearDiscount()}
-                  aria-label={lang === 'en' ? 'Remove discount code' : 'Retirer le code de rabais'}
-                  className="ml-auto w-8 h-8 flex items-center justify-center text-green-500 hover:text-green-700 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500/40"
-                >
-                  <X size={12} aria-hidden="true" />
-                </button>
-              </div>
-            )}
+            ) : (() => {
+              // Task 5.8 — gold-highlighted savings line so the drawer
+              // also confirms the win (the drawer previously only said
+              // "Code X applied" with no dollar context).
+              const grossSubtotal = cart.items.reduce(
+                (s, it) => s + (Number.isFinite(it.totalPrice) ? it.totalPrice : 0),
+                0,
+              );
+              const discounted = cart.getTotal();
+              const savings = Math.max(0, grossSubtotal - discounted);
+              const rate = cart.discountCode
+                ? getSettings().discountCodes[cart.discountCode] ?? 0
+                : 0;
+              const ratePct = Math.round(rate * 100);
+              return (
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-xl">
+                  <Tag size={11} className="text-[#E8A838]" aria-hidden="true" />
+                  <span className="text-xs font-bold text-foreground flex-1 truncate">
+                    {lang === 'en' ? 'Discount' : 'Rabais'}{' '}
+                    <code className="font-mono">{cart.discountCode}</code>
+                    {ratePct > 0 && (
+                      <span className="ml-1 text-[10px] font-semibold text-muted-foreground">
+                        {lang === 'en' ? `(−${ratePct}%)` : `(−${ratePct} %)`}
+                      </span>
+                    )}
+                  </span>
+                  {savings > 0 && (
+                    <span className="text-xs font-extrabold text-[#E8A838] tabular-nums">
+                      −{fmtMoney(savings)} $
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => cart.clearDiscount()}
+                    aria-label={lang === 'en' ? 'Remove discount code' : 'Retirer le code de rabais'}
+                    className="w-7 h-7 flex items-center justify-center text-muted-foreground hover:text-foreground rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60"
+                  >
+                    <X size={12} aria-hidden="true" />
+                  </button>
+                </div>
+              );
+            })()}
             {/* Live region so screen-reader users hear "Code X applied!" /
                 "Invalid code" instead of being left to wonder what happened
                 after they hit Apply. role=status (polite) — it's advisory
@@ -377,9 +404,37 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               </p>
             )}
 
-            <div className="flex justify-between items-center">
+            {/* Total line — when a discount is live, the pre-discount
+                subtotal shows with strike-through + opacity-50 and the
+                discounted total sits next to it, larger + bolder, so
+                the buyer sees both numbers and feels the win. */}
+            <div className="flex justify-between items-center gap-2">
               <span className="text-sm text-muted-foreground">{t('totalEstimeLabel')}</span>
-              <span className="text-lg font-extrabold text-foreground">{fmtMoney(cart.getTotal())} $</span>
+              {cart.discountApplied ? (() => {
+                const grossSubtotal = cart.items.reduce(
+                  (s, it) => s + (Number.isFinite(it.totalPrice) ? it.totalPrice : 0),
+                  0,
+                );
+                const discounted = cart.getTotal();
+                const savings = Math.max(0, grossSubtotal - discounted);
+                return (
+                  <span className="flex items-baseline gap-2">
+                    {savings > 0 && (
+                      <s
+                        className="text-xs font-semibold text-muted-foreground line-through opacity-50 tabular-nums"
+                        aria-label={lang === 'en' ? 'Original total' : 'Total original'}
+                      >
+                        {fmtMoney(grossSubtotal)} $
+                      </s>
+                    )}
+                    <span className="text-lg font-extrabold text-primary tabular-nums">
+                      {fmtMoney(discounted)} $
+                    </span>
+                  </span>
+                );
+              })() : (
+                <span className="text-lg font-extrabold text-foreground">{fmtMoney(cart.getTotal())} $</span>
+              )}
             </div>
 
             <button

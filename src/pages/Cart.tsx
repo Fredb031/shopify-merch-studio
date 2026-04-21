@@ -6,6 +6,7 @@ import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
 import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Minus, Plus, BookmarkPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { getSettings } from '@/lib/appSettings';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
@@ -744,70 +745,110 @@ export default function Cart() {
                 {lang === 'en' ? 'Order Summary' : 'Résumé de la commande'}
               </h2>
 
-              <div className="space-y-1.5 text-sm">
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
-                  <span className="font-semibold text-foreground">
-                    {fmtMoney(totalPrice)} $
-                  </span>
-                </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{lang === 'en' ? 'Print & personalization' : 'Impression & personnalisation'}</span>
-                  <span className="font-semibold text-green-600">
-                    {lang === 'en' ? 'Included' : 'Incluse'}
-                  </span>
-                </div>
-                {discountApplied && discountCode ? (() => {
-                  // Show the actual dollars saved so the discount badge
-                  // reads as a concrete win, not just a code sticker.
-                  const subtotal = items.reduce((s, it) => s + (Number.isFinite(it.totalPrice) ? it.totalPrice : 0), 0);
-                  const savings = Math.max(0, subtotal - totalPrice);
-                  return (
-                    <div className="flex justify-between items-center text-emerald-700 bg-emerald-50 -mx-2 px-2 py-1.5 rounded-lg">
-                      <span className="font-semibold">
-                        ✓ {lang === 'en' ? 'Discount' : 'Rabais'} <code className="font-mono text-[11px]">{discountCode}</code>
-                        {savings > 0 && <span className="ml-2 text-[11px] text-emerald-800">-{fmtMoney(savings)} $</span>}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={clearDiscount}
-                        aria-label={lang === 'en' ? `Remove promo code ${discountCode}` : `Retirer le code promo ${discountCode}`}
-                        className="text-[11px] font-bold underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-1 rounded"
-                      >
-                        {lang === 'en' ? 'Remove' : 'Retirer'}
-                      </button>
+              {(() => {
+                // Task 5.8 — compute the pre-discount subtotal and the dollars
+                // saved locally so we can render a strike-through original total
+                // + a gold "Rabais VISION10 (-10%)" line. The store's getTotal()
+                // already factors the discount in, so `totalPrice` == discounted
+                // total; we back-derive the gross from the item list.
+                const grossSubtotal = items.reduce(
+                  (s, it) => s + (Number.isFinite(it.totalPrice) ? it.totalPrice : 0),
+                  0,
+                );
+                const savings = discountApplied && discountCode ? Math.max(0, grossSubtotal - totalPrice) : 0;
+                const rate =
+                  discountApplied && discountCode
+                    ? getSettings().discountCodes[discountCode] ?? 0
+                    : 0;
+                const ratePct = Math.round(rate * 100);
+                return (
+                  <>
+                    <div className="space-y-1.5 text-sm">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
+                        <span className="font-semibold text-foreground">
+                          {fmtMoney(grossSubtotal)} $
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{lang === 'en' ? 'Print & personalization' : 'Impression & personnalisation'}</span>
+                        <span className="font-semibold text-green-600">
+                          {lang === 'en' ? 'Included' : 'Incluse'}
+                        </span>
+                      </div>
+                      {discountApplied && discountCode ? (
+                        <div className="flex justify-between items-center -mx-2 px-2 py-1.5 rounded-lg bg-[#E8A838]/10 border border-[#E8A838]/30">
+                          <span className="font-semibold text-foreground flex items-baseline gap-1.5">
+                            <Tag size={12} className="text-[#E8A838] self-center" aria-hidden="true" />
+                            {lang === 'en' ? 'Discount' : 'Rabais'}{' '}
+                            <code className="font-mono text-[11px] text-foreground">{discountCode}</code>
+                            {ratePct > 0 && (
+                              <span className="text-[11px] text-muted-foreground">
+                                {lang === 'en' ? `(−${ratePct}%)` : `(−${ratePct} %)`}
+                              </span>
+                            )}
+                          </span>
+                          <span className="flex items-center gap-2">
+                            <span className="font-extrabold text-[#E8A838] tabular-nums">
+                              −{fmtMoney(savings)} $
+                            </span>
+                            <button
+                              type="button"
+                              onClick={clearDiscount}
+                              aria-label={lang === 'en' ? `Remove promo code ${discountCode}` : `Retirer le code promo ${discountCode}`}
+                              className="text-[11px] font-bold text-muted-foreground underline hover:no-underline hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 rounded"
+                            >
+                              {lang === 'en' ? 'Remove' : 'Retirer'}
+                            </button>
+                          </span>
+                        </div>
+                      ) : (
+                        <PromoCodeInput
+                          onApply={applyDiscount}
+                          placeholder={lang === 'en' ? 'Promo code' : 'Code promo'}
+                          applyLabel={lang === 'en' ? 'Apply' : 'Appliquer'}
+                          invalidLabel={lang === 'en' ? 'Invalid code' : 'Code invalide'}
+                        />
+                      )}
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{lang === 'en' ? 'Taxes' : 'Taxes'}</span>
+                        <span>{lang === 'en' ? 'Calculated at checkout' : 'Calculées au paiement'}</span>
+                      </div>
                     </div>
-                  );
-                })() : (
-                  <PromoCodeInput
-                    onApply={applyDiscount}
-                    placeholder={lang === 'en' ? 'Promo code' : 'Code promo'}
-                    applyLabel={lang === 'en' ? 'Apply' : 'Appliquer'}
-                    invalidLabel={lang === 'en' ? 'Invalid code' : 'Code invalide'}
-                  />
-                )}
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{lang === 'en' ? 'Taxes' : 'Taxes'}</span>
-                  <span>{lang === 'en' ? 'Calculated at checkout' : 'Calculées au paiement'}</span>
-                </div>
-              </div>
 
-              {/* aria-live so screen readers announce the new total when
-                  the user removes a line, applies a discount, or clears
-                  one — without it, the visual total update was silent. */}
-              <div
-                className="border-t border-border pt-3 flex justify-between items-center"
-                role="status"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                <span className="text-base font-extrabold">
-                  {lang === 'en' ? 'Estimated total' : 'Total estimé'}
-                </span>
-                <span className="text-2xl font-extrabold text-primary">
-                  {fmtMoney(totalPrice)} $
-                </span>
-              </div>
+                    {/* aria-live so screen readers announce the new total when
+                        the user removes a line, applies a discount, or clears
+                        one — without it, the visual total update was silent. */}
+                    <div
+                      className="border-t border-border pt-3 flex justify-between items-center gap-3"
+                      role="status"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      <span className="text-base font-extrabold">
+                        {lang === 'en' ? 'Estimated total' : 'Total estimé'}
+                      </span>
+                      {discountApplied && savings > 0 ? (
+                        <span className="flex items-baseline gap-2">
+                          <s
+                            className="text-sm font-semibold text-muted-foreground line-through opacity-50 tabular-nums"
+                            aria-label={lang === 'en' ? 'Original total' : 'Total original'}
+                          >
+                            {fmtMoney(grossSubtotal)} $
+                          </s>
+                          <span className="text-2xl font-extrabold text-primary tabular-nums">
+                            {fmtMoney(totalPrice)} $
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="text-2xl font-extrabold text-primary tabular-nums">
+                          {fmtMoney(totalPrice)} $
+                        </span>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Concrete ETA above the CTA — urgency + commitment. */}
               <div className="flex justify-center pt-1">
