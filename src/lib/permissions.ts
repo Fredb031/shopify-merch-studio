@@ -7,12 +7,11 @@
 // permissions on top of the user's base role without having to invent a
 // new role for every edge case.
 //
-// Note: the permission system's Role enum is a SUPERSET of the auth
-// store's UserRole — we include 'salesman' here because the product
-// spec calls for it, even though the Supabase profiles table doesn't
-// yet have that role in its CHECK constraint. Until the DB migration
-// lands, the mapping in mapAuthRole() folds a salesman-tagged override
-// back onto whatever Supabase-valid role the user currently has.
+// Note: the permission system's Role enum mirrors the auth store's
+// UserRole — both now include 'salesman'. The Supabase profiles table
+// still enforces a CHECK constraint, so the DB migration in
+// supabase/migrations/0002_add_salesman_role.sql must be applied
+// server-side before profile rows can persist role='salesman'.
 
 export type Permission =
   | 'orders:read' | 'orders:write'
@@ -182,9 +181,12 @@ export function getUserOverrides(userId: string | undefined | null): Permission[
   return loadOverrides()[userId] ?? [];
 }
 
-// The auth store's UserRole is a subset of permission Role — it
-// currently lacks 'salesman'. Coerce any auth-store role into a valid
-// permission Role so hasPermission never receives an undefined entry.
+// UserRole (authStore) and Role (this module) are now identical, so
+// this is effectively a pass-through. Kept as a function rather than
+// deleted so callers importing coerceToPermissionRole still compile and
+// so we retain the defensive "unknown string → 'client'" fallback for
+// any legacy/malformed DB rows that somehow slip past coerceRole in
+// authStore.
 export function coerceToPermissionRole(raw: string | null | undefined): Role {
   if (raw === 'president' || raw === 'admin' || raw === 'salesman' ||
       raw === 'vendor' || raw === 'client') {

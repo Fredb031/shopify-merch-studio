@@ -33,6 +33,7 @@ interface ProfileRow {
 const ROLE_TONE: Record<UserRole, string> = {
   president: 'bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white',
   admin: 'bg-blue-100 text-blue-800',
+  salesman: 'bg-indigo-100 text-indigo-800',
   vendor: 'bg-amber-100 text-amber-800',
   client: 'bg-zinc-100 text-zinc-700',
 };
@@ -40,11 +41,12 @@ const ROLE_TONE: Record<UserRole, string> = {
 const ROLE_LABEL: Record<UserRole, string> = {
   president: 'Président',
   admin: 'Admin',
+  salesman: 'Représentant commercial',
   vendor: 'Vendeur',
   client: 'Client',
 };
 
-const VALID_ROLE_FILTERS: readonly (UserRole | 'all')[] = ['all', 'president', 'admin', 'vendor', 'client'];
+const VALID_ROLE_FILTERS: readonly (UserRole | 'all')[] = ['all', 'president', 'admin', 'salesman', 'vendor', 'client'];
 
 export default function AdminUsers() {
   useDocumentTitle('Comptes & accès — Admin Vision Affichage');
@@ -342,6 +344,7 @@ export default function AdminUsers() {
             <option value="all">Tous les rôles</option>
             <option value="president">Président</option>
             <option value="admin">Admin</option>
+            <option value="salesman">Représentant commercial</option>
             <option value="vendor">Vendeur</option>
             <option value="client">Client</option>
           </select>
@@ -400,7 +403,7 @@ export default function AdminUsers() {
                         aria-label={`Rôle pour ${displayName}`}
                         className={`text-[11px] font-bold px-2 py-1 rounded-md outline-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${ROLE_TONE[u.role]} disabled:cursor-not-allowed`}
                       >
-                        {(['president', 'admin', 'vendor', 'client'] as UserRole[]).map(r => (
+                        {(['president', 'admin', 'salesman', 'vendor', 'client'] as UserRole[]).map(r => (
                           <option key={r} value={r}>{ROLE_LABEL[r]}</option>
                         ))}
                       </select>

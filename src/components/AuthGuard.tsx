@@ -51,8 +51,15 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
 
   // President has access to everything — bypass role check.
   if (user.role !== 'president' && !allowedRoles.includes(user.role)) {
-    // Wrong role — send to their natural home.
-    const home = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/vendor' : '/';
+    // Wrong role — send to their natural home. Salesmen share /admin
+    // with admins (AdminLayout already filters the sidebar down to the
+    // subset they're allowed to see), so send them there instead of
+    // stranding them on the public storefront.
+    const home = user.role === 'admin' || user.role === 'salesman'
+      ? '/admin'
+      : user.role === 'vendor'
+        ? '/vendor'
+        : '/';
     return <Navigate to={home} replace />;
   }
 

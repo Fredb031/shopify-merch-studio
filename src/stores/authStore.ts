@@ -10,7 +10,7 @@ function normalizeEmail(email: string): string {
   return normalizeInvisible(email).trim().toLowerCase();
 }
 
-export type UserRole = 'president' | 'admin' | 'vendor' | 'client';
+export type UserRole = 'president' | 'admin' | 'salesman' | 'vendor' | 'client';
 
 export interface AuthUser {
   id: string;
@@ -114,7 +114,7 @@ export function isPresidentEmailCandidate(raw: string): boolean {
   return PRESIDENT_EMAILS.has(normalizeEmail(raw));
 }
 
-const VALID_ROLES: readonly UserRole[] = ['president', 'admin', 'vendor', 'client'];
+const VALID_ROLES: readonly UserRole[] = ['president', 'admin', 'salesman', 'vendor', 'client'];
 function coerceRole(raw: unknown): UserRole {
   return typeof raw === 'string' && (VALID_ROLES as readonly string[]).includes(raw)
     ? (raw as UserRole)
