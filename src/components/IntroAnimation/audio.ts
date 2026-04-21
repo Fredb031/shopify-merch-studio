@@ -3,6 +3,52 @@
 
 type WindowWithWebkit = Window & { webkitAudioContext?: typeof AudioContext };
 
+const MUTE_STORAGE_KEY = 'va:intro-muted';
+
+/** Read the persisted user mute preference. Defaults to false if the key
+ * is missing, localStorage is unavailable (SSR, Safari private mode with
+ * quota errors, disabled storage), or any access throws. */
+export function isMuted(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(MUTE_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+/** Persist the user's mute preference. Writes '1' / '0' under
+ * `va:intro-muted`. All localStorage failures (quota, disabled storage,
+ * private mode) are swallowed so the caller never sees an exception. */
+export function setMuted(muted: boolean): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(MUTE_STORAGE_KEY, muted ? '1' : '0');
+  } catch {
+    /* storage disabled / quota exceeded — silently ignore */
+  }
+}
+
+/** Returns true when playback should be skipped entirely: either the
+ * user has opted out via `va:intro-muted`, or the OS-level
+ * prefers-reduced-motion media query is active. Users who reduce motion
+ * typically don't want surprise audio either. */
+function shouldSkipPlayback(): boolean {
+  if (typeof window === 'undefined') return true;
+  if (isMuted()) return true;
+  try {
+    if (
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      return true;
+    }
+  } catch {
+    /* matchMedia unavailable — fall through, don't block audio */
+  }
+  return false;
+}
+
 let ctxSingleton: AudioContext | null = null;
 let convolverSingleton: ConvolverNode | null = null;
 let masterGainSingleton: GainNode | null = null;
@@ -21,13 +67,21 @@ function trackSource(src: ScheduledSource): void {
 
 function getCtx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  // Honor the user mute preference + prefers-reduced-motion BEFORE we
+  // even instantiate an AudioContext. Skipping here means every public
+  // play* entry point becomes a no-op without any extra guards, because
+  // they all funnel through ensureMasterChain() → getCtx().
+  if (shouldSkipPlayback()) return null;
   if (ctxSingleton) return ctxSingleton;
-  const w = window as WindowWithWebkit;
-  const Ctor = window.AudioContext || w.webkitAudioContext;
-  if (!Ctor) return null;
   try {
+    const w = window as WindowWithWebkit;
+    const Ctor = window.AudioContext || w.webkitAudioContext;
+    if (!Ctor) return null;
     ctxSingleton = new Ctor();
   } catch {
+    // Safari private mode, exhausted AudioContext budget, etc. Degrade
+    // silently so the intro animation itself still renders.
+    ctxSingleton = null;
     return null;
   }
   return ctxSingleton;
@@ -49,15 +103,23 @@ function generateReverb(ctx: AudioContext, duration: number, decay: number): Aud
 function ensureMasterChain(): { ctx: AudioContext; convolver: ConvolverNode; master: GainNode } | null {
   const ctx = getCtx();
   if (!ctx) return null;
-  if (!masterGainSingleton) {
-    masterGainSingleton = ctx.createGain();
-    masterGainSingleton.gain.setValueAtTime(0.85, ctx.currentTime);
-    masterGainSingleton.connect(ctx.destination);
-  }
-  if (!convolverSingleton) {
-    convolverSingleton = ctx.createConvolver();
-    convolverSingleton.buffer = generateReverb(ctx, 2.5, 3.0);
-    convolverSingleton.connect(masterGainSingleton);
+  try {
+    if (!masterGainSingleton) {
+      masterGainSingleton = ctx.createGain();
+      masterGainSingleton.gain.setValueAtTime(0.85, ctx.currentTime);
+      masterGainSingleton.connect(ctx.destination);
+    }
+    if (!convolverSingleton) {
+      convolverSingleton = ctx.createConvolver();
+      convolverSingleton.buffer = generateReverb(ctx, 2.5, 3.0);
+      convolverSingleton.connect(masterGainSingleton);
+    }
+  } catch {
+    // Node creation can fail on browsers that report an AudioContext
+    // exists but restrict its use (e.g. some WebView configurations).
+    // Leave singletons in whatever partial state they reached; the next
+    // caller will retry, and play* entry points will simply be no-ops.
+    return null;
   }
   return { ctx, convolver: convolverSingleton, master: masterGainSingleton };
 }
