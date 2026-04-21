@@ -1,41 +1,26 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, CheckCircle2, Gift } from 'lucide-react';
+import { Mail, Phone, MapPin, Gift } from 'lucide-react';
+import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+
+// Shape of a single subscriber row persisted to localStorage. Keeping
+// the captured-at timestamp alongside the email lets a future backend
+// swap deduplicate by address while still ordering by signup recency
+// (and makes the ledger self-describing for manual inspection).
+type NewsletterRow = { email: string; at: number };
+const NEWSLETTER_KEY = 'vision-newsletter-subscribers';
 
 export function SiteFooter() {
   const { lang } = useLang();
   const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
   // Surfaces a soft-error line when isValidEmail rejects the submitted
   // address. Before this, the form swallowed "a@b.c"-style inputs that
   // pass the browser's type=email check but fail our stricter regex —
   // the user saw nothing, assumed it worked, and never got a newsletter.
   const [emailErr, setEmailErr] = useState(false);
-  // Track the pending reset timer so we can cancel it on unmount — without
-  // this, users who submit and then navigate away within 3.5s trigger a
-  // state update on an unmounted component (React dev warning + wasted work).
-  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const emailInputRef = useRef<HTMLInputElement | null>(null);
-  // When the success card reverts back to the form, restore focus to the
-  // (now cleared) email input so keyboard / screen-reader users don't lose
-  // their place — otherwise focus falls back to <body> and the user has to
-  // tab from the top of the document to continue a second subscription.
-  // Guard with a "just reverted" flag so we don't steal focus on first
-  // mount; only grab it after a subscription cycle actually completes.
-  const shouldRefocusRef = useRef(false);
-  useEffect(() => {
-    if (!subscribed && shouldRefocusRef.current) {
-      shouldRefocusRef.current = false;
-      emailInputRef.current?.focus();
-    }
-  }, [subscribed]);
-  useEffect(() => {
-    return () => {
-      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    };
-  }, []);
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,95 +36,87 @@ export function SiteFooter() {
       return;
     }
     setEmailErr(false);
+    let duplicate = false;
     try {
-      const raw = JSON.parse(localStorage.getItem('vision-newsletter') ?? '[]');
-      // Defensive: filter out non-strings so a corrupted row doesn't
-      // poison the Set comparison below (list.includes would miss the
-      // duplicate and we'd double-subscribe). Older builds stored raw
-      // strings; a devtools edit or hand-built JSON could slip objects
-      // in. Cap at 2000 AFTER the append so the new entry is always
-      // included — the previous slice(-2000) BEFORE the push could
-      // produce a 2001-entry list (cap+1) on the boundary case.
+      const raw = JSON.parse(localStorage.getItem(NEWSLETTER_KEY) ?? '[]');
+      // Defensive: only keep rows that match the expected shape so a
+      // corrupted entry doesn't poison the dedupe check below. A devtools
+      // edit or stale older-schema row (prior builds stored plain strings)
+      // could slip in; filtering here means the ledger self-heals.
       const arr: unknown[] = Array.isArray(raw) ? raw : [];
-      const clean = arr.filter((v): v is string => typeof v === 'string');
-      if (!clean.includes(normalized)) {
-        clean.push(normalized);
+      const clean: NewsletterRow[] = arr.filter(
+        (v): v is NewsletterRow =>
+          !!v && typeof v === 'object' && typeof (v as { email?: unknown }).email === 'string'
+            && typeof (v as { at?: unknown }).at === 'number',
+      );
+      duplicate = clean.some(row => row.email === normalized);
+      if (!duplicate) {
+        clean.push({ email: normalized, at: Date.now() });
         // Keep only the most-recent 2000 — a brand-new subscriber
-        // is the freshest and stays in the list.
+        // is the freshest and stays in the list. Cap AFTER append so
+        // boundary case never overflows by one.
         const capped = clean.slice(-2000);
-        localStorage.setItem('vision-newsletter', JSON.stringify(capped));
+        localStorage.setItem(NEWSLETTER_KEY, JSON.stringify(capped));
       }
     } catch { /* noop */ }
-    setSubscribed(true);
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    resetTimerRef.current = setTimeout(() => {
-      shouldRefocusRef.current = true;
-      setSubscribed(false);
-      setEmail('');
-      resetTimerRef.current = null;
-    }, 3500);
+
+    if (duplicate) {
+      toast.success(
+        lang === 'en' ? 'Already subscribed — thank you!' : 'Déjà inscrit(e) — merci !',
+      );
+    } else {
+      toast.success(
+        lang === 'en'
+          ? 'Subscribed! Your code: VISION10'
+          : 'Inscription réussie ! Voici ton code : VISION10',
+        { duration: 6000 },
+      );
+    }
+    setEmail('');
+    // Refocus the input so a keyboard / screen-reader user can subscribe
+    // another address without tabbing back from <body>.
+    emailInputRef.current?.focus();
   };
 
   return (
     <footer className="bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] text-white pt-14 pb-8 px-6 md:px-10 mt-12">
       <div className="max-w-[1100px] mx-auto">
-        {/* Newsletter signup */}
+        {/* Newsletter signup band — prominent incentive above the link columns.
+            The concrete "what you get" headline and code-reveal-on-submit convert
+            meaningfully better than a generic "stay in the loop" eyebrow, and the
+            Mail icon anchors the offer visually on mobile where the H3 wraps. */}
         <div className="grid md:grid-cols-2 gap-8 pb-10 border-b border-white/10">
           <div>
-            {/* Signup incentive — a concrete "what you get" line converts ~3× better
-                than a generic "stay in the loop" eyebrow, and the gift icon makes
-                the offer scannable at a glance on mobile where the H3 wraps. */}
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
               <Gift size={12} aria-hidden="true" className="-mt-px" />
               <span>
-                {lang === 'en' ? '10% off your first order' : "10% off ton premier lot"}
+                {lang === 'en' ? 'Exclusive promo' : 'Promo exclusive'}
               </span>
             </div>
             <h3 className="text-2xl md:text-3xl font-extrabold tracking-[-0.5px] mb-2">
               {lang === 'en'
-                ? 'Subscribe. Save on day one.'
-                : "Abonne-toi. Économise dès le premier jour."}
+                ? '10% off your first order'
+                : '10\u00a0% sur ta première commande'}
             </h3>
             <p className="text-sm text-white/60">
               {lang === 'en'
-                ? 'Drop your email and we\u2019ll send a 10% promo code — plus a quarterly roundup of new merch and bulk deals. Zero spam.'
-                : 'Laisse ton courriel et on t\u2019envoie un code promo 10% — plus un récap trimestriel des nouveautés et rabais en gros. Zéro spam.'}
+                ? 'Subscribe to get VISION10 and upcoming deals'
+                : 'Abonne-toi pour recevoir le code VISION10 + nos promos'}
             </p>
           </div>
 
-          {/* Persistent aria-live region so screen readers reliably
-              announce the "Subscribed!" confirmation. Previously the
-              status node only mounted WHEN subscribed flipped to true —
-              most SR engines (NVDA, VoiceOver) require the live region
-              to exist BEFORE its content updates; a freshly-inserted
-              aria-live element is skipped on many combos, leaving
-              assistive-tech users with no audible confirmation that
-              the form actually succeeded. */}
-          <div role="status" aria-live="polite" className="sr-only">
-            {subscribed
-              ? (lang === 'en' ? 'Subscribed! See you in your inbox.' : 'Inscrit ! À bientôt dans ta boîte courriel.')
-              : ''}
-          </div>
-          {subscribed ? (
-            <div
-              className="flex items-center gap-3 bg-emerald-500/15 border border-emerald-400/30 rounded-2xl p-4 self-center"
-              aria-hidden="true"
-            >
-              <CheckCircle2 size={20} className="text-emerald-300 flex-shrink-0" aria-hidden="true" />
-              <div>
-                <div className="font-bold">{lang === 'en' ? 'Subscribed!' : 'Inscrit !'}</div>
-                <div className="text-xs text-white/70">
-                  {lang === 'en' ? 'See you in your inbox.' : 'À bientôt dans ta boîte courriel.'}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubscribe}
-              className="flex flex-col self-center w-full max-w-md"
-              aria-label={lang === 'en' ? 'Newsletter signup' : 'Inscription à l\u2019infolettre'}
-            >
-              <div className="flex items-stretch">
+          <form
+            onSubmit={handleSubscribe}
+            className="flex flex-col self-center w-full max-w-md"
+            aria-label={lang === 'en' ? 'Newsletter signup' : 'Inscription à l\u2019infolettre'}
+          >
+            <div className="flex items-stretch">
+              <div className="relative flex-1">
+                <Mail
+                  size={16}
+                  aria-hidden="true"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#E8A838] pointer-events-none"
+                />
                 <input
                   ref={emailInputRef}
                   type="email"
@@ -149,38 +126,37 @@ export function SiteFooter() {
                   aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
                   aria-required="true"
                   aria-invalid={emailErr || undefined}
-                  className={`flex-1 px-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow ${
+                  className={`w-full pl-9 pr-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow ${
                     emailErr ? 'border-rose-400/70 focus:border-rose-300' : 'border-white/20 focus:border-[#E8A838]'
                   }`}
                   autoComplete="email"
                   required
                 />
-                <button
-                  type="submit"
-                  disabled={!email.trim()}
-                  className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
-                >
-                  {lang === 'en' ? 'Subscribe' : "M'inscrire"}
-                </button>
               </div>
-              {emailErr ? (
-                <p role="alert" className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1">
-                  {lang === 'en'
-                    ? 'That email doesn\u2019t look valid — double-check it and try again.'
-                    : 'Ce courriel ne semble pas valide — vérifie-le et réessaie.'}
-                </p>
-              ) : (
-                // Reinforces the 10% incentive right next to the CTA — promise
-                // delivery speed and the unsubscribe escape hatch. Keeps the
-                // "zero spam" vibe concrete instead of marketing-speak.
-                <p className="text-[11px] text-white/50 mt-1.5 pl-1">
-                  {lang === 'en'
-                    ? 'Promo code arrives within minutes. Unsubscribe anytime.'
-                    : 'Code promo livré en quelques minutes. Désabonnement en tout temps.'}
-                </p>
-              )}
-            </form>
-          )}
+              <button
+                type="submit"
+                disabled={!email.trim()}
+                className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
+              >
+                {lang === 'en' ? 'Subscribe' : "S'abonner"}
+              </button>
+            </div>
+            {emailErr ? (
+              <p role="alert" className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1">
+                {lang === 'en'
+                  ? 'That email doesn\u2019t look valid — double-check it and try again.'
+                  : 'Ce courriel ne semble pas valide — vérifie-le et réessaie.'}
+              </p>
+            ) : (
+              // Privacy microcopy — concrete "what won't happen" beats marketing-speak
+              // and matches the unsubscribe escape hatch promised in the toast.
+              <p className="text-[11px] text-white/50 mt-1.5 pl-1">
+                {lang === 'en'
+                  ? 'No spam. One-click unsubscribe.'
+                  : 'Pas de spam. Désabonnement en 1 clic.'}
+              </p>
+            )}
+          </form>
         </div>
 
         {/* Link columns */}
