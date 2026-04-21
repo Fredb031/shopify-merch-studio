@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Search, Eye, Plus, ArrowRightCircle, X } from 'lucide-react';
+import { Search, Eye, Plus, ArrowRightCircle, X, Download, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -65,6 +65,12 @@ type QuoteRow = {
   discountKind: DiscountKind;
   status: Status;
   age: string;
+  // ISO string when present — kept separate from the relative `age`
+  // label so CSV export can format a stable fr-CA date and the expiry
+  // badge can compare against `now`. Optional because MOCK rows don't
+  // carry it and older localStorage rows predate the field.
+  createdAt?: string;
+  expiresAt?: string;
   // Rich payload carried forward from localStorage so the convert-to-
   // order dialog can show the real line items + rebuild the manual
   // order record without re-reading storage. Undefined for MOCK rows.
@@ -94,6 +100,70 @@ const STATUS_COLOR: Record<Status, string> = {
   expired: 'bg-rose-50 text-rose-700',
   converted: 'bg-[#1B3A6B]/10 text-[#1B3A6B]',
 };
+
+/** Format an ISO date for the CSV column / badge. fr-CA matches the
+ * rest of the admin page so a reload-to-Excel round-trip preserves
+ * month order; returns '—' for empty/invalid dates rather than 'Invalid
+ * Date' so the CSV stays clean. */
+function formatQuoteDate(iso: string | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** Classify how close a quote is to expiring. 'expired' for past dates,
+ * 'tomorrow' for the window (now, 48h], null otherwise (including when
+ * expiresAt is missing / unparseable). Using a 48h window instead of a
+ * strict 24h lets a quote that expires "end of day tomorrow" still
+ * trigger the badge through today's admin shift. */
+function expiryState(iso: string | undefined): 'expired' | 'tomorrow' | null {
+  if (!iso) return null;
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  const diff = ms - Date.now();
+  if (diff <= 0) return 'expired';
+  if (diff <= 48 * 60 * 60 * 1000) return 'tomorrow';
+  return null;
+}
+
+/** Generate and download a CSV for the currently filtered quote list.
+ * Columns (in this order): Numéro, Vendeur, Client, Courriel, Statut,
+ * Total, Créée, Expire. Mirrors the AdminOrders helper — same formula-
+ * injection guard (OWASP CSV injection), RFC 4180 quoting, UTF-8 BOM so
+ * Excel decodes accents without a prompt. Total is plain numeric (2
+ * decimals, no '$') so the column stays parseable as a number. */
+function exportQuotesCsv(rows: QuoteRow[]) {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = ['Numéro', 'Vendeur', 'Client', 'Courriel', 'Statut', 'Total', 'Créée', 'Expire'];
+  const body = rows.map(q => [
+    q.number,
+    q.vendor,
+    q.client,
+    q.clientEmail ?? '',
+    STATUS_LABEL[q.status] ?? q.status,
+    // No currency symbol — keeps the column numeric-parseable in Excel.
+    (Number.isFinite(q.total) ? q.total : 0).toFixed(2),
+    formatQuoteDate(q.createdAt),
+    formatQuoteDate(q.expiresAt),
+  ]);
+  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `quotes-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${rows.length} soumission${rows.length > 1 ? 's' : ''} exportée${rows.length > 1 ? 's' : ''}`);
+}
 
 const VALID_STATUSES: readonly Status[] = ['draft', 'sent', 'viewed', 'accepted', 'paid', 'expired', 'converted'];
 function coerceStatus(raw: unknown): Status {
@@ -172,6 +242,11 @@ export default function AdminQuotes() {
   const [filter, setFilter] = useState<Status | 'all'>(initialFilter);
   const [savedQuotes, setSavedQuotes] = useState<QuoteRow[]>([]);
   const [page, setPage] = useState(0);
+  // null = no active sort (keep source order — mixed savedQuotes + MOCK).
+  // 'asc'/'desc' = click-to-sort on the Total header. Single column is
+  // enough here; the admin already filters by status and searches by
+  // client, so a full multi-column sort would be over-engineered.
+  const [totalSort, setTotalSort] = useState<'asc' | 'desc' | null>(null);
   // Task 9.14 — convert-to-order confirmation dialog. Holds the quote
   // being converted so we can render a summary + line items before the
   // admin confirms. null = dialog closed.
@@ -203,6 +278,7 @@ export default function AdminQuotes() {
         total?: number;
         status?: string;
         createdAt?: string;
+        expiresAt?: string;
         items?: unknown[];
         discountValue?: number;
         discountKind?: string;
@@ -244,6 +320,8 @@ export default function AdminQuotes() {
             discountKind: kind,
             status: coerceStatus(q.status),
             age,
+            createdAt: typeof q.createdAt === 'string' ? q.createdAt : undefined,
+            expiresAt: typeof q.expiresAt === 'string' ? q.expiresAt : undefined,
             lineItems: Array.isArray(q.items) ? (q.items as QuoteLineItem[]) : [],
           });
         } catch (e) {
@@ -348,10 +426,36 @@ export default function AdminQuotes() {
     });
   }, [all, query, filter]);
 
+  // Apply the Total click-sort before paginating so the sort spans the
+  // full filtered set, not just the current page. Copy first — do NOT
+  // mutate `filtered` in place, the parent memo is shared with the CSV
+  // export + the empty-state check below.
+  const sorted = useMemo(() => {
+    if (!totalSort) return filtered;
+    const copy = filtered.slice();
+    copy.sort((a, b) => {
+      const av = Number.isFinite(a.total) ? a.total : 0;
+      const bv = Number.isFinite(b.total) ? b.total : 0;
+      return totalSort === 'asc' ? av - bv : bv - av;
+    });
+    return copy;
+  }, [filtered, totalSort]);
+
+  // Reset to the first page whenever the sort direction changes so the
+  // admin doesn't land on an empty page 3 after toggling desc→asc.
+  useEffect(() => { setPage(0); }, [totalSort]);
+
   const paged = useMemo(
-    () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
-    [filtered, page],
+    () => sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [sorted, page],
   );
+
+  // Click handler for the Total header. Cycles: none → desc → asc →
+  // none. Starts at desc because "biggest quotes first" is the common
+  // triage order.
+  const toggleTotalSort = useCallback(() => {
+    setTotalSort(prev => (prev === null ? 'desc' : prev === 'desc' ? 'asc' : null));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -360,13 +464,34 @@ export default function AdminQuotes() {
           <h1 className="text-2xl font-extrabold tracking-tight">Soumissions</h1>
           <p className="text-sm text-zinc-500 mt-1">Toutes les soumissions créées par l'équipe</p>
         </div>
-        <Link
-          to="/admin/quotes/new"
-          className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          <Plus size={16} aria-hidden="true" />
-          Nouvelle soumission
-        </Link>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => exportQuotesCsv(filtered)}
+            disabled={filtered.length === 0}
+            // Disabled state when the filter yields nothing — avoids
+            // downloading a header-only CSV and signals to the admin
+            // that the filter is the thing to change. Tooltip + aria
+            // explain why the button is dead.
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={filtered.length === 0 ? 'Aucune soumission à exporter' : 'Exporter en CSV'}
+            aria-label={
+              filtered.length === 0
+                ? 'Aucune soumission à exporter'
+                : `Exporter ${filtered.length} soumission${filtered.length > 1 ? 's' : ''} en CSV`
+            }
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
+          <Link
+            to="/admin/quotes/new"
+            className="inline-flex items-center gap-2 text-sm font-bold px-5 py-2.5 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          >
+            <Plus size={16} aria-hidden="true" />
+            Nouvelle soumission
+          </Link>
+        </div>
       </header>
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
@@ -404,7 +529,30 @@ export default function AdminQuotes() {
                 <th className="text-left px-4 py-3">Numéro</th>
                 <th className="text-left px-4 py-3">Vendeur</th>
                 <th className="text-left px-4 py-3">Client</th>
-                <th className="text-right px-4 py-3">Total</th>
+                <th className="text-right px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={toggleTotalSort}
+                    aria-label={
+                      totalSort === 'asc'
+                        ? 'Trier par total décroissant'
+                        : totalSort === 'desc'
+                          ? 'Retirer le tri par total'
+                          : 'Trier par total décroissant'
+                    }
+                    aria-sort={
+                      totalSort === 'asc' ? 'ascending' : totalSort === 'desc' ? 'descending' : 'none'
+                    }
+                    className="inline-flex items-center gap-1 ml-auto uppercase tracking-wider text-[11px] font-bold text-zinc-500 hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                  >
+                    Total
+                    {totalSort === 'asc'
+                      ? <ArrowUp size={12} aria-hidden="true" />
+                      : totalSort === 'desc'
+                        ? <ArrowDown size={12} aria-hidden="true" />
+                        : null}
+                  </button>
+                </th>
                 <th className="text-right px-4 py-3">Rabais</th>
                 <th className="text-left px-4 py-3">Statut</th>
                 <th className="text-left px-4 py-3">Âge</th>
@@ -436,9 +584,34 @@ export default function AdminQuotes() {
                       : '—'}
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[q.status]}`}>
-                      {STATUS_LABEL[q.status]}
-                    </span>
+                    <div className="inline-flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[11px] font-bold px-2 py-1 rounded-md ${STATUS_COLOR[q.status]}`}>
+                        {STATUS_LABEL[q.status]}
+                      </span>
+                      {(() => {
+                        // Only surface the badge when the canonical
+                        // status isn't already 'expired' — the status
+                        // pill above already communicates that, a second
+                        // "Expirée" chip would be redundant noise.
+                        if (q.status === 'expired') return null;
+                        const st = expiryState(q.expiresAt);
+                        if (st === 'expired') {
+                          return (
+                            <span className="text-[11px] font-bold px-2 py-1 rounded-md bg-rose-50 text-rose-700">
+                              Expirée
+                            </span>
+                          );
+                        }
+                        if (st === 'tomorrow') {
+                          return (
+                            <span className="text-[11px] font-bold px-2 py-1 rounded-md bg-amber-50 text-amber-700">
+                              Expire demain
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-zinc-500 text-xs">{q.age}</td>
                   <td className="px-4 py-3 text-right">
