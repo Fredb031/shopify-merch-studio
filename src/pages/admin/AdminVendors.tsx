@@ -398,7 +398,12 @@ export default function AdminVendors() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Task 18.7: defer the revoke by 1s so Safari has time to begin
+    // the download before the blob URL disappears — an immediate
+    // revoke occasionally raced the dispatcher and cancelled the
+    // transfer. Also stops the object URL from pinning CSV bytes in
+    // memory for the rest of the tab's life.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [customVendors, month, nameOverrides]);
 
   const allUnsorted = [...customVendors, ...SEED_VENDORS];

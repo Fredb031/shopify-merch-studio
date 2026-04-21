@@ -814,10 +814,13 @@ export default function VendorDashboard() {
   }, []);
 
   // Accountants asked for a one-click month-end export — this replaces
-  // hand-copying the table. The Blob URL is revoked in the same tick
+  // hand-copying the table. The Blob URL is revoked on a short timeout
   // (after the click() fires) to avoid leaking the object URL for the
-  // life of the tab. Button is gated on orders:read so a viewer role
-  // couldn't download numbers they can't see in the table.
+  // life of the tab. Task 18.7: deferred 1s to match the pattern used
+  // across the admin exporters — an immediate revoke races Safari's
+  // download dispatcher and occasionally cancels the transfer. Button
+  // is gated on orders:read so a viewer role couldn't download numbers
+  // they can't see in the table.
   const canExport = Boolean(user && hasPermission(user.role, 'orders:read'));
   const exportDisabled = summary.lines.length === 0;
   const onExportCsv = useCallback(() => {
@@ -832,7 +835,10 @@ export default function VendorDashboard() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Revoke the blob URL after the download kicks off so repeated
+    // monthly exports don't stack object URLs in memory for the life
+    // of the tab. 1s matches lib/csv.ts and the other admin exporters.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [vendorId, month]);
 
   // Task 10.6 — print-ready statement popup. Accountants asked for a
