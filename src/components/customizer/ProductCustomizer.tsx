@@ -150,6 +150,24 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // reader hints — browsers don't enforce focus containment.
   const trapRef = useFocusTrap<HTMLDivElement>(true);
 
+  // Scroll the step-content column (and the outer body grid on mobile,
+  // where both columns share a single scrolling container) back to the
+  // top whenever the active step changes. Without this, a user who
+  // scrolled down inside Step 1 to tweak placement lands mid-panel when
+  // Step 2 mounts — the Tailles heading is above the fold and the
+  // initial size input ends up under the finger on mobile. Both scrolls
+  // are guarded against null refs during the first paint. Respects
+  // prefers-reduced-motion by skipping the smooth-scroll easing.
+  const stepPanelRef = useRef<HTMLDivElement>(null);
+  const bodyScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const prefersReduced = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const behavior: ScrollBehavior = prefersReduced ? 'auto' : 'smooth';
+    stepPanelRef.current?.scrollTo({ top: 0, behavior });
+    bodyScrollRef.current?.scrollTo({ top: 0, behavior });
+  }, [store.step]);
+
   // ── Display colours (computed above the early return so the mount
   // effect below can sync the store to the FIRST truly-available colour).
   //
@@ -1007,7 +1025,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         {/* ── Body ──
             Mobile (<768px): stacks vertically — canvas square at top,
             full-width panel below. Desktop (>=md): side-by-side columns. */}
-        <div className="overflow-auto grid grid-cols-1 md:grid-cols-[1.2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border min-h-0">
+        <div ref={bodyScrollRef} className="overflow-auto grid grid-cols-1 md:grid-cols-[1.2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border min-h-0">
 
           {/* LEFT (top on mobile) — Just the interactive canvas. No duplicated
               controls. Color palette + step content live in the right panel.
@@ -1046,7 +1064,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               request to place the palette "tout à droite" and removes the
               duplicate that used to sit under the canvas. On mobile this
               panel spans full width beneath the canvas. */}
-          <div className="p-4 overflow-auto flex flex-col gap-4 w-full">
+          <div ref={stepPanelRef} className="p-4 overflow-auto flex flex-col gap-4 w-full">
             <div className="flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
