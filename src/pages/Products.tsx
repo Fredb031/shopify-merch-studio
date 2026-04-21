@@ -56,11 +56,18 @@ export default function Products() {
   const KNOWN_CATS = new Set(['overview', 'chandails', 'tshirts', 'polos', 'headwear']);
   const rawCat = searchParams.get('cat');
   const initialCat = rawCat && KNOWN_CATS.has(rawCat) ? rawCat : 'overview';
-  const SORT_VALUES = ['default', 'name', 'price-asc', 'price-desc'] as const;
+  // Task 2.2 — URL-backed sort. 'popularity' is the default and maps to
+  // the natural Shopify catalog order (no client-side reordering). The
+  // 'newest' option that the spec mentions is gated on a createdAt /
+  // publishedAt field which the current PRODUCTS_QUERY doesn't request
+  // and ShopifyProduct doesn't expose — intentionally omitted here per
+  // task instructions ("otherwise skip this option") so we don't ship a
+  // dropdown entry that silently behaves like the default.
+  const SORT_VALUES = ['popularity', 'price-asc', 'price-desc'] as const;
   type SortMode = typeof SORT_VALUES[number];
   const initialSort: SortMode = (() => {
     const raw = searchParams.get('sort');
-    return (SORT_VALUES as readonly string[]).includes(raw ?? '') ? (raw as SortMode) : 'default';
+    return (SORT_VALUES as readonly string[]).includes(raw ?? '') ? (raw as SortMode) : 'popularity';
   })();
   const [activeCategory, setActiveCategory] = useState(initialCat);
   const [searchQuery, setSearchQuery] = useState('');
@@ -87,12 +94,14 @@ export default function Products() {
   // a single pass so we don't fire two consecutive history replaces.
   useEffect(() => {
     const curCat = searchParams.get('cat') ?? 'overview';
-    const curSort = searchParams.get('sort') ?? 'default';
+    const curSort = searchParams.get('sort') ?? 'popularity';
     if (activeCategory === curCat && sortMode === curSort) return;
     const next = new URLSearchParams(searchParams);
     if (activeCategory === 'overview') next.delete('cat');
     else next.set('cat', activeCategory);
-    if (sortMode === 'default') next.delete('sort');
+    // popularity is the default — omit from the URL so a fresh /products
+    // link stays clean and shareable ?sort=... URLs stay meaningful.
+    if (sortMode === 'popularity') next.delete('sort');
     else next.set('sort', sortMode);
     setSearchParams(next, { replace: true });
   }, [activeCategory, sortMode, searchParams, setSearchParams]);
@@ -104,10 +113,10 @@ export default function Products() {
   useEffect(() => {
     const urlCatRaw = searchParams.get('cat') ?? 'overview';
     const urlCat = KNOWN_CATS.has(urlCatRaw) ? urlCatRaw : 'overview';
-    const urlSortRaw = searchParams.get('sort') ?? 'default';
+    const urlSortRaw = searchParams.get('sort') ?? 'popularity';
     const urlSort: SortMode = (SORT_VALUES as readonly string[]).includes(urlSortRaw)
       ? (urlSortRaw as SortMode)
-      : 'default';
+      : 'popularity';
     if (urlCat !== activeCategory) setActiveCategory(urlCat);
     if (urlSort !== sortMode) setSortMode(urlSort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -235,9 +244,12 @@ export default function Products() {
           return title.toLowerCase().includes(q) || handle.toLowerCase().includes(q);
         });
       }
-      if (sortMode !== 'default') {
+      if (sortMode !== 'popularity') {
         // Copy before sort — useMemo would otherwise mutate the upstream
         // products array and invalidate React Query's cached reference.
+        // Array.prototype.sort in modern V8/JSC is stable (ECMA-262
+        // since ES2019), so equal prices keep their natural-catalog
+        // relative order as the task requires.
         const sorted = [...result];
         // Defensive: a NEW product or partial response may be missing
         // priceRange.minVariantPrice.amount entirely. Optional chain +
@@ -249,9 +261,6 @@ export default function Products() {
           return Number.isFinite(n) ? n : 0;
         };
         switch (sortMode) {
-          case 'name':
-            sorted.sort((a, b) => (a?.node?.title ?? '').localeCompare(b?.node?.title ?? '', lang));
-            break;
           case 'price-asc':
             sorted.sort((a, b) => priceOf(a) - priceOf(b));
             break;
@@ -266,7 +275,7 @@ export default function Products() {
       console.warn('[Products] filteredProducts failed, falling back to []', err);
       return [];
     }
-  }, [products, activeCategory, debouncedQuery, sortMode, lang]);
+  }, [products, activeCategory, debouncedQuery, sortMode]);
 
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
@@ -389,8 +398,7 @@ export default function Products() {
                   aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
                   className="text-[12px] font-bold bg-white/10 text-white border border-white/20 rounded-full px-3 py-1.5 outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#1B3A6B] cursor-pointer hover:bg-white/15 transition-colors"
                 >
-                  <option value="default" className="text-foreground">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
-                  <option value="name" className="text-foreground">{lang === 'en' ? 'Name A–Z' : 'Nom A–Z'}</option>
+                  <option value="popularity" className="text-foreground">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
                   <option value="price-asc" className="text-foreground">{lang === 'en' ? 'Price ↑' : 'Prix ↑'}</option>
                   <option value="price-desc" className="text-foreground">{lang === 'en' ? 'Price ↓' : 'Prix ↓'}</option>
                 </select>
