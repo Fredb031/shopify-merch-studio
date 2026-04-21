@@ -13,7 +13,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, CheckCircle, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X, Heart } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, CheckCircle, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2, HelpCircle, X, Heart, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
@@ -40,6 +40,31 @@ export default function ProductDetail() {
   const [cartOpen, setCartOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+
+  // Task 3.12 — Shipping ETA calculator. The buyer types an FSA (first
+  // 3 chars of a Canadian postal code, e.g. "H2X" for Montréal or "J2S"
+  // for Saint-Hyacinthe) and we surface a concrete arrival date before
+  // add-to-cart instead of the vague "5-day delivery" trust badge. FSA
+  // persists to localStorage so repeat visitors don't retype on every
+  // PDP. lazy-init from storage to skip a needless re-render and to
+  // survive SSR gracefully (typeof window guard).
+  const [shipFsa, setShipFsa] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    try {
+      return window.localStorage.getItem('vision-ship-to-fsa') ?? '';
+    } catch {
+      return '';
+    }
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (shipFsa) window.localStorage.setItem('vision-ship-to-fsa', shipFsa);
+      else window.localStorage.removeItem('vision-ship-to-fsa');
+    } catch {
+      /* storage blocked (private mode, quota) — ignore */
+    }
+  }, [shipFsa]);
 
   const { data: product, isLoading, isError, refetch } = useQuery({
     queryKey: ['shopify-product', handle],
@@ -1172,6 +1197,90 @@ export default function ProductDetail() {
                 : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
               <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
+
+            {/* Task 3.12 — FSA postal-code → ETA calculator.
+                Small subtle field tucked right below the primary CTA.
+                The buyer types an FSA (e.g. "H2X" or "J2S") and we
+                resolve to a concrete arrival date using business-day
+                skip logic matching Checkout.tsx (from Task 5.13). First
+                letter of the FSA is the geographic prefix:
+                  H/J/G → Québec (4 business days, local couriers)
+                  A/B/C/E/K/L/M/N/P/R/S/T/V/X/Y → rest of Canada (6 days)
+                  anything else (US ZIP, UK, random text) → friendly
+                  "Contactez-nous pour l'international" fallback so we
+                  don't silently show a wrong date.
+                We uppercase + strip non-alphanumerics client-side so
+                pasted "h2x 1a1" still registers. Only the first 3 chars
+                matter; the rest of the postal is ignored locally — full
+                postal gets captured at the Checkout shipping step. */}
+            {(() => {
+              const normalized = shipFsa.trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+              const isFsa = /^[A-Z][0-9][A-Z]$/.test(normalized);
+              const firstLetter = normalized[0];
+              const isQuebec = isFsa && (firstLetter === 'H' || firstLetter === 'J' || firstLetter === 'G');
+              const businessDays = isQuebec ? 4 : isFsa ? 6 : null;
+              const addBizDays = (from: Date, n: number) => {
+                const out = new Date(from);
+                let remaining = n;
+                while (remaining > 0) {
+                  out.setDate(out.getDate() + 1);
+                  const dow = out.getDay();
+                  if (dow !== 0 && dow !== 6) remaining--;
+                }
+                return out;
+              };
+              const hasInput = normalized.length > 0;
+              let resultText: string | null = null;
+              if (businessDays !== null) {
+                const eta = addBizDays(new Date(), businessDays);
+                const formatter = new Intl.DateTimeFormat(
+                  lang === 'en' ? 'en-CA' : 'fr-CA',
+                  { weekday: 'long', day: 'numeric', month: 'long' },
+                );
+                resultText = lang === 'en'
+                  ? `Arrives by ${formatter.format(eta)}`
+                  : `Reçu vers le ${formatter.format(eta)}`;
+              } else if (hasInput && normalized.length >= 3) {
+                // Non-FSA input (US ZIP digits, random letters, UK outward
+                // code) — treat as international and point them to sales.
+                resultText = lang === 'en'
+                  ? 'Contact us for international shipping'
+                  : "Contactez-nous pour l'international";
+              }
+              return (
+                <div className="flex flex-col gap-1.5 -mt-1">
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Truck size={13} aria-hidden="true" className="flex-shrink-0" />
+                    <span className="font-bold text-foreground">
+                      {lang === 'en' ? 'Ship to?' : 'Livraison vers ?'}
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="text"
+                      autoComplete="postal-code"
+                      maxLength={3}
+                      placeholder={lang === 'en' ? 'e.g. H2X' : 'ex. J2S'}
+                      aria-label={lang === 'en' ? 'Your postal code FSA (first 3 characters)' : 'Votre code postal FSA (3 premiers caractères)'}
+                      value={shipFsa}
+                      onChange={(e) => {
+                        const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+                        setShipFsa(raw);
+                      }}
+                      className="w-20 px-2 py-1 text-xs font-bold tabular-nums uppercase tracking-wider border border-border rounded-md bg-background text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 placeholder:font-normal placeholder:text-muted-foreground/70 placeholder:normal-case placeholder:tracking-normal"
+                    />
+                  </label>
+                  {resultText && (
+                    <p
+                      className="text-xs text-muted-foreground pl-[22px] leading-snug"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {resultText}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Trust badges + delivery estimate */}
             <div className="grid grid-cols-3 gap-2 text-center">
