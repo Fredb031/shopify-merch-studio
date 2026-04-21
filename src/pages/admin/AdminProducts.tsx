@@ -1,4 +1,4 @@
-import { Search, Plus, RefreshCw, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Search, Plus, RefreshCw, ExternalLink, AlertTriangle, Download } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -14,6 +14,47 @@ const PAGE_SIZE = 32;
 function formatPrice(min: number, max: number): string {
   if (min === max) return `${min.toFixed(2)} $`;
   return `${min.toFixed(2)} – ${max.toFixed(2)} $`;
+}
+
+/** Generate and download a CSV for the currently filtered product list.
+ * Mirrors the AdminOrders helper: RFC 4180 quoting, formula-injection
+ * neutralising (leading '=' '+' '-' '@' get a TAB prefix so Excel /
+ * Sheets treat them as text), UTF-8 BOM so accents render without a
+ * manual encoding prompt, Blob + revokeObjectURL for a clean download.
+ * The snapshot shape has no per-size inventory or explicit colour list
+ * — we only know totalInventory (scalar) and variantsCount — so we
+ * export those honestly rather than fabricating sizes. */
+function exportProductsCsv(products: typeof SHOPIFY_PRODUCTS_SNAPSHOT) {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const priceCell = (min: number, max: number) =>
+    min === max ? min.toFixed(2) : `${min.toFixed(2)} – ${max.toFixed(2)}`;
+  const header = ['Nom', 'Catégorie', 'Fournisseur', 'Prix', 'Stock', 'Variantes'];
+  const rows = products.map(p => [
+    p.title,
+    p.productType || '—',
+    p.vendor || '—',
+    priceCell(p.minPrice, p.maxPrice),
+    // Clamp negatives — Shopify reports backorder as negative inventory,
+    // but an admin scanning a stock column wants 0 for "out", not -37.
+    String(Math.max(0, p.totalInventory)),
+    String(p.variantsCount),
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `products-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${products.length} produit${products.length > 1 ? 's' : ''} exporté${products.length > 1 ? 's' : ''}`);
 }
 
 // MOCK inventory trend series — Task 9.12.
@@ -98,9 +139,14 @@ export default function AdminProducts() {
 
   const [query, setQuery] = useState(initialQuery);
   const [typeFilter, setTypeFilter] = useState<string>(initialTypeFilter);
+  // 'default' keeps the snapshot order (alphabetical-ish). 'stock-asc'
+  // surfaces ruptures / near-ruptures to the top — the actionable axis
+  // for an admin scanning for reorder candidates.
+  const [sortBy, setSortBy] = useState<'default' | 'stock-asc'>('default');
+  const [onlyOutOfStock, setOnlyOutOfStock] = useState(false);
   const [page, setPage] = useState(0);
 
-  useEffect(() => { setPage(0); }, [query, typeFilter]);
+  useEffect(() => { setPage(0); }, [query, typeFilter, sortBy, onlyOutOfStock]);
   useDocumentTitle('Produits — Admin Vision Affichage');
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
@@ -135,15 +181,24 @@ export default function AdminProducts() {
     // of an SKU or vendor name from Slack could carry a sneaky ZWSP
     // and fall through to an empty grid.
     const q = normalizeInvisible(query).trim().toLowerCase();
-    return SHOPIFY_PRODUCTS_SNAPSHOT.filter(p => {
+    const filtered = SHOPIFY_PRODUCTS_SNAPSHOT.filter(p => {
       if (typeFilter !== 'all' && p.productType !== typeFilter) return false;
+      if (onlyOutOfStock && p.totalInventory > 0) return false;
       if (!q) return true;
       const title = normalizeInvisible(p.title).toLowerCase();
       const handle = normalizeInvisible(p.handle).toLowerCase();
       const vendor = normalizeInvisible(p.vendor).toLowerCase();
       return title.includes(q) || handle.includes(q) || vendor.includes(q);
     });
-  }, [query, typeFilter]);
+    if (sortBy === 'stock-asc') {
+      // Copy before sort — never mutate the module-level snapshot.
+      // Clamp negatives so backorder (-37) doesn't outrank a real 0.
+      return [...filtered].sort(
+        (a, b) => Math.max(0, a.totalInventory) - Math.max(0, b.totalInventory),
+      );
+    }
+    return filtered;
+  }, [query, typeFilter, onlyOutOfStock, sortBy]);
 
   const pageProducts = useMemo(
     () => products.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
@@ -165,6 +220,21 @@ export default function AdminProducts() {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => exportProductsCsv(products)}
+            disabled={products.length === 0}
+            title={products.length === 0
+              ? 'Aucun produit à exporter'
+              : `Exporter ${products.length} produit${products.length > 1 ? 's' : ''} en CSV`}
+            aria-label={products.length === 0
+              ? 'Aucun produit à exporter'
+              : `Exporter ${products.length} produit${products.length > 1 ? 's' : ''} en CSV`}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -215,6 +285,24 @@ export default function AdminProducts() {
               <option key={t} value={t}>{t === 'all' ? 'Tous les types' : t || 'Sans type'}</option>
             ))}
           </select>
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value as 'default' | 'stock-asc')}
+            aria-label="Trier les produits"
+            className="text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-white outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25"
+          >
+            <option value="default">Ordre par défaut</option>
+            <option value="stock-asc">Trier par stock (croissant)</option>
+          </select>
+          <label className="inline-flex items-center gap-2 text-sm text-zinc-700 cursor-pointer select-none focus-within:ring-2 focus-within:ring-[#0052CC]/25 rounded-lg px-2 py-1.5">
+            <input
+              type="checkbox"
+              checked={onlyOutOfStock}
+              onChange={e => setOnlyOutOfStock(e.target.checked)}
+              className="w-4 h-4 accent-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+            />
+            Afficher uniquement les ruptures
+          </label>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 p-4">
