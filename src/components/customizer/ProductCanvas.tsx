@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import {
   AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut,
-  ImageOff, Move, Trash2, Type, X,
+  ImageOff, Move, Trash2, Type, X, Undo2, Redo2,
 } from 'lucide-react';
 import { pickDefaultZone, type Product, type PrintZone } from '@/data/products';
 import type { LogoPlacement, ProductView } from '@/types/customization';
@@ -151,6 +151,22 @@ export function ProductCanvas({
   // bboxRef / textAssetsRef / zoneIdRef.
   const currentPlacementRef = useRef(currentPlacement);
   useEffect(() => { currentPlacementRef.current = currentPlacement; }, [currentPlacement]);
+
+  // ── Undo / redo history ─────────────────────────────────────────────────
+  // Snapshot-based: push `canvas.toJSON()` strings onto `past` every time a
+  // user action mutates the canvas (logo add/move/resize/delete, text add/
+  // delete). `future` fills up as the user undoes. Capped at 30 entries so
+  // a long editing session can't balloon memory — a single canvas JSON is
+  // already ~1-5 KB with a base64 logo.
+  // `skipHistoryRef` is raised during programmatic replay (loadFromJSON) so
+  // the mutation events fired by fabric during restore don't record a new
+  // snapshot (which would nuke the redo stack).
+  const historyRef = useRef<{ past: string[]; future: string[] }>({ past: [], future: [] });
+  const skipHistoryRef = useRef(false);
+  const [historyTick, setHistoryTick] = useState(0); // bumps when past/future lengths change → re-renders toolbar disabled states
+  const HISTORY_CAP = 30;
+  const EXTRA_PROPS = ['vaRole', 'vaId', 'side', 'selectable', 'evented', 'lockMovementX', 'lockMovementY', 'lockUniScaling', 'lockScalingFlip', 'hoverCursor', 'hasControls', 'hasBorders', 'padding', 'excludeFromExport', 'originX', 'originY'];
+
   const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (pickDefaultZone(product.printZones)?.id ?? ''),
@@ -406,6 +422,7 @@ export function ProductCanvas({
               lockMovementX: true, lockMovementY: true,
               hoverCursor: 'default',
             });
+            (img as unknown as { vaRole?: string }).vaRole = 'photo';
             canvas.add(img);
             canvas.sendToBack(img);
             photoObj.current = img;
@@ -440,6 +457,7 @@ export function ProductCanvas({
               globalCompositeOperation: 'multiply',
               selectable: false, evented: false,
             });
+            (tint as unknown as { vaRole?: string }).vaRole = 'tint';
             canvas.add(tint);
             tintObj.current = tint;
           }
@@ -577,6 +595,7 @@ export function ProductCanvas({
               lockMovementX: true, lockMovementY: true,
               hoverCursor: 'default',
             });
+            (img as unknown as { vaRole?: string; excludeFromExport?: boolean }).vaRole = 'photo';
             canvas.add(img);
             canvas.sendToBack(img);
             photoObj.current = img;
@@ -598,6 +617,7 @@ export function ProductCanvas({
                 globalCompositeOperation: 'multiply',
                 selectable: false, evented: false,
               });
+              (tint as unknown as { vaRole?: string }).vaRole = 'tint';
               canvas.add(tint);
               tintObj.current = tint;
             }
@@ -633,6 +653,7 @@ export function ProductCanvas({
                   rx: 8, ry: 8,
                   selectable: false, evented: false,
                 });
+                (outline as unknown as { vaRole?: string }).vaRole = 'mask';
                 canvas.add(outline);
                 maskRef.current = outline;
               }
@@ -666,6 +687,8 @@ export function ProductCanvas({
         opacity: 0,
         excludeFromExport: true,
       });
+      (guideX as unknown as { vaRole?: string }).vaRole = 'guide';
+      (guideY as unknown as { vaRole?: string }).vaRole = 'guide';
       canvas.add(guideX);
       canvas.add(guideY);
 
@@ -734,6 +757,45 @@ export function ProductCanvas({
       });
       canvas.on('mouse:up', hideGuides);
       canvas.on('selection:cleared', hideGuides);
+
+      // ── Undo/redo snapshot capture ──────────────────────────────────
+      // Subscribe to content-mutating events and push a JSON snapshot
+      // onto `past`. We ignore events fired during programmatic replay
+      // (skipHistoryRef) and events whose target is infrastructure
+      // (photo/tint/mask/guide) — only user content changes should
+      // record history. The `ready` gate suppresses the flood of
+      // add events from the initial photo/tint/mask setup.
+      const pushSnapshot = () => {
+        if (skipHistoryRef.current) return;
+        if (!fc.current) return;
+        try {
+          const snap = JSON.stringify(fc.current.toJSON(EXTRA_PROPS));
+          const h = historyRef.current;
+          h.past.push(snap);
+          if (h.past.length > HISTORY_CAP) h.past.shift();
+          h.future = [];
+          setHistoryTick(t => t + 1);
+        } catch {
+          // toJSON can throw on tainted canvases; history is a polish
+          // feature — never let it break the canvas.
+        }
+      };
+      const isUserContent = (target?: { vaRole?: string }) => {
+        const role = target?.vaRole;
+        return role === 'logo' || role === 'text';
+      };
+      canvas.on('object:added', (e: { target?: { vaRole?: string } }) => {
+        if (!isUserContent(e.target)) return;
+        pushSnapshot();
+      });
+      canvas.on('object:modified', (e: { target?: { vaRole?: string } }) => {
+        if (!isUserContent(e.target)) return;
+        pushSnapshot();
+      });
+      canvas.on('object:removed', (e: { target?: { vaRole?: string } }) => {
+        if (!isUserContent(e.target)) return;
+        pushSnapshot();
+      });
     });
 
     return () => {
@@ -815,6 +877,8 @@ export function ProductCanvas({
         });
         t.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
         (t as FabricObj & { side: ProductView }).side = asset.side;
+        (t as unknown as { vaRole?: string; vaId?: string }).vaRole = 'text';
+        (t as unknown as { vaRole?: string; vaId?: string }).vaId = asset.id;
         canvas.add(t);
         textObjects.current.set(asset.id, t as FabricObj & { side: ProductView });
       }
@@ -919,6 +983,9 @@ export function ProductCanvas({
             tl: true, tr: true, bl: true, br: true,
             mtr: true,
           });
+          // Tag so the undo/redo replay can rebind logoObj.current after
+          // loadFromJSON swaps in a fresh set of fabric objects.
+          (img as unknown as { vaRole?: string }).vaRole = 'logo';
           canvas.add(img);
           canvas.setActiveObject(img);
           canvas.bringToFront(img);
@@ -1130,6 +1197,8 @@ export function ProductCanvas({
       // changes, so text on the back doesn't bleed onto the front view.
       const side = activeView;
       (t as FabricObj & { side: ProductView }).side = side;
+      (t as unknown as { vaRole?: string; vaId?: string }).vaRole = 'text';
+      (t as unknown as { vaRole?: string; vaId?: string }).vaId = id;
       canvas.add(t);
       canvas.setActiveObject(t);
       canvas.bringToFront(t);
@@ -1210,6 +1279,99 @@ export function ProductCanvas({
   const zoomOut = () => setZoomLevel(z => clampZoom(z - ZOOM_STEP));
   const zoomReset = () => setZoomLevel(1);
 
+  // ── Undo / redo restore ────────────────────────────────────────────────
+  // Replay a snapshot: loadFromJSON swaps every fabric object on the canvas
+  // for fresh instances, so the logo / text / photo / mask refs we hold are
+  // all stale afterwards. Walk the fresh object list and re-bind refs by
+  // the vaRole tag we attach at creation time. skipHistoryRef suppresses
+  // the object:added/removed/modified firehose fabric fires during load.
+  const restoreFromSnapshot = useCallback((snap: string) => {
+    if (!fc.current) return;
+    const canvas = fc.current;
+    skipHistoryRef.current = true;
+    try {
+      canvas.loadFromJSON(snap, () => {
+        try {
+          // Rebind refs from the freshly-loaded object list.
+          logoObj.current = null;
+          photoObj.current = null;
+          tintObj.current = null;
+          maskRef.current = null;
+          textObjects.current.clear();
+          const objs = (canvas.getObjects?.() ?? []) as Array<FabricObj & { vaRole?: string; vaId?: string; side?: ProductView }>;
+          for (const o of objs) {
+            switch (o.vaRole) {
+              case 'logo':  logoObj.current = o; break;
+              case 'photo': photoObj.current = o; break;
+              case 'tint':  tintObj.current = o; break;
+              case 'mask':  maskRef.current = o; break;
+              case 'text':
+                if (o.vaId) textObjects.current.set(o.vaId, o as FabricObj & { side: ProductView });
+                break;
+            }
+          }
+          // loadFromJSON drops controlsVisibility — reapply on the logo so
+          // the user can still resize only from corners after an undo.
+          const logo = logoObj.current as unknown as { setControlsVisibility?: (v: Record<string, boolean>) => void } | null;
+          logo?.setControlsVisibility?.({ mt: false, mb: false, ml: false, mr: false, tl: true, tr: true, bl: true, br: true, mtr: true });
+          textObjects.current.forEach(t => {
+            (t as unknown as { setControlsVisibility?: (v: Record<string, boolean>) => void }).setControlsVisibility?.({ mt: false, mb: false, ml: false, mr: false });
+          });
+          // Push placement back to the parent so the store + size column
+          // reflects the restored logo position.
+          if (logoObj.current) {
+            emitRef.current(logoObj.current, zoneIdRef.current || 'manual');
+          } else {
+            // Logo was removed in this snapshot — tell parent to clear.
+            onPlacementChange({ zoneId: zoneIdRef.current, mode: 'preset', previewUrl: undefined });
+          }
+          canvas.requestRenderAll?.();
+        } finally {
+          skipHistoryRef.current = false;
+        }
+      }, (_obj: unknown, _err?: unknown) => {
+        // per-object reviver; nothing to do — tag props are restored
+        // automatically because we listed them in EXTRA_PROPS at save time.
+      });
+    } catch {
+      skipHistoryRef.current = false;
+    }
+  }, [onPlacementChange]);
+
+  const undo = useCallback(() => {
+    const h = historyRef.current;
+    if (h.past.length < 2) return; // need the current + at least one prior
+    const current = h.past.pop()!;
+    h.future.push(current);
+    const prev = h.past[h.past.length - 1];
+    restoreFromSnapshot(prev);
+    setHistoryTick(t => t + 1);
+  }, [restoreFromSnapshot]);
+
+  const redo = useCallback(() => {
+    const h = historyRef.current;
+    if (h.future.length === 0) return;
+    const next = h.future.pop()!;
+    h.past.push(next);
+    restoreFromSnapshot(next);
+    setHistoryTick(t => t + 1);
+  }, [restoreFromSnapshot]);
+
+  // Seed the history stack with the "empty canvas" state once ready flips
+  // true. This way the first user action has a previous snapshot to undo
+  // back to (undo removes whatever they just added). Cleared when the
+  // canvas rebuilds (canvasKey change) — init effect recreates everything.
+  useEffect(() => {
+    if (!ready || !fc.current) return;
+    historyRef.current = { past: [], future: [] };
+    try {
+      const snap = JSON.stringify(fc.current.toJSON(EXTRA_PROPS));
+      historyRef.current.past.push(snap);
+      setHistoryTick(t => t + 1);
+    } catch { /* noop */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, canvasKey]);
+
   // Delete/Backspace key removes the currently selected canvas object.
   // Arrow keys nudge the selected object by 1 px (default) / 5 px (Shift)
   // / 10 px (Cmd or Ctrl). Both behaviours share the same global listener
@@ -1223,6 +1385,26 @@ export function ProductCanvas({
       if (!fc.current) return;
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+
+      // Undo / redo — Cmd/Ctrl+Z and Cmd/Ctrl+Shift+Z (also Ctrl+Y on
+      // Windows muscle memory). Handled before the arrow/delete branches
+      // so neither bubbles into a nudge/delete on Z keys that somehow
+      // arrive without the modifier. Skips when an IText is in edit
+      // mode so in-text undo (fabric's own char history) still works.
+      const mod = e.metaKey || e.ctrlKey;
+      const isZ = e.key === 'z' || e.key === 'Z';
+      const isY = e.key === 'y' || e.key === 'Y';
+      if (mod && (isZ || isY)) {
+        const active = fc.current.getActiveObject?.();
+        if (active && (active as unknown as { isEditing?: boolean }).isEditing) return;
+        if (isY || (isZ && e.shiftKey)) {
+          redo();
+        } else {
+          undo();
+        }
+        e.preventDefault();
+        return;
+      }
 
       const isArrow = e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight';
       const isDelete = e.key === 'Delete' || e.key === 'Backspace';
@@ -1296,9 +1478,10 @@ export function ProductCanvas({
     // us to memoize it for no behavioural gain. The handler always reads
     // fresh state via refs. showPlacementTools is included so the early
     // bail-out reflects the current step (step 3/4 must not delete the logo
-    // or nudge it — review/checkout steps are read-only).
+    // or nudge it — review/checkout steps are read-only). undo/redo are
+    // listed so the listener captures the latest history callbacks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPlacementTools]);
+  }, [showPlacementTools, undo, redo]);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -1360,6 +1543,46 @@ export function ProductCanvas({
             </div>
           </div>
         )}
+
+        {/* Undo / Redo — always visible during placement so the user can
+            recover from an accidental delete even after the toolbar below
+            (gated on logoUrl) disappears. Anchored bottom-right of the
+            canvas so it mirrors the zoom controls on the bottom-left. */}
+        {ready && showPlacementTools && (() => {
+          const canUndo = historyRef.current.past.length > 1;
+          const canRedo = historyRef.current.future.length > 0;
+          // Reference historyTick so lint/React re-runs this block when
+          // past/future mutate; value itself is unused.
+          void historyTick;
+          return (
+            <div
+              className="absolute bottom-3 right-3 flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-full p-0.5 border border-border shadow-sm"
+              role="group"
+              aria-label={lang === 'en' ? 'History' : 'Historique'}
+            >
+              <button
+                type="button"
+                onClick={undo}
+                disabled={!canUndo}
+                aria-label={lang === 'en' ? 'Undo (Cmd/Ctrl+Z)' : 'Annuler (Cmd/Ctrl+Z)'}
+                title={lang === 'en' ? 'Undo (Cmd/Ctrl+Z)' : 'Annuler (Cmd/Ctrl+Z)'}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              >
+                <Undo2 size={13} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={redo}
+                disabled={!canRedo}
+                aria-label={lang === 'en' ? 'Redo (Cmd/Ctrl+Shift+Z)' : 'Rétablir (Cmd/Ctrl+Maj+Z)'}
+                title={lang === 'en' ? 'Redo (Cmd/Ctrl+Shift+Z)' : 'Rétablir (Cmd/Ctrl+Maj+Z)'}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+              >
+                <Redo2 size={13} aria-hidden="true" />
+              </button>
+            </div>
+          );
+        })()}
 
         {/* Zoom controls — preview-only viewport zoom, anchored bottom-left.
             Clamped 0.5x – 2.0x at 0.25 steps. Reset returns to 1.0. Does
