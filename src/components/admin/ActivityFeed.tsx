@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ShoppingBag, ShoppingCart, UserPlus, AlertCircle } from 'lucide-react';
+import { ShoppingBag, ShoppingCart, UserPlus, AlertCircle, ChevronDown } from 'lucide-react';
 import { memo, useEffect, useMemo, useState } from 'react';
 import {
   SHOPIFY_ORDERS_SNAPSHOT,
@@ -16,6 +16,38 @@ interface ActivityItem {
   title: string;
   detail: string;
   href: string;
+}
+
+// How many items to show before the admin clicks "Voir plus".
+// 20 balances "see a meaningful slice of the day" with "don't
+// drown a quiet dashboard in a wall of customer signups".
+const INITIAL_VISIBLE = 20;
+
+// Group label for an activity timestamp. We bucket into four
+// human-readable bins instead of showing 30 identical "14 avr."
+// headers for a busy week. Older entries get an absolute date so
+// admins can still anchor themselves in time.
+function groupLabel(ts: number, now: number): string {
+  const d = new Date(ts);
+  const n = new Date(now);
+  const startOfDay = (x: Date) =>
+    new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const today = startOfDay(n);
+  const yesterday = today - 86_400_000;
+  const weekAgo = today - 6 * 86_400_000;
+  const entry = startOfDay(d);
+  if (entry === today) return "Aujourd'hui";
+  if (entry === yesterday) return 'Hier';
+  if (entry > weekAgo) return 'Cette semaine';
+  try {
+    return d.toLocaleDateString('fr-CA', {
+      day: 'numeric',
+      month: 'long',
+      year: d.getFullYear() === n.getFullYear() ? undefined : 'numeric',
+    });
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
 }
 
 function relativeTime(ts: number): string {
@@ -61,6 +93,8 @@ function ActivityFeedInner() {
     return () => window.clearInterval(id);
   }, []);
 
+  const [expanded, setExpanded] = useState(false);
+
   const items = useMemo<ActivityItem[]>(() => {
     const all: ActivityItem[] = [];
 
@@ -103,8 +137,34 @@ function ActivityFeedInner() {
       });
     });
 
-    return all.sort((a, b) => b.ts - a.ts).slice(0, 12);
+    // Keep a larger working set than we display so the "Voir plus"
+    // button has something to reveal. The feed is in-memory data,
+    // so the cost is negligible.
+    return all.sort((a, b) => b.ts - a.ts).slice(0, 60);
   }, []);
+
+  const visibleItems = expanded ? items : items.slice(0, INITIAL_VISIBLE);
+
+  // Group visible items by day bucket while preserving the sorted
+  // (newest-first) order. Using a plain array of [label, items]
+  // rather than a Map so React can key on index and the order of
+  // insertion is stable.
+  const groups = useMemo<Array<[string, ActivityItem[]]>>(() => {
+    const now = Date.now();
+    const out: Array<[string, ActivityItem[]]> = [];
+    for (const item of visibleItems) {
+      const label = groupLabel(item.ts, now);
+      const last = out[out.length - 1];
+      if (last && last[0] === label) {
+        last[1].push(item);
+      } else {
+        out.push([label, [item]]);
+      }
+    }
+    return out;
+  }, [visibleItems]);
+
+  const hiddenCount = Math.max(0, items.length - INITIAL_VISIBLE);
 
   if (items.length === 0) {
     return (
@@ -124,32 +184,52 @@ function ActivityFeedInner() {
           Live
         </span>
       </div>
-      <div className="space-y-1 max-h-[480px] overflow-y-auto -mx-2">
-        {items.map(item => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.id}
-              to={item.href}
-              className="flex items-start gap-3 px-2 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
-            >
-              <div className={`w-8 h-8 rounded-lg ${item.iconBg} ${item.iconColor} flex items-center justify-center flex-shrink-0`}>
-                <Icon size={14} aria-hidden="true" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm truncate">{item.title}</div>
-                <div className="text-[11px] text-zinc-500 truncate">{item.detail}</div>
-              </div>
-              <time
-                dateTime={new Date(item.ts).toISOString()}
-                title={absoluteTime(item.ts)}
-                className="text-[10px] text-zinc-400 whitespace-nowrap font-medium pt-1"
-              >
-                {relativeTime(item.ts)}
-              </time>
-            </Link>
-          );
-        })}
+      <div className="max-h-[480px] overflow-y-auto -mx-2">
+        {groups.map(([label, groupItems]) => (
+          <div key={label} className="mb-2 last:mb-0">
+            <div className="px-2 pt-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+              {label}
+            </div>
+            <div className="space-y-1">
+              {groupItems.map(item => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.id}
+                    to={item.href}
+                    className="flex items-start gap-3 px-2 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                  >
+                    <div className={`w-8 h-8 rounded-lg ${item.iconBg} ${item.iconColor} flex items-center justify-center flex-shrink-0`}>
+                      <Icon size={14} aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">{item.title}</div>
+                      <div className="text-[11px] text-zinc-500 truncate">{item.detail}</div>
+                    </div>
+                    <time
+                      dateTime={new Date(item.ts).toISOString()}
+                      title={absoluteTime(item.ts)}
+                      className="text-[10px] text-zinc-400 whitespace-nowrap font-medium pt-1"
+                    >
+                      {relativeTime(item.ts)}
+                    </time>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+        {hiddenCount > 0 && !expanded && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-semibold text-[#0052CC] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            aria-label={`Voir ${hiddenCount} activités de plus`}
+          >
+            <ChevronDown size={14} aria-hidden="true" />
+            Voir plus ({hiddenCount})
+          </button>
+        )}
       </div>
     </div>
   );
