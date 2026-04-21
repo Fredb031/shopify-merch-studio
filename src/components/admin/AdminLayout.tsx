@@ -90,6 +90,8 @@ export function AdminLayout() {
                   <span
                     className="text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
                     aria-label={`${SHOPIFY_STATS.awaitingFulfillment} commande${SHOPIFY_STATS.awaitingFulfillment > 1 ? 's' : ''} à expédier`}
+                    aria-live="polite"
+                    aria-atomic="true"
                   >
                     {SHOPIFY_STATS.awaitingFulfillment}
                   </span>
