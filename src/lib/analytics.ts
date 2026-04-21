@@ -31,8 +31,22 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
+    fbq?: (...args: unknown[]) => void;
   }
 }
+
+/**
+ * Map our vendor-neutral event names to Meta Pixel's standard event
+ * vocabulary. Events not in this map are skipped for Pixel dispatch —
+ * Meta's standard-event set is closed and custom events require a
+ * different call shape (`trackCustom`) we don't need yet.
+ */
+const PIXEL_EVENT_MAP: Record<string, string> = {
+  add_to_cart: 'AddToCart',
+  begin_checkout: 'InitiateCheckout',
+  purchase: 'Purchase',
+  select_product: 'ViewContent',
+};
 
 function appendToDiagnosticQueue(entry: DataLayerPush): void {
   // Swallow every throw — localStorage can reject on quota, private
@@ -66,10 +80,12 @@ function appendToDiagnosticQueue(entry: DataLayerPush): void {
 
 export function trackEvent(name: string, params?: Record<string, unknown>): void {
   if (typeof window === 'undefined') return;
-  // Law 25 gate: until the user has explicitly opted in to analytics,
-  // return early without touching dataLayer, gtag, or localStorage.
+  // Law 25 gates: analytics consent controls GA4/dataLayer/diagnostics;
+  // marketing consent controls the Meta Pixel dispatch. They're
+  // independent categories in CookieConsent so we check each separately
+  // and fire whichever the visitor has opted into.
   const consent = getCookieConsent();
-  if (!consent || consent.analytics !== true) return;
+  if (!consent) return;
 
   const entry: DataLayerPush = {
     event: name,
@@ -77,24 +93,43 @@ export function trackEvent(name: string, params?: Record<string, unknown>): void
     ts: new Date().toISOString(),
   };
 
-  // dataLayer queue — the standard GTM/GA4 bootstrap looks for
-  // `window.dataLayer` and replays its contents once the tag loads, so
-  // events dispatched before the snippet initializes still count.
-  try {
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push(entry);
-  } catch {
-    /* non-extensible window (rare) — ignore */
+  if (consent.analytics === true) {
+    // dataLayer queue — the standard GTM/GA4 bootstrap looks for
+    // `window.dataLayer` and replays its contents once the tag loads,
+    // so events dispatched before the snippet initializes still count.
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push(entry);
+    } catch {
+      /* non-extensible window (rare) — ignore */
+    }
+
+    // Direct gtag call when the GA4 snippet is already on the page.
+    // Optional-chaining means this no-ops until the owner pastes the
+    // snippet into index.html.
+    try {
+      window.gtag?.('event', name, params ?? {});
+    } catch {
+      /* vendor script threw — don't let it bubble to the caller */
+    }
+
+    appendToDiagnosticQueue(entry);
   }
 
-  // Direct gtag call when the GA4 snippet is already on the page.
-  // Optional-chaining means this no-ops until the owner pastes the
-  // snippet into index.html.
-  try {
-    window.gtag?.('event', name, params ?? {});
-  } catch {
-    /* vendor script threw — don't let it bubble to the caller */
+  if (consent.marketing === true) {
+    // Meta Pixel dispatch. `window.fbq` is only defined after the
+    // owner pastes the Pixel bootstrap snippet into index.html; until
+    // then the optional-chain short-circuits and nothing fires. We
+    // only forward events that map to a Meta standard event —
+    // unmapped names are skipped (trackCustom would be a separate
+    // call shape we don't need yet).
+    const pixelEvent = PIXEL_EVENT_MAP[name];
+    if (pixelEvent) {
+      try {
+        window.fbq?.('track', pixelEvent, params ?? {});
+      } catch {
+        /* vendor script threw — don't let it bubble to the caller */
+      }
+    }
   }
-
-  appendToDiagnosticQueue(entry);
 }
