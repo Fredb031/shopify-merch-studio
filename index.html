@@ -11,9 +11,18 @@
     <meta name="author" content="Vision Affichage" />
     <meta name="theme-color" content="#1B3A6B" />
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Favicon — full standard set.
+         .ico for legacy browsers (IE/older Edge), .svg for modern browsers
+         (scales crisply at any DPI), discrete 16/32 PNGs for browsers that
+         ignore SVG, 180×180 apple-touch-icon for iOS home-screen, and a
+         mask-icon with brand navy for Safari pinned tabs. PNG/ICO binaries
+         are owner-uploads (see /public/icons/README.md). -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/favicon.svg" color="#1B3A6B" />
 
     <!-- PWA manifest — lets users 'Add to Home Screen' on mobile and
          controls the theme/color of the installed app. manifest.json is
