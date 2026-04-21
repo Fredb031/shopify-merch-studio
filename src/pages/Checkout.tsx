@@ -12,6 +12,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { fmtMoney as fmtCAD } from '@/lib/format';
+import { trackEvent } from '@/lib/analytics';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
@@ -177,6 +178,40 @@ export default function Checkout() {
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
   }, []);
+
+  // GA4 begin_checkout — fires once on mount when the buyer lands on
+  // /checkout with items in the cart. Skipped when the page is a
+  // Shopify post-payment redirect (?step=done) because that flow
+  // never went through the on-site info/shipping/payment funnel, and
+  // the purchase effect below is the correct signal for those loads.
+  const beginCheckoutFiredRef = useRef(false);
+  useEffect(() => {
+    if (beginCheckoutFiredRef.current) return;
+    if (initialStep === 'done') return;
+    if (cart.items.length === 0) return;
+    beginCheckoutFiredRef.current = true;
+    trackEvent('begin_checkout', {
+      item_count: cart.getItemCount(),
+      value: cart.getTotal(),
+      currency: 'CAD',
+    });
+  }, [cart, initialStep]);
+
+  // GA4 purchase — fires the moment the checkout UI flips to the
+  // `done` state, either because the user completed the on-site flow
+  // or because Shopify's thank-you page redirected back with
+  // ?step=done&order=VA-…. Guarded with a ref so a re-render of the
+  // done screen (lang toggle, title update) doesn't re-fire it.
+  const purchaseFiredRef = useRef(false);
+  useEffect(() => {
+    if (step !== 'done') return;
+    if (purchaseFiredRef.current) return;
+    purchaseFiredRef.current = true;
+    trackEvent('purchase', {
+      transaction_id: orderNumber || undefined,
+      currency: 'CAD',
+    });
+  }, [step, orderNumber]);
 
   const prefilledRef = useRef(false);
   useEffect(() => {

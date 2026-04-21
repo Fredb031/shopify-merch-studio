@@ -13,6 +13,7 @@ import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
 import { filterRealColors } from '@/lib/colorFilter';
 import { fmtMoney } from '@/lib/format';
+import { trackEvent } from '@/lib/analytics';
 
 interface ProductCardProps {
   product: ShopifyProduct;
@@ -86,7 +87,17 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
     if (wasAdding) setBurstKey(k => k + 1);
   };
 
-  const handleCardClick = () => { if (handle) navigate(`/product/${handle}`); };
+  const handleCardClick = () => {
+    if (!handle) return;
+    // GA4 select_product — consent-gated; dispatches the SKU + title
+    // so the owner can see which grid cards turn into PDP visits.
+    trackEvent('select_product', {
+      product_handle: handle,
+      product_name: local?.shortName ?? title,
+      sku: local?.sku,
+    });
+    navigate(`/product/${handle}`);
+  };
   const handleCustomize = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (local) setCustomizerOpen(true);

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { CartItemCustomization } from '@/types/customization';
 import { normalizeInvisible } from '@/lib/utils';
 import { getSettings, DEFAULT_APP_SETTINGS } from '@/lib/appSettings';
+import { trackEvent } from '@/lib/analytics';
 
 // crypto.randomUUID is not available on every browser we ship to
 // (older mobile Safari, some in-app WebViews). Fall back to a
@@ -66,6 +67,16 @@ export const useCartStore = create<CartStore>()(
         set((state) => ({
           items: [...state.items, { ...item, cartId, addedAt: new Date() }],
         }));
+        // GA4 add_to_cart — consent-gated; no-ops until the owner
+        // pastes a tracker snippet + the buyer opts in.
+        trackEvent('add_to_cart', {
+          cart_id: cartId,
+          product_id: item.productId,
+          product_name: item.productName,
+          quantity: item.totalQuantity,
+          value: item.totalPrice,
+          currency: 'CAD',
+        });
       },
 
       removeItem: (cartId) =>
