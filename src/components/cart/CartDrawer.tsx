@@ -331,7 +331,19 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 </button>
               </div>
             )}
-            {codeMsg && <p className={`text-xs font-bold px-1 ${codeMsg.ok ? 'text-green-700' : 'text-destructive'}`}>{codeMsg.text}</p>}
+            {/* Live region so screen-reader users hear "Code X applied!" /
+                "Invalid code" instead of being left to wonder what happened
+                after they hit Apply. role=status (polite) — it's advisory
+                feedback, not an interruption. */}
+            {codeMsg && (
+              <p
+                role="status"
+                aria-live="polite"
+                className={`text-xs font-bold px-1 ${codeMsg.ok ? 'text-green-700' : 'text-destructive'}`}
+              >
+                {codeMsg.text}
+              </p>
+            )}
 
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">{t('totalEstimeLabel')}</span>
