@@ -1,4 +1,4 @@
-import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search, Check, X, Clock } from 'lucide-react';
+import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search, Check, X, Clock, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -130,6 +130,24 @@ function formatSentAgo(iso: string): string {
   return `il y a ${Math.floor(days / 7)} sem.`;
 }
 
+// 24h rate-limit window for the quick-send button. Prevents an admin
+// from spamming a customer by re-clicking on the same row — and from
+// double-firing when the Bulk action is triggered twice in a row.
+const QUICK_SEND_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+function reminderHoursAgo(sentAt: string): number {
+  const sent = new Date(sentAt).getTime();
+  if (Number.isNaN(sent)) return Infinity;
+  return Math.floor((Date.now() - sent) / (60 * 60 * 1000));
+}
+
+function isWithinCooldown(reminder: { sentAt: string } | undefined): boolean {
+  if (!reminder) return false;
+  const sent = new Date(reminder.sentAt).getTime();
+  if (Number.isNaN(sent)) return false;
+  return Date.now() - sent < QUICK_SEND_COOLDOWN_MS;
+}
+
 type AbandonedSort = 'recent' | 'value';
 const VALID_SORTS: readonly AbandonedSort[] = ['recent', 'value'];
 
@@ -211,6 +229,43 @@ export default function AdminAbandonedCarts() {
     });
   }, []);
 
+  // Quick-send path — no dialog, fires the default template straight
+  // through trySendEmail + ledger. Returns true on success so the bulk
+  // driver can count + toast the aggregate result. We re-check the
+  // cooldown here so the bulk caller doesn't have to dedupe.
+  const quickSend = useCallback(async (
+    checkout: ShopifyAbandonedCheckoutSnapshot,
+    options?: { silent?: boolean },
+  ): Promise<boolean> => {
+    const existing = loadReminders()[String(checkout.id)];
+    if (isWithinCooldown(existing)) {
+      if (!options?.silent) {
+        toast.warning(`Rappel déjà envoyé il y a ${reminderHoursAgo(existing!.sentAt)}h`);
+      }
+      return false;
+    }
+    const defaults = buildDefaultReminder(checkout);
+    const sentAt = new Date().toISOString();
+    try {
+      const result = await trySendEmail({ to: checkout.email, subject: defaults.subject, body: defaults.body });
+      appendEmailLog({ cartId: checkout.id, to: checkout.email, subject: defaults.subject, body: defaults.body, sentAt });
+      markReminderSent(checkout.id);
+      if (!options?.silent) {
+        if (result.via === 'sender') {
+          toast.success(`Rappel envoyé à ${checkout.email}`);
+        } else {
+          toast.success(`Rappel consigné pour ${checkout.email} (envoi Zapier non configuré).`);
+        }
+      }
+      return true;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      if (!options?.silent) toast.error(`Échec de l'envoi : ${msg}`);
+      return false;
+    }
+  }, [markReminderSent]);
+
+
   const sorted = useMemo(() => {
     // Filter before sort so the sorted output is already narrowed.
     // ZWSP-strip both sides — same pattern as other admin tables.
@@ -237,6 +292,40 @@ export default function AdminAbandonedCarts() {
   // Reset page on sort change so user isn't stranded.
   useEffect(() => { setPage(0); }, [sort]);
 
+  // Candidates for the bulk send: every cart currently visible after
+  // search / filter that hasn't been nudged in the last 24h. Using
+  // `sorted` (not the raw snapshot) keeps the button action aligned
+  // with what the admin is looking at — a narrowed search ⇒ narrowed
+  // bulk send.
+  const bulkCandidates = useMemo(
+    () => sorted.filter(c => !isWithinCooldown(reminders[String(c.id)])),
+    [sorted, reminders],
+  );
+
+  const [bulkSending, setBulkSending] = useState(false);
+  const handleBulkQuickSend = useCallback(async () => {
+    if (bulkSending || bulkCandidates.length === 0) return;
+    setBulkSending(true);
+    let sent = 0;
+    let skipped = 0;
+    // Sequential awaits so each send is logged + ledger-updated in
+    // turn — trySendEmail hits at worst localStorage, so the latency
+    // stays sub-second even for ~20 rows and we get correct counts
+    // instead of a Promise.all race on the shared setState.
+    for (const c of bulkCandidates) {
+      const ok = await quickSend(c, { silent: true });
+      if (ok) sent += 1; else skipped += 1;
+    }
+    if (sent === 0) {
+      toast.warning('Aucun rappel envoyé — tous les paniers éligibles ont déjà reçu un rappel récent.');
+    } else if (skipped === 0) {
+      toast.success(`Rappel envoyé à ${sent} panier${sent > 1 ? 's' : ''}.`);
+    } else {
+      toast.success(`Rappel envoyé à ${sent} panier${sent > 1 ? 's' : ''} (${skipped} ignoré${skipped > 1 ? 's' : ''}).`);
+    }
+    setBulkSending(false);
+  }, [bulkSending, bulkCandidates, quickSend]);
+
   const pageItems = useMemo(
     () => sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
     [sorted, page],
@@ -261,18 +350,44 @@ export default function AdminAbandonedCarts() {
             a short delay so the admin sees the spinner state. Before this
             the button was decorative with no onClick and clicking produced
             no visible reaction — the whole page read as broken. */}
-        <button
-          type="button"
-          onClick={() => {
-            toast.info('Synchronisation en cours…');
-            if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
-            resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
-          }}
-          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
-        >
-          <RefreshCw size={15} aria-hidden="true" />
-          Resync
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Bulk quick-send — amber/gold Zap chrome matches the
+              single-row button so the relationship reads at a glance.
+              Disabled when no eligible rows remain, so the count going
+              to 0 is the admin's signal the queue is drained. */}
+          <button
+            type="button"
+            onClick={handleBulkQuickSend}
+            disabled={bulkSending || bulkCandidates.length === 0}
+            title={bulkCandidates.length === 0
+              ? 'Tous les paniers visibles ont déjà reçu un rappel récent.'
+              : `Envoi rapide à ${bulkCandidates.length} panier${bulkCandidates.length > 1 ? 's' : ''} sans rappel récent`}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-amber-300 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {bulkSending ? (
+              <RefreshCw size={15} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Zap size={15} aria-hidden="true" className="text-amber-600" />
+            )}
+            {bulkSending
+              ? 'Envoi en cours…'
+              : bulkCandidates.length > 0
+                ? `Envoi rapide à ${bulkCandidates.length} panier${bulkCandidates.length > 1 ? 's' : ''}`
+                : 'Tous les rappels sont à jour'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              toast.info('Synchronisation en cours…');
+              if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+              resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
+            }}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            Resync
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -369,6 +484,7 @@ export default function AdminAbandonedCarts() {
                 checkout={c}
                 reminder={reminders[String(c.id)]}
                 onOpenReminder={() => setDialogCart(c)}
+                onQuickSend={() => quickSend(c)}
               />
             ))
           )}
@@ -430,13 +546,27 @@ function CheckoutRow({
   checkout,
   reminder,
   onOpenReminder,
+  onQuickSend,
 }: {
   checkout: ShopifyAbandonedCheckoutSnapshot;
   reminder: { sentAt: string } | undefined;
   onOpenReminder: () => void;
+  onQuickSend: () => Promise<boolean>;
 }) {
   const name = checkout.customerName.trim() || checkout.email.split('@')[0];
   const valueColor = checkout.total >= 200 ? 'text-emerald-700' : checkout.total >= 75 ? 'text-amber-700' : 'text-zinc-500';
+  const [quickSending, setQuickSending] = useState(false);
+  const onCooldown = isWithinCooldown(reminder);
+  const hoursAgo = reminder ? reminderHoursAgo(reminder.sentAt) : 0;
+  const quickDisabled = quickSending || onCooldown;
+  const quickTitle = onCooldown
+    ? `Rappel envoyé il y a ${hoursAgo}h — attendez 24h`
+    : 'Envoi immédiat du rappel par défaut';
+  const handleQuickClick = async () => {
+    if (quickDisabled) return;
+    setQuickSending(true);
+    try { await onQuickSend(); } finally { setQuickSending(false); }
+  };
 
   return (
     // focus-within mirrors the hover state when a keyboard user tabs
@@ -469,6 +599,28 @@ function CheckoutRow({
       <div className={`text-sm font-extrabold min-w-[80px] text-right ${valueColor}`}>
         {checkout.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $
       </div>
+      {/* Quick-send (Zap) — fires the default template straight through
+          without opening the dialog. Paired with the dialog-backed
+          Envoyer button so the admin has both: "edit first" (Send icon)
+          and "just go" (Zap icon). Gated to one send per 24h via the
+          shared vision-cart-reminders ledger. */}
+      <button
+        type="button"
+        onClick={handleQuickClick}
+        disabled={quickDisabled}
+        title={quickTitle}
+        className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 border border-amber-300 rounded-lg bg-amber-50 text-amber-800 hover:bg-amber-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label={onCooldown
+          ? `Rappel déjà envoyé à ${name} il y a ${hoursAgo} heures`
+          : `Envoi rapide du rappel par défaut à ${name}`}
+      >
+        {quickSending ? (
+          <RefreshCw size={12} className="animate-spin" aria-hidden="true" />
+        ) : (
+          <Zap size={12} aria-hidden="true" className="text-amber-600" />
+        )}
+        <span className="hidden sm:inline">Envoi rapide</span>
+      </button>
       {/* In-app reminder dialog — gives the admin a chance to tweak the
           copy before hitting send, versus the mailto icon which hands off
           to the OS mail client unchanged. */}
