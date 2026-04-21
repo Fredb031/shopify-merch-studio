@@ -85,6 +85,13 @@ function EmailPreviewFrame({ html, title }: { html: string; title: string }) {
       measure();
       const doc = iframe.contentDocument;
       if (doc?.body && typeof ResizeObserver !== 'undefined') {
+        // Disconnect the previous observer before reassigning — otherwise
+        // a second 'load' (synchronous readyState==='complete' path firing
+        // alongside the real load event, or an iframe reload without the
+        // parent effect re-running) would leak a ResizeObserver bound to
+        // the old body. Over a long admin session of switching templates
+        // these pile up and tick measure() once per resize.
+        observer?.disconnect();
         observer = new ResizeObserver(measure);
         observer.observe(doc.body);
       }
