@@ -496,23 +496,39 @@ export default function Checkout() {
                   </h2>
                   {(() => {
                     const emailInvalid = form.email.trim().length > 0 && !isValidEmail(form.email);
+                    // Per Vercel web-interface-guidelines: error messages must
+                    // include the fix/next step, not just the problem. Tie the
+                    // message to the input via aria-describedby so screen readers
+                    // announce it alongside the field instead of leaving users
+                    // with an unexplained red border.
                     return (
-                      <input
-                        type="email"
-                        value={form.email}
-                        onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                        autoComplete="email"
-                        placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                        aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                        aria-required="true"
-                        aria-invalid={emailInvalid || undefined}
-                        className={`w-full mt-2 border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${
-                          emailInvalid
-                            ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
-                            : 'border-border focus:border-primary focus-visible:ring-primary/25'
-                        }`}
-                        required
-                      />
+                      <>
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                          autoComplete="email"
+                          spellCheck={false}
+                          placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                          aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                          aria-required="true"
+                          aria-invalid={emailInvalid || undefined}
+                          aria-describedby={emailInvalid ? 'checkout-email-error' : undefined}
+                          className={`w-full mt-2 border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${
+                            emailInvalid
+                              ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                              : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                          }`}
+                          required
+                        />
+                        {emailInvalid && (
+                          <p id="checkout-email-error" role="alert" className="mt-1.5 text-xs text-rose-600">
+                            {lang === 'en'
+                              ? 'Enter a valid email like name@example.com so we can send your receipt.'
+                              : 'Entre une adresse valide comme nom@exemple.com pour recevoir ta confirmation.'}
+                          </p>
+                        )}
+                      </>
                     );
                   })()}
                 </div>
