@@ -55,37 +55,53 @@ const DAY_HEADER_FMT = new Intl.DateTimeFormat('fr-CA', {
 const TIME_FMT = new Intl.DateTimeFormat('fr-CA', { hour: '2-digit', minute: '2-digit' });
 
 /** Generate and download a CSV for the currently filtered order list.
- * Escapes double quotes per RFC 4180 and wraps every field so commas
- * inside customer names don't shift columns. Cells whose first char is
- * one of '=' '+' '-' '@' are prefixed with a single tab so Excel /
- * Google Sheets treat them as text instead of formulas — a customer
- * named '=cmd|...' or an order note starting with '@' would otherwise
- * execute as a formula when the admin opens the CSV (CSV injection /
- * "formula injection", OWASP). The tab keeps the value readable while
- * neutralising the formula trigger. */
+ * Columns (in this order): #, Date, Client, Courriel, Statut, Articles,
+ * Total. Escapes double quotes per RFC 4180 and wraps every field so
+ * commas inside customer names don't shift columns. Cells whose first
+ * char is one of '=' '+' '-' '@' are prefixed with a single tab so
+ * Excel / Google Sheets treat them as text instead of formulas — a
+ * customer named '=cmd|...' or an order note starting with '@' would
+ * otherwise execute as a formula when the admin opens the CSV (CSV
+ * injection / "formula injection", OWASP). The tab keeps the value
+ * readable while neutralising the formula trigger. UTF-8 BOM up front
+ * so Excel reads accents correctly without a manual encoding prompt. */
 function exportOrdersCsv(orders: Array<ShopifyOrderSnapshot & { fulfillmentStatus: ShopifyOrderSnapshot['fulfillmentStatus'] }>) {
   const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const esc = (v: unknown) => {
+  const csvEscape = (v: unknown) => {
     let s = String(v ?? '');
     if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return `"${s.replace(/"/g, '""')}"`;
+    // Wrap when the value contains a delimiter/quote/newline OR when we
+    // prefixed a tab above (defensive — a bare leading tab in a field
+    // confuses Numbers.app's CSV auto-detect). Double inner quotes.
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const header = ['Commande', 'Client', 'Courriel', 'Total', 'Paiement', 'Livraison', 'Date'];
+  // Status label: prefer fulfillment (ready-to-ship is the interesting
+  // axis when an admin scans a CSV) then financial. Falls back to '—'.
+  const statusLabel = (o: ShopifyOrderSnapshot) => {
+    if (o.fulfillmentStatus && FUL_LABEL[o.fulfillmentStatus]) return FUL_LABEL[o.fulfillmentStatus];
+    if (o.financialStatus && FIN_LABEL[o.financialStatus]) return FIN_LABEL[o.financialStatus];
+    return '—';
+  };
+  const header = ['#', 'Date', 'Client', 'Courriel', 'Statut', 'Articles', 'Total'];
   const rows = orders.map(o => [
     o.name,
+    // Match UI format but include year so the CSV is portable across
+    // years without losing context. fr-CA locale (the only one the
+    // page uses today).
+    formatDate(o.createdAt),
     o.customerName,
     o.email,
+    statusLabel(o),
+    String(o.itemsCount),
+    // No currency symbol — keeps the column numeric-parseable in Excel.
     o.total.toFixed(2),
-    o.financialStatus ?? '',
-    o.fulfillmentStatus ?? '',
-    new Date(o.createdAt).toISOString(),
   ]);
-  const csv = [header, ...rows].map(r => r.map(esc).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `vision-commandes-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -590,12 +606,21 @@ export default function AdminOrders() {
           <button
             type="button"
             onClick={() => exportOrdersCsv(filtered)}
-            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
-            title="Exporter en CSV"
-            aria-label={`Exporter ${filtered.length} commande${filtered.length > 1 ? 's' : ''} en CSV`}
+            disabled={filtered.length === 0}
+            // Disabled state when the filter yields nothing — avoids
+            // downloading a header-only CSV and signals to the admin
+            // that the filter is the thing to change. Tooltip + aria
+            // explain why the button is dead.
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={filtered.length === 0 ? 'Aucune commande à exporter' : 'Exporter en CSV'}
+            aria-label={
+              filtered.length === 0
+                ? 'Aucune commande à exporter'
+                : `Exporter ${filtered.length} commande${filtered.length > 1 ? 's' : ''} en CSV`
+            }
           >
             <Download size={15} aria-hidden="true" />
-            Exporter
+            Exporter CSV
           </button>
         </div>
       </header>
