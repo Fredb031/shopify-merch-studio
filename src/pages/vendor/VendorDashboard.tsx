@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight, Plus, Sparkles, HelpCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight, Plus, Sparkles, HelpCircle, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/admin/StatCard';
 import { Sparkline } from '@/components/admin/Sparkline';
@@ -743,6 +743,190 @@ export default function VendorDashboard() {
     URL.revokeObjectURL(url);
   }, [vendorId, month]);
 
+  // Task 10.6 — print-ready statement popup. Accountants asked for a
+  // formatted page (header, totals, signature line) they can save as
+  // PDF. Doing this natively via window.print() keeps the bundle lean
+  // — no jsPDF / html2pdf megabytes for a feature used once a month.
+  // We build the HTML as a string, document.write() it into a popup,
+  // and call window.print() after load; Cmd/Ctrl+S from the print
+  // dialog gives us "save as PDF" for free on every major browser.
+  const onDownloadStatement = useCallback(() => {
+    const ratePct = `${(summary.rate * 100).toFixed(2)}%`;
+    const vendorName = (user?.name || 'Vendeur').trim();
+    const periodLabel = formatMonth(month, lang);
+    const nowLabel = new Date().toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+    const esc = (s: string) => String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const rowsHtml = summary.lines.length === 0
+      ? `<tr><td colspan="7" class="empty">${lang === 'fr' ? 'Aucune commande pour cette période.' : 'No orders for this period.'}</td></tr>`
+      : summary.lines.map(({ order, commission, paid }) => `
+        <tr>
+          <td class="mono">${esc(order.name)}</td>
+          <td>${esc(order.customerName || order.email || '—')}</td>
+          <td>${esc(formatDate(order.createdAt, lang))}</td>
+          <td class="num">${esc(formatMoney(order.total, lang))}</td>
+          <td class="num">${esc(ratePct)}</td>
+          <td class="num strong">${esc(formatMoney(commission, lang))}</td>
+          <td>${paid
+            ? (lang === 'fr' ? 'Payée' : 'Paid')
+            : (lang === 'fr' ? 'En attente' : 'Pending')}</td>
+        </tr>`).join('');
+
+    const t = {
+      title: lang === 'fr' ? 'Relevé de commissions' : 'Commission statement',
+      brand: 'Vision Affichage',
+      tagline: lang === 'fr' ? 'Impression & signalisation' : 'Print & signage',
+      vendorLabel: lang === 'fr' ? 'Vendeur' : 'Vendor',
+      periodLabel: lang === 'fr' ? 'Période' : 'Period',
+      issued: lang === 'fr' ? 'Émis le' : 'Issued',
+      orderNo: lang === 'fr' ? 'Commande' : 'Order #',
+      customer: lang === 'fr' ? 'Client' : 'Customer',
+      date: lang === 'fr' ? 'Date' : 'Date',
+      total: lang === 'fr' ? 'Total' : 'Total',
+      rate: lang === 'fr' ? 'Taux' : 'Rate',
+      commission: lang === 'fr' ? 'Commission' : 'Commission',
+      status: lang === 'fr' ? 'Statut' : 'Status',
+      sales: lang === 'fr' ? 'Ventes' : 'Sales',
+      commissions: lang === 'fr' ? 'Commissions' : 'Commissions',
+      paid: lang === 'fr' ? 'Payée' : 'Paid',
+      pending: lang === 'fr' ? 'En attente' : 'Pending',
+      footer: lang === 'fr'
+        ? 'Document généré automatiquement — Vision Affichage'
+        : 'Automatically generated document — Vision Affichage',
+      signature: lang === 'fr' ? 'Signature autorisée' : 'Authorized signature',
+      printBtn: lang === 'fr' ? 'Imprimer / Enregistrer en PDF' : 'Print / Save as PDF',
+    };
+
+    const html = `<!DOCTYPE html>
+<html lang="${lang}">
+<head>
+  <meta charset="utf-8" />
+  <title>${esc(t.title)} — ${esc(vendorName)} — ${esc(periodLabel)}</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:#f4f4f5;color:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;font-size:12px;line-height:1.4}
+    .page{max-width:800px;margin:24px auto;background:#fff;padding:32px 36px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+    .toolbar{max-width:800px;margin:16px auto 0;display:flex;justify-content:flex-end}
+    .toolbar button{font:inherit;font-weight:700;background:#1B3A6B;color:#fff;border:0;padding:8px 14px;border-radius:6px;cursor:pointer}
+    header.brand{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1B3A6B;padding-bottom:14px;margin-bottom:18px}
+    .logo{display:flex;align-items:center;gap:12px}
+    .logo-mark{width:44px;height:44px;border:2px solid #1B3A6B;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;color:#1B3A6B;font-size:18px;letter-spacing:-.5px}
+    .brand-name{font-size:18px;font-weight:800;color:#1B3A6B;letter-spacing:-.2px}
+    .brand-tag{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.12em;margin-top:2px}
+    .doc-title{text-align:right}
+    .doc-title h1{margin:0;font-size:18px;font-weight:800;color:#1B3A6B;text-transform:uppercase;letter-spacing:.05em}
+    .doc-title .meta{margin-top:4px;font-size:11px;color:#555}
+    .who{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;font-size:12px}
+    .who .box{border:1px solid #d4d4d8;padding:10px 12px;border-radius:4px}
+    .who .lbl{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+    .who .val{font-weight:700;color:#111}
+    table{width:100%;border-collapse:collapse;margin-top:6px}
+    thead th{background:#1B3A6B;color:#fff;text-align:left;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+    thead th.num{text-align:right}
+    tbody td{border-bottom:1px solid #e5e5e5;padding:7px 10px;vertical-align:top}
+    tbody td.num{text-align:right;font-variant-numeric:tabular-nums}
+    tbody td.mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-weight:700;color:#1B3A6B}
+    tbody td.strong{font-weight:700}
+    tbody td.empty{text-align:center;color:#888;padding:24px}
+    .totals{margin-top:14px;display:flex;justify-content:flex-end}
+    .totals table{width:320px}
+    .totals td{padding:5px 8px;border:0}
+    .totals td.lbl{color:#444}
+    .totals td.val{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+    .totals tr.grand td{border-top:2px solid #1B3A6B;font-size:13px;color:#1B3A6B}
+    .sig{margin-top:40px;display:flex;justify-content:space-between;gap:24px}
+    .sig .line{flex:1;border-top:1px solid #111;padding-top:4px;font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.08em}
+    footer{margin-top:28px;padding-top:10px;border-top:1px solid #e5e5e5;text-align:center;font-size:10px;color:#888}
+    @media print {
+      html,body{background:#fff}
+      .toolbar,.no-print{display:none !important}
+      .page{margin:0;padding:18mm 14mm;box-shadow:none;max-width:none}
+      thead{display:table-header-group}
+      tr{page-break-inside:avoid}
+      @page{size:letter;margin:0}
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar no-print"><button type="button" onclick="window.print()">${esc(t.printBtn)}</button></div>
+  <main class="page">
+    <header class="brand">
+      <div class="logo">
+        <div class="logo-mark" aria-hidden="true">VA</div>
+        <div>
+          <div class="brand-name">${esc(t.brand)}</div>
+          <div class="brand-tag">${esc(t.tagline)}</div>
+        </div>
+      </div>
+      <div class="doc-title">
+        <h1>${esc(t.title)}</h1>
+        <div class="meta">${esc(t.issued)} ${esc(nowLabel)}</div>
+      </div>
+    </header>
+    <section class="who">
+      <div class="box">
+        <div class="lbl">${esc(t.vendorLabel)}</div>
+        <div class="val">${esc(vendorName)}</div>
+      </div>
+      <div class="box">
+        <div class="lbl">${esc(t.periodLabel)}</div>
+        <div class="val">${esc(periodLabel)}</div>
+      </div>
+    </section>
+    <table>
+      <thead>
+        <tr>
+          <th>${esc(t.orderNo)}</th>
+          <th>${esc(t.customer)}</th>
+          <th>${esc(t.date)}</th>
+          <th class="num">${esc(t.total)}</th>
+          <th class="num">${esc(t.rate)}</th>
+          <th class="num">${esc(t.commission)}</th>
+          <th>${esc(t.status)}</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="totals">
+      <table>
+        <tbody>
+          <tr><td class="lbl">${esc(t.sales)}</td><td class="val">${esc(formatMoney(summary.totalSales, lang))}</td></tr>
+          <tr><td class="lbl">${esc(t.commissions)} (${esc(ratePct)})</td><td class="val">${esc(formatMoney(summary.totalCommission, lang))}</td></tr>
+          <tr><td class="lbl">${esc(t.paid)}</td><td class="val">${esc(formatMoney(summary.paidCommission, lang))}</td></tr>
+          <tr class="grand"><td class="lbl">${esc(t.pending)}</td><td class="val">${esc(formatMoney(summary.pendingCommission, lang))}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sig">
+      <div class="line">${esc(vendorName)}</div>
+      <div class="line">${esc(t.signature)} — ${esc(t.brand)}</div>
+    </div>
+    <footer>${esc(t.footer)}</footer>
+  </main>
+  <script>
+    window.addEventListener('load', function(){
+      setTimeout(function(){ try { window.focus(); window.print(); } catch(e){} }, 250);
+    });
+  </script>
+</body>
+</html>`;
+
+    const w = window.open('', '_blank', 'width=900,height=1100');
+    if (!w) {
+      // Popup blocked — surface a toast so the vendor knows to allow popups.
+      toast.error(lang === 'fr'
+        ? 'Fenêtre bloquée. Autorise les popups pour télécharger le relevé.'
+        : 'Popup blocked. Allow popups to download the statement.');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+  }, [month, summary, user, lang]);
+
   // Tax-form upload state. Kept entirely in localStorage for now —
   // see the block-comment near TAX_FORMS_STORAGE_KEY for the swap plan.
   const currentYear = new Date().getFullYear();
@@ -1041,6 +1225,21 @@ export default function VendorDashboard() {
             >
               <Download size={13} aria-hidden="true" />
               {L('Télécharger CSV', 'Download CSV')}
+            </button>
+          )}
+          {canExport && (
+            <button
+              type="button"
+              onClick={onDownloadStatement}
+              disabled={exportDisabled}
+              aria-label={L(
+                `Télécharger le relevé de ${formatMonth(month, lang)} (PDF-prêt)`,
+                `Download statement for ${formatMonth(month, lang)} (print-ready)`,
+              )}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#1B3A6B] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+            >
+              <Printer size={13} aria-hidden="true" />
+              {L('Télécharger relevé (PDF-prêt HTML)', 'Download statement (print-ready HTML)')}
             </button>
           )}
         </div>
