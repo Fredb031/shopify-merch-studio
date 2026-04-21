@@ -341,7 +341,7 @@ export default function ProductDetail() {
           })()}
 
           {/* Info */}
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
