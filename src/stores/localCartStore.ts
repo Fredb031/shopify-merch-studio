@@ -22,7 +22,11 @@ interface CartStore {
   items: CartItemCustomization[];
   discountCode: string | null;
   discountApplied: boolean;
+  /** Append a new row to the cart. Capped at MAX_CART_ITEMS entries to
+   * prevent runaway loops; over-cap calls are a no-op. */
   addItem: (item: Omit<CartItemCustomization, 'cartId' | 'addedAt'>) => void;
+  /** Remove a row by cartId. Also clears any applied discount if the
+   * cart is now empty. */
   removeItem: (cartId: string) => void;
   /**
    * Optimistic row-level quantity update. Scales sizeQuantities
@@ -36,12 +40,30 @@ interface CartStore {
    * update when the background Shopify sync fails. No-op if the item
    * has since been removed. */
   rollbackItem: (snapshot: CartItemCustomization) => void;
+  /** Validate + persist a discount code. Returns true on match. */
   applyDiscount: (code: string) => boolean;
+  /** Drop the currently applied discount (leaves items untouched). */
   clearDiscount: () => void;
+  /** Current cart total in CAD with the active discount applied. */
   getTotal: () => number;
+  /** Total units across all rows (sum of totalQuantity). */
   getItemCount: () => number;
+  /** True if a row referencing this productId is already in the cart. */
+  hasItem: (productId: string) => boolean;
+  /** Unique product ids present in the cart, e.g. for exclude filters
+   * in recommendation surfaces. */
+  getUniqueProductIds: () => string[];
+  /** Wipe cart + discount state. */
   clear: () => void;
 }
+
+/**
+ * Maximum number of distinct cart rows (not units). Picked high enough
+ * that legitimate bulk-merch orders clear it, low enough that a runaway
+ * addItem loop (bad client code, replayed action) can't blow localStorage
+ * or lock up the cart UI. Over-cap addItem calls become a no-op.
+ */
+export const MAX_CART_ITEMS = 100;
 
 // Discount codes are admin-editable via /admin/settings. Read through
 // getSettings() at call-time so a freshly-saved VISION25 takes effect
@@ -63,6 +85,10 @@ export const useCartStore = create<CartStore>()(
       discountApplied: false,
 
       addItem: (item) => {
+        // Runaway guard: if we're already at the cap, leave state alone
+        // and skip the analytics ping — the user never saw this row, so
+        // an add_to_cart event would be misleading in GA4.
+        if (get().items.length >= MAX_CART_ITEMS) return;
         const cartId = newCartId();
         set((state) => ({
           items: [...state.items, { ...item, cartId, addedAt: new Date() }],
@@ -199,6 +225,23 @@ export const useCartStore = create<CartStore>()(
       },
 
       getItemCount: () => get().items.reduce((sum, i) => sum + (Number.isFinite(i.totalQuantity) ? i.totalQuantity : 0), 0),
+
+      hasItem: (productId) => {
+        if (!productId) return false;
+        return get().items.some(i => i.productId === productId);
+      },
+
+      getUniqueProductIds: () => {
+        // Set-dedupe preserves first-seen order, which is what callers
+        // (e.g. CartRecommendations exclude filter) expect when they
+        // render slots in cart-order.
+        const seen = new Set<string>();
+        for (const it of get().items) {
+          if (it && typeof it.productId === 'string' && it.productId) seen.add(it.productId);
+        }
+        return Array.from(seen);
+      },
+
       clear: () => set({ items: [], discountCode: null, discountApplied: false }),
     }),
     {
@@ -234,3 +277,10 @@ export const useCartStore = create<CartStore>()(
     }
   )
 );
+
+/**
+ * Derived state shape of the local cart store. Exported via ReturnType
+ * so consumers (tests, selector helpers, typed `useCartStore(selector)`
+ * callers) can reference the full state without re-declaring it here.
+ */
+export type LocalCartState = ReturnType<typeof useCartStore.getState>;
