@@ -17,6 +17,7 @@ import {
   type SentLogEntry,
 } from '@/lib/outlook';
 import { useAuthStore } from '@/stores/authStore';
+import { downloadCsv } from '@/lib/csv';
 
 type TemplateId = 'quote-sent' | 'payment' | 'shipped' | 'delivered';
 type Lang = 'fr' | 'en';
@@ -939,19 +940,14 @@ function formatCsvTimestamp(iso: string): string {
 }
 
 /** Generate and download a CSV of the recent-sends ledger. Columns:
- * Date, Destinataire, Sujet, Type, Statut. Mirrors the AdminOrders
- * helper — UTF-8 BOM so Excel reads accents without a manual encoding
- * prompt, RFC-4180 escaping, and formula-injection neutralisation:
- * cells starting with `=` `+` `-` `@` `\t` or `\r` get a leading tab so
- * Excel/Sheets treat them as text instead of executing them (a
- * malicious recipient like `=cmd|...` would otherwise run on open). */
+ * Date, Destinataire, Sujet, Type, Statut. Delegates escaping + BOM +
+ * anchor-click dance to the shared `@/lib/csv` helper so Excel/Numbers
+ * handle accents + leading '=' / '+' / '-' / '@' safely (OWASP formula
+ * injection — a malicious recipient like `=cmd|...` would otherwise
+ * run on open). Filename keeps the legacy `emails-<UTC-YYYY-MM-DD>.csv`
+ * pattern (not `vision-*`) so archived downloads on ops laptops stay
+ * greppable. */
 function exportSentLogCsv(entries: SentLogEntry[]): void {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const statusLabel = (e: SentLogEntry) => (e.status === 'ok' ? 'Envoyé' : 'Échec');
   const header = ['Date', 'Destinataire', 'Sujet', 'Type', 'Statut'];
   const rows = entries.map(e => [
@@ -961,16 +957,8 @@ function exportSentLogCsv(entries: SentLogEntry[]): void {
     e.template ?? '—',
     statusLabel(e),
   ]);
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `emails-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const filename = `emails-${new Date().toISOString().slice(0, 10)}.csv`;
+  downloadCsv([header, ...rows], filename);
   toast.success(`${entries.length} envoi${entries.length > 1 ? 's' : ''} exporté${entries.length > 1 ? 's' : ''}`);
 }
 
