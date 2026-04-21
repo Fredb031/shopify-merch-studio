@@ -6,6 +6,7 @@ import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useCartStore } from '@/stores/localCartStore';
+import { plural } from '@/lib/plural';
 import type { CartItemCustomization } from '@/types/customization';
 
 type SortKey = 'recent' | 'name' | 'price-asc' | 'price-desc';
@@ -105,8 +106,8 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
     // typeof window guard because PRODUCTS can be imported in SSR paths.
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://visionaffichage.com';
     const header = lang === 'en'
-      ? `My Vision Affichage wishlist (${items.length} product${items.length !== 1 ? 's' : ''}):`
-      : `Ma liste Vision Affichage (${items.length} produit${items.length !== 1 ? 's' : ''}) :`;
+      ? `My Vision Affichage wishlist (${plural(items.length, { one: '{count} product', other: '{count} products' }, 'en')}):`
+      : `Ma liste Vision Affichage (${plural(items.length, { one: '{count} produit', other: '{count} produits' }, 'fr')}) :`;
     const body = items
       .map(p => `\u2022 ${categoryLabel(p.category, lang)} (${p.sku}) \u2014 ${origin}/product/${p.shopifyHandle}`)
       .join('\n');

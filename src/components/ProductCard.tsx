@@ -14,6 +14,7 @@ import { useLang } from '@/lib/langContext';
 import { categoryLabel } from '@/lib/productLabels';
 import { filterRealColors } from '@/lib/colorFilter';
 import { fmtMoney } from '@/lib/format';
+import { plural } from '@/lib/plural';
 import { trackEvent } from '@/lib/analytics';
 
 interface ProductCardProps {
@@ -351,14 +352,27 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
             if (n === 0) return null;
             let text: string;
             if (n === 1) {
+              // Single-color SKUs name the lone color instead of saying
+              // "1 color" — buyers scanning the grid learn more from
+              // "Noir seulement" than from a count. Still routed
+              // through plural() below for the multi-color branches so
+              // the pluralization rule is uniform across the grid.
               const only = realColors[0];
               const name = lang === 'en' ? (only.nameEn || only.name) : only.name;
               text = lang === 'en' ? `${name} only` : `${name} seulement`;
             } else if (n <= 4) {
-              text = lang === 'en' ? `${n} colors` : `${n} couleurs`;
+              text = lang === 'en'
+                ? plural(n, { one: '{count} color', other: '{count} colors' }, 'en')
+                : plural(n, { one: '{count} couleur', other: '{count} couleurs' }, 'fr');
             } else {
               const extra = n - 4;
-              text = lang === 'en' ? `+ ${extra} more` : `+ ${extra} autres`;
+              // "autres" kept for every count here — legacy copy didn't
+              // pluralize this tail (n > 4 so extra >= 1 always) and the
+              // design sign-off locked it. Routed through plural() for
+              // uniformity; both forms emit the same string today.
+              text = lang === 'en'
+                ? plural(extra, { one: '+ {count} more', other: '+ {count} more' }, 'en')
+                : plural(extra, { one: '+ {count} autres', other: '+ {count} autres' }, 'fr');
             }
             return (
               <p className="text-[10px] text-muted-foreground leading-none mb-1">

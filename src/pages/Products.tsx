@@ -7,6 +7,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { findProductByHandle, matchProductByTitle, PRODUCTS } from '@/data/products';
 import { filterRealColors } from '@/lib/colorFilter';
+import { plural } from '@/lib/plural';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useLang } from '@/lib/langContext';
@@ -367,8 +368,8 @@ export default function Products() {
     }
     if (count === 0) return '';
     return lang === 'en'
-      ? `${count} product${count !== 1 ? 's' : ''} shown`
-      : `${count} produit${count !== 1 ? 's' : ''} affich\u00e9s`;
+      ? plural(count, { one: '{count} product shown', other: '{count} products shown' }, 'en')
+      : plural(count, { one: '{count} produit affich\u00e9s', other: '{count} produits affich\u00e9s' }, 'fr');
   }, [isLoading, filteredProducts, debouncedQuery, lang]);
 
   return (
@@ -599,10 +600,9 @@ export default function Products() {
                   ? CATEGORIES.find(c => c.id === activeCategory)?.en
                   : CATEGORIES.find(c => c.id === activeCategory)?.fr}
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  {filteredProducts.length}{' '}
                   {lang === 'en'
-                    ? `product${filteredProducts.length !== 1 ? 's' : ''}`
-                    : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
+                    ? plural(filteredProducts.length, { one: '{count} product', other: '{count} products' }, 'en')
+                    : plural(filteredProducts.length, { one: '{count} produit', other: '{count} produits' }, 'fr')}
                 </span>
               </h2>
             )}
@@ -615,17 +615,15 @@ export default function Products() {
                 here?" is always visible above the grid. */}
             {filteredProducts.length > 0 && (
               <p className="text-[12px] text-muted-foreground mb-4">
-                {filteredProducts.length}{' '}
                 {lang === 'en'
-                  ? `product${filteredProducts.length !== 1 ? 's' : ''}`
-                  : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
+                  ? plural(filteredProducts.length, { one: '{count} product', other: '{count} products' }, 'en')
+                  : plural(filteredProducts.length, { one: '{count} produit', other: '{count} produits' }, 'fr')}
                 {totalRealColors > 0 && (
                   <>
                     {' \u00b7 '}
-                    {totalRealColors}{' '}
                     {lang === 'en'
-                      ? `color${totalRealColors !== 1 ? 's' : ''} available`
-                      : `couleur${totalRealColors !== 1 ? 's' : ''} disponible${totalRealColors !== 1 ? 's' : ''}`}
+                      ? plural(totalRealColors, { one: '{count} color available', other: '{count} colors available' }, 'en')
+                      : plural(totalRealColors, { one: '{count} couleur disponible', other: '{count} couleurs disponibles' }, 'fr')}
                   </>
                 )}
               </p>

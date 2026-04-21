@@ -14,6 +14,7 @@ import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { PRODUCTS, type Product } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { readLS, writeLS } from '@/lib/storage';
+import { plural } from '@/lib/plural';
 import type { CartItemCustomization } from '@/types/customization';
 
 // Task 5.2 — match-style cross-sell. Generic "also bought" rows are
@@ -395,9 +396,9 @@ export default function Cart() {
           </h1>
           {totalQty > 0 && (
             <span className="text-lg font-semibold text-muted-foreground">
-              ({totalQty} {lang === 'en'
-                ? `item${totalQty !== 1 ? 's' : ''}`
-                : `article${totalQty !== 1 ? 's' : ''}`})
+              ({lang === 'en'
+                ? plural(totalQty, { one: '{count} item', other: '{count} items' }, 'en')
+                : plural(totalQty, { one: '{count} article', other: '{count} articles' }, 'fr')})
             </span>
           )}
         </div>

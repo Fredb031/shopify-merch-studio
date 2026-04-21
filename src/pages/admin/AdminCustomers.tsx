@@ -14,6 +14,7 @@ import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { normalizeInvisible } from '@/lib/utils';
 import { fmtMoney } from '@/lib/format';
+import { plural } from '@/lib/plural';
 
 function initials(c: ShopifyCustomerSnapshot): string {
   const first = (c.firstName?.[0] ?? '').toUpperCase();
@@ -38,7 +39,10 @@ function formatRecency(days: number | null): string {
   if (days <= 0) return "aujourd'hui";
   if (days === 1) return 'hier';
   if (days > 365) return '> 1 an';
-  return `il y a ${days} j`;
+  // Routed through plural() so future-locale / "jour"/"jours" swap is a
+  // single-line change. Current copy keeps the abbreviated "j" unit, which
+  // is invariant — the placeholder only exists to absorb `{count}`.
+  return plural(days, { one: 'il y a {count} j', other: 'il y a {count} j' }, 'fr');
 }
 
 const PAGE_SIZE = 25;
