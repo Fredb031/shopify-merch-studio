@@ -12,7 +12,11 @@ import { useEffect, useRef } from 'react';
  *   return <div ref={trapRef} role="dialog" aria-modal="true">…</div>;
  *
  * Also auto-focuses the first tabbable child on activation so keyboard
- * users don't have to press Tab once just to enter the modal.
+ * users don't have to press Tab once just to enter the modal. Tag any
+ * element inside the trap with `data-autofocus` to override that
+ * first-focusable default — useful for dialogs whose primary control
+ * isn't the visually first one (e.g. a search input sitting below a
+ * close button).
  */
 const FOCUSABLE = [
   'a[href]',
@@ -47,16 +51,27 @@ export function useFocusTrap<T extends HTMLElement = HTMLElement>(active: boolea
     // is a legitimate explicit-visible marker, and hasAttribute() would
     // wrongly exclude those elements from the focus trap, trapping focus
     // on a shrunken subset of the modal's actual interactive controls.
+    // Also exclude `[hidden]`, `aria-disabled="true"`, and any element
+    // nested inside an `inert` subtree — these are non-interactive per
+    // their own specs and attempting to focus them either silently no-ops
+    // (hidden / inert) or lands focus on a disabled-looking control.
     const isVisible = (n: HTMLElement) =>
       n.getAttribute('aria-hidden') !== 'true' &&
+      n.getAttribute('aria-disabled') !== 'true' &&
+      !n.hasAttribute('hidden') &&
+      !n.closest('[inert]') &&
       (n.offsetParent !== null || n.getClientRects().length > 0);
     const getFocusable = () =>
       Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE)).filter(isVisible);
 
-    // Focus the first focusable child (or the container itself) so
-    // keyboard users start inside the modal.
+    // Focus the element flagged with `data-autofocus` if one exists and
+    // is itself focusable, else the first focusable child, else the
+    // container itself. Keyboard users start inside the modal either way.
     const focusables = getFocusable();
-    if (focusables.length > 0) focusables[0].focus();
+    const autofocus = el.querySelector<HTMLElement>('[data-autofocus]');
+    const preferred = autofocus && focusables.includes(autofocus) ? autofocus : null;
+    if (preferred) preferred.focus();
+    else if (focusables.length > 0) focusables[0].focus();
     else el.focus();
 
     const onKey = (e: KeyboardEvent) => {
