@@ -53,7 +53,18 @@ export function useSanmarInventory(styleNumber: string | null | undefined): Sanm
     queryKey: ['sanmar-inventory', normalized],
     queryFn: () => (normalized ? sanmar.getInventory(normalized) : Promise.resolve(null)),
     enabled,
-    staleTime: 2 * 60 * 1000, // 2 min — inventory doesn't change that often
+    // 5 min — inventory moves when orders settle but not per second, so
+    // a slightly longer stale window avoids re-hitting the edge function
+    // on every PDP navigation while still reflecting post-checkout stock
+    // drops within a reasonable window. Shorter than the 30-min catalog
+    // cache because inventory is the one SanMar surface that actually
+    // changes during a browsing session.
+    staleTime: 5 * 60 * 1000,
+    // Keep inventory in memory for 1 hour after unmount so bouncing
+    // between a PDP, the cart, and back doesn't re-fetch when the stale
+    // window hasn't even closed yet — the query just re-hydrates from
+    // the cache instead of sending the edge function another request.
+    gcTime: 60 * 60 * 1000,
     retry: 1,
   });
 
