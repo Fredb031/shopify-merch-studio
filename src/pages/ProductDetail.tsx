@@ -27,9 +27,11 @@ import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useProductColors } from '@/hooks/useProductColors';
+import { useProducts } from '@/hooks/useProducts';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { ProductCard } from '@/components/ProductCard';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -71,6 +73,29 @@ export default function ProductDetail() {
 
   const localProduct = findProductByHandle(handle ?? '');
   const localProductId = localProduct?.id ?? 'atcf2500';
+
+  // Task 3.5 — "Produits similaires" scroller. Pull the full live
+  // Shopify catalog (cached 30 min via useProducts) and keep only
+  // items whose local-catalogue entry shares the current product's
+  // category, excluding the current SKU itself. Capped at 6 so the
+  // horizontal strip stays browsable on mobile without turning into
+  // an infinite swipe. ProductCard is fed the live Shopify node
+  // directly so wishlist hearts, colour swatches, and price parity
+  // all match the main grid.
+  const { data: allShopifyProducts } = useProducts();
+  const similarProducts = useMemo(() => {
+    if (!localProduct || !allShopifyProducts) return [];
+    const currentCategory = localProduct.category;
+    const currentHandle = handle ?? localProduct.shopifyHandle;
+    return allShopifyProducts
+      .filter(p => {
+        const h = p?.node?.handle;
+        if (!h || h === currentHandle) return false;
+        const local = findProductByHandle(h);
+        return local?.category === currentCategory;
+      })
+      .slice(0, 6);
+  }, [allShopifyProducts, localProduct, handle]);
 
   // Live SanMar Canada stock — degrades silently if the edge function is not deployed
   const { summary: stock, isLoading: stockLoading } = useSanmarInventory(localProduct?.sku ?? null);
@@ -1110,6 +1135,51 @@ export default function ProductDetail() {
             })()}
           </div>
         </div>
+
+        {/* Task 3.5 — "Produits similaires" horizontal scroller. Hidden
+            when fewer than 2 matches so a lone hoodie doesn't render a
+            one-card section that reads as a dead end. Horizontal
+            snap-scroll on mobile turns it into a finger-flick
+            discovery strip; desktop collapses to a clean 4-col grid
+            matching the catalog aesthetic. scroll-mt-20 keeps the
+            heading clear of the sticky Navbar on in-page anchor nav. */}
+        {similarProducts.length >= 2 && (
+          <section
+            aria-labelledby="similar-products-heading"
+            className="mt-16 pt-10 border-t border-border"
+          >
+            <h2
+              id="similar-products-heading"
+              className="scroll-mt-20 text-[clamp(22px,3vw,30px)] font-extrabold tracking-[-0.5px] text-foreground mb-6"
+            >
+              {lang === 'en' ? 'Similar products' : 'Produits similaires'}
+            </h2>
+            {/* Mobile: horizontal scroller with snap. Each card gets a
+                fixed basis so the row stays predictable and iOS doesn't
+                compress the last card when it runs out of viewport.
+                Desktop: snap/flex melts away into a 4-col grid. */}
+            <div
+              className="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto md:overflow-visible snap-x snap-mandatory -mx-4 md:mx-0 px-4 md:px-0 pb-2 md:pb-0 [scrollbar-width:thin]"
+            >
+              {similarProducts.map((p, i) => {
+                const key = p?.node?.id ?? p?.node?.handle ?? `sim-${i}`;
+                try {
+                  return (
+                    <div
+                      key={key}
+                      className="shrink-0 basis-[70%] sm:basis-[45%] md:basis-auto snap-start"
+                    >
+                      <ProductCard product={p} />
+                    </div>
+                  );
+                } catch (err) {
+                  console.warn('[ProductDetail] similar ProductCard threw, skipping', key, err);
+                  return null;
+                }
+              })}
+            </div>
+          </section>
+        )}
       </div>
 
       <AnimatePresence>
