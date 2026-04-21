@@ -323,18 +323,13 @@ export function ProductCanvas({
       const H = canvas.height as number;
       const photoUrl = activeView === 'front' ? imageDevant : imageDos;
 
-      // Replace existing photo. Dispose the fabric object too so the
-      // underlying HTMLImageElement can be garbage-collected; otherwise
-      // repeated color swaps accumulate DOM nodes.
-      if (photoObj.current) {
-        canvas.remove(photoObj.current);
-        try { photoObj.current.dispose?.(); } catch { /* noop */ }
-        photoObj.current = null;
-      }
-      if (tintObj.current) {
-        canvas.remove(tintObj.current);
-        tintObj.current = null;
-      }
+      // Keep refs to the OLD photo/tint so we can dispose them only AFTER
+      // the replacement image has actually loaded. Removing them up-front
+      // leaves the canvas blank (#F4F3EF flash) while the new image is
+      // still fetching — that flash is what made rapid color picks look
+      // sluggish. Swap-on-arrival = no perceived gap.
+      const prevPhoto = photoObj.current;
+      const prevTint  = tintObj.current;
 
       // Probe first so we catch load failures (back photo may 404 even
       // if front loaded fine). fabric.Image.fromURL silently fails on
@@ -352,6 +347,18 @@ export function ProductCanvas({
           photoUrl,
           (img: FabricObj) => {
             if (disposed || !fc.current) return;
+            // Now that the new photo is ready, retire the old one. This
+            // keeps the canvas painted with the previous color until the
+            // pixel-perfect replacement lands — eliminates the flash.
+            if (prevPhoto) {
+              canvas.remove(prevPhoto);
+              try { prevPhoto.dispose?.(); } catch { /* noop */ }
+              if (photoObj.current === prevPhoto) photoObj.current = null;
+            }
+            if (prevTint) {
+              canvas.remove(prevTint);
+              if (tintObj.current === prevTint) tintObj.current = null;
+            }
             const sx = W / (img.width ?? W);
             const sy = H / (img.height ?? H);
             const scale = Math.min(sx, sy);
