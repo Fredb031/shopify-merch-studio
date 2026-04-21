@@ -19,6 +19,7 @@ import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { readLS, writeLS } from '@/lib/storage';
 import { useAuthStore } from '@/stores/authStore';
 import { hasPermission } from '@/lib/permissions';
+import { downloadCsv } from '@/lib/csv';
 import {
   getVendorCommissions,
   filterSummaryByMonth,
@@ -131,22 +132,15 @@ function formatCreatedAt(id: string): string {
 }
 
 /** CSV export of the filtered vendor list. Columns: Nom, Courriel,
- * Statut, Commission (MTD, 2 decimals, no symbol), Créé le. Mirrors
- * the AdminOrders helper: RFC 4180 escaping, formula-injection guard
- * (leading = + - @ \t \r → prefixed with a tab so Excel/Sheets render
- * as text), UTF-8 BOM so Excel-on-Windows handles Québécois accents,
- * fr-CA dates. Blob URL revoked after 1s to avoid pinning memory and
- * to give Safari time to begin the download before the URL dies.
+ * Statut, Commission (MTD, 2 decimals, no symbol), Créé le. Delegates
+ * RFC 4180 escaping, CSV-injection guard, UTF-8 BOM, and the Blob
+ * download dance to the shared `downloadCsv` helper so every admin
+ * export shares the same escape rules — drift between exports would
+ * mean a cell rendered as a formula in one and as text in another.
  */
 function exportVendorsCsv(
   rows: Array<{ name: string; email: string; status: VendorStatus; commission: number; id: string }>,
 ): void {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const header = ['Nom', 'Courriel', 'Statut', 'Commission', 'Créé le'];
   const body = rows.map(r => [
     r.name,
@@ -155,16 +149,7 @@ function exportVendorsCsv(
     r.commission.toFixed(2),
     formatCreatedAt(r.id),
   ]);
-  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `vendors-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadCsv([header, ...body], `vendors-${new Date().toISOString().slice(0, 10)}.csv`);
 }
 
 export default function AdminVendors() {
