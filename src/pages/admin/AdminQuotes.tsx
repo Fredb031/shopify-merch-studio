@@ -9,6 +9,7 @@ import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { normalizeInvisible } from '@/lib/utils';
+import { logAdminAction } from '@/lib/auditLog';
 
 const PAGE_SIZE = 20;
 
@@ -324,6 +325,9 @@ export default function AdminQuotes() {
     };
     persistManualOrder(order);
     markQuoteConverted(quote.id);
+    // Task 9.19 — audit trail for the convert action so the dashboard
+    // "Historique récent" card can surface it.
+    logAdminAction('quote.convert', { quoteId: quote.id, orderNumber });
     setConvertTarget(null);
     toast.success(`Commande créée · ${orderNumber}`, {
       description: `À partir de la soumission ${quote.number}.`,

@@ -9,6 +9,7 @@ import {
   AlertCircle,
   ShoppingCart,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { TodayWidget } from '@/components/admin/TodayWidget';
@@ -20,6 +21,7 @@ import {
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
 } from '@/data/shopifySnapshot';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { getAuditLog, type AuditEntry } from '@/lib/auditLog';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-800',
@@ -227,6 +229,117 @@ function ActivityFeedCard() {
   );
 }
 
+// ───────────── Task 9.19 — Audit log "Historique récent" ─────────────
+// Surfaces the last 10 admin actions (mark-shipped, convert-quote,
+// settings saves, role changes, …) so an admin can retrace what
+// changed without digging through each surface's own history. Hidden
+// entirely when the log is empty — a "0 actions" placeholder adds
+// noise to a fresh dashboard.
+
+// Human labels per audit action. Falls back to the raw verb for any
+// new action a future surface logs without updating this map — so the
+// card degrades gracefully instead of showing "undefined".
+const AUDIT_ACTION_LABEL: Record<string, string> = {
+  'order.mark_shipped': 'Commande expédiée',
+  'quote.convert': 'Soumission convertie en commande',
+  'settings.save': 'Paramètres enregistrés',
+  'user.role_changed': 'Rôle utilisateur modifié',
+  'audit.cleared': 'Journal d\'audit vidé',
+};
+
+function auditDetailText(entry: AuditEntry): string {
+  const d = entry.details ?? {};
+  switch (entry.action) {
+    case 'order.mark_shipped':
+      return typeof d.orderId === 'number' || typeof d.orderId === 'string'
+        ? `Commande #${d.orderId}`
+        : '';
+    case 'quote.convert':
+      return typeof d.orderNumber === 'string' ? `→ ${d.orderNumber}` : '';
+    case 'settings.save':
+      return typeof d.section === 'string' ? `Section : ${d.section}` : '';
+    case 'user.role_changed': {
+      const from = typeof d.from === 'string' ? d.from : '?';
+      const to = typeof d.to === 'string' ? d.to : '?';
+      return `${from} → ${to}`;
+    }
+    default:
+      return '';
+  }
+}
+
+function formatAuditTimestamp(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return '—';
+  const diff = Math.max(0, Date.now() - t);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h}h`;
+  const days = Math.floor(h / 24);
+  if (days < 7) return `il y a ${days}j`;
+  // Past a week the relative label ("il y a 23j") gets harder to scan
+  // than a short absolute date — switch to a locale-formatted stamp.
+  return new Date(iso).toLocaleDateString('fr-CA', { day: 'numeric', month: 'short' });
+}
+
+function RecentAuditCard() {
+  // Tick every minute so the relative timestamps refresh while the
+  // dashboard stays open, same rhythm as ActivityFeedCard.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick(t => t + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const entries = useMemo(() => getAuditLog().slice(0, 10), []);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="font-bold text-zinc-900">Historique récent</h2>
+          <p className="text-[11px] text-zinc-500 mt-0.5">
+            Dernières actions administratives sur cet appareil.
+          </p>
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+          Audit
+        </span>
+      </div>
+      <ul className="divide-y divide-zinc-100 -mx-2">
+        {entries.map(entry => {
+          const label = AUDIT_ACTION_LABEL[entry.action] ?? entry.action;
+          const detail = auditDetailText(entry);
+          return (
+            <li key={entry.id} className="flex items-start gap-3 px-2 py-2.5">
+              <div className="w-8 h-8 rounded-lg bg-[#0052CC]/5 text-[#0052CC] flex items-center justify-center flex-shrink-0">
+                <Shield size={14} aria-hidden="true" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate">{label}</div>
+                <div className="text-[11px] text-muted-foreground truncate">
+                  {entry.by}
+                  {detail ? <span className="text-zinc-400"> · </span> : null}
+                  {detail}
+                </div>
+              </div>
+              <div
+                className="text-[10px] text-zinc-400 whitespace-nowrap font-medium"
+                title={new Date(entry.at).toLocaleString('fr-CA')}
+              >
+                {formatAuditTimestamp(entry.at)}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   useDocumentTitle('Tableau de bord — Admin Vision Affichage');
   const recentOrders = SHOPIFY_ORDERS_SNAPSHOT.slice(0, 6);
@@ -386,6 +499,8 @@ export default function AdminDashboard() {
       </div>
 
       <ActivityFeedCard />
+
+      <RecentAuditCard />
     </div>
   );
 }

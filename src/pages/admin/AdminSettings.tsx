@@ -12,6 +12,7 @@ import {
   useAppSettings,
 } from '@/lib/appSettings';
 import { readLS, writeLS } from '@/lib/storage';
+import { logAdminAction } from '@/lib/auditLog';
 import { getConfiguredWebhook, setConfiguredWebhook } from '@/lib/outlook';
 import { useAuthStore } from '@/stores/authStore';
 import {
@@ -674,6 +675,7 @@ function CommissionsSection() {
     if (rateError) return;
     saveAppSettings({ commissionRate: rateNum / 100 });
     setSavedAt(Date.now());
+    logAdminAction('settings.save', { section: 'commissions', commissionRate: rateNum / 100 });
   };
 
   const resetDefault = () => {
@@ -886,6 +888,13 @@ function TaxesSection() {
     if (hasError) return;
     saveAppSettings({ taxGst: gstNum / 100, taxQst: qstNum / 100 });
     setSavedAt(Date.now());
+    // Task 9.19 — audit trail. Keep `section` stable so future
+    // settings-surface changes can surface a "what changed?" filter.
+    logAdminAction('settings.save', {
+      section: 'taxes',
+      taxGst: gstNum / 100,
+      taxQst: qstNum / 100,
+    });
   };
 
   return (

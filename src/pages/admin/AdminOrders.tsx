@@ -13,6 +13,7 @@ import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
 import { readLS, writeLS } from '@/lib/storage';
 import { buildLogoFilename, triggerBlobDownload } from '@/lib/logoVectorize';
+import { logAdminAction } from '@/lib/auditLog';
 
 type StatusFilter = 'all' | 'paid' | 'pending' | 'fulfilled' | 'awaiting_fulfillment';
 const VALID_STATUS_FILTERS: readonly StatusFilter[] = ['all', 'paid', 'pending', 'fulfilled', 'awaiting_fulfillment'];
@@ -431,6 +432,12 @@ export default function AdminOrders() {
     setShippedIds(next);
     if (!writeLS('vision-shipped-orders', [...next])) {
       console.warn('[AdminOrders] Could not persist shipped orders (quota or storage disabled)');
+    }
+    // Task 9.19 — audit trail. Only log when the id wasn't already in
+    // the set, so repeated clicks on a row that's already shipped
+    // don't spam the log.
+    if (!shippedIds.has(id)) {
+      logAdminAction('order.mark_shipped', { orderId: id });
     }
   };
 

@@ -19,6 +19,7 @@ import {
   saveOverrides,
   type Permission,
 } from '@/lib/permissions';
+import { logAdminAction } from '@/lib/auditLog';
 
 interface ProfileRow {
   id: string;
@@ -204,7 +205,13 @@ export default function AdminUsers() {
         toast.error(`Erreur : ${error.message}`);
         return;
       }
+      // Task 9.19 — capture from/to so the audit trail reads like a
+      // diff. We pull `from` off the pre-update target snapshot (not
+      // the post-setUsers state) so the log reflects the real
+      // transition, not a no-op.
+      const fromRole = target?.role ?? 'unknown';
       setUsers(prev => prev.map(u => (u.id === userId ? { ...u, role: newRole } : u)));
+      logAdminAction('user.role_changed', { userId, from: fromRole, to: newRole });
       toast.success('Rôle mis à jour.');
     } catch (err) {
       // supabase-js can throw on network/DNS/CORS rejects before the
