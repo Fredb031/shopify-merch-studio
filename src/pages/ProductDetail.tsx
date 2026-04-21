@@ -13,7 +13,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 // initialization" and crashed every /product/:handle in dev.
 const ProductCustomizer = lazy(() => import('@/components/customizer/ProductCustomizer').then(m => ({ default: m.ProductCustomizer })));
 import { AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX } from 'lucide-react';
+import { ArrowLeft, Shirt, Check, ChevronRight, Package, Ruler, Calculator, Minus, Plus, AlertTriangle, PackageX, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE } from '@/data/products';
@@ -625,40 +625,45 @@ export default function ProductDetail() {
                 </button>
                 <button
                   onClick={async () => {
-                    // Prefer the native Web Share sheet on mobile (iOS Safari,
-                    // Chrome Android) so users can ping the page to Messages,
-                    // Slack, etc. — fall back to clipboard + toast.
+                    // Task 3.18 — Prefer the native Web Share sheet on mobile
+                    // (iOS Safari, Chrome Android) so users can ping the page
+                    // to Messages / Slack / email; otherwise fall back to
+                    // clipboard. `text` gives apps without a URL field
+                    // (WhatsApp preview) a useful caption.
+                    const productTitle = localProduct
+                      ? categoryLabel(localProduct.category, lang)
+                      : product.title;
                     const shareData = {
-                      title: document.title,
+                      title: productTitle,
+                      text: `Vision Affichage \u2014 ${productTitle}`,
                       url: window.location.href,
                     };
                     if (typeof navigator.share === 'function') {
-                      // User-cancel is a clean path here (AbortError).
-                      // Stay silent — no "copied" toast, no error.
-                      try { await navigator.share(shareData); } catch { /* cancelled */ }
+                      // User-cancel throws AbortError here. Stay silent on
+                      // dismissal — no "copied" toast and no error toast,
+                      // the share sheet itself was the feedback.
+                      try {
+                        await navigator.share(shareData);
+                      } catch {
+                        /* share dismissed — swallow */
+                      }
                       return;
                     }
-                    // Clipboard fallback — iframes, non-HTTPS contexts,
-                    // and denied permissions all reject the write.
-                    // Surface an error toast in that case so the user
-                    // doesn't stare at a button that silently did nothing.
+                    // Clipboard fallback. Only toast on *success* so a
+                    // silently failing clipboard (iframe / HTTP / denied)
+                    // doesn't lie to the user with "Lien copié".
                     try {
                       await navigator.clipboard.writeText(window.location.href);
-                      toast.success(lang === 'en' ? 'Link copied!' : 'Lien copié !');
-                    } catch (err) {
-                      console.warn('[ProductDetail] share clipboard failed:', err);
-                      toast.error(
-                        lang === 'en'
-                          ? 'Couldn\u2019t copy the link. Long-press the URL bar instead.'
-                          : 'Impossible de copier le lien. Fais un appui long sur la barre d\u2019adresse.',
-                      );
+                      toast.success(lang === 'en' ? 'Link copied' : 'Lien copié');
+                    } catch {
+                      /* clipboard unavailable — stay silent */
                     }
                   }}
                   className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
-                  aria-label={lang === 'en' ? 'Share product' : 'Partager le produit'}
+                  aria-label={lang === 'en' ? 'Share this product' : 'Partager ce produit'}
                   title={lang === 'en' ? 'Share' : 'Partager'}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+                  <Share2 size={16} aria-hidden="true" />
                 </button>
                 </div>
               </div>
