@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2, Package, MailCheck, Clock, X } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2, Package, MailCheck, Clock, X, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
@@ -111,8 +111,21 @@ interface CheckoutDraft {
   postalCode: string;
   notes: string;
   shippingMethod: ShippingMethod;
+  /** Task 5.17 — gift-message metadata. `isGift` tracks whether the
+   *  buyer opened the textarea so we can restore the toggle state on
+   *  resume; `giftMessage` is the optional note itself (capped at 250
+   *  chars in the UI). Both optional for back-compat with drafts
+   *  written before 5.17 shipped. */
+  isGift?: boolean;
+  giftMessage?: string;
   updatedAt: number;
 }
+
+/** Task 5.17 — hard cap on gift-message length. 250 keeps the note
+ *  short enough to fit on a handwritten-style delivery-receipt card
+ *  without the fulfillment team having to truncate by hand. Enforced
+ *  at the textarea (maxLength) and at persistence time (slice). */
+const GIFT_MESSAGE_MAX = 250;
 
 /** Humanize ms elapsed into "5min", "2h", "3j/d". Used by the resume banner. */
 function formatElapsed(ms: number, lang: 'en' | 'fr'): string {
@@ -219,7 +232,8 @@ export default function Checkout() {
     // Nothing to restore? Don't show the banner.
     const hasContent = Boolean(
       draft.email || draft.firstName || draft.lastName || draft.address ||
-      draft.city || draft.postalCode || draft.phone || draft.notes,
+      draft.city || draft.postalCode || draft.phone || draft.notes ||
+      draft.isGift || draft.giftMessage,
     );
     return hasContent ? draft : null;
   });
@@ -345,6 +359,16 @@ export default function Checkout() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  // Task 5.17 — optional gift-message. Toggle stays collapsed by
+  // default so the field doesn't clutter the payment step for the
+  // 95% of buyers shipping merch to themselves. When checked, the
+  // textarea below appears with a live char counter. Both pieces
+  // persist into the checkout draft so a mid-flow refresh preserves
+  // the toggle + any typed note, and both are forwarded into the
+  // `vision-pending-checkout` payload so fulfillment sees them.
+  const [isGift, setIsGift] = useState(false);
+  const [giftMessage, setGiftMessage] = useState('');
+
   // Debounced (500ms) write of the non-sensitive portion of the form
   // into `vision-checkout-draft`. Any re-render that changes form or
   // shippingMethod schedules a fresh timer; the previous one is
@@ -362,7 +386,8 @@ export default function Checkout() {
     // on the next visit with nothing useful to restore.
     const hasContent = Boolean(
       form.email || form.firstName || form.lastName || form.address ||
-      form.city || form.postalCode || form.phone || form.notes,
+      form.city || form.postalCode || form.phone || form.notes ||
+      isGift || giftMessage,
     );
     if (!hasContent) return;
     if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
@@ -379,6 +404,10 @@ export default function Checkout() {
         postalCode: form.postalCode,
         notes: form.notes,
         shippingMethod,
+        // Task 5.17 — belt-and-suspenders cap at persistence time in
+        // case a future refactor ever bypasses the textarea maxLength.
+        isGift,
+        giftMessage: giftMessage.slice(0, GIFT_MESSAGE_MAX),
         updatedAt: Date.now(),
       };
       writeLS(DRAFT_STORAGE_KEY, draft);
@@ -390,7 +419,7 @@ export default function Checkout() {
         draftTimerRef.current = null;
       }
     };
-  }, [form, shippingMethod, step]);
+  }, [form, shippingMethod, step, isGift, giftMessage]);
 
   // Successful checkout wipes the draft so the banner doesn't re-
   // appear on the next visit. Fires on the step-flip to 'done' (both
@@ -417,6 +446,13 @@ export default function Checkout() {
     }));
     if (draft.shippingMethod === 'standard' || draft.shippingMethod === 'express' || draft.shippingMethod === 'pickup') {
       setShippingMethod(draft.shippingMethod);
+    }
+    // Task 5.17 — restore the gift toggle + note so a buyer who was
+    // mid-way through writing "Bonne fête maman" can pick up exactly
+    // where they left off.
+    if (typeof draft.isGift === 'boolean') setIsGift(draft.isGift);
+    if (typeof draft.giftMessage === 'string') {
+      setGiftMessage(draft.giftMessage.slice(0, GIFT_MESSAGE_MAX));
     }
     setDraftOffer(null);
     toast.success(lang === 'en' ? 'Draft restored.' : 'Brouillon restauré.');
@@ -549,7 +585,20 @@ export default function Checkout() {
 
       if (checkoutUrl) {
         try {
-          localStorage.setItem('vision-pending-checkout', JSON.stringify({ ...form, total, ts: Date.now() }));
+          // Task 5.17 — forward the gift-message into the pending-
+          // checkout payload so the downstream fulfillment pipeline
+          // (Shopify webhook → order-notes → pack slip) receives it.
+          // Only emit the note when the toggle is on and the trimmed
+          // text is non-empty, so an abandoned "opened toggle but
+          // typed nothing" state doesn't attach a blank gift card.
+          const giftNote = isGift ? giftMessage.trim().slice(0, GIFT_MESSAGE_MAX) : '';
+          localStorage.setItem('vision-pending-checkout', JSON.stringify({
+            ...form,
+            total,
+            isGift: isGift && giftNote.length > 0,
+            giftMessage: giftNote,
+            ts: Date.now(),
+          }));
         } catch (e) {
           console.warn('[Checkout] Could not persist pending checkout to localStorage:', e);
         }
@@ -1066,6 +1115,88 @@ export default function Checkout() {
                       <span className="text-2xl font-extrabold text-primary">{fmtMoney(total)} $ CAD</span>
                     </div>
                   </div>
+                </div>
+
+                {/* Task 5.17 — optional gift-message section. Collapsed
+                    by default (just the toggle) so it doesn't clutter the
+                    payment step for the majority of buyers shipping to
+                    themselves. When the toggle flips on, the textarea,
+                    live char counter, and helper text reveal together.
+                    Emerald accent on the active toggle matches the same
+                    "confirmed / positive" accent we use on the step-done
+                    dots and the arrives-by banner above. */}
+                <div className="border border-border rounded-xl overflow-hidden">
+                  <label
+                    className={`flex items-start gap-3 p-3 transition-colors ${
+                      isGift ? 'bg-emerald-50' : 'bg-secondary/30 hover:bg-secondary/50'
+                    } ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isGift}
+                      disabled={processing}
+                      onChange={e => setIsGift(e.target.checked)}
+                      aria-controls="checkout-gift-textarea"
+                      aria-expanded={isGift}
+                      className={`mt-0.5 w-5 h-5 disabled:cursor-not-allowed ${
+                        isGift ? 'accent-emerald-600' : 'accent-primary'
+                      }`}
+                    />
+                    <span className="flex items-center gap-2 text-sm">
+                      <Gift
+                        size={16}
+                        className={isGift ? 'text-emerald-600' : 'text-muted-foreground'}
+                        aria-hidden="true"
+                      />
+                      <span className={isGift ? 'font-semibold text-emerald-900' : ''}>
+                        {lang === 'en'
+                          ? 'This is a gift — add a note'
+                          : 'Ceci est un cadeau — ajouter un mot'}
+                      </span>
+                    </span>
+                  </label>
+                  {isGift && (
+                    <div className="px-3 pb-3 pt-2 bg-emerald-50/40 border-t border-emerald-100">
+                      <textarea
+                        id="checkout-gift-textarea"
+                        value={giftMessage}
+                        // Keep state in sync with the raw input but cap
+                        // at the limit; the maxLength attr already blocks
+                        // further typing, the slice here is defense-in-
+                        // depth for paste events on some older browsers.
+                        onChange={e => setGiftMessage(e.target.value.slice(0, GIFT_MESSAGE_MAX))}
+                        maxLength={GIFT_MESSAGE_MAX}
+                        rows={3}
+                        disabled={processing}
+                        placeholder={lang === 'en'
+                          ? 'Happy birthday! Hope you love it. — M.'
+                          : "Bonne fête! J'espère que ça te plaira. — M."}
+                        aria-label={lang === 'en' ? 'Gift message' : 'Message cadeau'}
+                        aria-describedby="checkout-gift-helper checkout-gift-counter"
+                        className="w-full resize-none border border-emerald-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus:border-emerald-400 transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                      />
+                      <div className="mt-1 flex items-start justify-between gap-3">
+                        <p id="checkout-gift-helper" className="text-[11px] text-muted-foreground flex-1">
+                          {lang === 'en'
+                            ? 'Will appear on the delivery receipt.'
+                            : 'Apparaîtra sur le reçu de livraison.'}
+                        </p>
+                        <span
+                          id="checkout-gift-counter"
+                          aria-live="polite"
+                          className={`text-[11px] tabular-nums font-semibold ${
+                            giftMessage.length >= GIFT_MESSAGE_MAX
+                              ? 'text-rose-600'
+                              : giftMessage.length >= GIFT_MESSAGE_MAX - 25
+                                ? 'text-amber-600'
+                                : 'text-muted-foreground'
+                          }`}
+                        >
+                          {giftMessage.length}/{GIFT_MESSAGE_MAX}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <label className={`flex items-start gap-3 p-3 bg-secondary/30 rounded-xl ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
