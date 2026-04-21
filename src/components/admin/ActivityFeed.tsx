@@ -33,6 +33,22 @@ function relativeTime(ts: number): string {
   return `${Math.floor(h / 24)}j`;
 }
 
+// Full fr-CA timestamp for the hover tooltip so admins can see the
+// exact moment behind the relative label ("5 min" → "20 avril 2026, 14:32").
+function absoluteTime(ts: number): string {
+  try {
+    return new Date(ts).toLocaleString('fr-CA', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return new Date(ts).toISOString();
+  }
+}
+
 function ActivityFeedInner() {
   // Tick every 60s so "à l'instant" / "5 min" / "2h" labels actually
   // update while an admin keeps the dashboard open. The component is
@@ -124,9 +140,13 @@ function ActivityFeedInner() {
                 <div className="font-semibold text-sm truncate">{item.title}</div>
                 <div className="text-[11px] text-zinc-500 truncate">{item.detail}</div>
               </div>
-              <div className="text-[10px] text-zinc-400 whitespace-nowrap font-medium pt-1">
+              <time
+                dateTime={new Date(item.ts).toISOString()}
+                title={absoluteTime(item.ts)}
+                className="text-[10px] text-zinc-400 whitespace-nowrap font-medium pt-1"
+              >
                 {relativeTime(item.ts)}
-              </div>
+              </time>
             </Link>
           );
         })}
