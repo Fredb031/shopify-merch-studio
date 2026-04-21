@@ -5,7 +5,8 @@ import { ProductCard } from '@/components/ProductCard';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { useProducts } from '@/hooks/useProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
-import { findProductByHandle, PRODUCTS } from '@/data/products';
+import { findProductByHandle, matchProductByTitle, PRODUCTS } from '@/data/products';
+import { filterRealColors } from '@/lib/colorFilter';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useLang } from '@/lib/langContext';
@@ -310,6 +311,29 @@ export default function Products() {
     }
   }, [products, activeCategory, debouncedQuery, sortMode]);
 
+  // Task 2.15 — total real-color count across the currently filtered
+  // products. We resolve each Shopify product back to its local entry
+  // (same handle→then→title fallback ProductCard uses) and sum
+  // `filterRealColors` so the headline number matches exactly what the
+  // cards below advertise — no ghost variants padding the total.
+  const totalRealColors = useMemo(() => {
+    let sum = 0;
+    for (const p of filteredProducts) {
+      const handle = p?.node?.handle ?? '';
+      const title = p?.node?.title ?? '';
+      const local = (handle && findProductByHandle(handle))
+        || (title && matchProductByTitle(title))
+        || null;
+      if (!local) continue;
+      try {
+        sum += filterRealColors(local.sku, local.colors).length;
+      } catch (err) {
+        console.warn('[Products] filterRealColors threw for', local.sku, err);
+      }
+    }
+    return sum;
+  }, [filteredProducts]);
+
   // Task 6.10 — screen-reader announcement for the filtered product
   // count. Keyed off `debouncedQuery` (not `searchQuery`) via
   // filteredProducts so AT users hear the SETTLED result once per
@@ -542,16 +566,28 @@ export default function Products() {
               </h2>
             )}
 
-            {/* Result count — sort control lives up in the category tabs row now */}
-            {filteredProducts.length > 1 && activeCategory === 'overview' && !searchQuery && (
-              <div className="flex items-center gap-3 mb-4 flex-wrap">
-                <span className="text-[12px] text-muted-foreground">
-                  {filteredProducts.length}{' '}
-                  {lang === 'en'
-                    ? `product${filteredProducts.length !== 1 ? 's' : ''}`
-                    : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
-                </span>
-              </div>
+            {/* Task 2.15 — breadth-of-catalog meta line. Product count +
+                real-color total (via filterRealColors so ghosts don't
+                inflate) give shoppers a one-glance read on what's
+                filtered. Shown whenever there are results, regardless
+                of category/search, so the answer to "how much is
+                here?" is always visible above the grid. */}
+            {filteredProducts.length > 0 && (
+              <p className="text-[12px] text-muted-foreground mb-4">
+                {filteredProducts.length}{' '}
+                {lang === 'en'
+                  ? `product${filteredProducts.length !== 1 ? 's' : ''}`
+                  : `produit${filteredProducts.length !== 1 ? 's' : ''}`}
+                {totalRealColors > 0 && (
+                  <>
+                    {' \u00b7 '}
+                    {totalRealColors}{' '}
+                    {lang === 'en'
+                      ? `color${totalRealColors !== 1 ? 's' : ''} available`
+                      : `couleur${totalRealColors !== 1 ? 's' : ''} disponible${totalRealColors !== 1 ? 's' : ''}`}
+                  </>
+                )}
+              </p>
             )}
 
             {filteredProducts.length === 0 ? (
