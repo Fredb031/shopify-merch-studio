@@ -59,6 +59,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // Garment bounding box in percentages of canvas — computed from photo
   // pixels so "center on garment" lands on the shirt body, not whitespace.
   const [bbox, setBbox] = useState<{ x: number; y: number; w: number; h: number; cx: number; cy: number } | null>(null);
+  // Mirror bbox in a ref so async callbacks (e.g. LogoUploader's
+  // onLogoReady, which fires after file decode) always read the LIVE
+  // bbox rather than whatever snapshot they captured at render time.
+  // Subsequent uploads were landing with stale placement because the
+  // closure captured a null/old bbox before the canvas had finished
+  // measuring the garment photo.
+  const bboxRef = useRef(bbox);
+  useEffect(() => { bboxRef.current = bbox; }, [bbox]);
 
   // RESET the customizer state every time the modal mounts. User
   // explicitly asked: 'when we go back on the customiser, it restarts
@@ -880,7 +888,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <LogoUploader
                       onLogoReady={(previewUrl, processedUrl, file) => {
                         const zone = product.printZones[0];
-                        const auto = autoPlaceOnUpload({ bbox, zone });
+                        const auto = autoPlaceOnUpload({ bbox: bboxRef.current, zone });
                         const placement: LogoPlacement = {
                           zoneId: zone?.id ?? 'centre',
                           mode: 'preset',
