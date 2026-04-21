@@ -105,6 +105,16 @@ export function ProductCanvas({
       return next;
     });
   }, [onTextAssetsChange]);
+  // Mirror textAssets in a ref so callbacks bound to long-lived handlers
+  // (keydown listener registered once at mount, render-props passed to
+  // child buttons, fabric.js events) always read the LIVE list instead of
+  // the snapshot captured at declaration time. Mirrors the bboxRef
+  // pattern from af39f3d — rapid-fire deletes on the asset panel were
+  // otherwise racing the re-render and could remove the wrong asset or
+  // fail silently when the id had already been pruned in the captured
+  // closure but was still visible in the new list.
+  const textAssetsRef = useRef(textAssets);
+  useEffect(() => { textAssetsRef.current = textAssets; }, [textAssets]);
   const textObjects = useRef<Map<string, FabricObj & { side: ProductView }>>(new Map());
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fc      = useRef<any>(null);
@@ -1007,6 +1017,25 @@ export function ProductCanvas({
   };
 
   const removeTextAsset = (id: string) => {
+    // Read the LIVE assets list from the ref, not the closure variable:
+    // this callback is bound to per-row delete buttons AND invoked by the
+    // keydown handler (registered once at mount with []-deps), so the
+    // `textAssets` captured at declaration time can be many renders
+    // behind. Bail with a warn when the id is unknown rather than
+    // silently desyncing the fabric canvas and the assets list.
+    const live = textAssetsRef.current;
+    if (!live.some(t => t.id === id)) {
+      // Still clean up any orphan fabric object for this id, then noop.
+      const orphan = textObjects.current.get(id);
+      if (orphan && fc.current) {
+        fc.current.remove(orphan);
+        fc.current.renderAll();
+        textObjects.current.delete(id);
+      }
+      // eslint-disable-next-line no-console
+      console.warn(`[ProductCanvas] removeTextAsset: id "${id}" not in live asset list — ignoring.`);
+      return;
+    }
     const obj = textObjects.current.get(id);
     if (obj && fc.current) {
       fc.current.remove(obj);
