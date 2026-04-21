@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { CommandPalette } from './CommandPalette';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, end: true },
@@ -80,6 +81,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
+      <CommandPalette />
       <aside
         id="admin-sidebar"
         className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
