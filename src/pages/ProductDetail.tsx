@@ -21,6 +21,7 @@ import { useLang } from '@/lib/langContext';
 import { useSanmarInventory } from '@/hooks/useSanmarInventory';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useWishlist } from '@/hooks/useWishlist';
+import { useProductColors } from '@/hooks/useProductColors';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -43,6 +44,22 @@ export default function ProductDetail() {
     retry: 2,
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
   });
+
+  // Parallel-prefetch the Shopify variant/colors list (PRODUCT_FULL_QUERY)
+  // alongside the PDP's product fetch. Without this, the round-trip only
+  // starts when the user clicks "Customize", which lazy-loads the
+  // ProductCustomizer chunk and then calls useProductColors — a textbook
+  // network waterfall (chunk download → query dispatch → Shopify RTT)
+  // before the colour swatches render. Firing the query here keyed on
+  // `handle` means the two Storefront requests travel in parallel over
+  // the same connection, and by the time the customizer mounts the data
+  // is already sitting in React Query's cache. React Query dedupes by
+  // queryKey so the customizer's own useProductColors call becomes a
+  // sync cache hit, not a second network fetch. Safe: the hook is
+  // enabled-guarded on `handle`, retries match the PDP fetch, and the
+  // 5-min staleTime means a brief pause on the PDP before customizing
+  // still hits the cache.
+  useProductColors(handle);
 
   const localProduct = findProductByHandle(handle ?? '');
   const localProductId = localProduct?.id ?? 'atcf2500';
