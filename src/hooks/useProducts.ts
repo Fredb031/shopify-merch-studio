@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCTS_QUERY, ShopifyProduct } from '@/lib/shopify';
 
+/**
+ * React Query hook that fetches the Shopify storefront product catalog.
+ * Returns TanStack's `UseQueryResult` with `data` typed as `ShopifyProduct[]`;
+ * 30-minute `staleTime` and 60-minute `gcTime` keep cross-page navigation snappy.
+ */
 // Default 50 — slightly over-fetches today's 22-product catalog so new
 // SKUs uploaded to Shopify surface automatically instead of silently
 // getting truncated past the hardcoded limit. Storefront caps at 250
@@ -32,3 +37,9 @@ export function useProducts(first = 50) {
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000) + Math.random() * 300,
   });
 }
+
+/**
+ * Return type of {@link useProducts} — derived from the hook itself so the
+ * full TanStack Query surface (status flags, refetch, etc.) stays in sync.
+ */
+export type UseProductsResult = ReturnType<typeof useProducts>;
