@@ -287,6 +287,29 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
     throw err;
   }
 
+  // 401/403 means the Storefront access token is rejected — either expired,
+  // rotated, or the store disabled the private app. Previously this fell
+  // through to the generic `HTTP error! status: 401` throw, which surfaces
+  // as an ErrorBoundary / blank skeleton — indistinguishable from a 5xx
+  // outage. It's also NOT retryable (React Query retrying 401s just floods
+  // the logs), so we throw a tagged error with retryable=false so callers
+  // can branch. The toast tells the shopper "something's wrong on our end"
+  // without leaking the actual auth failure.
+  if (response.status === 401 || response.status === 403) {
+    let isEn = false;
+    try { isEn = localStorage.getItem('vision-lang') === 'en'; } catch { /* private mode */ }
+    toast.error(
+      isEn ? 'Shopify: Configuration issue' : 'Shopify : Problème de configuration',
+      { description: isEn
+          ? 'Our team has been notified. Please try again later.'
+          : 'Notre équipe a été avisée. Veuillez réessayer plus tard.' },
+    );
+    const err = new Error(`HTTP error! status: ${response.status}`) as Error & { retryable: boolean; status: number };
+    err.retryable = false;
+    err.status = response.status;
+    throw err;
+  }
+
   // Shopify Storefront occasionally returns 5xx during deploys, regional
   // outages, or backend incidents. Without a friendly toast these surface
   // as a blank skeleton / ErrorBoundary fallback (via the generic throw
