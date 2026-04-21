@@ -18,7 +18,7 @@
  * as separate components and showed the SAME thing twice, which is why the
  * customizer felt "double".
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, type KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlignCenter, AlignLeft, AlignRight, RotateCcw, ZoomIn, ZoomOut,
@@ -1044,6 +1044,58 @@ export function ProductCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Keyboard arrow nudge — competitor pattern (CustomInk, Printful, Figma).
+  // When the canvas wrapper has focus and an arrow key is pressed, shift
+  // the active logo (or selected text) by 1px. Shift = 5px, Alt = 10px for
+  // coarser positioning. We update x/y on the fabric object directly and
+  // emit the new placement so the store stays the source of truth.
+  //
+  // Scoped to the container (not window) so arrow keys in the checkout /
+  // page body still scroll as expected. The container is made tabbable via
+  // tabIndex=0 below so users can Tab into it from the keyboard.
+  const handleContainerKeyDown = useCallback((e: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (!fc.current) return;
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    // Don't hijack arrow keys while the user is typing inside an input,
+    // textarea, or editing an IText on the canvas.
+    const tgt = e.target as HTMLElement | null;
+    if (tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.isContentEditable)) return;
+    const active = fc.current.getActiveObject() ?? logoObj.current;
+    if (!active) return;
+    // Never nudge the photo, tint, or print-zone outline — those are
+    // background infrastructure, not user content.
+    if (active === photoObj.current || active === tintObj.current || active === maskRef.current) return;
+    // If the active IText is in edit mode, let fabric handle the arrow
+    // (caret movement) instead of moving the whole object.
+    if ((active as unknown as { isEditing?: boolean }).isEditing) return;
+
+    // 1px default, Shift = 5px, Alt = 10px. Alt wins over Shift if both.
+    const step = e.altKey ? 10 : e.shiftKey ? 5 : 1;
+    let dx = 0, dy = 0;
+    if (e.key === 'ArrowUp')    dy = -step;
+    if (e.key === 'ArrowDown')  dy =  step;
+    if (e.key === 'ArrowLeft')  dx = -step;
+    if (e.key === 'ArrowRight') dx =  step;
+
+    active.set({
+      left: (active.left ?? 0) + dx,
+      top:  (active.top  ?? 0) + dy,
+    });
+    active.setCoords?.();
+    fc.current.requestRenderAll?.();
+
+    // Respect placement store: only emit when it's the logo. Text asset
+    // positions aren't tracked in the placement store — they live in the
+    // fabric canvas + textAssets list, so a nudge there is visual-only.
+    // Any arrow-key nudge means the user is manually positioning, so we
+    // flip the zoneId to 'manual' (matches drag/align-left/align-right
+    // behaviour in emit + the align-toolbar handlers above).
+    if (active === logoObj.current) {
+      emitRef.current(active, 'manual');
+    }
+    e.preventDefault();
+  }, []);
+
   return (
     <div className="flex flex-col gap-2.5">
       {/* The interactive canvas — premium frame with subtle gradient + drop shadow */}
@@ -1052,7 +1104,13 @@ export function ProductCanvas({
           before JS kicks in. */}
       <div
         ref={containerRef}
-        className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] aspect-[5/6] md:aspect-[1/1.05] lg:aspect-[1.28/1]"
+        tabIndex={0}
+        onKeyDown={handleContainerKeyDown}
+        role="application"
+        aria-label={lang === 'en'
+          ? 'Product canvas. Use arrow keys to nudge the logo (Shift = 5px, Alt = 10px).'
+          : "Canvas du produit. Utilise les flèches pour déplacer le logo (Maj = 5 px, Alt = 10 px)."}
+        className="relative rounded-2xl overflow-hidden border border-border bg-gradient-to-br from-[#F8F7F3] via-[#F4F3EF] to-[#EDEAE3] shadow-[0_8px_32px_rgba(27,58,107,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] aspect-[5/6] md:aspect-[1/1.05] lg:aspect-[1.28/1] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {/* Subtle radial accent in the corner — looks like studio lighting */}
         <div
