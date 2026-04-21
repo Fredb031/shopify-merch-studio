@@ -95,6 +95,8 @@ CI runs both on every PR via GitHub Actions (`.github/workflows/`).
 
 ## Contributing
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow, commit-style rules, and verify-before-commit gate.
+
 - Pull requests use the template at `.github/pull_request_template.md`.
 - Issue templates live in `.github/ISSUE_TEMPLATE/`.
 - Keep commits focused and conventional (`feat:`, `fix:`, `docs:`, ...).
