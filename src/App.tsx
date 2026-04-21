@@ -66,6 +66,11 @@ const Accessibility = lazy(() => import("./pages/legal/Accessibility"));
 // footer/nav, not the hot path. Keeps the Index bundle lean.
 const Contact = lazy(() => import("./pages/Contact"));
 
+// About surface (Task 11.9) — bilingual founder story + values + stat
+// tiles. Same lazy rationale as Contact: reached from the footer, not
+// the home hot path, so it shouldn't bloat the Index chunk.
+const About = lazy(() => import("./pages/About"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -226,6 +231,7 @@ const AnimatedRoutes = () => {
           <Route path="/returns" element={<Returns />} />
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<About />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

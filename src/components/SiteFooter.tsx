@@ -178,7 +178,11 @@ export function SiteFooter() {
               {lang === 'en' ? 'Company' : 'Entreprise'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#about" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'About us' : 'À propos'}</a></li>
+              {/* Task 11.9 — "About us" previously pointed to the #about
+                  home-page anchor, which 404'd the hash scroll when the
+                  visitor was on a subpage. /about is a real route with
+                  the founder story, values, and stat tiles. */}
+              <li><Link to="/about" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'About us' : 'À propos'}</Link></li>
               <li><a href="#testimonials" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Testimonials' : 'Témoignages'}</a></li>
               <li><a href="#how-it-works" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'How it works' : 'Comment ça marche'}</a></li>
             </ul>
