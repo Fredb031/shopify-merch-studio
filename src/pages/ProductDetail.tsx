@@ -242,11 +242,20 @@ export default function ProductDetail() {
         v.node.selectedOptions.every(
           (so: { name: string; value: string }) => currentOptions[so.name] === so.value,
         ),
-    )?.node || product.variants.edges[0]?.node;
+    )?.node || product.variants.edges[0]?.node || null;
 
-  const price = selectedVariant
-    ? parseFloat(selectedVariant.price.amount).toFixed(2)
-    : parseFloat(product.priceRange.minVariantPrice.amount).toFixed(2);
+  // Defence in depth: Shopify Storefront normally ships price on every
+  // variant, but intermittent schema hiccups / partial cache hydration
+  // have produced payloads where selectedVariant.price is undefined.
+  // Before this guard, reading `.amount` off that undefined blew up the
+  // whole PDP render with a TypeError. Fall back through variant price
+  // → product.priceRange.minVariantPrice → '0.00' so the page still
+  // paints instead of white-screening on a missing field.
+  const variantAmount = selectedVariant?.price?.amount;
+  const fallbackAmount = product.priceRange?.minVariantPrice?.amount;
+  const rawPrice = variantAmount ?? fallbackAmount;
+  const parsedPrice = rawPrice != null ? parseFloat(rawPrice) : NaN;
+  const price = Number.isFinite(parsedPrice) ? parsedPrice.toFixed(2) : '0.00';
 
   // Per-variant stock ceiling for the BulkCalculator. The calculator is
   // keyed on `handle` (intentionally, so size/color tweaks don't blow
