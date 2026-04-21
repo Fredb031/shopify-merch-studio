@@ -8,6 +8,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useAuthStore } from '@/stores/authStore';
 import { hasPermission } from '@/lib/permissions';
 import { useLang } from '@/lib/langContext';
+import { sanitizeText } from '@/lib/sanitize';
 import {
   getVendorCommissions,
   filterSummaryByMonth,
@@ -1170,7 +1171,12 @@ export default function VendorDashboard() {
   }, [vendorId]);
 
   const onAddNote = useCallback((email: string) => {
-    const body = noteDraft.trim();
+    // Task 14.4 — sanitize before persisting so a pasted tag or runaway
+    // whitespace blob can't poison the CRM notes map for this vendor.
+    // 2000-char cap is generous for a CRM memo without letting a
+    // pathological paste eat into the localStorage quota shared with
+    // the cart and commission cache.
+    const body = sanitizeText(noteDraft, { maxLength: 2000 });
     if (!body) return;
     const entry: ClientNote = {
       body,

@@ -14,6 +14,7 @@ import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { fmtMoney as fmtCAD } from '@/lib/format';
 import { trackEvent } from '@/lib/analytics';
 import { readLS, writeLS } from '@/lib/storage';
+import { sanitizeText } from '@/lib/sanitize';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
@@ -591,7 +592,10 @@ export default function Checkout() {
           // Only emit the note when the toggle is on and the trimmed
           // text is non-empty, so an abandoned "opened toggle but
           // typed nothing" state doesn't attach a blank gift card.
-          const giftNote = isGift ? giftMessage.trim().slice(0, GIFT_MESSAGE_MAX) : '';
+          // Task 14.4 — sanitize before persisting to the pending-
+          // checkout blob so a pasted tag / oversized whitespace payload
+          // can't poison the fulfillment pipeline that reads it back.
+          const giftNote = isGift ? sanitizeText(giftMessage, { maxLength: GIFT_MESSAGE_MAX }) : '';
           localStorage.setItem('vision-pending-checkout', JSON.stringify({
             ...form,
             total,

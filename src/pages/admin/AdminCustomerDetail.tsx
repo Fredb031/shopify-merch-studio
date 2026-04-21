@@ -23,6 +23,7 @@ import {
   type ShopifyOrderSnapshot,
 } from '@/data/shopifySnapshot';
 import { readLS, writeLS } from '@/lib/storage';
+import { sanitizeText } from '@/lib/sanitize';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 /* ────────── Types ────────── */
@@ -225,7 +226,12 @@ export default function AdminCustomerDetail() {
 
   /* ─── Handlers ─── */
   const handleAddNote = () => {
-    const body = draft.trim();
+    // Task 14.4 — sanitize before persisting so a pasted `<script>`
+    // blob becomes plain text in localStorage and any downstream
+    // non-React consumer (CSV export, email) renders it defanged.
+    // 2000-char cap matches the Contact textarea — plenty for an
+    // admin memo without letting a runaway paste blow the quota.
+    const body = sanitizeText(draft, { maxLength: 2000 });
     if (!body || !customerKey) return;
     const next: NotesStore = {
       ...notesStore,

@@ -7,6 +7,7 @@ import { SubmitButton, type SubmitButtonState } from '@/components/SubmitButton'
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import { sanitizeText } from '@/lib/sanitize';
 
 // Shape of a locally-stored contact submission. The backend swap will
 // POST this same object to an endpoint; keeping "at" and "lang" alongside
@@ -82,11 +83,17 @@ export default function Contact() {
           && typeof (v as { message?: unknown }).message === 'string'
           && typeof (v as { at?: unknown }).at === 'number',
       );
+      // Task 14.4 — run the three free-text fields through sanitizeText
+      // before persisting so angle brackets / oversized pastes can't
+      // poison a downstream consumer (CSV export, email template, log).
+      // Message gets the widest cap (2000) since that's the textarea's
+      // natural ceiling; name/subject get tighter caps matching their
+      // single-line input contract.
       clean.push({
-        name: name.trim(),
+        name: sanitizeText(name, { maxLength: 120 }),
         email: normalizedEmail,
-        subject: subject.trim(),
-        message: message.trim(),
+        subject: sanitizeText(subject, { maxLength: 200 }),
+        message: sanitizeText(message, { maxLength: 2000 }),
         at: Date.now(),
         lang,
       });
