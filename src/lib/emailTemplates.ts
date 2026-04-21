@@ -278,3 +278,115 @@ export function orderDeliveredEmail(ctx: OrderDeliveredCtx): EmailOutput {
     text: `Ta commande ${ctx.orderNumber} a été livrée. Merci d'avoir choisi Vision Affichage!${ctx.reviewUrl ? ` Avis: ${ctx.reviewUrl}` : ''}`,
   };
 }
+
+// ───────────────── Order confirmation ─────────────────
+//
+// Sent right after an order is placed (pre-payment-capture for offline methods,
+// or right after checkout for card). Separate from paymentConfirmationEmail,
+// which fires once payment is actually captured. Uses the same wrap() chrome
+// so the footer/signature stays consistent with the rest of the library.
+
+export interface OrderConfirmationCtx {
+  clientName: string;
+  orderNumber: string;
+  total: number;
+  etaDate: string;
+  lang?: Lang;
+}
+
+export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
+  const lang = ctx.lang ?? 'fr';
+  const totalFmt = ctx.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { style: 'currency', currency: 'CAD' });
+
+  if (lang === 'en') {
+    return {
+      subject: `Vision Affichage — order confirmation #${ctx.orderNumber}`,
+      html: wrap(`
+        <h1 style="font-size:22px;margin:0 0 12px;">Order confirmed, ${firstName(ctx.clientName)}!</h1>
+        <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
+          We got your order <strong>#${esc(ctx.orderNumber)}</strong>. A quick recap below —
+          we'll send another note as soon as production wraps and your package is on the move.
+        </p>
+        <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Order #${esc(ctx.orderNumber)}</div>
+          <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+          <div style="font-size:12px;color:#777;margin-top:4px;">Estimated delivery: ${esc(ctx.etaDate)}</div>
+        </div>
+        <p style="font-size:13px;color:#666;">Questions? Email <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a> or call ${BRAND.phone}.</p>
+      `),
+      text: `Hi ${ctx.clientName.split(' ')[0]},\n\nOrder #${ctx.orderNumber} confirmed — total ${totalFmt}.\nEstimated delivery: ${ctx.etaDate}.\n\nQuestions? ${BRAND.email}`,
+    };
+  }
+
+  return {
+    subject: `Vision Affichage — confirmation de commande #${ctx.orderNumber}`,
+    html: wrap(`
+      <h1 style="font-size:22px;margin:0 0 12px;">Commande confirmée, ${firstName(ctx.clientName)} !</h1>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
+        On a bien reçu ta commande <strong>#${esc(ctx.orderNumber)}</strong>. Un petit récap ci-dessous —
+        on te renverra un courriel dès que la production est terminée et que ton colis part.
+      </p>
+      <div style="background:#f8f9fb;border-radius:12px;padding:16px;margin:0 0 22px;">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:${BRAND.blue};font-weight:800;margin-bottom:6px;">Commande #${esc(ctx.orderNumber)}</div>
+        <div style="font-size:26px;font-weight:800;color:${BRAND.navy};">${esc(totalFmt)}</div>
+        <div style="font-size:12px;color:#777;margin-top:4px;">Livraison estimée : ${esc(ctx.etaDate)}</div>
+      </div>
+      <p style="font-size:13px;color:#666;">Des questions ? Écris à <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a> ou appelle au ${BRAND.phone}.</p>
+    `),
+    text: `Bonjour ${ctx.clientName.split(' ')[0]},\n\nCommande #${ctx.orderNumber} confirmée — total ${totalFmt}.\nLivraison estimée : ${ctx.etaDate}.\n\nDes questions ? ${BRAND.email}`,
+  };
+}
+
+// ───────────────── Password reset ─────────────────
+//
+// Fired when a user requests a reset link from the sign-in page. The reset URL
+// is expected to already carry the one-time token; this template is just the
+// presentation layer. Keep expiry copy generic (no hard-coded TTL) so auth
+// backends can swap the window without editing the template.
+
+export interface PasswordResetCtx {
+  clientName?: string;
+  resetUrl: string;
+  lang?: Lang;
+}
+
+export function passwordResetEmail(ctx: PasswordResetCtx): EmailOutput {
+  const lang = ctx.lang ?? 'fr';
+  const name = ctx.clientName ? firstName(ctx.clientName) : '';
+
+  if (lang === 'en') {
+    return {
+      subject: `Vision Affichage — reset your password`,
+      html: wrap(`
+        <h1 style="font-size:22px;margin:0 0 12px;">${name ? `Hi ${name},` : 'Hi there,'}</h1>
+        <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
+          We got a request to reset the password on your Vision Affichage account.
+          Click the button below to pick a new one — the link expires shortly for your safety.
+        </p>
+        <p style="margin:0 0 22px;">${button(ctx.resetUrl, 'Reset password')}</p>
+        <p style="font-size:13px;color:#666;line-height:1.6;">
+          Didn't ask for this? You can ignore this email — your current password stays active.
+          Need help? Email <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a>.
+        </p>
+      `),
+      text: `${name ? `Hi ${name},\n\n` : ''}Reset your Vision Affichage password: ${ctx.resetUrl}\n\nThe link expires shortly. If you didn't request this, ignore this email.`,
+    };
+  }
+
+  return {
+    subject: `Vision Affichage — réinitialiser ton mot de passe`,
+    html: wrap(`
+      <h1 style="font-size:22px;margin:0 0 12px;">${name ? `Bonjour ${name},` : 'Bonjour,'}</h1>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
+        On a reçu une demande pour réinitialiser le mot de passe de ton compte Vision Affichage.
+        Clique sur le bouton ci-dessous pour en choisir un nouveau — le lien expire bientôt pour ta sécurité.
+      </p>
+      <p style="margin:0 0 22px;">${button(ctx.resetUrl, 'Réinitialiser le mot de passe')}</p>
+      <p style="font-size:13px;color:#666;line-height:1.6;">
+        Ce n'était pas toi ? Ignore ce courriel — ton mot de passe actuel reste valide.
+        Besoin d'aide ? Écris à <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a>.
+      </p>
+    `),
+    text: `${name ? `Bonjour ${name},\n\n` : ''}Réinitialise ton mot de passe Vision Affichage : ${ctx.resetUrl}\n\nLe lien expire bientôt. Si ce n'était pas toi, ignore ce courriel.`,
+  };
+}
