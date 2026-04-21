@@ -26,7 +26,13 @@ interface ShippingForm {
   phone: string;
 }
 
-const TAX_RATE = 0.14975; // QST + GST combined for Quebec
+// Quebec effective combined rate is 14.975% (5% GST + 9.975% QST).
+// We break out each component for the order summary so buyers can see
+// where the tax number came from — federal GST and provincial QST
+// are separate line items on any Quebec invoice.
+const GST_RATE = 0.05;
+const QST_RATE = 0.09975;
+const TAX_RATE = GST_RATE + QST_RATE; // 0.14975 — QST + GST combined for Quebec
 const SHIPPING_RATES = {
   standard: { fr: 'Livraison standard · 5 jours ouvrables', en: 'Standard · 5 business days', price: 0 },
   express:  { fr: 'Livraison express · 2-3 jours ouvrables', en: 'Express · 2-3 business days', price: 25.00 },
@@ -96,7 +102,10 @@ export default function Checkout() {
 
   const subtotal = cart.getTotal();
   const shippingCost = SHIPPING_RATES[shippingMethod].price;
-  const tax = (subtotal + shippingCost) * TAX_RATE;
+  const taxableBase = subtotal + shippingCost;
+  const gst = taxableBase * GST_RATE;
+  const qst = taxableBase * QST_RATE;
+  const tax = gst + qst;
   const total = subtotal + shippingCost + tax;
   const itemCount = cart.getItemCount();
 
@@ -569,6 +578,18 @@ export default function Checkout() {
                     <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} />
                     <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} />
                     <Row label={lang === 'en' ? 'Tax (14.975%)' : 'Taxes (14.975%)'} value={`${fmtMoney(tax)} $`} />
+                    {/* QC invoices must show GST + QST separately. Indented
+                        to read as a breakdown of the combined tax line. */}
+                    <div className="pl-3 border-l-2 border-border/60 ml-1 space-y-0.5 text-xs text-muted-foreground">
+                      <div className="flex justify-between">
+                        <span>{lang === 'en' ? 'GST (5%)' : 'TPS (5%)'}</span>
+                        <span className="font-semibold">{fmtMoney(gst)} $</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>{lang === 'en' ? 'QST (9.975%)' : 'TVQ (9,975%)'}</span>
+                        <span className="font-semibold">{fmtMoney(qst)} $</span>
+                      </div>
+                    </div>
                     <div className="border-t border-border pt-2 mt-2 flex justify-between items-baseline">
                       <span className="font-extrabold">Total</span>
                       <span className="text-2xl font-extrabold text-primary">{fmtMoney(total)} $ CAD</span>
@@ -678,6 +699,18 @@ export default function Checkout() {
               <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} muted />
               <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} muted />
               <Row label={lang === 'en' ? 'Tax' : 'Taxes'} value={`${fmtMoney(tax)} $`} muted />
+              {/* Mirror the GST/QST split from the payment-step summary so
+                  the sticky aside shows the same breakdown on every step. */}
+              <div className="pl-3 border-l-2 border-border/60 ml-1 space-y-0.5 text-[11px] text-muted-foreground">
+                <div className="flex justify-between">
+                  <span>{lang === 'en' ? 'GST (5%)' : 'TPS (5%)'}</span>
+                  <span className="font-semibold">{fmtMoney(gst)} $</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{lang === 'en' ? 'QST (9.975%)' : 'TVQ (9,975%)'}</span>
+                  <span className="font-semibold">{fmtMoney(qst)} $</span>
+                </div>
+              </div>
               <div className="flex justify-between pt-2 mt-1 border-t border-border">
                 <span className="font-extrabold">Total</span>
                 <span className="font-extrabold text-primary">{fmtMoney(total)} $</span>
