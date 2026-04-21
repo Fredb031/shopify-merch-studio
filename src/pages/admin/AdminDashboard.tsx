@@ -1,9 +1,24 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, DollarSign, FileText, Package, TrendingUp, AlertCircle } from 'lucide-react';
+import {
+  ShoppingBag,
+  DollarSign,
+  FileText,
+  Package,
+  TrendingUp,
+  AlertCircle,
+  ShoppingCart,
+  ChevronRight,
+} from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { TodayWidget } from '@/components/admin/TodayWidget';
-import { ActivityFeed } from '@/components/admin/ActivityFeed';
-import { SHOPIFY_ORDERS_SNAPSHOT, SHOPIFY_PRODUCTS_SNAPSHOT, SHOPIFY_STATS, SHOPIFY_SNAPSHOT_META } from '@/data/shopifySnapshot';
+import {
+  SHOPIFY_ORDERS_SNAPSHOT,
+  SHOPIFY_PRODUCTS_SNAPSHOT,
+  SHOPIFY_STATS,
+  SHOPIFY_SNAPSHOT_META,
+  SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
+} from '@/data/shopifySnapshot';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -14,6 +29,203 @@ const STATUS_COLORS: Record<string, string> = {
   refunded: 'bg-rose-50 text-rose-700',
   voided: 'bg-zinc-100 text-zinc-700',
 };
+
+// ───────────── Task 9.9 — Activity feed deep-links ─────────────
+// Synthesizes recent orders / quotes / abandoned carts into a single
+// freshest-first stream and deep-links each row back to its source
+// record (with a ?highlight=<id> param so the target page can flash
+// the specific row). Capped at 10 so the card stays a glance surface.
+
+type ActivityIcon = typeof ShoppingBag;
+
+interface ActivityItem {
+  id: string;
+  ts: number;
+  icon: ActivityIcon;
+  iconColor: string;
+  iconBg: string;
+  title: string;
+  detail: string;
+  href: string;
+}
+
+function relativeTimeFr(ts: number): string {
+  // Clamp so a source ts a few seconds ahead of the browser clock
+  // doesn't render "il y a -1 min" (NTP drift / Shopify server clock).
+  const diff = Math.max(0, Date.now() - ts);
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "à l'instant";
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `il y a ${h}h`;
+  return `il y a ${Math.floor(h / 24)}j`;
+}
+
+// Quotes live in localStorage under `vision-quotes` (same source
+// AdminQuotes reads). Defensive per-row try/catch so one corrupted
+// entry doesn't hide every quote from the activity feed.
+interface StoredQuoteShape {
+  id?: string | number;
+  number?: string;
+  clientName?: string;
+  clientEmail?: string;
+  total?: number;
+  createdAt?: string;
+}
+
+function readQuoteActivities(): ActivityItem[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem('vision-quotes') ?? '[]');
+    if (!Array.isArray(raw)) return [];
+    const out: ActivityItem[] = [];
+    for (const q of raw as StoredQuoteShape[]) {
+      try {
+        if (!q || typeof q !== 'object') continue;
+        const ts = q.createdAt ? new Date(q.createdAt).getTime() : NaN;
+        // Skip rows with an unparseable createdAt instead of pinning
+        // them to "now" — a fleet of "à l'instant" quotes would
+        // dominate the 10-row cap and hide real recent orders.
+        if (!Number.isFinite(ts)) continue;
+        const email = typeof q.clientEmail === 'string' ? q.clientEmail : '';
+        const clientFromEmail = email.includes('@') ? email.split('@')[0] : email;
+        const client =
+          (typeof q.clientName === 'string' && q.clientName.trim()) || clientFromEmail || '—';
+        const total = Number.isFinite(q.total) ? (q.total as number) : 0;
+        const number = typeof q.number === 'string' && q.number ? q.number : '—';
+        const qid = q.id ?? number;
+        out.push({
+          id: `quote-${qid}`,
+          ts,
+          icon: FileText,
+          iconColor: 'text-[#0052CC]',
+          iconBg: 'bg-blue-50',
+          title: `Nouvelle soumission ${number}`,
+          detail: `${client} · ${total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $`,
+          href: `/admin/quotes?highlight=${encodeURIComponent(String(qid))}`,
+        });
+      } catch {
+        // Skip this row; keep the rest of the list visible.
+      }
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+function useActivityItems(): ActivityItem[] {
+  // Tick every 60s so "à l'instant" / "il y a 5 min" labels actually
+  // advance while an admin keeps the dashboard open. Without this
+  // the relative timestamps were frozen at the values from first
+  // paint — a dashboard left open for an hour still read
+  // "à l'instant".
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick(t => t + 1), 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return useMemo<ActivityItem[]>(() => {
+    const all: ActivityItem[] = [];
+
+    SHOPIFY_ORDERS_SNAPSHOT.forEach(o => {
+      // Shopify order.name is "#1570"; highlight param is the bare
+      // number so AdminOrders can flash the matching row. Fall back
+      // to the raw id for custom-named orders that don't match the
+      // "#NNNN" shape.
+      const num = o.name.startsWith('#') ? o.name.slice(1) : String(o.id);
+      all.push({
+        id: `order-${o.id}`,
+        ts: new Date(o.createdAt).getTime(),
+        icon: ShoppingBag,
+        iconColor: 'text-emerald-700',
+        iconBg: 'bg-emerald-50',
+        title: `Nouvelle commande ${o.name}`,
+        detail: `${o.customerName.trim() || o.email} · ${o.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $`,
+        href: `/admin/orders?highlight=${encodeURIComponent(num)}`,
+      });
+    });
+
+    SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.forEach(c => {
+      all.push({
+        id: `abandoned-${c.id}`,
+        ts: new Date(c.createdAt).getTime(),
+        icon: ShoppingCart,
+        iconColor: 'text-amber-700',
+        iconBg: 'bg-amber-50',
+        title: 'Panier abandonné',
+        detail: `${c.customerName.trim() || c.email} · ${c.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $`,
+        href: `/admin/abandoned-carts?highlight=${encodeURIComponent(String(c.id))}`,
+      });
+    });
+
+    for (const q of readQuoteActivities()) all.push(q);
+
+    // Freshest first, capped at 10. Anything older is reachable via
+    // the per-section "Voir tout" links — this card is a glance
+    // surface, not a full history.
+    return all.sort((a, b) => b.ts - a.ts).slice(0, 10);
+  }, []);
+}
+
+function ActivityFeedCard() {
+  const items = useActivityItems();
+
+  if (items.length === 0) {
+    return (
+      <div
+        className="bg-white border border-zinc-200 rounded-2xl p-6 text-center"
+        role="status"
+      >
+        <AlertCircle size={20} className="text-zinc-400 mx-auto mb-2" aria-hidden="true" />
+        <div className="text-sm text-zinc-500">Aucune activité récente</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-2xl p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bold text-zinc-900">Activité récente</h2>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 inline-flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Live
+        </span>
+      </div>
+      <ul className="divide-y divide-zinc-100 -mx-2">
+        {items.map(item => {
+          const Icon = item.icon;
+          return (
+            <li key={item.id}>
+              <Link
+                to={item.href}
+                className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+              >
+                <div
+                  className={`w-8 h-8 rounded-lg ${item.iconBg} ${item.iconColor} flex items-center justify-center flex-shrink-0`}
+                >
+                  <Icon size={14} aria-hidden="true" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm truncate">{item.title}</div>
+                  <div className="text-[11px] text-zinc-500 truncate">{item.detail}</div>
+                </div>
+                <div className="text-[10px] text-zinc-400 whitespace-nowrap font-medium">
+                  {relativeTimeFr(item.ts)}
+                </div>
+                <ChevronRight
+                  size={16}
+                  className="text-zinc-300 group-hover:text-zinc-500 transition-colors flex-shrink-0"
+                  aria-hidden="true"
+                />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
 
 export default function AdminDashboard() {
   useDocumentTitle('Tableau de bord — Admin Vision Affichage');
@@ -173,7 +385,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <ActivityFeed />
+      <ActivityFeedCard />
     </div>
   );
 }
