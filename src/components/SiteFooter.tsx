@@ -17,6 +17,20 @@ export function SiteFooter() {
   // this, users who submit and then navigate away within 3.5s trigger a
   // state update on an unmounted component (React dev warning + wasted work).
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
+  // When the success card reverts back to the form, restore focus to the
+  // (now cleared) email input so keyboard / screen-reader users don't lose
+  // their place — otherwise focus falls back to <body> and the user has to
+  // tab from the top of the document to continue a second subscription.
+  // Guard with a "just reverted" flag so we don't steal focus on first
+  // mount; only grab it after a subscription cycle actually completes.
+  const shouldRefocusRef = useRef(false);
+  useEffect(() => {
+    if (!subscribed && shouldRefocusRef.current) {
+      shouldRefocusRef.current = false;
+      emailInputRef.current?.focus();
+    }
+  }, [subscribed]);
   useEffect(() => {
     return () => {
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
@@ -59,6 +73,7 @@ export function SiteFooter() {
     setSubscribed(true);
     if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     resetTimerRef.current = setTimeout(() => {
+      shouldRefocusRef.current = true;
       setSubscribed(false);
       setEmail('');
       resetTimerRef.current = null;
@@ -118,6 +133,7 @@ export function SiteFooter() {
             >
               <div className="flex items-stretch">
                 <input
+                  ref={emailInputRef}
                   type="email"
                   value={email}
                   onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(false); }}
