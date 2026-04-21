@@ -7,6 +7,7 @@ import { LangProvider, useLang } from "@/lib/langContext";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { AuthGuard } from "@/components/AuthGuard";
+import { RequirePermission } from "@/components/RequirePermission";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 // Cart, ProductDetail, NotFound used to be eager — there's no reason
@@ -115,16 +116,51 @@ const App = () => (
                   <Route path="orders" element={<AdminOrders />} />
                   <Route path="products" element={<AdminProducts />} />
                   <Route path="vendors" element={<AdminVendors />} />
-                  <Route path="users" element={<AdminUsers />} />
+                  <Route
+                    path="users"
+                    element={
+                      <RequirePermission permission="users:read">
+                        <AdminUsers />
+                      </RequirePermission>
+                    }
+                  />
                   <Route path="customers" element={<AdminCustomers />} />
                   <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
                   <Route path="quotes" element={<AdminQuotes />} />
-                  <Route path="emails" element={<AdminEmails />} />
-                  <Route path="emails/templates" element={<AdminEmails />} />
+                  <Route
+                    path="emails"
+                    element={
+                      <RequirePermission permission="emails:read">
+                        <AdminEmails />
+                      </RequirePermission>
+                    }
+                  />
+                  <Route
+                    path="emails/templates"
+                    element={
+                      <RequirePermission permission="emails:read">
+                        <AdminEmails />
+                      </RequirePermission>
+                    }
+                  />
                   <Route path="images" element={<AdminImageGen />} />
-                  <Route path="automations" element={<AdminAutomations />} />
-                  <Route path="settings" element={<AdminSettings />} />
+                  <Route
+                    path="automations"
+                    element={
+                      <RequirePermission permission="automations:read">
+                        <AdminAutomations />
+                      </RequirePermission>
+                    }
+                  />
+                  <Route
+                    path="settings"
+                    element={
+                      <RequirePermission permission="settings:read">
+                        <AdminSettings />
+                      </RequirePermission>
+                    }
+                  />
                 </Route>
 
                 <Route

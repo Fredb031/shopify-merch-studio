@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Plus, Crown, ShieldCheck, User, AlertCircle, Loader2, KeyRound, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthStore, type UserRole } from '@/stores/authStore';
@@ -10,6 +10,15 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import {
+  ALL_PERMISSIONS,
+  ROLE_PERMISSIONS,
+  coerceToPermissionRole,
+  hasPermission,
+  loadOverrides,
+  saveOverrides,
+  type Permission,
+} from '@/lib/permissions';
 
 interface ProfileRow {
   id: string;
@@ -73,6 +82,39 @@ export default function AdminUsers() {
   const [inviteResult, setInviteResult] = useState<string | null>(null);
   const inviteNameRef = useRef<HTMLInputElement>(null);
   const trapRef = useFocusTrap<HTMLDivElement>(showInvite);
+
+  // Permission-override dialog state. `permsTarget` is the ProfileRow the
+  // admin is editing; `permsDraft` is the in-flight override list
+  // (committed to localStorage only when they click Save). Keeping the
+  // draft separate means ESC cancels cleanly without writing partials.
+  const [permsTarget, setPermsTarget] = useState<ProfileRow | null>(null);
+  const [permsDraft, setPermsDraft] = useState<Permission[]>([]);
+  const permsTrapRef = useFocusTrap<HTMLDivElement>(permsTarget !== null);
+  useEscapeKey(permsTarget !== null, useCallback(() => setPermsTarget(null), []));
+  useBodyScrollLock(permsTarget !== null);
+
+  const openPerms = useCallback((u: ProfileRow) => {
+    const map = loadOverrides();
+    setPermsDraft(map[u.id] ?? []);
+    setPermsTarget(u);
+  }, []);
+
+  const togglePermOverride = useCallback((perm: Permission) => {
+    setPermsDraft(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]);
+  }, []);
+
+  const savePermOverrides = useCallback(() => {
+    if (!permsTarget) return;
+    const map = loadOverrides();
+    if (permsDraft.length === 0) {
+      delete map[permsTarget.id];
+    } else {
+      map[permsTarget.id] = permsDraft;
+    }
+    saveOverrides(map);
+    toast.success('Permissions mises à jour.');
+    setPermsTarget(null);
+  }, [permsTarget, permsDraft]);
 
   useEffect(() => {
     fetchUsers();
@@ -372,18 +414,29 @@ export default function AdminUsers() {
                       {new Date(u.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' })}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {!isMe && (
+                      <div className="inline-flex items-center gap-3 justify-end">
                         <button
                           type="button"
-                          onClick={() => toggleActive(u.id, u.active)}
-                          aria-label={u.active
-                            ? `Désactiver ${displayName}`
-                            : `Réactiver ${displayName}`}
-                          className="text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                          onClick={() => openPerms(u)}
+                          aria-label={`Gérer les permissions de ${displayName}`}
+                          className="inline-flex items-center gap-1 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
                         >
-                          {u.active ? 'Désactiver' : 'Réactiver'}
+                          <KeyRound size={13} aria-hidden="true" />
+                          Permissions
                         </button>
-                      )}
+                        {!isMe && (
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(u.id, u.active)}
+                            aria-label={u.active
+                              ? `Désactiver ${displayName}`
+                              : `Réactiver ${displayName}`}
+                            className="text-xs font-bold text-zinc-500 hover:text-zinc-900 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                          >
+                            {u.active ? 'Désactiver' : 'Réactiver'}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -392,6 +445,136 @@ export default function AdminUsers() {
           </table>
         )}
       </div>
+
+      {permsTarget && (() => {
+        // Compute the effective matrix on each render: role default OR
+        // override. Passing permsDraft as the overrides argument shows
+        // the admin the live preview of what will be saved, instead of
+        // the stale committed state.
+        const targetRole = coerceToPermissionRole(permsTarget.role);
+        const targetName = (permsTarget.full_name ?? '').trim() || permsTarget.email;
+        // Group permissions by resource for a cleaner layout. We derive
+        // the groups on the fly rather than hardcoding them so new
+        // permissions in ALL_PERMISSIONS show up automatically.
+        const groups: Record<string, Permission[]> = {};
+        for (const p of ALL_PERMISSIONS) {
+          const [resource] = p.split(':');
+          if (!groups[resource]) groups[resource] = [];
+          groups[resource].push(p);
+        }
+        return (
+          <div
+            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="perms-dialog-title"
+            onClick={() => setPermsTarget(null)}
+          >
+            <div
+              ref={permsTrapRef}
+              tabIndex={-1}
+              className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-2xl focus:outline-none max-h-[85vh] overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 mb-1">
+                <div>
+                  <h2 id="perms-dialog-title" className="text-lg font-extrabold tracking-tight">
+                    Permissions — {targetName}
+                  </h2>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Rôle de base : <span className="font-bold text-zinc-700">{ROLE_LABEL[permsTarget.role]}</span>
+                    {' · '}
+                    {ROLE_PERMISSIONS[targetRole]?.length ?? 0} permission(s) par défaut
+                  </p>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md bg-[#0052CC]/10 text-[#0052CC]">
+                  Override
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 mb-4">
+                Coche une permission pour l'accorder manuellement à cet utilisateur, en plus de son rôle.
+                Les permissions déjà incluses dans le rôle sont affichées en vert.
+              </p>
+
+              <div className="space-y-4">
+                {Object.entries(groups).map(([resource, perms]) => (
+                  <fieldset key={resource} className="border border-zinc-200 rounded-xl p-3">
+                    <legend className="px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+                      {resource}
+                    </legend>
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      {perms.map(p => {
+                        const fromRole = hasPermission(targetRole, p);
+                        const fromOverride = permsDraft.includes(p);
+                        const effective = fromRole || fromOverride;
+                        return (
+                          <label
+                            key={p}
+                            className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                              effective
+                                ? fromRole
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                                  : 'border-[#0052CC]/40 bg-[#0052CC]/5 text-[#0052CC]'
+                                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={fromOverride}
+                              onChange={() => togglePermOverride(p)}
+                              className="sr-only"
+                              aria-label={`Override ${p}`}
+                            />
+                            <span className={`w-4 h-4 flex items-center justify-center rounded border flex-shrink-0 ${
+                              fromOverride
+                                ? 'bg-[#0052CC] border-[#0052CC] text-white'
+                                : fromRole
+                                  ? 'bg-emerald-500 border-emerald-500 text-white'
+                                  : 'bg-white border-zinc-300'
+                            }`}>
+                              {(fromOverride || fromRole) && <Check size={11} strokeWidth={3} aria-hidden="true" />}
+                            </span>
+                            <span className="font-mono">{p}</span>
+                            {fromRole && !fromOverride && (
+                              <span className="ml-auto text-[10px] font-bold uppercase tracking-wider opacity-60">rôle</span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                ))}
+              </div>
+
+              <div className="mt-5 flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPermsDraft([])}
+                  className="text-xs font-bold text-zinc-500 hover:text-rose-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                >
+                  Effacer tous les overrides
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPermsTarget(null)}
+                    className="text-xs font-bold text-zinc-600 px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={savePermOverrides}
+                    className="text-xs font-extrabold text-white px-5 py-2 rounded-lg bg-[#0052CC] hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-1"
+                  >
+                    Enregistrer
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {showInvite && (
         <div
