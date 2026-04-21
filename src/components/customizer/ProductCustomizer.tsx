@@ -1285,7 +1285,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         </div>
 
         {/* ── Footer ── */}
-        <div className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background">
+        <div className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background gap-2">
           <button
             type="button"
             onClick={goBack}
@@ -1293,6 +1293,22 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             className="flex items-center gap-1.5 text-sm font-bold text-muted-foreground disabled:opacity-20 hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
           >
             <ChevronLeft size={15} aria-hidden="true" /> {t('retour')}
+          </button>
+
+          {/* Persistent "Export PNG" action — available at every step so the
+              customer can snapshot their mockup without first completing
+              sizes / quantities. Needs a logo or a chosen colour so there's
+              actually something to export; greyed out otherwise. */}
+          <button
+            type="button"
+            onClick={handleDownloadMockup}
+            disabled={!anyLogoUploaded && !colorChosen}
+            aria-label={lang === 'en' ? 'Download mockup PNG' : 'Télécharger l\u2019aperçu PNG'}
+            title={lang === 'en' ? 'Download mockup PNG' : 'Télécharger l\u2019aperçu PNG'}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-border text-xs font-bold text-muted-foreground hover:text-primary hover:border-primary hover:bg-primary/5 disabled:opacity-40 disabled:cursor-not-allowed transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+          >
+            <Download size={13} aria-hidden="true" />
+            <span className="hidden sm:inline">{lang === 'en' ? 'Export PNG' : 'Télécharger aperçu'}</span>
           </button>
 
           {totalQty > 0 && store.step >= 3 && (
