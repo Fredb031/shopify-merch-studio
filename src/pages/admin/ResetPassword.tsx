@@ -5,6 +5,28 @@ import { useAuthStore } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * Rough password strength score (0-3). Counts length ≥ 8, length ≥ 12,
+ * and character-class variety (letters + digits/symbols). Purely a UX
+ * hint — the real minimum is still enforced on submit.
+ */
+function scorePassword(pwd: string): 0 | 1 | 2 | 3 {
+  if (!pwd) return 0;
+  let s = 0;
+  if (pwd.length >= 8) s += 1;
+  if (pwd.length >= 12) s += 1;
+  const hasLetter = /[A-Za-z]/.test(pwd);
+  const hasDigit = /\d/.test(pwd);
+  const hasSymbol = /[^A-Za-z0-9]/.test(pwd);
+  if (hasLetter && (hasDigit || hasSymbol)) s += 1;
+  return Math.min(s, 3) as 0 | 1 | 2 | 3;
+}
+
+/**
+ * ResetPassword — landing page for the `/admin/reset-password` recovery link.
+ * Waits for Supabase to parse the recovery hash, lets the user choose a new
+ * password, and routes them to their space once the update succeeds.
+ */
 export default function ResetPassword() {
   const navigate = useNavigate();
   const updatePassword = useAuthStore(s => s.updatePassword);
@@ -219,6 +241,29 @@ export default function ResetPassword() {
                   <span aria-hidden="true">⇪</span> Caps Lock est activé
                 </p>
               )}
+              {newPwd.length > 0 && (() => {
+                const score = scorePassword(newPwd);
+                // 3-segment bar: rose (weak) → amber (ok) → emerald (strong).
+                const tones = ['bg-rose-400', 'bg-amber-400', 'bg-emerald-500'];
+                const label = score <= 1 ? 'Faible' : score === 2 ? 'Moyen' : 'Solide';
+                return (
+                  <div className="mt-2" aria-live="polite">
+                    <div className="flex gap-1" aria-hidden="true">
+                      {[0, 1, 2].map(i => (
+                        <span
+                          key={i}
+                          className={`h-1 flex-1 rounded-full transition-colors ${
+                            i < score ? tones[Math.min(score - 1, 2)] : 'bg-zinc-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                      Force : {label}
+                    </p>
+                  </div>
+                );
+              })()}
             </label>
 
             <label className="block">
@@ -259,6 +304,11 @@ export default function ResetPassword() {
               {pwdFocus === 'confirm' && capsOn && (
                 <p className="mt-1 text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
                   <span aria-hidden="true">⇪</span> Caps Lock est activé
+                </p>
+              )}
+              {newPwd.length > 0 && confirmPwd.length > 0 && newPwd !== confirmPwd && (
+                <p className="mt-1 text-[11px] font-semibold text-rose-600 flex items-center gap-1" role="status">
+                  <AlertCircle size={12} aria-hidden="true" /> Les mots de passe ne correspondent pas
                 </p>
               )}
             </label>
