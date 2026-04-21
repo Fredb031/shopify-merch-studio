@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+set -e
+echo "→ tsc --noEmit"
+npx tsc --noEmit || exit 1
+echo "→ eslint (warn-only, soft check)"
+npm run lint --silent 2>&1 | grep -E "^[0-9]+ (errors?|warnings?)" | tail -3 || true
+echo "✓ pre-commit OK (types clean, lint is advisory)"

@@ -2,6 +2,17 @@
 
 Thanks for improving the storefront. These rules keep history clean and builds green.
 
+## First-time setup
+
+After cloning, enable the repo's local git hooks (one-time, per clone):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This opts you into a `pre-commit` hook that runs `tsc --noEmit` and reports
+lint warnings. See [`.githooks/README.md`](./.githooks/README.md) for details.
+
 ## Workflow
 
 1. **Fork** the repo (or branch directly if you're a maintainer).
