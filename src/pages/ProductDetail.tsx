@@ -410,9 +410,38 @@ export default function ProductDetail() {
     crumbsEl.type = 'application/ld+json';
     crumbsEl.text = JSON.stringify(breadcrumbs);
     document.head.appendChild(crumbsEl);
+    // og:price:amount + og:price:currency complete the og:type=product
+    // card so Facebook/LinkedIn/Slack previews show the price row under
+    // the title. useDocumentTitle already emits og:type=product but not
+    // these two — Facebook's OG Product spec treats them as required
+    // for the price widget to render. Piggybacks on price/currency
+    // already computed above so the numbers match the JSON-LD offer.
+    const ogPriceAmount = document.createElement('meta');
+    ogPriceAmount.setAttribute('property', 'og:price:amount');
+    ogPriceAmount.setAttribute('content', price.toFixed(2));
+    document.head.appendChild(ogPriceAmount);
+    const ogPriceCurrency = document.createElement('meta');
+    ogPriceCurrency.setAttribute('property', 'og:price:currency');
+    ogPriceCurrency.setAttribute('content', currency);
+    document.head.appendChild(ogPriceCurrency);
+    // product:price:* is the newer OG Product namespace — Meta and
+    // LinkedIn both accept it, and some scrapers only look for the
+    // namespaced form. Emitting both is cheap and maximises coverage.
+    const productPriceAmount = document.createElement('meta');
+    productPriceAmount.setAttribute('property', 'product:price:amount');
+    productPriceAmount.setAttribute('content', price.toFixed(2));
+    document.head.appendChild(productPriceAmount);
+    const productPriceCurrency = document.createElement('meta');
+    productPriceCurrency.setAttribute('property', 'product:price:currency');
+    productPriceCurrency.setAttribute('content', currency);
+    document.head.appendChild(productPriceCurrency);
     return () => {
       document.head.removeChild(el);
       document.head.removeChild(crumbsEl);
+      document.head.removeChild(ogPriceAmount);
+      document.head.removeChild(ogPriceCurrency);
+      document.head.removeChild(productPriceAmount);
+      document.head.removeChild(productPriceCurrency);
     };
   }, [product, localProduct, lang]);
 
