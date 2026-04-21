@@ -294,20 +294,18 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             </button>
           </div>
 
-          {/* Colour dots — only colors with real per-color images */}
+          {/* Colour dots — only colors with real per-color images.
+              Capped at 4 here; the explicit "+N" / "N couleurs" text
+              now lives in the info row below so buyers scanning the
+              grid can compare variety at a glance without counting dots. */}
           {local && (() => {
             const realColors = filterRealColors(local.sku, local.colors);
             if (realColors.length === 0) return null;
             return (
               <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
-                {realColors.slice(0, 8).map(c => (
+                {realColors.slice(0, 4).map(c => (
                   <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
                 ))}
-                {realColors.length > 8 && (
-                  <div className="w-3.5 h-3.5 rounded-full bg-white/85 ring-1 ring-white/50 flex items-center justify-center text-[7px] font-black text-foreground">
-                    +{realColors.length - 8}
-                  </div>
-                )}
               </div>
             );
           })()}
@@ -324,6 +322,33 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
           <div className="text-[14px] font-extrabold text-foreground leading-tight mb-1">
             {local ? categoryLabel(local.category, lang) : title}
           </div>
+
+          {/* Explicit color count — derived from the same findColorImage
+              filter the customizer uses, so no ghost variant inflates
+              the number. Dots alone told buyers "multi-color exists"
+              but not *how many*; this text lets them compare variety
+              across products in a single scan. */}
+          {local && (() => {
+            const realColors = filterRealColors(local.sku, local.colors);
+            const n = realColors.length;
+            if (n === 0) return null;
+            let text: string;
+            if (n === 1) {
+              const only = realColors[0];
+              const name = lang === 'en' ? (only.nameEn || only.name) : only.name;
+              text = lang === 'en' ? `${name} only` : `${name} seulement`;
+            } else if (n <= 4) {
+              text = lang === 'en' ? `${n} colors` : `${n} couleurs`;
+            } else {
+              const extra = n - 4;
+              text = lang === 'en' ? `+ ${extra} more` : `+ ${extra} autres`;
+            }
+            return (
+              <p className="text-[10px] text-muted-foreground leading-none mb-1">
+                {text}
+              </p>
+            );
+          })()}
 
           {/* Pricing with quantity breaks */}
           {local ? (() => {
