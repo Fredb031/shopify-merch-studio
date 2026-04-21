@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
@@ -34,6 +34,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   // fire two parallel Supabase auth calls. authStore.loading is global
   // (hydration), not per-submit, so we need a local flag here.
   const [submitting, setSubmitting] = useState(false);
+  // Password visibility toggles — primary + confirm tracked separately
+  // so revealing one never leaks the other (matches Signup.tsx shipped
+  // in cde5214). The confirm field's whole job is to catch typos in
+  // the primary, so the two must stay decoupled.
+  const [showPwd, setShowPwd] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  // Caps-lock hint: only renders while a password input is focused AND
+  // caps lock is on. Blur clears the hint even if caps is still on.
+  const [capsOn, setCapsOn] = useState(false);
+  const [pwdFocus, setPwdFocus] = useState<null | 'password' | 'confirm'>(null);
+  const handleCapsCheck = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setCapsOn(e.getModifierState('CapsLock'));
+  };
+  // Inline invalid-email hint only after the user has blurred the
+  // field — live red borders while typing feel punitive for a half-
+  // typed address.
+  const [emailTouched, setEmailTouched] = useState(false);
 
   // Clear stale auth errors whenever the modal is closed so the next
   // open doesn't flash the previous attempt's error message.
@@ -216,61 +233,128 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
             {(() => {
               const invalid = email.trim().length > 0 && !isValidEmail(email);
+              // Only surface the inline red hint once the user has
+              // left the field at least once — otherwise it flashes
+              // on every keystroke while they're still typing "a@b".
+              const showHint = invalid && emailTouched;
               return (
-                <input
-                  className={`border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus-visible:ring-2 bg-background ${
-                    invalid
-                      ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
-                      : 'border-border focus:border-primary focus-visible:ring-primary/25'
-                  }`}
-                  placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                  aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
-                  aria-invalid={invalid || undefined}
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={e => {
-                    setEmail(e.target.value);
-                    if (error) clearError();
-                  }}
-                  required
-                />
+                <>
+                  <input
+                    className={`border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus-visible:ring-2 bg-background ${
+                      showHint
+                        ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                        : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                    }`}
+                    placeholder={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                    aria-label={lang === 'en' ? 'Email address' : 'Adresse courriel'}
+                    aria-invalid={showHint || undefined}
+                    aria-describedby={showHint ? 'login-modal-email-hint' : undefined}
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      if (error) clearError();
+                    }}
+                    onBlur={() => setEmailTouched(true)}
+                    required
+                  />
+                  {showHint && (
+                    <p
+                      id="login-modal-email-hint"
+                      role="alert"
+                      className="text-[11px] text-rose-600 font-semibold"
+                    >
+                      {lang === 'en' ? 'Please enter a valid email address' : 'Adresse courriel invalide'}
+                    </p>
+                  )}
+                </>
               );
             })()}
 
-            <input
-              className="border border-border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
-              placeholder={lang === 'en' ? 'Password' : 'Mot de passe'}
-              aria-label={lang === 'en' ? 'Password' : 'Mot de passe'}
-              type="password"
-              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              value={password}
-              onChange={e => {
-                setPassword(e.target.value);
-                if (error) clearError();
-              }}
-              required
-            />
+            <div className="relative">
+              <input
+                className="w-full border border-border rounded-[10px] py-[11px] pl-3.5 pr-10 text-sm outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 bg-background"
+                placeholder={lang === 'en' ? 'Password' : 'Mot de passe'}
+                aria-label={lang === 'en' ? 'Password' : 'Mot de passe'}
+                type={showPwd ? 'text' : 'password'}
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                value={password}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  if (error) clearError();
+                }}
+                onKeyDown={handleCapsCheck}
+                onKeyUp={handleCapsCheck}
+                onFocus={() => setPwdFocus('password')}
+                onBlur={() => setPwdFocus(f => (f === 'password' ? null : f))}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(v => !v)}
+                aria-label={
+                  showPwd
+                    ? lang === 'en' ? 'Hide password' : 'Masquer le mot de passe'
+                    : lang === 'en' ? 'Show password' : 'Afficher le mot de passe'
+                }
+                aria-pressed={showPwd}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded p-1"
+              >
+                {showPwd ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+              </button>
+            </div>
+            {pwdFocus === 'password' && capsOn && (
+              <p className="text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
+                <span aria-hidden="true">⇪</span>
+                {lang === 'en' ? 'Caps Lock is on' : 'Caps Lock est activé'}
+              </p>
+            )}
 
             {mode === 'signup' && (() => {
               const mismatch = password.length > 0 && password2.length > 0 && password !== password2;
               return (
                 <>
-                  <input
-                    className={`border rounded-[10px] py-[11px] px-3.5 text-sm outline-none focus-visible:ring-2 bg-background ${
-                      mismatch
-                        ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
-                        : 'border-border focus:border-primary focus-visible:ring-primary/25'
-                    }`}
-                    placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
-                    aria-label={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
-                    aria-invalid={mismatch || undefined}
-                    type="password"
-                    autoComplete="new-password"
-                    value={password2}
-                    onChange={e => setPassword2(e.target.value)}
-                    required
-                  />
+                  <div className="relative">
+                    <input
+                      className={`w-full border rounded-[10px] py-[11px] pl-3.5 pr-10 text-sm outline-none focus-visible:ring-2 bg-background ${
+                        mismatch
+                          ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
+                          : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                      }`}
+                      placeholder={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
+                      aria-label={lang === 'en' ? 'Confirm password' : 'Confirmer le mot de passe'}
+                      aria-invalid={mismatch || undefined}
+                      type={showConfirm ? 'text' : 'password'}
+                      autoComplete="new-password"
+                      value={password2}
+                      onChange={e => setPassword2(e.target.value)}
+                      onKeyDown={handleCapsCheck}
+                      onKeyUp={handleCapsCheck}
+                      onFocus={() => setPwdFocus('confirm')}
+                      onBlur={() => setPwdFocus(f => (f === 'confirm' ? null : f))}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirm(v => !v)}
+                      aria-label={
+                        showConfirm
+                          ? lang === 'en' ? 'Hide password' : 'Masquer le mot de passe'
+                          : lang === 'en' ? 'Show password' : 'Afficher le mot de passe'
+                      }
+                      aria-pressed={showConfirm}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded p-1"
+                    >
+                      {showConfirm ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+                    </button>
+                  </div>
+                  {pwdFocus === 'confirm' && capsOn && (
+                    <p className="text-[11px] font-semibold text-amber-600 flex items-center gap-1" role="status">
+                      <span aria-hidden="true">⇪</span>
+                      {lang === 'en' ? 'Caps Lock is on' : 'Caps Lock est activé'}
+                    </p>
+                  )}
                   {mismatch && (
                     <p role="alert" className="text-[11px] text-rose-600 font-semibold">
                       {lang === 'en' ? 'Passwords do not match' : 'Les mots de passe ne correspondent pas'}
