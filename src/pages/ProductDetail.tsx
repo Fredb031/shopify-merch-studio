@@ -934,7 +934,13 @@ export default function ProductDetail() {
                             // that Shopify just hasn't listed yet.
                             const isInShopify = (option.values ?? []).some(v => norm(v) === norm(value));
                             const isAvailable = !isInShopify || isOptionValueAvailable(option.name, shopifyValueForMatch);
-                            const soldOutTitle = lang === 'en' ? 'Sold out' : 'Épuisé';
+                            // Task 3.2 — show unavailable colours as struck-through/
+                            // disabled rather than hiding them. Users were asking
+                            // "did I imagine that they had Navy earlier?" — keeping
+                            // the swatch visible answers that. pointer-events-none
+                            // makes the state unambiguous (no silent no-op click +
+                            // toast), and the title surfaces the reason on hover.
+                            const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
                             return (
                               <button
                                 key={value}
@@ -942,27 +948,19 @@ export default function ProductDetail() {
                                 role="radio"
                                 aria-checked={isSelected}
                                 aria-disabled={!isAvailable || undefined}
+                                disabled={!isAvailable}
                                 onClick={() => {
-                                  if (!isAvailable) {
-                                    // Graceful — surface the state instead of silently
-                                    // selecting a variant that can't be bought.
-                                    toast.error(
-                                      lang === 'en'
-                                        ? `${value} — Sold out`
-                                        : `${value} — Épuisé`,
-                                    );
-                                    return;
-                                  }
+                                  if (!isAvailable) return;
                                   setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }));
                                 }}
                                 className={`relative w-11 h-11 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                                   isSelected
                                     ? 'ring-2 ring-primary ring-offset-2 scale-110'
                                     : 'ring-1 ring-border hover:ring-primary/50'
-                                } ${!isAvailable ? 'opacity-50' : ''}`}
+                                } ${!isAvailable ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                                 style={{ background: hex }}
                                 aria-label={isAvailable ? value : `${value} — ${soldOutTitle}`}
-                                title={isAvailable ? value : `${value} — ${soldOutTitle}`}
+                                title={isAvailable ? value : soldOutTitle}
                               >
                                 {isSelected && (
                                   <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -994,7 +992,10 @@ export default function ProductDetail() {
                         {(option.values ?? []).map((value: string) => {
                           const isSel = currentOptions[option.name] === value;
                           const isAvailable = isOptionValueAvailable(option.name, value);
-                          const soldOutTitle = lang === 'en' ? 'Sold out' : 'Épuisé';
+                          // Task 3.2 — unavailable sizes stay visible (line-through
+                          // + dimmed + pointer-events-none). Hiding them used to
+                          // cause "I swear M was there 10 minutes ago" confusion.
+                          const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
                           return (
                             <button
                               key={value}
@@ -1002,18 +1003,9 @@ export default function ProductDetail() {
                               role="radio"
                               aria-checked={isSel}
                               aria-disabled={!isAvailable || undefined}
+                              disabled={!isAvailable}
                               onClick={() => {
-                                if (!isAvailable) {
-                                  // Don't silently change the selection to a
-                                  // variant Shopify can't fulfil. Toast surfaces
-                                  // the state so the user knows why nothing moved.
-                                  toast.error(
-                                    lang === 'en'
-                                      ? `${value} — Sold out`
-                                      : `${value} — Épuisé`,
-                                  );
-                                  return;
-                                }
+                                if (!isAvailable) return;
                                 setSelectedOptions(prev => ({ ...prev, [option.name]: value }));
                               }}
                               title={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
@@ -1022,7 +1014,7 @@ export default function ProductDetail() {
                                 isSel
                                   ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
                                   : 'bg-background text-foreground border-border hover:border-primary'
-                              } ${!isAvailable ? 'line-through opacity-50 hover:border-border cursor-not-allowed' : ''}`}
+                              } ${!isAvailable ? 'line-through opacity-50 hover:border-border cursor-not-allowed pointer-events-none' : ''}`}
                             >
                               {value}
                             </button>
@@ -1033,6 +1025,28 @@ export default function ProductDetail() {
                   </div>
                 );
               })}
+
+            {/* Task 3.2 — inline "this combo is sold out" notice.
+                If a user had a variant selected and it later went
+                out of stock (or they deliberately clicked through a
+                struck-through combination), don't silently de-select
+                for them — keep their pick visible and explain it
+                here. Scoped to both color+size being picked + Shopify
+                marking the variant unavailable. */}
+            {shopifySoldOut && !!selectedColor && !!selectedSize && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
+              >
+                <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <span>
+                  {lang === 'en'
+                    ? 'This combination is out of stock.'
+                    : "Cette combinaison n'est pas en stock"}
+                </span>
+              </div>
+            )}
 
             {/* Task 3.17 — low-stock / out-of-stock warning pill.
                 Sits right above the CTA so the nudge lands exactly where
