@@ -53,6 +53,39 @@ function readStorage(): string[] {
 export function useRecentlyViewed() {
   const [handles, setHandles] = useState<string[]>(readStorage);
 
+  const remove = useCallback((handle: string) => {
+    // Mirror the normalization used on the write path — a caller that
+    // hands us 'Hoodie' or '  hoodie  ' should still find and drop the
+    // stored 'hoodie' entry. Without this, remove() would silently
+    // no-op on any non-canonical input and the consumer would assume
+    // the handle stuck around by design.
+    const norm = handle.trim().toLowerCase();
+    if (!norm) return;
+    setHandles(prev => {
+      if (!prev.includes(norm)) return prev;
+      const next = prev.filter(h => h !== norm);
+      try {
+        if (next.length === 0) {
+          localStorage.removeItem(KEY);
+        } else {
+          localStorage.setItem(KEY, JSON.stringify(next));
+        }
+      } catch { /* private mode */ }
+      try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+      return next;
+    });
+  }, []);
+
+  const clear = useCallback(() => {
+    // Wipe storage + state + broadcast in one step so consumers don't
+    // re-implement the dance. RecentlyViewed.tsx currently duplicates
+    // this exact sequence (localStorage.removeItem + CustomEvent
+    // dispatch) because no clear() existed — now they can migrate.
+    try { localStorage.removeItem(KEY); } catch { /* private mode */ }
+    try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+    setHandles([]);
+  }, []);
+
   const track = useCallback((handle: string) => {
     // Normalize before dedupe/storage — Shopify handles are ASCII
     // lowercase by spec, but callers sometimes hand us a trailing space
@@ -96,5 +129,12 @@ export function useRecentlyViewed() {
     };
   }, []);
 
-  return { handles, track };
+  return { handles, track, remove, clear };
 }
+
+// Public shape of the hook's return value, exported so consumers that
+// accept the handle as a prop (e.g. a shared Toolbar that needs to
+// call clear() from deep in the tree) can type it without redeclaring
+// the record inline. Derived from the hook itself so adding a method
+// above automatically flows through without a second source of truth.
+export type RecentlyViewed = ReturnType<typeof useRecentlyViewed>;
