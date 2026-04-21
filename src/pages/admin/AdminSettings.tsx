@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign, Download, Upload, RotateCcw, DatabaseBackup, AlertTriangle } from 'lucide-react';
+import { Link2, Building2, CreditCard, Shield, ShieldCheck, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign, Download, Upload, RotateCcw, DatabaseBackup, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -189,6 +189,7 @@ export default function AdminSettings() {
           <Toggle label="Notifications par courriel sur nouvelle commande" enabled={settings.newOrderEmail} onToggle={() => toggle('newOrderEmail')} />
           <Toggle label="Webhook Zapier sur paiement reçu" enabled={settings.zapierWebhook} onToggle={() => toggle('zapierWebhook')} />
         </div>
+        <Require2faPolicyRow />
       </section>
 
       <TaxesSection />
@@ -1315,6 +1316,57 @@ function Field({ label, value, onChange, placeholder, type = 'text', error }: { 
       />
       {error ? <span id={errorId} className="text-[11px] text-rose-600">{error}</span> : null}
     </label>
+  );
+}
+
+// ───────────── Task 9.20 — Require 2FA policy row ─────────────
+//
+// Sits inside the existing Sécurité section rather than a new section,
+// since the row is tightly related to the "2FA" toggle right above it.
+// This is the enforcement *policy* — "do admins who haven't enabled
+// 2FA get nagged about it on the dashboard?" — not the per-user
+// enrolment state, which lives in each user's own profile. Persisted
+// through saveSettings so a future backend can read `require2fa` off
+// the same surface that already holds tax/commission/bulk knobs.
+
+function Require2faPolicyRow() {
+  const settings = useAppSettings();
+  const onToggle = () => {
+    const next = !settings.require2fa;
+    saveAppSettings({ require2fa: next });
+    logAdminAction('settings.save', { section: 'security', require2fa: next });
+  };
+  return (
+    <div className="mt-3 p-3 bg-rose-50/50 border border-rose-100 rounded-lg">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start gap-2 min-w-0">
+          <ShieldCheck size={15} className="text-rose-600 mt-0.5 flex-shrink-0" aria-hidden="true" />
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-zinc-800" id="require-2fa-label">
+              Exiger la 2FA pour tous les comptes admin
+              <span className="text-xs font-normal text-zinc-500"> · Require 2FA for all admin accounts</span>
+            </div>
+            <p className="text-[11px] text-zinc-500 mt-0.5 leading-relaxed">
+              La 2FA doit être activée par chaque utilisateur dans son profil avant que cette bascule ait effet.{' '}
+              <span className="italic">2FA must be enabled by each user in their profile before this toggle takes effect.</span>
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={settings.require2fa}
+          aria-labelledby="require-2fa-label"
+          onClick={onToggle}
+          className={`relative inline-block w-9 h-5 flex-shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${settings.require2fa ? 'bg-[#0052CC]' : 'bg-zinc-300'}`}
+        >
+          <span
+            className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${settings.require2fa ? 'translate-x-[18px]' : 'translate-x-0.5'}`}
+            aria-hidden="true"
+          />
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -29,6 +29,12 @@ export interface AppSettings {
    *  placement-side count (none=0, front|back=1, both=2). Owner-editable
    *  so a shop-rate bump doesn't require a redeploy. */
   printPrice: number;
+  /** Task 9.20 — when true, the admin surface surfaces a warning banner
+   *  for any admin/president account that hasn't yet enabled 2FA from
+   *  their own profile. UI stub: toggling this does not enforce 2FA on
+   *  the backend, it only changes what the admin dashboard nags about.
+   *  The real TOTP / authenticator integration lives in a future task. */
+  require2fa: boolean;
 }
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
@@ -43,7 +49,36 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   },
   commissionRate: 0.10,
   printPrice: 5.00,
+  require2fa: false,
 };
+
+// ───────────── 2FA per-user status (Task 9.20, UI stub) ─────────────
+//
+// The real 2FA enrolment flow belongs in the user-profile surface wired
+// to a backend TOTP secret. Until that lands we need *somewhere* to
+// read the state from so the admin surfaces (badge in AdminUsers,
+// warning banner in AdminDashboard) can render a plausible preview.
+// Stored under `vision-user-2fa-enabled` as a `{ [userId]: boolean }`
+// map — deliberately decoupled from the `vision-app-settings` bag so a
+// backup/restore roundtrip of the settings bag doesn't overwrite
+// per-user 2FA state.
+
+const USER_2FA_KEY = 'vision-user-2fa-enabled';
+
+export function getUser2faMap(): Record<string, boolean> {
+  const parsed = readLS<Record<string, unknown> | null>(USER_2FA_KEY, null);
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+  const out: Record<string, boolean> = {};
+  for (const [k, v] of Object.entries(parsed)) {
+    if (typeof k === 'string' && k.length > 0) out[k] = Boolean(v);
+  }
+  return out;
+}
+
+export function isUser2faEnabled(userId: string | null | undefined): boolean {
+  if (!userId) return false;
+  return getUser2faMap()[userId] === true;
+}
 
 const STORAGE_KEY = 'vision-app-settings';
 const EVENT_NAME = 'vision-app-settings-change';
@@ -104,6 +139,7 @@ export function getSettings(): AppSettings {
     discountCodes: Object.keys(codes).length > 0 ? codes : { ...DEFAULT_APP_SETTINGS.discountCodes },
     commissionRate: clampFraction(parsed.commissionRate, DEFAULT_APP_SETTINGS.commissionRate, 0.5),
     printPrice: clampPrice(parsed.printPrice, DEFAULT_APP_SETTINGS.printPrice),
+    require2fa: typeof parsed.require2fa === 'boolean' ? parsed.require2fa : DEFAULT_APP_SETTINGS.require2fa,
   };
 }
 
@@ -128,6 +164,7 @@ export function saveSettings(patch: Partial<AppSettings>): AppSettings {
       : { ...DEFAULT_APP_SETTINGS.discountCodes },
     commissionRate: clampFraction(merged.commissionRate, DEFAULT_APP_SETTINGS.commissionRate, 0.5),
     printPrice: clampPrice(merged.printPrice, DEFAULT_APP_SETTINGS.printPrice),
+    require2fa: typeof merged.require2fa === 'boolean' ? merged.require2fa : DEFAULT_APP_SETTINGS.require2fa,
   };
   // Private mode or storage quota — state still works in-memory for
   // the current session. Fire the event either way (below) so open

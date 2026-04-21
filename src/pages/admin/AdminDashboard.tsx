@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   ChevronRight,
   Shield,
+  ShieldAlert,
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { TodayWidget } from '@/components/admin/TodayWidget';
@@ -22,6 +23,8 @@ import {
 } from '@/data/shopifySnapshot';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getAuditLog, type AuditEntry } from '@/lib/auditLog';
+import { useAppSettings, getUser2faMap } from '@/lib/appSettings';
+import { supabase } from '@/integrations/supabase/client';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-800',
@@ -340,6 +343,91 @@ function RecentAuditCard() {
   );
 }
 
+// ───────────── Task 9.20 — 2FA enforcement warning banner ─────────────
+//
+// Surfaces only when the policy toggle `require2fa` is on AND at least
+// one admin-tier account hasn't flipped their own 2FA state on yet.
+// The per-user state lives in `vision-user-2fa-enabled`; the admin
+// roster is the set of Supabase `profiles` rows with role admin or
+// president (presidents count — they have the keys to the admin
+// surface too, so an unenrolled president is the same risk).
+//
+// Read directly inside this component rather than relying on the
+// AdminUsers cache — the dashboard and the users page live on
+// different routes so there's no shared in-memory list to hit.
+
+function TwoFaEnforcementBanner() {
+  const settings = useAppSettings();
+  const [unenrolledCount, setUnenrolledCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Skip the query entirely when the policy is off — no point
+    // spending a round-trip to decide not to render the banner.
+    if (!settings.require2fa) {
+      setUnenrolledCount(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, role, active')
+          .in('role', ['admin', 'president']);
+        if (cancelled) return;
+        if (error) {
+          // Don't show a stale count — the banner disappears silently
+          // on error rather than risking a wrong number nagging admins
+          // into chasing down fake holdouts.
+          setUnenrolledCount(null);
+          return;
+        }
+        const map = getUser2faMap();
+        const missing = (data ?? []).filter(
+          (u: { id: string; role: string; active: boolean }) =>
+            u.active && map[u.id] !== true,
+        ).length;
+        setUnenrolledCount(missing);
+      } catch {
+        if (!cancelled) setUnenrolledCount(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.require2fa]);
+
+  if (!settings.require2fa) return null;
+  if (unenrolledCount === null || unenrolledCount <= 0) return null;
+
+  return (
+    <div
+      role="alert"
+      className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3"
+    >
+      <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+        <ShieldAlert size={18} aria-hidden="true" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-bold text-sm text-amber-900">
+          {unenrolledCount} admin{unenrolledCount > 1 ? 's' : ''} n'
+          {unenrolledCount > 1 ? 'ont' : 'a'} pas activé la 2FA — appliquez la politique ?
+        </div>
+        <p className="text-xs text-amber-800/80 mt-0.5">
+          La politique <strong>Exiger la 2FA</strong> est activée mais certains comptes n'ont pas encore
+          enrolé leur authentificateur.
+        </p>
+      </div>
+      <Link
+        to="/admin/users?filter=admin"
+        className="text-xs font-extrabold text-amber-900 underline hover:no-underline whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-600 focus-visible:ring-offset-1 rounded"
+      >
+        Voir les admins →
+      </Link>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   useDocumentTitle('Tableau de bord — Admin Vision Affichage');
   const recentOrders = SHOPIFY_ORDERS_SNAPSHOT.slice(0, 6);
@@ -366,6 +454,8 @@ export default function AdminDashboard() {
           <span>{SHOPIFY_SNAPSHOT_META.shop}</span>
         </p>
       </header>
+
+      <TwoFaEnforcementBanner />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Commandes (7j)" value={String(SHOPIFY_STATS.ordersLast7Days)} delta={12} deltaLabel="vs. sem. dernière" icon={ShoppingBag} accent="blue" />

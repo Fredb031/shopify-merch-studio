@@ -20,6 +20,7 @@ import {
   type Permission,
 } from '@/lib/permissions';
 import { logAdminAction } from '@/lib/auditLog';
+import { getUser2faMap } from '@/lib/appSettings';
 
 interface ProfileRow {
   id: string;
@@ -155,6 +156,14 @@ export default function AdminUsers() {
       setLoading(false);
     }
   };
+
+  // Task 9.20 — per-user 2FA status, read from localStorage. The admin
+  // can't toggle this from here (the enrolment flow lives in each
+  // user's own profile) but we surface the state so they can spot who
+  // still hasn't enabled it. Memoised against the users list so a
+  // subsequent role-change re-render doesn't re-read localStorage for
+  // every row.
+  const twoFaMap = useMemo<Record<string, boolean>>(() => getUser2faMap(), [users]);
 
   const filtered = useMemo(() => {
     // Strip invisibles in both the search term and the indexed fields
@@ -302,6 +311,10 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Utilisateurs</h1>
           <p className="text-sm text-zinc-500 mt-1">{users.length} comptes · Tous synchronisés avec Supabase Auth</p>
+          <p className="text-[11px] text-zinc-400 mt-1 inline-flex items-center gap-1">
+            <ShieldCheck size={11} className="text-emerald-600" aria-hidden="true" />
+            Les utilisateurs activent la 2FA depuis leur profil.
+          </p>
         </div>
         <button
           type="button"
@@ -397,6 +410,16 @@ export default function AdminUsers() {
                             {u.role === 'president' && <Crown size={12} className="text-[#E8A838]" aria-label="Président" />}
                             {(u.full_name ?? '').trim() || u.email.split('@')[0]}
                             {isMe && <span className="text-[10px] font-bold text-[#0052CC]">(toi)</span>}
+                            {twoFaMap[u.id] && (
+                              <span
+                                title="2FA activée"
+                                aria-label="2FA activée"
+                                className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800"
+                              >
+                                <ShieldCheck size={10} aria-hidden="true" />
+                                2FA
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-zinc-500 truncate">{u.email}</div>
                         </div>
