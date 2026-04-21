@@ -35,6 +35,35 @@ interface AuthState {
   clearError: () => void;
 }
 
+// --- Error auto-clear (10s) ---
+// Stale red banners from a previous failed attempt linger forever if the
+// user walks away mid-form and comes back. We clear the error 10s after
+// it was set, unless something else already cleared/replaced it. One
+// shared timer lives at module scope — setting a new error cancels the
+// previous pending clear so the countdown always reflects the LATEST
+// error, not the first one.
+const ERROR_AUTO_CLEAR_MS = 10_000;
+let errorClearTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelErrorAutoClear(): void {
+  if (errorClearTimer !== null) {
+    clearTimeout(errorClearTimer);
+    errorClearTimer = null;
+  }
+}
+
+function scheduleErrorAutoClear(): void {
+  cancelErrorAutoClear();
+  if (typeof window === 'undefined') return;
+  errorClearTimer = setTimeout(() => {
+    errorClearTimer = null;
+    // Only clear if an error is still set — avoids stomping a success
+    // that happened to land in the same window.
+    const current = useAuthStore.getState().error;
+    if (current !== null) useAuthStore.setState({ error: null });
+  }, ERROR_AUTO_CLEAR_MS);
+}
+
 function toInitials(name: string): string {
   return name
     .split(' ')
@@ -256,6 +285,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   error: null,
   loading: true,
 
+  /** Reads the current Supabase session and populates `user` from the
+   * profiles row. Never sets `error` — any failure is logged and the
+   * user is treated as signed-out so guarded routes can render. */
   hydrateFromSession: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -282,6 +314,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
+  /** Authenticates with email+password. Sets `error` to a localized
+   * lockout message when client-side rate-limited, or a friendly
+   * translation of the Supabase auth error (invalid credentials,
+   * unconfirmed email, server-side rate limit, etc.). */
   signIn: async (email, password) => {
     set({ error: null });
     const normalized = normalizeEmail(email);
@@ -331,6 +367,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     return { ok: true, role: user?.role };
   },
 
+  /** Registers a new account and seeds the profile row. Sets `error`
+   * on Supabase failure (already-registered email, weak password,
+   * rate limit). Does not auto-sign-in — email confirmation may be
+   * required. */
   signUp: async (email, password, name) => {
     set({ error: null });
     // Strip invisibles on the name for the same reason as the email
@@ -358,6 +398,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     return { ok: true };
   },
 
+  /** Signs the user out of Supabase, wipes user-scoped persisted state
+   * across stores (cart, customizer, quotes, API keys), and resets the
+   * error field. Never sets `error` — a Supabase failure is logged and
+   * local state is cleared anyway so the UI reflects 'signed out'. */
   signOut: async () => {
     // Try Supabase first, but always clear local state afterward — if
     // Supabase is unreachable we still want the UI to reflect 'signed out'
@@ -368,7 +412,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (e) {
       console.warn('[authStore] supabase.auth.signOut failed; clearing local state anyway:', e);
     }
-    set({ user: null });
+    // Also reset `error` so a stale "invalid credentials" banner from a
+    // prior failed attempt doesn't persist past an explicit sign-out,
+    // and cancel any pending auto-clear timer for that banner.
+    cancelErrorAutoClear();
+    set({ user: null, error: null });
     // Wipe customer-scoped AND admin/vendor-scoped persisted state so the
     // next user on this browser doesn't inherit the previous session's
     // cart, in-progress customization, saved quotes, AI API keys, or
@@ -417,6 +465,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
+  /** Sends a password-reset email. Sets `error` on Supabase failure
+   * (unknown email is intentionally NOT surfaced by Supabase to avoid
+   * enumeration, so this mostly fires on rate-limit or network errors). */
   sendPasswordReset: async (email) => {
     set({ error: null });
     const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
@@ -429,6 +480,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     return { ok: true };
   },
 
+  /** Updates the currently signed-in user's password. Sets `error` on
+   * Supabase failure (weak password, expired session, rate limit). */
   updatePassword: async (newPassword) => {
     set({ error: null });
     const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -439,9 +492,52 @@ export const useAuthStore = create<AuthState>((set) => ({
     return { ok: true };
   },
 
-  setError: (error) => set({ error }),
-  clearError: () => set({ error: null }),
+  /** Imperatively set the auth error banner. Schedules a 10s auto-clear
+   * so stale banners don't persist after the user moves on. */
+  setError: (error) => {
+    set({ error });
+    if (error !== null) scheduleErrorAutoClear();
+    else cancelErrorAutoClear();
+  },
+  /** Clear the auth error banner and cancel any pending auto-clear. */
+  clearError: () => {
+    cancelErrorAutoClear();
+    set({ error: null });
+  },
 }));
+
+// Subscribe to error changes so ANY set({ error }) in this file (signIn,
+// signUp, sendPasswordReset, updatePassword, the re-check lockout path)
+// gets the auto-clear for free without each caller remembering to call
+// scheduleErrorAutoClear. Null -> non-null schedules; non-null -> null
+// cancels.
+if (typeof window !== 'undefined') {
+  let lastError: string | null = useAuthStore.getState().error;
+  useAuthStore.subscribe((state) => {
+    const next = state.error;
+    if (next !== lastError) {
+      if (next !== null) scheduleErrorAutoClear();
+      else cancelErrorAutoClear();
+      lastError = next;
+    }
+  });
+}
+
+/** Returns true when a signed-in user is present and the store isn't
+ * mid-hydration or carrying a pending error banner. Consumers can use
+ * this as a single source of truth instead of re-deriving
+ * `!!user && !loading && !error` at every call site. */
+export function isAuthenticated(): boolean {
+  const { user, loading, error } = useAuthStore.getState();
+  return !!user && !loading && !error;
+}
+
+/** Returns true when the currently signed-in user has the given role.
+ * Returns false when no user is signed in. */
+export function hasRole(role: UserRole): boolean {
+  const { user } = useAuthStore.getState();
+  return user?.role === role;
+}
 
 // Auto-hydrate + subscribe to auth changes so the store always reflects Supabase
 if (typeof window !== 'undefined') {
