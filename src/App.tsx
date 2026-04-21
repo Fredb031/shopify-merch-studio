@@ -120,6 +120,7 @@ const App = () => (
                   <Route path="analytics" element={<AdminAnalytics />} />
                   <Route path="quotes" element={<AdminQuotes />} />
                   <Route path="emails" element={<AdminEmails />} />
+                  <Route path="emails/templates" element={<AdminEmails />} />
                   <Route path="images" element={<AdminImageGen />} />
                   <Route path="settings" element={<AdminSettings />} />
                 </Route>
