@@ -11,7 +11,7 @@ import { plural } from '@/lib/plural';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useLang } from '@/lib/langContext';
-import { Search, X, Sparkles, Shirt, Shell, Snowflake, type LucideIcon } from 'lucide-react';
+import { Search, SearchX, X, Sparkles, Shirt, Shell, Snowflake, type LucideIcon } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -83,9 +83,23 @@ export default function Products() {
   // dropdown entry that silently behaves like the default.
   const SORT_VALUES = ['popularity', 'price-asc', 'price-desc'] as const;
   type SortMode = typeof SORT_VALUES[number];
+  // Sort resolution order on mount:
+  //   1. ?sort=... in the URL (shareable deep-link wins)
+  //   2. localStorage['va:products-sort'] (returning visitor's last pick)
+  //   3. 'popularity' default
+  // localStorage is wrapped because SSR / strict private-mode Safari can
+  // throw on access; we silently swallow and fall through to the default.
+  const SORT_STORAGE_KEY = 'va:products-sort';
   const initialSort: SortMode = (() => {
     const raw = searchParams.get('sort');
-    return (SORT_VALUES as readonly string[]).includes(raw ?? '') ? (raw as SortMode) : 'popularity';
+    if ((SORT_VALUES as readonly string[]).includes(raw ?? '')) return raw as SortMode;
+    try {
+      const stored = typeof window !== 'undefined' ? window.localStorage.getItem(SORT_STORAGE_KEY) : null;
+      if (stored && (SORT_VALUES as readonly string[]).includes(stored)) return stored as SortMode;
+    } catch {
+      /* localStorage blocked — fall through to default */
+    }
+    return 'popularity';
   })();
   const [activeCategory, setActiveCategory] = useState(initialCat);
   // Hydrate the search field from ?q= so shareable URLs like
@@ -154,6 +168,39 @@ export default function Products() {
     if (urlQ !== debouncedQuery.trim()) setSearchQuery(urlQ);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
+  // Persist the sort mode to localStorage so a returning visitor lands
+  // on their last pick even without a ?sort=... URL. The URL still wins
+  // on mount (see initialSort) — this just captures the quiet default
+  // case where the shopper lands on bare /products.
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      window.localStorage.setItem(SORT_STORAGE_KEY, sortMode);
+    } catch {
+      /* localStorage blocked (private mode, quota, etc.) — ignore */
+    }
+  }, [sortMode]);
+
+  // Active-filter surface: a filter is "active" whenever it's not at
+  // its default. Category default is 'overview' and search default is
+  // the empty string. Sort is intentionally excluded from the chip row
+  // and the Réinitialiser-les-filtres action — it always has a value
+  // and a dedicated dropdown already, so wiping it on "clear filters"
+  // would surprise more than help.
+  const trimmedDebouncedQuery = debouncedQuery.trim();
+  const hasActiveFilters = activeCategory !== 'overview' || trimmedDebouncedQuery !== '';
+
+  const clearAllFilters = () => {
+    setActiveCategory('overview');
+    setSearchQuery('');
+  };
+
+  const activeCategoryLabel = (() => {
+    const cat = CATEGORIES.find(c => c.id === activeCategory);
+    if (!cat) return '';
+    return lang === 'en' ? cat.en : cat.fr;
+  })();
+
   const searchDesktopRef = useRef<HTMLInputElement>(null);
   const searchMobileRef  = useRef<HTMLInputElement>(null);
 
@@ -594,6 +641,62 @@ export default function Products() {
               </div>
             )}
 
+            {/* Active-filter chip row + global Reset. Only rendered
+                when at least one filter is non-default so the chrome
+                stays out of the way on a clean /products view. Each
+                chip's × peels off exactly one filter; the trailing
+                "Réinitialiser les filtres" button nukes them all. */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap items-center gap-2 mb-5">
+                {activeCategory !== 'overview' && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-secondary text-foreground pl-3 pr-1 py-1"
+                    aria-label={lang === 'en' ? `Category: ${activeCategoryLabel}` : `Catégorie : ${activeCategoryLabel}`}
+                  >
+                    <span>
+                      {lang === 'en' ? 'Category: ' : 'Catégorie\u202f: '}
+                      <span className="font-bold">{activeCategoryLabel}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategory('overview')}
+                      aria-label={lang === 'en' ? `Remove category filter ${activeCategoryLabel}` : `Retirer la catégorie ${activeCategoryLabel}`}
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <X className="w-3 h-3" aria-hidden="true" />
+                    </button>
+                  </span>
+                )}
+                {trimmedDebouncedQuery !== '' && (
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-secondary text-foreground pl-3 pr-1 py-1"
+                    aria-label={lang === 'en' ? `Search: ${trimmedDebouncedQuery}` : `Recherche : ${trimmedDebouncedQuery}`}
+                  >
+                    <span>
+                      {lang === 'en' ? 'Search: ' : 'Recherche\u202f: '}
+                      <span className="font-bold">{trimmedDebouncedQuery}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      aria-label={lang === 'en' ? 'Clear search filter' : 'Effacer la recherche'}
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <X className="w-3 h-3" aria-hidden="true" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-2 py-1"
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
+                  {lang === 'en' ? 'Clear filters' : 'Réinitialiser les filtres'}
+                </button>
+              </div>
+            )}
+
             {activeCategory !== 'overview' && !searchQuery && (
               <h2 className="text-xl font-extrabold text-foreground mb-[18px]">
                 {lang === 'en'
@@ -639,28 +742,28 @@ export default function Products() {
                   <>
                     <div className="mx-auto max-w-[480px] text-center flex flex-col items-center">
                       <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5" aria-hidden="true">
-                        <Search className="w-7 h-7 text-muted-foreground" />
+                        <SearchX className="w-7 h-7 text-muted-foreground" />
                       </div>
                       <h2 className="text-xl md:text-2xl font-extrabold text-foreground mb-2">
-                        {lang === 'en'
-                          ? `No results for \u00ab ${searchQuery} \u00bb`
-                          : `Aucun r\u00e9sultat pour \u00ab ${searchQuery} \u00bb`}
+                        {lang === 'en' ? 'No results' : 'Aucun r\u00e9sultat'}
                       </h2>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        {lang === 'en'
+                          ? `for \u00ab ${searchQuery} \u00bb`
+                          : `pour \u00ab ${searchQuery} \u00bb`}
+                      </p>
                       <p className="text-sm text-muted-foreground mb-5">
                         {lang === 'en'
-                          ? 'Try another keyword or explore our best-sellers below.'
-                          : 'Essayez un autre mot ou explorez nos best-sellers ci-dessous.'}
+                          ? 'Try adjusting your filters or explore our best-sellers below.'
+                          : 'Ajuste tes filtres ou explore nos best-sellers ci-dessous.'}
                       </p>
                       <button
                         type="button"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setActiveCategory('overview');
-                        }}
+                        onClick={clearAllFilters}
                         className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                       >
                         <X className="w-4 h-4" aria-hidden="true" />
-                        {lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
+                        {lang === 'en' ? 'Clear filters' : 'R\u00e9initialiser les filtres'}
                       </button>
                     </div>
 
@@ -719,19 +822,23 @@ export default function Products() {
                   // button resets the category filter back to overview.
                   <div className="mx-auto max-w-[480px] text-center flex flex-col items-center">
                     <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5" aria-hidden="true">
-                      <Search className="w-7 h-7 text-muted-foreground" />
+                      <SearchX className="w-7 h-7 text-muted-foreground" />
                     </div>
-                    <p className="text-base text-foreground font-semibold mb-5">
+                    <h2 className="text-xl md:text-2xl font-extrabold text-foreground mb-2">
+                      {lang === 'en' ? 'No results' : 'Aucun r\u00e9sultat'}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mb-5">
                       {lang === 'en'
-                        ? 'No products in this category.'
-                        : 'Aucun produit dans cette cat\u00e9gorie.'}
+                        ? 'Try adjusting your filters or browse the full catalog.'
+                        : 'Ajuste tes filtres ou parcours le catalogue complet.'}
                     </p>
                     <button
                       type="button"
-                      onClick={() => setActiveCategory('overview')}
+                      onClick={clearAllFilters}
                       className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                     >
-                      {lang === 'en' ? 'See all' : 'Voir tout'}
+                      <X className="w-4 h-4" aria-hidden="true" />
+                      {lang === 'en' ? 'Clear filters' : 'R\u00e9initialiser les filtres'}
                     </button>
                   </div>
                 )}
