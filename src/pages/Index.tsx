@@ -720,6 +720,56 @@ export default function Index() {
         </section>
       </FadeIn>
 
+      {/* Mid-page CTA band — Task 1.10. A slim navy strip punctuating
+          the shift from social-proof (testimonials + logos) to FAQ.
+          Sits at ~120px desktop height so it reads as a breath-break
+          rather than a competing section. Gold eyebrow + gold CTA keep
+          the brand palette consistent with the hero and footer CTAs.
+          Abstract diagonal gold stripe (SVG) adds movement without
+          clutter — inherits opacity from the pattern itself so it
+          doesn't need a second wrapper to tone down. Stacks on mobile,
+          side-by-side from md: up. */}
+      <FadeIn>
+        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="relative overflow-hidden bg-[#1B3A6B] text-primary-foreground">
+          {/* Top hairline gold accent — 2px band reads as a brand-strip
+              without pulling focus from the CTA. */}
+          <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[2px] bg-[#E8A838]" />
+          {/* Diagonal stripe accent — faint gold pattern angled across
+              the band. pointer-events-none so it never intercepts the
+              button. Low opacity so the navy stays dominant. */}
+          <svg
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.08]"
+            preserveAspectRatio="none"
+            viewBox="0 0 1200 120"
+          >
+            <defs>
+              <pattern id="ctabandStripes" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+                <rect width="60" height="60" fill="transparent" />
+                <rect x="0" y="0" width="2" height="60" fill="#E8A838" />
+              </pattern>
+            </defs>
+            <rect width="1200" height="120" fill="url(#ctabandStripes)" />
+          </svg>
+          <div className="relative max-w-[1060px] mx-auto px-6 md:px-10 py-7 md:py-0 md:h-[120px] flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 text-center md:text-left">
+            <div>
+              <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-1.5">
+                {lang === 'en' ? '24h guaranteed response' : '24h réponse garantie'}
+              </div>
+              <h2 className="text-[clamp(20px,2.4vw,26px)] font-extrabold tracking-[-0.3px] leading-tight text-primary-foreground">
+                {lang === 'en' ? 'Need a quote?' : "Besoin d'une soumission\u00A0?"}
+              </h2>
+            </div>
+            <Link
+              to="/contact"
+              className="self-center md:self-auto flex-shrink-0 inline-flex items-center justify-center px-8 h-[46px] rounded-full bg-[#E8A838] text-[#1B3A6B] text-[14px] font-extrabold tracking-[-0.2px] shadow-[0_6px_18px_rgba(232,168,56,0.35)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(232,168,56,0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B]"
+            >
+              {lang === 'en' ? 'Request now' : 'Demander maintenant'}
+            </Link>
+          </div>
+        </section>
+      </FadeIn>
+
       {/* FAQ — native <details><summary> accordion. One-at-a-time open
           behaviour is enforced by the toggle listener in the component
           body; everything else (keyboard nav, aria-expanded, SR
