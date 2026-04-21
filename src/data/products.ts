@@ -1005,17 +1005,81 @@ export const COLOR_IMAGES: Record<string, Record<string, { front?: string; back?
   },
 };
 
-// French→English colour name translation for matching Shopify names to Drive filenames
+/**
+ * Alternate slugs to try when the primary slug doesn't match anything in
+ * COLOR_IMAGES[sku]. The image filenames are inconsistent — some use
+ * `forest_green`, others `forestgreen`, others `darkgreen`. This table lets
+ * us cast a wider net without compromising the word-boundary guards.
+ *
+ * Order matters: earlier entries win over later ones. Keys are primary slugs
+ * (post-translation, post-slugify).
+ */
+const COLOR_ALT_SLUGS: Record<string, readonly string[]> = {
+  // Green family — "Vert forêt" (#14532D) maps to many filename variants:
+  // forestgreen_* (S350/L350/Y350/ATC1000), darkgreen_* (ATC1000/ATC1015/
+  // ATCF2500/ATCY2500), dark_green_cil (ATCF2400), dark_gree (truncated on
+  // ATCF2400/ATCF2600), greenoasis_* (S445/L445), freshgreen (ATC6277),
+  // spruce (ATC6277). We list all of them so any SKU with *a* dark-green
+  // image wins. Compound (underscore) and concat variants are both tried.
+  forest_green: ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green'],
+  forestgreen:  ['forestgreen', 'darkgreen', 'dark_green', 'dark_gree', 'forest', 'spruce', 'greenoasis', 'green_oasis', 'freshgreen', 'fresh_green'],
+  darkgreen:    ['darkgreen', 'forestgreen', 'forest', 'dark_green', 'dark_gree'],
+  // Grey family — order matters: closest visual match first. "Steel Grey"
+  // (Gris acier, #6E7278) has no direct image in any SKU, so we fall back to
+  // iron/coal/darkgrey variants, and finally to darkheathergrey which is
+  // visually the closest remaining option on most SKUs.
+  steel_grey:   ['irongrey', 'coalgrey', 'darkgrey', 'iron_grey', 'coal_grey', 'dark_grey', 'graphite_heather', 'grey', 'darkheathergrey'],
+  steelgrey:    ['irongrey', 'coalgrey', 'darkgrey', 'iron_grey', 'coal_grey', 'dark_grey', 'graphite_heather', 'grey', 'darkheathergrey'],
+  grey:         ['irongrey', 'coalgrey', 'darkgrey', 'grey', 'graphite_heather', 'mediumgrey', 'darkheathergrey'],
+  // Royal / navy family
+  true_red:     ['truered', 'red'],
+  truered:      ['truered', 'red'],
+  true_royal:   ['trueroyal', 'royal'],
+  trueroyal:    ['trueroyal', 'royal'],
+  royal:        ['trueroyal', 'royal'],
+  navy:         ['truenavy', 'dark_navy', 'darknavy', 'navy'],
+  light_blue:   ['lightblue', 'light_blue'],
+  lightblue:    ['lightblue', 'light_blue'],
+  red:          ['truered', 'red'],
+  // Heather family
+  black_heather:['black_heather', 'heather'],
+  athleticheather: ['athletic_heather', 'athleticheather', 'athletic_grey', 'athleticheather'],
+  // Military / lime
+  military_green: ['military_green', 'fatiguegreen', 'fatigue_green'],
+  militarygreen:  ['military_green', 'fatiguegreen', 'fatigue_green'],
+  lime_shock:   ['limeshock', 'lime_shock', 'lime'],
+  limeshock:    ['limeshock', 'lime_shock', 'lime'],
+  lime:         ['limeshock', 'lime_shock', 'lime'],
+  // Other
+  cardinal:     ['cardinal', 'maroon', 'sangria'],
+  natural:      ['natural', 'sand', 'oatmeal_heather', 'oatmealheather'],
+  charcoal:     ['charcoal', 'coalgrey', 'coal_grey', 'darkgrey', 'dark_grey', 'darkheathergrey', 'greyconcrete', 'irongrey'],
+  maroon:       ['maroon', 'burgundy'],
+  kelly:        ['kellygreen', 'kelly_green', 'kelly'],
+  black:        ['black'],
+  white:        ['white'],
+  black_white:  ['black_white'],
+  navy_white:   ['navy_white'],
+};
+
+// French→English colour name translation for matching Shopify names to Drive filenames.
+// Keys are lowercase French names; values must align with the prefixes used in
+// COLOR_IMAGES keys (see `src/data/products.ts` COLOR_IMAGES). Keep accents —
+// they're preserved through toLowerCase() and stripped from keys only after
+// translation fails.
 const FR_EN_COLORS: Record<string, string> = {
+  // Primaries
   'noir': 'black', 'blanc': 'white', 'marine': 'navy', 'rouge': 'red',
   'bleu royal': 'royal', 'royal franc': 'royal', 'vert foncé': 'darkgreen',
   'vert forêt': 'forestgreen', 'bourgogne': 'maroon', 'bordeaux': 'maroon',
   'mauve': 'purple', 'or': 'gold', 'gris acier': 'steel_grey',
   'gris foncé chiné': 'darkheathergrey', 'gris pâle chiné': 'athleticheather',
-  'gris chiné': 'athleticheather', 'gris cendré': 'ash_grey',
+  'gris chiné': 'athleticheather', 'gris sportif chiné': 'athleticheather',
+  'gris cendré': 'ash_grey', 'gris': 'grey',
   'charbon': 'charcoal', 'sable': 'sand', 'caramel': 'caramel',
-  'orange': 'orange', 'jaune': 'yellow', 'lime': 'lime',
+  'orange': 'orange', 'jaune': 'yellow', 'lime': 'lime', 'vert lime': 'lime_shock',
   'saphir': 'sapphire', 'sangria': 'sangria', 'kelly': 'kelly',
+  'vert kelly': 'kellygreen',
   'marine foncé': 'dark_navy', 'marine chiné': 'heather_navy',
   'royal chiné': 'heather_royal', 'rouge chiné': 'heather_red',
   'vert militaire': 'military_green', 'bleu aquatique': 'aquatic_blue',
@@ -1025,6 +1089,12 @@ const FR_EN_COLORS: Record<string, string> = {
   'chiné athlétique': 'athleticheather', 'vert sécurité': 'safety_green',
   'orange sécurité': 'safety_orange', 'argent': 'silver',
   'kaki': 'khaki', 'naturel': 'natural', 'lavande': 'lavender',
+  // Heather / chiné variants missing from earlier table
+  'noir chiné': 'black_heather',
+  'rouge vif': 'true_red', 'vrai rouge': 'true_red',
+  'vrai bleu royal': 'true_royal',
+  'cardinal': 'cardinal',
+  // Two-tone trucker caps
   'noir/blanc': 'black_white', 'noir/noir': 'black_black',
   'marine/blanc': 'navy_white', 'marine/marine': 'navy_navy',
   'marine/argent': 'navy_silver', 'charbon/blanc': 'charcoal_white',
@@ -1035,9 +1105,10 @@ const FR_EN_COLORS: Record<string, string> = {
 };
 
 /**
- * SKU aliases: when a product's SKU doesn't have its own entry in COLOR_IMAGES,
- * fall through to a sibling SKU that shares imagery (e.g. youth variant → adult).
- * This is checked *in addition to* the automatic trailing-letter fallback.
+ * Some products use a SKU that doesn't line up with the filename prefix used
+ * in `public/products/`, or they don't have their own image set and should
+ * inherit from a sibling SKU (youth → adult). These are tried in addition to
+ * the automatic trailing-letter fallback (e.g. ATC1000Y → ATC1000).
  */
 const SKU_ALIASES: Record<string, string> = {
   // Catalog uses "6245CM" but image files live under "ATC6245CM-*"
@@ -1063,15 +1134,42 @@ function resolveColorImageSkus(sku: string): string[] {
 }
 
 /**
- * Score a matched image entry: prefer ones with a front image, since
- * hasRealColorImage() requires a front to count the colour as "real".
+ * Minimum slug length for fuzzy (prefix / whole-word / first-word) match.
+ *
+ * We want to allow "red" (3) and "gold" (4) but NOT "or" (2) — "or" is the
+ * French word for "gold" and if it were accepted as a prefix it would match
+ * "orange_012017". 3 is the sweet spot.
  */
+const MIN_FUZZY_LEN = 3;
+
+/** Prefer entries that have a `front` image — hasRealColorImage() treats a
+ *  front as the signal that a colour swatch is "real". */
 function hasFront(entry: { front?: string; back?: string } | undefined): boolean {
   return !!entry?.front;
 }
 
-/** Find the best per-colour image for a product + colour name (FR or EN) */
+/**
+ * Find the best per-colour image for a product + colour name.
+ *
+ * Accepts French or English names (e.g. "Rouge", "Red", "Or", "Gold").
+ * Returns `null` when no image can be confidently matched — callers MUST
+ * handle this (the customizer falls back to the default tinted product image).
+ * See `colorFilter.ts` and `ProductCustomizer.tsx` for null-handling call-sites.
+ *
+ * Matching runs in four tiers, from strict to fuzzy. Each tier respects
+ * word boundaries so short tokens like "or" never bleed into "orange":
+ *   1. Exact slug match against COLOR_IMAGES[sku]
+ *   2. Slug-prefix match (key = slug OR key startsWith slug + "_"), with
+ *      front-image preference and back-sibling merge
+ *   3. Whole-word `_`-token match (compound keys like "military_green")
+ *   4. Translated first-word fallback (single-word English names only —
+ *      e.g. "Rouge" → "red" → first image whose first token is "red"). We
+ *      deliberately skip this tier for compound translations (e.g.
+ *      "Noir chiné" → "black_heather") so an unknown compound doesn't
+ *      silently collapse to its first word.
+ */
 export function findColorImage(sku: string, colorName: string): { front?: string; back?: string } | null {
+  if (!sku || !colorName) return null;
   // Try the SKU itself first, then aliases / trimmed-letter fallbacks.
   for (const candidateSku of resolveColorImageSkus(sku)) {
     const hit = findColorImageInMap(candidateSku, colorName);
@@ -1085,52 +1183,75 @@ function findColorImageInMap(sku: string, colorName: string): { front?: string; 
   const skuMap = COLOR_IMAGES[sku];
   if (!skuMap) return null;
 
-  // Normalize input
   const raw = colorName.toLowerCase().trim();
+  if (!raw) return null;
 
-  // Try French→English translation first
+  // French→English translation (keys preserve diacritics, e.g. "vert forêt")
   const enName = FR_EN_COLORS[raw] ?? raw;
 
-  // Build search keys to try (in order of specificity)
-  const keys = [
-    enName.replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, ''),
-    raw.replace(/[\s-]+/g, '_').replace(/[^a-z0-9_]/g, ''),
-  ];
+  // Slugify: strip diacritics, collapse spaces/dashes/slashes to `_`, keep [a-z0-9_]
+  const slugify = (s: string): string =>
+    s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[\s\-/]+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
 
-  // 1. Exact match
+  const enKey = slugify(enName);
+  const rawKey = slugify(raw);
+  const baseKeys = [enKey, rawKey];
+
+  // Expand with alternate slugs so e.g. "steel_grey" also searches for
+  // "irongrey" / "coalgrey" / "darkgrey". Look up both the underscore
+  // ("forest_green") and concatenated ("forestgreen") forms so the table
+  // can use whichever spelling is most natural.
+  const concat = (s: string): string => s.replace(/_/g, '');
+  const expanded: string[] = [];
+  for (const k of baseKeys) {
+    if (!k) continue;
+    expanded.push(k);
+    expanded.push(concat(k));
+    for (const lookup of [k, concat(k)]) {
+      const alts = COLOR_ALT_SLUGS[lookup];
+      if (alts) for (const a of alts) {
+        const s = slugify(a);
+        if (s) { expanded.push(s); expanded.push(concat(s)); }
+      }
+    }
+  }
+  const keys = Array.from(new Set(expanded)).filter(Boolean);
+  if (keys.length === 0) return null;
+
+  const mapKeys = Object.keys(skuMap);
+  const tokensOf = (k: string): string[] => k.split('_').filter(Boolean);
+
+  // 1. Exact match on any key
   for (const key of keys) {
     if (skuMap[key]) return skuMap[key];
   }
 
-  // 2. Match a key that starts with or contains the search term.
-  //    When multiple keys match (e.g. `gold_021612` back-only vs `gold_082015` front),
-  //    prefer the one with a front image — that's what hasRealColorImage requires.
-  //    If we find a front-bearing match and a back-bearing match separately,
-  //    merge them so the UI gets both views.
+  // 2. Prefix match: `key` equals the entry key, or is followed by `_`.
+  //    This prevents "or" (< MIN_FUZZY_LEN) from matching "orange_012017".
+  //    When multiple keys match (e.g. back-only `gold_021612` vs front
+  //    `gold_082015`), prefer the front-bearing entry and merge in a
+  //    back-only sibling when possible so both views render.
   for (const key of keys) {
-    if (!key) continue;
+    if (key.length < MIN_FUZZY_LEN) continue;
     let frontHit: { front?: string; back?: string } | null = null;
     let anyHit: { front?: string; back?: string } | null = null;
-    for (const k of Object.keys(skuMap)) {
-      // Skip keys that are just dates
-      if (/^\d+$/.test(k)) continue;
-      if (k.startsWith(key) || k.includes(key) || key.includes(k.split('_')[0])) {
+    for (const k of mapKeys) {
+      if (/^\d+$/.test(k)) continue;  // skip date-only keys
+      if (k === key || k.startsWith(key + '_')) {
         const entry = skuMap[k];
         if (!anyHit) anyHit = entry;
-        if (hasFront(entry)) {
-          frontHit = entry;
-          break;
-        }
+        if (hasFront(entry)) { frontHit = entry; break; }
       }
     }
     if (frontHit) {
-      // Try to pick up a back-only sibling so both views render when possible.
       if (!frontHit.back) {
-        for (const k of Object.keys(skuMap)) {
+        for (const k of mapKeys) {
           if (/^\d+$/.test(k)) continue;
           const entry = skuMap[k];
           if (!entry.back || entry === frontHit) continue;
-          if (k.startsWith(key) || k.includes(key) || key.includes(k.split('_')[0])) {
+          if (k === key || k.startsWith(key + '_')) {
             return { front: frontHit.front, back: entry.back };
           }
         }
@@ -1140,20 +1261,32 @@ function findColorImageInMap(sku: string, colorName: string): { front?: string; 
     if (anyHit) return anyHit;
   }
 
-  // 3. Try matching just the first word (e.g., "Noir chiné" → "black" → matches "black_012017")
-  //    Again prefer a front-bearing match.
-  const firstWord = keys[0]?.split('_')[0];
-  if (firstWord && firstWord.length >= 3) {
+  // 3. Whole-word / compound match on `_`-delimited tokens.
+  for (const key of keys) {
+    if (key.length < MIN_FUZZY_LEN) continue;
+    for (const k of mapKeys) {
+      if (/^\d+$/.test(k)) continue;
+      const toks = tokensOf(k);
+      if (toks.includes(key)) return skuMap[k];
+      // Compound keys: "military_green" must appear as a contiguous sub-string
+      if (key.includes('_') && k.includes(key)) return skuMap[k];
+    }
+  }
+
+  // 4. First-word fallback — ONLY for single-word English translations.
+  //    Catches cases where the exact slug doesn't exist but the image
+  //    filename is datecoded (e.g. "red" → "red_022017"). Compound names
+  //    ("black_heather") are NOT eligible — if the compound isn't in the
+  //    map we return null rather than collapsing to its first word.
+  if (enKey && !enKey.includes('_') && enKey.length >= MIN_FUZZY_LEN) {
     let frontHit: { front?: string; back?: string } | null = null;
     let anyHit: { front?: string; back?: string } | null = null;
-    for (const k of Object.keys(skuMap)) {
-      if (k.startsWith(firstWord)) {
+    for (const k of mapKeys) {
+      if (/^\d+$/.test(k)) continue;
+      if (tokensOf(k)[0] === enKey) {
         const entry = skuMap[k];
         if (!anyHit) anyHit = entry;
-        if (hasFront(entry)) {
-          frontHit = entry;
-          break;
-        }
+        if (hasFront(entry)) { frontHit = entry; break; }
       }
     }
     if (frontHit) return frontHit;

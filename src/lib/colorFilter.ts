@@ -8,18 +8,24 @@ import { findColorImage } from '@/data/products';
 /**
  * Returns true when this color has a real image:
  *  - explicit imageDevant on the ProductColor itself, OR
- *  - an entry in COLOR_IMAGES[sku] for this color name
+ *  - an entry in COLOR_IMAGES[sku] for this color name (FR or EN)
  *
- * The product default image (black/devant) doesn't count — that's just the
- * fallback the customizer tints. The point of this filter is to only show
- * colors that look correct when chosen, not generic tinted previews.
+ * `findColorImage` can return null for three reasons:
+ *   1. no COLOR_IMAGES map exists for this SKU (e.g. brand-new product)
+ *   2. no key matches the color name or its English translation
+ *   3. the matched entry has neither `front` nor `back` (shouldn't happen but
+ *      we still guard against it)
+ * We treat all three as "no real image". The product default image (black/
+ * devant) doesn't count — that's just the fallback the customizer tints. The
+ * point of this filter is to only show colors that look correct when chosen.
  */
 export function hasRealColorImage(sku: string, color: ProductColor): boolean {
+  if (!sku || !color) return false;
   if (color.imageDevant) return true;
   const img = findColorImage(sku, color.name);
-  if (img?.front) return true;
+  if (img?.front || img?.back) return true;
   const imgEn = color.nameEn ? findColorImage(sku, color.nameEn) : null;
-  if (imgEn?.front) return true;
+  if (imgEn?.front || imgEn?.back) return true;
   return false;
 }
 
