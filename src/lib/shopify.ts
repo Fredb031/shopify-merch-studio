@@ -222,9 +222,63 @@ export function colorNameToHex(name: string): string {
 // short enough to give users a useful error banner.
 const STOREFRONT_TIMEOUT_MS = 15_000;
 
-export async function storefrontApiRequest(query: string, variables: Record<string, unknown> = {}) {
+/** Named error class for Shopify Storefront HTTP failures. Carries `status`,
+ * optional `code`, and raw `body` so callers can branch on error shape
+ * instead of sniffing message strings. Extends Error so existing
+ * `catch (e)` / `instanceof Error` paths continue to work. */
+export class ShopifyError extends Error {
+  public readonly status: number;
+  public readonly code?: string;
+  public readonly body?: unknown;
+  public retryable?: boolean;
+  constructor(
+    message: string,
+    opts: { status: number; code?: string; body?: unknown; retryable?: boolean } = { status: 0 },
+  ) {
+    super(message);
+    this.name = 'ShopifyError';
+    this.status = opts.status;
+    this.code = opts.code;
+    this.body = opts.body;
+    this.retryable = opts.retryable;
+    // Preserve stack on V8
+    if (typeof (Error as unknown as { captureStackTrace?: unknown }).captureStackTrace === 'function') {
+      (Error as unknown as { captureStackTrace: (t: object, c: unknown) => void })
+        .captureStackTrace(this, ShopifyError);
+    }
+  }
+}
+
+/** Options forwarded to storefrontApiRequest. Exported so consumers can
+ * type-check payloads (e.g. when composing an AbortSignal from a React
+ * effect cleanup). `signal` is composed with the internal timeout
+ * controller — aborting it cancels the fetch; the timeout still fires
+ * independently after STOREFRONT_TIMEOUT_MS. */
+export interface StorefrontRequestOptions {
+  signal?: AbortSignal;
+  timeoutMs?: number;
+}
+
+export async function storefrontApiRequest(
+  query: string,
+  variables: Record<string, unknown> = {},
+  options: StorefrontRequestOptions = {},
+) {
+  const timeoutMs = options.timeoutMs ?? STOREFRONT_TIMEOUT_MS;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), STOREFRONT_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  // Forward an external AbortSignal (e.g. from React effect cleanup) so
+  // callers can cancel on unmount without racing the timeout.
+  const external = options.signal;
+  const onExternalAbort = () => controller.abort();
+  if (external) {
+    if (external.aborted) controller.abort();
+    else external.addEventListener('abort', onExternalAbort, { once: true });
+  }
+  const cleanup = () => {
+    clearTimeout(timeoutId);
+    if (external) external.removeEventListener('abort', onExternalAbort);
+  };
   let response: Response;
   try {
     response = await fetch(SHOPIFY_STOREFRONT_URL, {
@@ -237,13 +291,19 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
       signal: controller.signal,
     });
   } catch (err) {
-    clearTimeout(timeoutId);
+    cleanup();
     if ((err as Error)?.name === 'AbortError') {
-      throw new Error(`Shopify Storefront request timed out after ${STOREFRONT_TIMEOUT_MS}ms`);
+      // Distinguish caller-initiated cancel from our timeout — callers
+      // shouldn't toast on their own cancels.
+      if (external?.aborted) throw err;
+      throw new ShopifyError(
+        `Shopify Storefront request timed out after ${timeoutMs}ms`,
+        { status: 0, code: 'TIMEOUT' },
+      );
     }
     throw err;
   }
-  clearTimeout(timeoutId);
+  cleanup();
 
   if (response.status === 402) {
     // Read lang from localStorage since this isn't a React component
@@ -281,10 +341,11 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
           ? 'Please wait a moment and try again.'
           : 'Veuillez patienter un instant et réessayer.' },
     );
-    const err = new Error('HTTP error! status: 429') as Error & { retryable: boolean; status: number };
-    err.retryable = true;
-    err.status = 429;
-    throw err;
+    throw new ShopifyError('HTTP error! status: 429', {
+      status: 429,
+      code: 'RATE_LIMITED',
+      retryable: true,
+    });
   }
 
   // 401/403 means the Storefront access token is rejected — either expired,
@@ -304,10 +365,11 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
           ? 'Our team has been notified. Please try again later.'
           : 'Notre équipe a été avisée. Veuillez réessayer plus tard.' },
     );
-    const err = new Error(`HTTP error! status: ${response.status}`) as Error & { retryable: boolean; status: number };
-    err.retryable = false;
-    err.status = response.status;
-    throw err;
+    throw new ShopifyError(`HTTP error! status: ${response.status}`, {
+      status: response.status,
+      code: 'AUTH_FAILED',
+      retryable: false,
+    });
   }
 
   // Shopify Storefront occasionally returns 5xx during deploys, regional
@@ -325,13 +387,27 @@ export async function storefrontApiRequest(query: string, variables: Record<stri
           ? 'Retrying… please wait a moment.'
           : 'Nouvelle tentative… veuillez patienter un instant.' },
     );
-    throw new Error(`HTTP error! status: ${response.status}`);
+    throw new ShopifyError(`HTTP error! status: ${response.status}`, {
+      status: response.status,
+      code: 'SERVER_ERROR',
+      retryable: true,
+    });
   }
 
-  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  if (!response.ok) {
+    throw new ShopifyError(`HTTP error! status: ${response.status}`, {
+      status: response.status,
+      code: 'HTTP_ERROR',
+    });
+  }
 
   const data = await response.json();
-  if (data.errors) throw new Error(`Shopify error: ${data.errors.map((e: { message: string }) => e.message).join(', ')}`);
+  if (data.errors) {
+    throw new ShopifyError(
+      `Shopify error: ${data.errors.map((e: { message: string }) => e.message).join(', ')}`,
+      { status: response.status, code: 'GRAPHQL_ERROR', body: data.errors },
+    );
+  }
   return data;
 }
 
