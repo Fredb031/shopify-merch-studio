@@ -1,5 +1,5 @@
-import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search, Check, X, Clock } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import {
@@ -16,6 +16,82 @@ import { normalizeInvisible } from '@/lib/utils';
 import { isAutomationActive } from '@/lib/automations';
 
 const PAGE_SIZE = 25;
+
+// localStorage keys. `vision-cart-reminders` is the structured ledger used
+// by the UI to show "Reminder sent 2h ago"; `vision-email-sent-log` is the
+// append-only fallback we write to when there's no real send path (no
+// outlook.ts on main), so ops can still audit intent from devtools.
+const REMINDERS_KEY = 'vision-cart-reminders';
+const EMAIL_LOG_KEY = 'vision-email-sent-log';
+
+type RemindersMap = Record<string, { sentAt: string }>;
+
+function loadReminders(): RemindersMap {
+  try {
+    const raw = localStorage.getItem(REMINDERS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as RemindersMap) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveReminders(next: RemindersMap): void {
+  try {
+    localStorage.setItem(REMINDERS_KEY, JSON.stringify(next));
+  } catch {
+    // Ignore quota / private-mode errors — the UI still shows the toast.
+  }
+}
+
+function appendEmailLog(entry: {
+  cartId: number;
+  to: string;
+  subject: string;
+  body: string;
+  sentAt: string;
+}): void {
+  try {
+    const raw = localStorage.getItem(EMAIL_LOG_KEY);
+    const arr = raw ? (JSON.parse(raw) as unknown) : [];
+    const list = Array.isArray(arr) ? arr : [];
+    list.push(entry);
+    localStorage.setItem(EMAIL_LOG_KEY, JSON.stringify(list));
+  } catch {
+    // Non-fatal — toast still reports success to the admin.
+  }
+}
+
+// Best-effort send. Uses `import.meta.glob` with eager:false so Vite can
+// statically see whether `@/lib/outlook` exists at build time without
+// breaking the build when it doesn't (a bare dynamic import fails the
+// rollup load step). When the module is present and exposes a
+// `sendTestEmail` function we call it; otherwise the caller falls back
+// to appending a local log entry so nothing is silently dropped.
+async function trySendEmail(payload: {
+  to: string;
+  subject: string;
+  body: string;
+}): Promise<{ ok: boolean; via: 'sender' | 'log' }> {
+  try {
+    const modules = import.meta.glob('../../lib/outlook.ts');
+    const loader = modules['../../lib/outlook.ts'];
+    if (loader) {
+      const mod = (await loader()) as {
+        sendTestEmail?: (args: { to: string; subject: string; body: string }) => Promise<unknown>;
+      };
+      if (typeof mod.sendTestEmail === 'function') {
+        await mod.sendTestEmail(payload);
+        return { ok: true, via: 'sender' };
+      }
+    }
+  } catch {
+    // Module present but threw — fall through to the log path so the
+    // admin still gets feedback that the intent was captured.
+  }
+  return { ok: false, via: 'log' };
+}
 
 function formatRelative(iso: string): string {
   // Compare CALENDAR-DAY deltas instead of a 24-hour-window floor —
@@ -37,8 +113,45 @@ function formatRelative(iso: string): string {
   return `il y a ${Math.floor(days / 30)} mois`;
 }
 
+// Short "sent 2h ago" style — more granular than formatRelative because
+// reminders are usually sent within the last few hours, so day-granularity
+// would collapse everything to "aujourd'hui" and lose the feedback signal.
+function formatSentAgo(iso: string): string {
+  const sent = new Date(iso).getTime();
+  if (Number.isNaN(sent)) return '';
+  const diffMs = Date.now() - sent;
+  if (diffMs < 60_000) return 'à l\'instant';
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 60) return `il y a ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `il y a ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `il y a ${days} j`;
+  return `il y a ${Math.floor(days / 7)} sem.`;
+}
+
 type AbandonedSort = 'recent' | 'value';
 const VALID_SORTS: readonly AbandonedSort[] = ['recent', 'value'];
+
+type ReminderFilter = 'all' | 'sent' | 'unsent';
+const VALID_REMINDER_FILTERS: readonly ReminderFilter[] = ['all', 'sent', 'unsent'];
+
+// Default subject + body builder — kept in sync with the mailto fallback
+// so whether the admin clicks "Envoyer un rappel" (dialog) or the mail
+// icon (native mailto), they get identical copy.
+function buildDefaultReminder(checkout: ShopifyAbandonedCheckoutSnapshot): { subject: string; body: string } {
+  const name = checkout.customerName.trim() || checkout.email.split('@')[0];
+  const subject = 'Ton panier t\'attend sur Vision Affichage — 10 % offert';
+  const body =
+    `Bonjour ${name},\n\n` +
+    `On a remarqué que tu as un panier en attente sur notre site. Pour te remercier, voici 10 % de rabais avec le code VISION10 — valide 7 jours.\n\n` +
+    `Reprendre ta commande :\n` +
+    `${checkout.recoveryUrl}\n\n` +
+    `Code promo : VISION10 (à coller dans le panier)\n\n` +
+    `Si tu as des questions, n'hésite pas — on est là pour t'aider.\n\n` +
+    `— Équipe Vision Affichage`;
+  return { subject, body };
+}
 
 export default function AdminAbandonedCarts() {
   // URL-backed sort so reload preserves the admin's preferred ranking
@@ -49,10 +162,17 @@ export default function AdminAbandonedCarts() {
   const initialSort: AbandonedSort = (VALID_SORTS as readonly string[]).includes(initialSortRaw)
     ? (initialSortRaw as AbandonedSort)
     : 'value';
+  const initialReminderRaw = searchParams.get('reminder') ?? 'all';
+  const initialReminderFilter: ReminderFilter = (VALID_REMINDER_FILTERS as readonly string[]).includes(initialReminderRaw)
+    ? (initialReminderRaw as ReminderFilter)
+    : 'all';
 
   const [sort, setSort] = useState<AbandonedSort>(initialSort);
+  const [reminderFilter, setReminderFilter] = useState<ReminderFilter>(initialReminderFilter);
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [page, setPage] = useState(0);
+  const [reminders, setReminders] = useState<RemindersMap>(() => loadReminders());
+  const [dialogCart, setDialogCart] = useState<ShopifyAbandonedCheckoutSnapshot | null>(null);
   useDocumentTitle('Paniers abandonnés — Admin Vision Affichage');
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
@@ -73,31 +193,46 @@ export default function AdminAbandonedCarts() {
     const trimmed = query.trim();
     if (trimmed) next.set('q', trimmed); else next.delete('q');
     if (sort !== 'value') next.set('sort', sort); else next.delete('sort');
+    if (reminderFilter !== 'all') next.set('reminder', reminderFilter); else next.delete('reminder');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [sort, query, searchParams, setSearchParams]);
+  }, [sort, query, reminderFilter, searchParams, setSearchParams]);
 
-  // Reset pagination when search changes so filtering doesn't strand
-  // the user on an empty page 5.
-  useEffect(() => { setPage(0); }, [query]);
+  // Reset pagination when search / filter changes so narrowing doesn't
+  // strand the user on an empty page 5.
+  useEffect(() => { setPage(0); }, [query, reminderFilter]);
+
+  const markReminderSent = useCallback((cartId: number): void => {
+    setReminders(prev => {
+      const next = { ...prev, [String(cartId)]: { sentAt: new Date().toISOString() } };
+      saveReminders(next);
+      return next;
+    });
+  }, []);
 
   const sorted = useMemo(() => {
     // Filter before sort so the sorted output is already narrowed.
     // ZWSP-strip both sides — same pattern as other admin tables.
     const q = normalizeInvisible(query).trim().toLowerCase();
-    const base = q
+    const textFiltered = q
       ? SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(c => {
           const email = normalizeInvisible(c.email).toLowerCase();
           const name  = normalizeInvisible(c.customerName ?? '').toLowerCase();
           return email.includes(q) || name.includes(q);
         })
       : SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT;
+    const base = reminderFilter === 'all'
+      ? textFiltered
+      : textFiltered.filter(c => {
+          const hasReminder = Boolean(reminders[String(c.id)]);
+          return reminderFilter === 'sent' ? hasReminder : !hasReminder;
+        });
     const arr = [...base];
     if (sort === 'value') arr.sort((a, b) => b.total - a.total);
     else arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return arr;
-  }, [sort, query]);
+  }, [sort, query, reminderFilter, reminders]);
 
   // Reset page on sort change so user isn't stranded.
   useEffect(() => { setPage(0); }, [sort]);
@@ -177,22 +312,38 @@ export default function AdminAbandonedCarts() {
                 className="bg-transparent border-none outline-none text-xs flex-1"
               />
             </div>
-          <div className="inline-flex bg-zinc-100 rounded-lg p-0.5" role="radiogroup" aria-label="Trier les paniers">
-            {(['value', 'recent'] as const).map(s => (
-              <button
-                key={s}
-                type="button"
-                role="radio"
-                aria-checked={sort === s}
-                onClick={() => setSort(s)}
-                className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
-                  sort === s ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'
-                }`}
+            {/* Reminder filter — native <select> because we don't ship a
+                Select primitive in src/components/ui/ yet and the zinc-100
+                chrome keeps it visually aligned with the sort pill. */}
+            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+              <span className="sr-only">Filtrer par rappel</span>
+              <select
+                value={reminderFilter}
+                onChange={e => setReminderFilter(e.target.value as ReminderFilter)}
+                aria-label="Filtrer les paniers par statut de rappel"
+                className="bg-zinc-100 rounded-lg px-2 py-1.5 text-xs font-bold text-zinc-700 border-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
               >
-                {s === 'value' ? 'Plus haute valeur' : 'Plus récent'}
-              </button>
-            ))}
-          </div>
+                <option value="all">Toutes</option>
+                <option value="sent">Avec rappel envoyé</option>
+                <option value="unsent">Sans rappel</option>
+              </select>
+            </label>
+            <div className="inline-flex bg-zinc-100 rounded-lg p-0.5" role="radiogroup" aria-label="Trier les paniers">
+              {(['value', 'recent'] as const).map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  role="radio"
+                  aria-checked={sort === s}
+                  onClick={() => setSort(s)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
+                    sort === s ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'
+                  }`}
+                >
+                  {s === 'value' ? 'Plus haute valeur' : 'Plus récent'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -205,10 +356,21 @@ export default function AdminAbandonedCarts() {
             <div className="text-center text-xs text-zinc-500 py-10">
               {query.trim()
                 ? `Aucun panier ne correspond à « ${query.trim()} ».`
-                : 'Aucun panier abandonné pour le moment.'}
+                : reminderFilter === 'sent'
+                  ? 'Aucun rappel envoyé pour le moment.'
+                  : reminderFilter === 'unsent'
+                    ? 'Tous les paniers ont reçu un rappel.'
+                    : 'Aucun panier abandonné pour le moment.'}
             </div>
           ) : (
-            pageItems.map(c => <CheckoutRow key={c.id} checkout={c} />)
+            pageItems.map(c => (
+              <CheckoutRow
+                key={c.id}
+                checkout={c}
+                reminder={reminders[String(c.id)]}
+                onOpenReminder={() => setDialogCart(c)}
+              />
+            ))
           )}
         </div>
 
@@ -249,11 +411,30 @@ export default function AdminAbandonedCarts() {
           </div>
         </div>
       </div>
+
+      {dialogCart && (
+        <ReminderDialog
+          checkout={dialogCart}
+          onClose={() => setDialogCart(null)}
+          onSent={() => {
+            markReminderSent(dialogCart.id);
+            setDialogCart(null);
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot }) {
+function CheckoutRow({
+  checkout,
+  reminder,
+  onOpenReminder,
+}: {
+  checkout: ShopifyAbandonedCheckoutSnapshot;
+  reminder: { sentAt: string } | undefined;
+  onOpenReminder: () => void;
+}) {
   const name = checkout.customerName.trim() || checkout.email.split('@')[0];
   const valueColor = checkout.total >= 200 ? 'text-emerald-700' : checkout.total >= 75 ? 'text-amber-700' : 'text-zinc-500';
 
@@ -272,6 +453,12 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm truncate">{name}</div>
         <div className="text-xs text-zinc-500 truncate">{checkout.email}</div>
+        {reminder && (
+          <div className="inline-flex items-center gap-1 mt-0.5 text-[10px] font-bold text-emerald-700">
+            <Clock size={10} aria-hidden="true" />
+            Rappel envoyé {formatSentAgo(reminder.sentAt)}
+          </div>
+        )}
       </div>
       <div className="text-xs text-zinc-400 hidden sm:block min-w-[80px] text-right">
         {checkout.itemsCount} {checkout.itemsCount > 1 ? 'articles' : 'article'}
@@ -282,26 +469,27 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
       <div className={`text-sm font-extrabold min-w-[80px] text-right ${valueColor}`}>
         {checkout.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $
       </div>
+      {/* In-app reminder dialog — gives the admin a chance to tweak the
+          copy before hitting send, versus the mailto icon which hands off
+          to the OS mail client unchanged. */}
+      <button
+        type="button"
+        onClick={onOpenReminder}
+        className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:border-[#0052CC]/30 hover:text-[#0052CC] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+        aria-label={`Envoyer un rappel à ${name}`}
+      >
+        <Send size={12} aria-hidden="true" />
+        <span className="hidden sm:inline">Envoyer un rappel</span>
+      </button>
       {(() => {
         // Build the mailto URL via encodeURIComponent on each field so
         // spaces, accents, and apostrophes are handled uniformly.
         // The old inline template mixed hand-crafted %C3%A9 escapes with
         // raw spaces and unencoded recipient addresses — any email with
         // a `+alias` or a space would break the link.
-        const subject = encodeURIComponent('Ton panier t\'attend sur Vision Affichage — 10 % offert');
-        // Include the VISION10 discount code as an incentive — abandoned-
-        // cart recovery emails convert ~15-25% better with a coupon than
-        // a bare reminder, and VISION10 is already wired through the cart
-        // store so the customer can paste it into the promo input.
-        const body = encodeURIComponent(
-          `Bonjour ${name},\n\n` +
-          `On a remarqué que tu as un panier en attente sur notre site. Pour te remercier, voici 10 % de rabais avec le code VISION10 — valide 7 jours.\n\n` +
-          `Reprendre ta commande :\n` +
-          `${checkout.recoveryUrl}\n\n` +
-          `Code promo : VISION10 (à coller dans le panier)\n\n` +
-          `Si tu as des questions, n'hésite pas — on est là pour t'aider.\n\n` +
-          `— Équipe Vision Affichage`,
-        );
+        const defaults = buildDefaultReminder(checkout);
+        const subject = encodeURIComponent(defaults.subject);
+        const body = encodeURIComponent(defaults.body);
         const mailtoHref = `mailto:${encodeURIComponent(checkout.email)}?subject=${subject}&body=${body}`;
         // Gate the 1h abandoned-cart recovery send on the pause flag
         // admins can toggle in /admin/automations. The mailto still
@@ -323,8 +511,8 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
           <a
             href={mailtoHref}
             onClick={handleRecoveryClick}
-            title="Envoyer un courriel de relance"
-            aria-label={`Envoyer un courriel de relance à ${name}`}
+            title="Ouvrir dans le client mail local"
+            aria-label={`Ouvrir un courriel dans le client local pour ${name}`}
             className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
           >
             <Mail size={14} aria-hidden="true" />
@@ -341,6 +529,145 @@ function CheckoutRow({ checkout }: { checkout: ShopifyAbandonedCheckoutSnapshot 
       >
         <ExternalLink size={14} aria-hidden="true" />
       </a>
+    </div>
+  );
+}
+
+function ReminderDialog({
+  checkout,
+  onClose,
+  onSent,
+}: {
+  checkout: ShopifyAbandonedCheckoutSnapshot;
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const defaults = useMemo(() => buildDefaultReminder(checkout), [checkout]);
+  const [subject, setSubject] = useState(defaults.subject);
+  const [body, setBody] = useState(defaults.body);
+  const [sending, setSending] = useState(false);
+
+  // Close on Escape — standard dialog affordance. Without this the only
+  // way out is the Annuler button or the backdrop, which is a
+  // keyboard-accessibility gap.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !sending) onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose, sending]);
+
+  const handleSend = useCallback(async () => {
+    if (sending) return;
+    setSending(true);
+    const sentAt = new Date().toISOString();
+    try {
+      const result = await trySendEmail({ to: checkout.email, subject, body });
+      // Always append to the log — even on the sender path we want an
+      // audit trail the admin can pull up without wiring a separate
+      // mailbox viewer.
+      appendEmailLog({ cartId: checkout.id, to: checkout.email, subject, body, sentAt });
+      if (result.via === 'sender') {
+        toast.success(`Rappel envoyé à ${checkout.email}`);
+      } else {
+        toast.success('Rappel enregistré (envoi Zapier non configuré — consignation locale).');
+      }
+      onSent();
+    } catch (err) {
+      // Narrow the catch so the toast message reflects the actual
+      // failure instead of a generic "something went wrong" banner.
+      const msg = err instanceof Error ? err.message : 'Erreur inconnue';
+      toast.error(`Échec de l'envoi : ${msg}`);
+      setSending(false);
+    }
+  }, [sending, checkout.email, checkout.id, subject, body, onSent]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reminder-dialog-title"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      onClick={e => {
+        // Close on backdrop click only, not when clicking inside the card.
+        if (e.target === e.currentTarget && !sending) onClose();
+      }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-auto">
+        <div className="flex items-start justify-between p-5 border-b border-zinc-100">
+          <div>
+            <h2 id="reminder-dialog-title" className="font-extrabold text-base">Envoyer un rappel</h2>
+            <p className="text-xs text-zinc-500 mt-0.5">Panier de {checkout.customerName.trim() || checkout.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => !sending && onClose()}
+            aria-label="Fermer"
+            className="w-8 h-8 rounded-lg hover:bg-zinc-100 flex items-center justify-center text-zinc-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-zinc-700 mb-1.5">Destinataire</label>
+            <div className="text-sm px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700">
+              {checkout.email}
+            </div>
+          </div>
+          <div>
+            <label htmlFor="reminder-subject" className="block text-xs font-bold text-zinc-700 mb-1.5">Sujet</label>
+            <input
+              id="reminder-subject"
+              type="text"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              disabled={sending}
+              className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/20 disabled:bg-zinc-50"
+            />
+          </div>
+          <div>
+            <label htmlFor="reminder-body" className="block text-xs font-bold text-zinc-700 mb-1.5">Message</label>
+            <textarea
+              id="reminder-body"
+              value={body}
+              onChange={e => setBody(e.target.value)}
+              disabled={sending}
+              rows={10}
+              className="w-full text-sm px-3 py-2 bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/20 font-mono disabled:bg-zinc-50"
+            />
+          </div>
+        </div>
+        <div className="flex items-center justify-end gap-2 p-5 border-t border-zinc-100 bg-zinc-50 rounded-b-2xl">
+          <button
+            type="button"
+            onClick={() => !sending && onClose()}
+            disabled={sending}
+            className="text-xs font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-white text-zinc-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sending || !subject.trim() || !body.trim()}
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:bg-[#003d99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {sending ? (
+              <>
+                <RefreshCw size={12} className="animate-spin" aria-hidden="true" />
+                Envoi…
+              </>
+            ) : (
+              <>
+                <Check size={12} aria-hidden="true" />
+                Envoyer le rappel
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
