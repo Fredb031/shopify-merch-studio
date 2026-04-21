@@ -27,6 +27,7 @@ import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
 import { MultiVariantPicker, type VariantQty } from './MultiVariantPicker';
 import { ColorPicker } from './ColorPicker';
+import { Confetti } from '@/components/Confetti';
 import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
@@ -250,6 +251,45 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // button so a crosshair overlay on the canvas shows exactly where the
   // click will drop the logo. Builds trust that the centring is correct.
   const [previewCenter, setPreviewCenter] = useState(false);
+
+  // Task 17.3: confetti burst the first time the user crosses the bulk
+  // discount threshold within a single customizer session. Silent
+  // threshold crossings used to just flip the discount line — no moment
+  // of reward. Tracking state:
+  //   - `confettiFire` toggles the <Confetti /> mount.
+  //   - `prevTotalQtyRef` remembers the last observed totalQty so we can
+  //     detect an UPWARD crossing (prev < 12 && curr >= 12).
+  //   - `confettiFiredRef` ensures we fire once per mount only — if the
+  //     user decrements below 12 and re-crosses, we stay silent (spec).
+  const [confettiFire, setConfettiFire] = useState(false);
+  const prevTotalQtyRef = useRef(0);
+  const confettiFiredRef = useRef(false);
+
+  // Watch totalQty (either the multi-variant matrix or the legacy
+  // sizeQuantities store) for an upward crossing of the bulk threshold.
+  // Fires once per mount. Reduced-motion users still get the toast —
+  // only the Confetti mount is gated inside the render block below.
+  const _currentTotalQty = multiVariants.reduce((s, v) => s + v.qty, 0)
+    || store.getTotalQuantity();
+  useEffect(() => {
+    const prev = prevTotalQtyRef.current;
+    const curr = _currentTotalQty;
+    if (!confettiFiredRef.current && prev < BULK_DISCOUNT_THRESHOLD && curr >= BULK_DISCOUNT_THRESHOLD) {
+      confettiFiredRef.current = true;
+      // Respect prefers-reduced-motion — skip particles, keep the toast.
+      const prefersReduced = typeof window !== 'undefined'
+        && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (!prefersReduced) {
+        setConfettiFire(true);
+      }
+      toast.success(
+        lang === 'en'
+          ? `Bulk discount unlocked 🎉 ${Math.round(BULK_DISCOUNT_RATE * 100)}%`
+          : `Rabais volume activé 🎉 ${Math.round(BULK_DISCOUNT_RATE * 100)} %`,
+      );
+    }
+    prevTotalQtyRef.current = curr;
+  }, [_currentTotalQty, lang]);
 
   // Early return comes AFTER all hooks so hook call order stays stable
   // across renders. Critical for React — otherwise it crashes with
@@ -749,6 +789,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       aria-labelledby="customizer-title"
       onClick={e => { if (!adding && e.target === e.currentTarget) onClose(); }}
     >
+      {/* Task 17.3: brand-coloured confetti burst the first time the
+          user crosses the 12-unit bulk threshold in this session.
+          Sits above the modal (z-700), pointer-events none so it
+          can't swallow clicks. Self-unmounts via onDone. */}
+      <Confetti fire={confettiFire} onDone={() => setConfettiFire(false)} />
       <motion.div
         initial={{ y: 80, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
