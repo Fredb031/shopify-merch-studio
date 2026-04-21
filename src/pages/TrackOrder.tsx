@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Package, CheckCircle2, Truck, Mail, AlertCircle, Search } from 'lucide-react';
+import { ArrowLeft, Package, CheckCircle2, Truck, Mail, AlertCircle, Search, Copy, Check, Share2, Printer } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
@@ -39,6 +39,11 @@ export default function TrackOrder() {
   const { orderNumber: paramOrder } = useParams();
   const [searchInput, setSearchInput] = useState(paramOrder ?? '');
   const [emailInput, setEmailInput] = useState('');
+  // Transient feedback flags for the copy-tracking and share-link
+  // buttons on the success view. Kept local — both auto-clear after
+  // 2s via setTimeout. No effect on order-lookup state.
+  const [copiedTracking, setCopiedTracking] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
 
   // Sync input to the route param when it changes (e.g. if another link
   // navigates /track/1570 → /track/1580). Without this the stale useState
@@ -217,9 +222,16 @@ export default function TrackOrder() {
               </p>
             </div>
           ) : (
-            <div className="space-y-5 pt-2">
+            <div className="track-order-print space-y-5 pt-2">
+              {/* Scoped print stylesheet — when the customer hits the Print
+                  button below we want a paper-friendly view that hides
+                  the Navbar, BottomNav, AIChat and lookup form, leaving
+                  only the success card. The body-star visibility trick is
+                  safer than adding .no-print to every chrome component
+                  because it localizes the change to this page alone. */}
+              <style>{`@media print { body * { visibility: hidden; } .track-order-print, .track-order-print * { visibility: visible; } .track-order-print { position: absolute; left: 0; top: 0; width: 100%; } .track-order-print .print-hide { display: none !important; } }`}</style>
               {/* Order summary */}
-              <div className="flex items-center justify-between p-4 bg-secondary/40 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-secondary/40 rounded-xl gap-3 flex-wrap">
                 <div>
                   <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                     {lang === 'en' ? 'Order' : 'Commande'}
@@ -238,6 +250,105 @@ export default function TrackOrder() {
                   </div>
                 </div>
               </div>
+
+              {/* Quick actions — share the current status URL and print
+                  a paper-friendly summary. Both are self-contained and
+                  only render when an order has been successfully looked
+                  up. The inline "Lien copié" hint replaces a full toast
+                  system to keep this additive. `print-hide` keeps these
+                  chrome buttons out of the printed output. */}
+              <div className="print-hide flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const url = typeof window !== 'undefined' ? window.location.href : '';
+                    const shareTitle = lang === 'en' ? `Order ${order.name} — Vision Affichage` : `Commande ${order.name} — Vision Affichage`;
+                    const shareText = lang === 'en' ? `Track order ${order.name}` : `Suivi de la commande ${order.name}`;
+                    try {
+                      if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+                        await navigator.share({ title: shareTitle, text: shareText, url });
+                        return;
+                      }
+                    } catch {
+                      // User dismissed the share sheet or the OS rejected it — fall
+                      // through to the clipboard path so the action still does
+                      // something useful.
+                    }
+                    try {
+                      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                        await navigator.clipboard.writeText(url);
+                        setCopiedShareLink(true);
+                        setTimeout(() => setCopiedShareLink(false), 2000);
+                      }
+                    } catch {
+                      // Clipboard blocked (insecure context, perms). Silently no-op;
+                      // the share button failing loud would be worse than quietly
+                      // doing nothing here.
+                    }
+                  }}
+                  aria-label={lang === 'en' ? 'Share order status' : 'Partager le statut de commande'}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-lg hover:bg-[#0047B3] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                >
+                  <Share2 size={12} aria-hidden="true" />
+                  {lang === 'en' ? 'Share' : 'Partager'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (typeof window !== 'undefined') window.print(); }}
+                  aria-label={lang === 'en' ? 'Print order summary' : 'Imprimer le résumé de commande'}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 border border-border rounded-lg hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                >
+                  <Printer size={12} aria-hidden="true" />
+                  {lang === 'en' ? 'Print' : 'Imprimer'}
+                </button>
+                {copiedShareLink && (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1" role="status">
+                    {lang === 'en' ? 'Link copied' : 'Lien copié'}
+                  </span>
+                )}
+              </div>
+
+              {/* Tracking number row — Shopify snapshots don't expose
+                  tracking yet (the ShopifyOrderSnapshot type has no
+                  such field as of 2026-04), so this block only shows
+                  up once a shipment record carries one. Reading it
+                  through an optional cast keeps TypeScript happy
+                  without widening the data-layer type from here. */}
+              {(() => {
+                const trackingNumber = (order as unknown as { trackingNumber?: string | null }).trackingNumber;
+                if (!trackingNumber) return null;
+                return (
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="font-bold text-muted-foreground">
+                      {lang === 'en' ? 'Tracking #' : 'N° de suivi'}
+                    </span>
+                    <code className="font-mono bg-secondary/60 rounded px-2 py-1">{trackingNumber}</code>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                            await navigator.clipboard.writeText(trackingNumber);
+                            setCopiedTracking(true);
+                            setTimeout(() => setCopiedTracking(false), 2000);
+                          }
+                        } catch {
+                          // Clipboard unavailable — silently no-op so the
+                          // button doesn't spit an error at a customer who
+                          // can still select + copy the tracking text.
+                        }
+                      }}
+                      aria-label={lang === 'en' ? 'Copy tracking number' : 'Copier le numéro de suivi'}
+                      className="print-hide inline-flex items-center gap-1 font-bold px-2 py-1 border border-border rounded-md hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                    >
+                      {copiedTracking ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
+                      {copiedTracking
+                        ? (lang === 'en' ? 'Copied' : 'Copié')
+                        : (lang === 'en' ? 'Copy' : 'Copier')}
+                    </button>
+                  </div>
+                );
+              })()}
 
               {isStalePending && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3" role="status">
@@ -322,7 +433,7 @@ export default function TrackOrder() {
                 </ol>
               </div>
 
-              <div className="border-t border-border pt-4 flex items-center gap-3 flex-wrap">
+              <div className="print-hide border-t border-border pt-4 flex items-center gap-3 flex-wrap">
                 <a
                   href={`mailto:info@visionaffichage.com?subject=${encodeURIComponent(`Question commande ${order.name}`)}`}
                   className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 border border-border rounded-lg hover:bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
