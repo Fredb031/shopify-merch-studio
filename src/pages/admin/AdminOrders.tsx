@@ -262,12 +262,22 @@ export default function AdminOrders() {
   const [selected, setSelected] = useState<ShopifyOrderSnapshot | null>(null);
   const [shippedIds, setShippedIds] = useState<Set<number>>(new Set());
   const [archivedIds, setArchivedIds] = useState<Set<number>>(new Set());
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [page, setPage] = useState(0);
+  // Ref on the table wrapper so a click outside the table (but not
+  // inside the floating bulk-action bar) clears the selection. Same
+  // reason we can't use a plain document listener: clicks on the bar
+  // itself should NOT clear — they're the whole point.
+  const tableWrapRef = useRef<HTMLDivElement>(null);
+  const bulkBarRef = useRef<HTMLDivElement>(null);
 
   // Reset to first page whenever the filter or search changes so we
   // don't strand the user on an empty page 5 after narrowing a filter.
   useEffect(() => { setPage(0); }, [query, statusFilter]);
+  // Also drop any cross-view stale selection — the admin expects the
+  // bulk bar counter to reflect the rows they can actually see.
+  useEffect(() => { setSelectedIds(new Set()); }, [query, statusFilter]);
   useDocumentTitle('Commandes — Admin Vision Affichage');
   // Cmd+K focuses the search input; Esc clears + blurs while focused.
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
@@ -316,7 +326,44 @@ export default function AdminOrders() {
       ? (raw as unknown[]).map(x => (typeof x === 'number' ? x : Number(x))).filter(n => Number.isFinite(n))
       : [];
     setShippedIds(new Set(numeric));
+    // Same coercion path for archived order IDs so the archive-hide
+    // behaviour survives a reload. Serialized as an array of numbers;
+    // JSON has no Set primitive.
+    const rawArch = readLS<unknown>('vision-archived-orders', []);
+    const numericArch = Array.isArray(rawArch)
+      ? (rawArch as unknown[]).map(x => (typeof x === 'number' ? x : Number(x))).filter(n => Number.isFinite(n))
+      : [];
+    setArchivedIds(new Set(numericArch));
   }, []);
+
+  // Escape clears the selection when any row is selected (and no drawer
+  // is open — the drawer's own Escape handler takes priority). The
+  // useEscapeKey hook already early-returns when `active` is false.
+  useEscapeKey(
+    selectedIds.size > 0 && !selected,
+    useCallback(() => setSelectedIds(new Set()), []),
+  );
+
+  // Click outside the table + bulk-action bar clears the selection.
+  // Bound at the document level (capture: false) so it doesn't steal
+  // the click from inner controls — we only act when the target is
+  // outside both refs.
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const onClick = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (tableWrapRef.current?.contains(target)) return;
+      if (bulkBarRef.current?.contains(target)) return;
+      setSelectedIds(new Set());
+    };
+    // `mousedown` instead of `click` so the selection clears before
+    // any interactive element outside the table (e.g. a sibling
+    // button) fires — feels snappier and avoids a double-render when
+    // the click handler also navigates.
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [selectedIds.size]);
 
   const markShipped = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -344,12 +391,16 @@ export default function AdminOrders() {
 
   // Bulk archive — removes rows from the active view. Not a destructive
   // operation; the snapshot is immutable, so we keep the id set in state
-  // (persisted) and filter the table on read.
+  // (persisted to localStorage as a number[] — JSON has no Set) and
+  // filter the table on read. "Voir archivées" surfaces them back.
   const bulkArchive = () => {
     if (selectedIds.size === 0) return;
     const next = new Set(archivedIds);
     selectedIds.forEach(id => next.add(id));
     setArchivedIds(next);
+    if (!writeLS('vision-archived-orders', [...next])) {
+      console.warn('[AdminOrders] Could not persist archived orders (quota or storage disabled)');
+    }
     toast.success(`${selectedIds.size} commande${selectedIds.size > 1 ? 's' : ''} archivée${selectedIds.size > 1 ? 's' : ''}`);
     setSelectedIds(new Set());
   };
@@ -376,7 +427,15 @@ export default function AdminOrders() {
     // the order's own email — a Shopify export could carry one through.
     const q = normalizeInvisible(query).trim().toLowerCase();
     return augmented.filter(o => {
-      if (archivedIds.has(o.id)) return false;
+      // "Voir archivées" inverts the filter: when on, we only show
+      // archived rows so the admin can audit / unarchive; when off,
+      // archived rows are hidden. No "both" mode — it muddies the
+      // N-selected counter and the admin always wants one or the other.
+      if (showArchived) {
+        if (!archivedIds.has(o.id)) return false;
+      } else {
+        if (archivedIds.has(o.id)) return false;
+      }
       if (statusFilter === 'paid' && o.financialStatus !== 'paid') return false;
       if (statusFilter === 'pending' && o.financialStatus !== 'pending') return false;
       if (statusFilter === 'fulfilled' && o.fulfillmentStatus !== 'fulfilled') return false;
@@ -390,7 +449,7 @@ export default function AdminOrders() {
         String(o.id).includes(q)
       );
     });
-  }, [augmented, query, statusFilter, archivedIds]);
+  }, [augmented, query, statusFilter, archivedIds, showArchived]);
 
   // Paginated slice. Rendering 100+ order rows at once caused noticeable
   // first-paint jank on the admin route.
@@ -469,26 +528,46 @@ export default function AdminOrders() {
 
       {selectedIds.size > 0 && (
         <div
+          ref={bulkBarRef}
           role="region"
           aria-label="Actions groupées"
-          className="sticky top-0 z-20 flex items-center justify-between gap-3 flex-wrap bg-[#0052CC] text-white px-4 py-3 rounded-xl shadow-lg"
+          // Floating bottom bar: fixed to the viewport so it rides along
+          // as the admin scrolls through a long order list. Max-width +
+          // auto margins keep it centered on wide screens; bottom-4
+          // leaves breathing room above sonner's bottom-right toasts.
+          // Brand navy bg with a gold accent on the primary action
+          // ("Marquer expédié") to anchor the eye on the high-value
+          // bulk operation. The secondary actions use a frosted
+          // white/10 so they read as deliberate-but-not-primary.
+          className="fixed bottom-4 inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 z-30 flex items-center justify-between gap-3 flex-wrap bg-[#0052CC] text-white px-4 py-3 rounded-xl shadow-2xl ring-1 ring-white/10 max-w-3xl md:w-auto"
         >
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-white/20 text-xs font-bold">
               {selectedIds.size}
             </span>
             <span className="text-sm font-bold">
-              {selectedIds.size} sélectionnée{selectedIds.size > 1 ? 's' : ''}
+              {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
             </span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={bulkMarkShipped}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white text-[#0052CC] hover:bg-zinc-50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
+              // Gold accent = primary action. Hardcoded hsl values
+              // match --gold / --gold2 tokens from index.css so the
+              // bar reads on-brand without pulling in a styled-system.
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-[hsl(40,82%,55%)] text-[#0a1930] hover:bg-[hsl(35,91%,60%)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(40,82%,55%)] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
             >
               <Truck size={13} aria-hidden="true" />
-              Marquer expédiées
+              Marquer expédié
+            </button>
+            <button
+              type="button"
+              onClick={bulkArchive}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
+            >
+              <Archive size={13} aria-hidden="true" />
+              Archiver
             </button>
             <button
               type="button"
@@ -499,15 +578,7 @@ export default function AdminOrders() {
               className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
             >
               <Download size={13} aria-hidden="true" />
-              Exporter CSV
-            </button>
-            <button
-              type="button"
-              onClick={bulkArchive}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-lg bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0052CC]"
-            >
-              <Archive size={13} aria-hidden="true" />
-              Archiver
+              Export CSV
             </button>
             <button
               type="button"
@@ -521,7 +592,7 @@ export default function AdminOrders() {
         </div>
       )}
 
-      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+      <div ref={tableWrapRef} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
         <div className="p-4 flex items-center gap-3 border-b border-zinc-100 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[220px] border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50">
             <Search size={16} className="text-zinc-400" aria-hidden="true" />
@@ -551,6 +622,30 @@ export default function AdminOrders() {
               <option value="fulfilled">Expédiées</option>
             </select>
           </div>
+          {/* Archived-view toggle. Keeps the active table uncluttered
+              by default; the count surfaces how many rows are stashed
+              so the admin knows whether flipping the toggle is worth
+              it. Clears the current selection — mixing archived and
+              non-archived selections across views would be confusing. */}
+          <label className={`inline-flex items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg cursor-pointer border transition-colors ${showArchived ? 'bg-[#0052CC] text-white border-[#0052CC]' : 'bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50'}`}>
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={e => {
+                setShowArchived(e.target.checked);
+                setSelectedIds(new Set());
+              }}
+              className="sr-only"
+              aria-label="Afficher les commandes archivées"
+            />
+            <Archive size={13} aria-hidden="true" />
+            {showArchived ? 'Masquer archivées' : 'Voir archivées'}
+            {archivedIds.size > 0 && (
+              <span className={`inline-flex items-center justify-center text-[10px] font-bold px-1.5 py-0.5 rounded ${showArchived ? 'bg-white/20' : 'bg-zinc-100 text-zinc-600'}`}>
+                {archivedIds.size}
+              </span>
+            )}
+          </label>
         </div>
 
         <div className="overflow-x-auto">
