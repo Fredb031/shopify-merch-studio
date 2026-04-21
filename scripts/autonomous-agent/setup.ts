@@ -5,7 +5,7 @@
 //   ANTHROPIC_API_KEY=sk-ant-... npx tsx setup.ts
 //
 // After running, add these as repo secrets in
-// https://github.com/Fredb031/shopify-merch-studio/settings/secrets/actions:
+// https://github.com/Fredb031/visionaffichage/settings/secrets/actions:
 //   ANTHROPIC_ENV_ID      (from the output)
 //   ANTHROPIC_AGENT_ID    (from the output)
 //   ANTHROPIC_API_KEY     (your existing API key)
@@ -69,7 +69,7 @@ async function main() {
       ],
       metadata: {
         project: "vision-affichage",
-        repo: "Fredb031/shopify-merch-studio",
+        repo: "Fredb031/visionaffichage",
       },
     });
     agent_id = agent.id;

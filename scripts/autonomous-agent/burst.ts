@@ -39,7 +39,7 @@ async function runOne(sessionIndex: number, total: number, focus: string) {
     resources: [
       {
         type: "github_repository",
-        url: "https://github.com/Fredb031/shopify-merch-studio",
+        url: "https://github.com/Fredb031/visionaffichage",
         mount_path: "/workspace/repo",
         authorization_token: GH_TOKEN,
         checkout: { type: "branch", name: "autonomous-improvements" },
@@ -138,7 +138,7 @@ async function dispatchNextBurst() {
     console.warn("GH_PAT not set — skipping self-reschedule.");
     return;
   }
-  const repo = "Fredb031/shopify-merch-studio";
+  const repo = "Fredb031/visionaffichage";
   try {
     const res = await fetch(
       `https://api.github.com/repos/${repo}/actions/workflows/autonomous-agent.yml/dispatches`,

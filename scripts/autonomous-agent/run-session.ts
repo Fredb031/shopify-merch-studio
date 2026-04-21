@@ -41,7 +41,7 @@ async function main() {
     resources: [
       {
         type: "github_repository",
-        url: "https://github.com/Fredb031/shopify-merch-studio",
+        url: "https://github.com/Fredb031/visionaffichage",
         mount_path: "/workspace/repo",
         authorization_token: GH_TOKEN,
         checkout: { type: "branch", name: "autonomous-improvements" },
