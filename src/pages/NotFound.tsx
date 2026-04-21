@@ -8,7 +8,7 @@ import { AIChat } from '@/components/AIChat';
 import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
 import { PRODUCTS } from '@/data/products';
-import { Search, ArrowRight } from 'lucide-react';
+import { Search, ArrowRight, Package, Palette, Mail, Truck } from 'lucide-react';
 
 // Four lead categories shown as big tiles on the 404 landing. The
 // `cat` slug must stay in sync with `KNOWN_CATS` in Products.tsx, or
@@ -140,16 +140,65 @@ const NotFound = () => {
               placeholder={lang === 'en'
                 ? 'Search for a t-shirt, hoodie, cap…'
                 : 'Chercher un t-shirt, un hoodie, une casquette…'}
-              aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
+              aria-label={lang === 'en' ? 'Search for a product' : 'Chercher un produit'}
+              autoComplete="off"
+              enterKeyHint="search"
               className="w-full pl-11 pr-28 py-3.5 text-sm rounded-full bg-white border border-border shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E8A838]/40 focus:border-[#E8A838]/60 transition-all"
             />
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 text-xs font-extrabold text-primary-foreground gradient-navy px-4 py-2 rounded-full shadow-navy hover:-translate-y-[1px] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              aria-label={lang === 'en' ? 'Search for a product' : 'Chercher un produit'}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 text-xs font-extrabold text-primary-foreground gradient-navy px-4 py-2 rounded-full shadow-navy hover:-translate-y-[1px] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
             >
+              <Search aria-hidden="true" className="w-3.5 h-3.5" />
               {lang === 'en' ? 'Search' : 'Rechercher'}
             </button>
           </form>
+
+          {/* Popular destinations — 4 pill quick-links for the most common
+              404 recovery paths. Additive to the category tiles below; these
+              cover cross-cutting intents (browse, customize, contact, track)
+              that don't map cleanly to a product category. */}
+          <nav
+            aria-label={lang === 'en' ? 'Popular destinations' : 'Destinations populaires'}
+            className="mt-5 flex flex-wrap justify-center gap-2 max-w-[560px] mx-auto"
+          >
+            {[
+              {
+                to: '/products',
+                Icon: Package,
+                fr: 'Catalogue complet',
+                en: 'Browse all products',
+              },
+              {
+                to: '/products',
+                Icon: Palette,
+                fr: 'Personnaliser',
+                en: 'Customize',
+              },
+              {
+                to: '/contact',
+                Icon: Mail,
+                fr: 'Contact',
+                en: 'Contact',
+              },
+              {
+                to: '/track-order',
+                Icon: Truck,
+                fr: 'Suivre ma commande',
+                en: 'Track my order',
+              },
+            ].map(({ to, Icon, fr, en }) => (
+              <Link
+                key={`${to}-${en}`}
+                to={to}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-zinc-200 text-zinc-700 text-xs font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+              >
+                <Icon aria-hidden="true" className="w-3.5 h-3.5" />
+                {lang === 'en' ? en : fr}
+              </Link>
+            ))}
+          </nav>
 
           {/* Popular categories — 4 big tiles */}
           <section className="mt-12" aria-labelledby="popular-categories-heading">
