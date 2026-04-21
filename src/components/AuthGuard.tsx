@@ -11,6 +11,12 @@ interface AuthGuardProps {
   redirectTo?: string;
 }
 
+/**
+ * Route guard: shows a spinner while auth hydrates, redirects unauthenticated
+ * users to the login page (preserving path + query + hash as state.from), and
+ * sends wrong-role users to their natural home. `requiredRole` accepts a single
+ * role or an array (OR semantics); `president` bypasses role checks entirely.
+ */
 export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps) {
   const user = useAuthStore(s => s.user);
   const loading = useAuthStore(s => s.loading);
