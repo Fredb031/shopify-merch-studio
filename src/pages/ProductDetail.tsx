@@ -28,10 +28,39 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useProductColors } from '@/hooks/useProductColors';
 import { useProducts } from '@/hooks/useProducts';
+import { readLS, writeLS } from '@/lib/storage';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ProductCard } from '@/components/ProductCard';
+
+// Task 3.19 — per-handle last-viewed variant cache. A returning visitor
+// who previously picked "Bleu marine / L" should land back on that exact
+// swatch+pill instead of whatever the option's first value happens to
+// be. Stored per-handle so switching products doesn't bleed picks, with
+// a 30-day TTL to avoid stamping seasonal picks onto a much-later visit
+// and to give storage a natural eviction path without a cron job.
+//
+// Shape: { v: 1, options: Record<string, string>, savedAt: epoch-ms }.
+// `v` is a schema tag so a future breaking change can bump it and the
+// old payload gets ignored (readLS returns the fallback when the parsed
+// shape doesn't match). options is the full Shopify option bag, not
+// just color+size, because some products add a "Matériel" or "Manche"
+// axis that's equally worth restoring. Storage failure is already
+// silent in writeLS/readLS so private-mode Safari just falls back to
+// fresh defaults.
+const LAST_VARIANT_PREFIX = 'vision-pdp-lastvariant:';
+const LAST_VARIANT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+type LastVariantPayload = { v: 1; options: Record<string, string>; savedAt: number };
+
+function readLastVariant(handle: string | undefined): Record<string, string> | null {
+  if (!handle) return null;
+  const stored = readLS<LastVariantPayload | null>(`${LAST_VARIANT_PREFIX}${handle}`, null);
+  if (!stored || stored.v !== 1 || typeof stored.savedAt !== 'number') return null;
+  if (Date.now() - stored.savedAt > LAST_VARIANT_TTL_MS) return null;
+  if (!stored.options || typeof stored.options !== 'object') return null;
+  return stored.options;
+}
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -40,6 +69,15 @@ export default function ProductDetail() {
   const [cartOpen, setCartOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+
+  // Task 3.19 — has the user manually picked anything this mount? The
+  // hydrate-from-localStorage effect (below) must NOT overwrite a pick
+  // that happened between mount and the Shopify product fetch
+  // resolving. A returning visitor who already tapped "L" should keep
+  // "L" even if their prior session had "M" cached. Ref (not state) on
+  // purpose: flipping it should NOT re-run the effect.
+  const userInteractedRef = useRef(false);
+  const hydratedRef = useRef(false);
 
   // Task 3.12 — Shipping ETA calculator. The buyer types an FSA (first
   // 3 chars of a Canadian postal code, e.g. "H2X" for Montréal or "J2S"
@@ -189,9 +227,67 @@ export default function ProductDetail() {
   // onto the new one. If the old variant 'Color: Sky Blue' exists on
   // A but not B, the swatch UI shows Sky Blue selected even though B
   // has no such option. Reset on handle change.
+  //
+  // Task 3.19 — also reset the interaction/hydration flags so the
+  // next product's hydrate effect can run exactly once. Without this,
+  // navigating from /product/a (already interacted with) to
+  // /product/b would treat b as pre-interacted and skip hydration.
   useEffect(() => {
     setSelectedOptions({});
+    userInteractedRef.current = false;
+    hydratedRef.current = false;
   }, [handle]);
+
+  // Task 3.19 — hydrate from localStorage once the Shopify product has
+  // loaded (so we can validate the stored pick against the current
+  // option values). Gated on:
+  //   1) hydratedRef — only once per handle mount
+  //   2) userInteractedRef — don't clobber a pick the user made between
+  //      mount and Shopify resolving (race where a fast tap beats the
+  //      product query)
+  //   3) validity — only copy over option values that STILL exist on
+  //      this product; a colour that's been discontinued just gets
+  //      dropped rather than selecting a non-existent variant.
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    if (userInteractedRef.current) return;
+    if (!handle || !product) return;
+    const stored = readLastVariant(handle);
+    if (!stored) { hydratedRef.current = true; return; }
+    const productOptions = (product.options ?? []) as Array<{ name: string; values: string[] }>;
+    const restorable: Record<string, string> = {};
+    for (const opt of productOptions) {
+      const val = stored[opt.name];
+      if (!val) continue;
+      // Normalize for case/accent so a stored "Bleu marine" still
+      // matches an option whose casing has drifted slightly.
+      const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const match = (opt.values ?? []).find(v => norm(v) === norm(val));
+      if (match) restorable[opt.name] = match;
+    }
+    if (Object.keys(restorable).length > 0) {
+      setSelectedOptions(prev => ({ ...restorable, ...prev }));
+    }
+    hydratedRef.current = true;
+  }, [handle, product]);
+
+  // Task 3.19 — persist every user-initiated option change. Piggybacks
+  // on userInteractedRef so the initial hydrate write (which already
+  // came FROM storage) doesn't rewrite the same payload with a new
+  // `savedAt` and effectively reset the TTL on every visit (which
+  // would defeat the 30-day eviction goal). Empty bags are a no-op
+  // (the handle-reset effect runs before the user touches anything).
+  useEffect(() => {
+    if (!handle) return;
+    if (!userInteractedRef.current) return;
+    if (Object.keys(selectedOptions).length === 0) return;
+    const payload: LastVariantPayload = {
+      v: 1,
+      options: selectedOptions,
+      savedAt: Date.now(),
+    };
+    writeLS(`${LAST_VARIANT_PREFIX}${handle}`, payload);
+  }, [handle, selectedOptions]);
 
   // Set a product-specific document title + meta description so browser
   // tabs, bookmarks, shared links, AND Google SERP snippets reflect the
@@ -1044,6 +1140,23 @@ export default function ProductDetail() {
                             // makes the state unambiguous (no silent no-op click +
                             // toast), and the title surfaces the reason on hover.
                             const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
+                            // Task 3.6 — surface the hex in the tooltip + aria-label
+                            // next to the human-readable name. Before this, a
+                            // colour-blind or uncertain shopper hovering "Bleu
+                            // marine" had to guess whether that meant royal or
+                            // navy; the hex gives a deterministic second signal.
+                            // `hex` is already normalised to #RRGGBB via the
+                            // local-catalog/colorNameToHex chain a few lines up
+                            // so we can splice it straight into the title.
+                            // Screen-reader output reads "Bleu marine, code
+                            // couleur #1B3A6B" because aria-label sits on the
+                            // button and the SR announces it before `title`.
+                            const hexTooltip = hex ? `${value} (${hex.toUpperCase()})` : value;
+                            const hexAriaLabel = hex
+                              ? (lang === 'en'
+                                  ? `${value}, color code ${hex.toUpperCase()}`
+                                  : `${value}, code couleur ${hex.toUpperCase()}`)
+                              : value;
                             return (
                               <button
                                 key={value}
@@ -1054,6 +1167,10 @@ export default function ProductDetail() {
                                 disabled={!isAvailable}
                                 onClick={() => {
                                   if (!isAvailable) return;
+                                  // Task 3.19 — this tap is the user's
+                                  // pick, so freeze hydration and start
+                                  // persisting via the effect below.
+                                  userInteractedRef.current = true;
                                   setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }));
                                 }}
                                 className={`relative w-11 h-11 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
@@ -1062,8 +1179,8 @@ export default function ProductDetail() {
                                     : 'ring-1 ring-border hover:ring-primary/50'
                                 } ${!isAvailable ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                                 style={{ background: hex }}
-                                aria-label={isAvailable ? value : `${value} — ${soldOutTitle}`}
-                                title={isAvailable ? value : soldOutTitle}
+                                aria-label={isAvailable ? hexAriaLabel : `${hexAriaLabel} — ${soldOutTitle}`}
+                                title={isAvailable ? hexTooltip : `${hexTooltip} — ${soldOutTitle}`}
                               >
                                 {isSelected && (
                                   <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1109,6 +1226,11 @@ export default function ProductDetail() {
                               disabled={!isAvailable}
                               onClick={() => {
                                 if (!isAvailable) return;
+                                // Task 3.19 — same interaction-gate as
+                                // the colour swatch click: mark this
+                                // as a user pick so the persist effect
+                                // picks it up and hydration won't run.
+                                userInteractedRef.current = true;
                                 setSelectedOptions(prev => ({ ...prev, [option.name]: value }));
                               }}
                               title={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
