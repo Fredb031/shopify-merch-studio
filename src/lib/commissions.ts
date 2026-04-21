@@ -30,6 +30,72 @@ export const DEFAULT_COMMISSION_RATE = 0.10;
 const CREDITS_KEY = 'vision-commission-credits';
 const PAID_KEY = 'vision-commission-paid';
 
+/**
+ * Commission tier ladder for vendor monthly sales totals.
+ *
+ * The rate used by {@link computeCommission} remains the flat
+ * admin-configured rate (see {@link getCommissionRate}); tiers are a
+ * presentation-layer concept that lets dashboards show "Silver vendor"
+ * badges and "$X away from Gold" progress copy without hard-coding the
+ * thresholds in three different pages.
+ *
+ * `minSales` is inclusive: a vendor with exactly $5,000 in monthly
+ * sales lands in `Bronze`. Tiers are ordered ascending by `minSales`.
+ * To adjust the ladder, edit this list; callers pick up the change
+ * through {@link tierForAmount} and {@link nextTierDelta}.
+ */
+export interface CommissionTier {
+  /** Display label, e.g. `'Starter'`. */
+  label: string;
+  /** Inclusive lower bound of monthly sales, in dollars. */
+  minSales: number;
+}
+
+export const COMMISSION_TIERS: readonly CommissionTier[] = [
+  { label: 'Starter', minSales: 0 },
+  { label: 'Bronze', minSales: 5_000 },
+  { label: 'Silver', minSales: 15_000 },
+  { label: 'Gold', minSales: 30_000 },
+  { label: 'Platinum', minSales: 60_000 },
+] as const;
+
+/**
+ * Resolve the tier label for a given sales amount. Clamps
+ * negative/NaN/Infinity inputs to the lowest tier so bad data never
+ * throws in render. Always returns a label since the first tier has
+ * `minSales: 0`.
+ */
+export function tierForAmount(amount: number): string {
+  const safe = Number.isFinite(amount) && amount > 0 ? amount : 0;
+  let current = COMMISSION_TIERS[0];
+  for (const t of COMMISSION_TIERS) {
+    if (safe >= t.minSales) current = t;
+    else break;
+  }
+  return current.label;
+}
+
+/**
+ * How far a vendor is from promotion to the next tier, or `null` when
+ * already at the top. Useful for "$X away from {nextTierLabel}"
+ * progress UI. Non-finite / negative inputs are clamped to 0 so the
+ * delta is measured from Starter.
+ */
+export function nextTierDelta(
+  amount: number,
+): { nextTierLabel: string; amountToReach: number } | null {
+  const safe = Number.isFinite(amount) && amount > 0 ? amount : 0;
+  for (const t of COMMISSION_TIERS) {
+    if (t.minSales > safe) {
+      return {
+        nextTierLabel: t.label,
+        amountToReach: round2(t.minSales - safe),
+      };
+    }
+  }
+  return null;
+}
+
 // Seed credit attribution — the three seed vendors from AdminVendors
 // each get a chunk of the recent orders so the dashboard has something
 // real to render for demos. Keyed by the order's numeric Shopify id.
