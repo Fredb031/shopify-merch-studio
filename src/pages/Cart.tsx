@@ -4,7 +4,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Minus, Plus, BookmarkPlus } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Minus, Plus, BookmarkPlus, Link2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSettings } from '@/lib/appSettings';
 import { AIChat } from '@/components/AIChat';
@@ -135,6 +135,54 @@ export default function Cart() {
   // Also used to disable the buttons + dim the row while the background
   // sync is inflight so the user sees something is happening.
   const [pendingRows, setPendingRows] = useState<Record<string, boolean>>({});
+
+  // "Copier le lien du panier" — lets shoppers park the URL to come
+  // back later or forward it to a colleague. Writes window.location.href
+  // to the clipboard and flips the label to "Copié" for 2s so they have
+  // visible confirmation. Falls back silently on environments where the
+  // Clipboard API is unavailable (old browsers, insecure contexts) — we
+  // toast an error instead of throwing so the page keeps working.
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    };
+  }, []);
+  const handleCopyCartLink = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (!url) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        // Legacy fallback for insecure contexts — a throwaway textarea
+        // + execCommand('copy') still works where navigator.clipboard
+        // is gated. Best-effort only; we don't care if it no-ops.
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch { /* ignore */ }
+        document.body.removeChild(ta);
+      }
+      setLinkCopied(true);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => {
+        setLinkCopied(false);
+        copyTimerRef.current = null;
+      }, 2000);
+    } catch (e) {
+      console.warn('Cart link copy failed', e);
+      toast.error(
+        lang === 'en' ? 'Couldn\u2019t copy link' : 'Impossible de copier le lien',
+        { duration: 2500 },
+      );
+    }
+  };
 
   // Saved-for-later list. Hydrated from localStorage on mount + written
   // back on every mutation so it survives a refresh and a cart clear.
@@ -390,7 +438,7 @@ export default function Cart() {
           {lang === 'en' ? 'Continue shopping' : 'Continuer tes achats'}
         </Link>
 
-        <div className="flex items-baseline gap-3 mb-8">
+        <div className="flex items-baseline gap-3 mb-8 flex-wrap">
           <h1 className="text-3xl font-extrabold tracking-tight">
             {lang === 'en' ? 'Your cart' : 'Ton panier'}
           </h1>
@@ -400,6 +448,32 @@ export default function Cart() {
                 ? plural(totalQty, { one: '{count} item', other: '{count} items' }, 'en')
                 : plural(totalQty, { one: '{count} article', other: '{count} articles' }, 'fr')})
             </span>
+          )}
+          {items.length > 0 && (
+            <button
+              type="button"
+              onClick={handleCopyCartLink}
+              aria-label={lang === 'en' ? 'Copy cart link' : 'Copier le lien du panier'}
+              title={lang === 'en' ? 'Copy cart link' : 'Copier le lien du panier'}
+              aria-live="polite"
+              className={`ml-auto self-center inline-flex items-center gap-1.5 px-3 h-8 rounded-full border text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                linkCopied
+                  ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                  : 'border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:border-foreground/40'
+              }`}
+            >
+              {linkCopied ? (
+                <>
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                  {lang === 'en' ? 'Copied' : 'Copié'}
+                </>
+              ) : (
+                <>
+                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  {lang === 'en' ? 'Copy cart link' : 'Copier le lien du panier'}
+                </>
+              )}
+            </button>
           )}
         </div>
 
