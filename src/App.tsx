@@ -258,6 +258,7 @@ const AnimatedRoutes = () => {
   );
 };
 
+/** Root app: wires QueryClient, LangProvider, ErrorBoundary, router, and the lazy-route Suspense fallback. */
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <LangProvider>
