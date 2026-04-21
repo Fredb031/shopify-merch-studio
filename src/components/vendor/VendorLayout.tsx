@@ -44,7 +44,7 @@ export function VendorLayout() {
         className={`fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-zinc-200 flex flex-col transition-transform md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        aria-label="Vendor navigation"
+        aria-label="Navigation vendeur"
       >
         <div className="px-6 py-6 border-b border-zinc-100">
           <Link
