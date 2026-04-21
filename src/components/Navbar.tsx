@@ -70,16 +70,34 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
     ? '/admin'
     : user?.role === 'vendor' ? '/vendor' : null;
 
+  // Transparent at the very top, then blur + subtle navy-tinted border once
+  // the user scrolls past 100px. Gives the hero room to breathe while keeping
+  // the navbar legible over photography/content lower on the page. 100px
+  // threshold matches the typical hero "logo lockup" fade-out point so the
+  // transition lands where the eye is already adapting.
+  const [scrolled, setScrolled] = useState(() =>
+    typeof window !== 'undefined' ? window.scrollY > 100 : false
+  );
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 100);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-[400] h-[58px] flex items-center justify-between px-6 md:px-10 bg-background/[0.93] backdrop-blur-xl border-b border-border"
+      className={`fixed top-0 left-0 right-0 z-[400] h-[58px] flex items-center justify-between px-6 md:px-10 transition-[background-color,backdrop-filter,border-color] duration-300 ease-out border-b ${
+        scrolled
+          ? 'bg-background/[0.93] backdrop-blur-xl border-[hsl(var(--navy))]/10'
+          : 'bg-transparent backdrop-blur-0 border-transparent'
+      }`}
       role="navigation"
       aria-label="Main navigation"
     >
       <Link
         to="/"
         aria-label="Vision Affichage — Home"
-        className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+        className="flex items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
       >
         <img
           src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
@@ -87,7 +105,10 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           width={96}
           height={24}
           decoding="async"
-          className="h-6 w-auto"
+          // block + explicit h-6/w-auto strips the inline-image baseline gap
+          // so the logo's optical center lines up pixel-for-pixel with the
+          // text baseline of the cart/login pill buttons on the right.
+          className="block h-6 w-auto"
           onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
         />
       </Link>
@@ -180,7 +201,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         ) : (
           <button
             onClick={openLogin}
-            className="flex items-center gap-1.5 text-[12px] font-bold text-muted-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="flex items-center gap-1.5 text-[12px] font-bold text-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
             <svg
               className="w-[13px] h-[13px]"
@@ -202,7 +223,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           aria-label={`${t('panier')}${itemCount > 0 ? ` (${itemCount})` : ''}`}
           aria-keyshortcuts="Meta+Shift+C Control+Shift+C"
           title={`${t('panier')} (⇧⌘C)`}
-          className="flex items-center gap-[7px] text-[13px] text-muted-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-muted-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          className="flex items-center gap-[7px] text-[13px] text-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
           <svg
             width="15"
