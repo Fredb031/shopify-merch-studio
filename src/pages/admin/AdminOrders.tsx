@@ -438,7 +438,7 @@ export default function AdminOrders() {
                 <div>
                   <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Montant</div>
                   <div className="text-2xl font-extrabold">{selected.total.toLocaleString('fr-CA', { minimumFractionDigits: 2 })} $ {selected.currency}</div>
-                  <div className="text-xs text-zinc-500">{selected.itemsCount} articles</div>
+                  <div className="text-xs text-zinc-500">{selected.itemsCount} article{selected.itemsCount > 1 ? 's' : ''}</div>
                 </div>
                 <div>
                   <div className="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Statut</div>
