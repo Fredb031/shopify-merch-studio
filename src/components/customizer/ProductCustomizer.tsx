@@ -434,7 +434,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // still gets the reward animation.
   const prevDoneRef = useRef<Record<number, boolean | undefined>>({});
   const [tickAnimKeys, setTickAnimKeys] = useState<Record<number, number>>({});
+  // Task 6.13 — SR announcement string that mirrors the tick animation.
+  // Sighted users see the green check fade-scale in; screen-reader users
+  // hear "Step N complete" via the sr-only live region below. The string
+  // carries a trailing zero-width marker bumped per announce so even
+  // identical step transitions (theoretically possible during hot-reload)
+  // are seen as new content by assistive tech.
+  const [stepAnnouncement, setStepAnnouncement] = useState<string>('');
   useEffect(() => {
+    let announceMsg: string | null = null;
     setTickAnimKeys(prev => {
       let next = prev;
       for (const s of STEPS) {
@@ -444,14 +452,21 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           // the keyframe animation plays again.
           if (next === prev) next = { ...prev };
           next[s.id] = (next[s.id] ?? 0) + 1;
+          announceMsg =
+            lang === 'en' ? `Step ${s.id} complete` : `Étape ${s.id} complétée`;
         }
         prevDoneRef.current[s.id] = s.done;
       }
       return next;
     });
+    if (announceMsg) {
+      // Zero-width suffix guarantees a new string on repeat announces so
+      // the live region re-fires even if the message text is identical.
+      setStepAnnouncement(prev => (prev === announceMsg ? `${announceMsg}\u200B` : announceMsg!));
+    }
     // STEPS is rebuilt every render; track the done flags explicitly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [STEPS[0].done, STEPS[1].done, STEPS[2].done]);
+  }, [STEPS[0].done, STEPS[1].done, STEPS[2].done, lang]);
 
   const canNext = () => {
     if (store.step === 1) {
@@ -967,6 +982,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               );
             })}
           </ol>
+
+          {/* Task 6.13 — sr-only live region that announces step
+              completion transitions to screen-reader users. Sighted users
+              already get the green tick fade-scale animation; this is the
+              equivalent advisory feedback for AT. role=status + polite so
+              it queues behind any in-progress speech instead of barging
+              in. sr-only keeps the span out of the visible layout. */}
+          <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {stepAnnouncement}
+          </span>
 
           <button
             type="button"

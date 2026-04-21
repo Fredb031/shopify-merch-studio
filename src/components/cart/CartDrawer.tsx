@@ -426,13 +426,13 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 subtotal shows with strike-through + opacity-50 and the
                 discounted total sits next to it, larger + bolder, so
                 the buyer sees both numbers and feels the win.
-                aria-live=polite so screen-reader users hear the new
-                total after quantity edits / discount toggles instead
-                of being left with the stale figure. */}
+                Task 6.13 — the visible block no longer carries aria-live
+                (the dedicated sr-only announcer below speaks a clean
+                phrase like "New total 27,54 $" instead of the raw visual
+                string which otherwise read "Total estimé 27 , 54 $" with
+                the label + strikethroughs all jammed together). */}
             <div
               className="flex justify-between items-center gap-2"
-              aria-live="polite"
-              aria-atomic="true"
             >
               <span className="text-sm text-muted-foreground">{t('totalEstimeLabel')}</span>
               {cart.discountApplied ? (() => {
@@ -461,6 +461,19 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
                 <span className="text-lg font-extrabold text-foreground">{fmtMoney(cart.getTotal())} $</span>
               )}
             </div>
+
+            {/* Task 6.13 — dedicated sr-only live region that speaks a
+                clean "New total X $" phrase whenever the total changes
+                (quantity tweak, item removal, discount toggle). Keeping
+                the announcer on its own sibling span lets us craft the
+                wording (label + amount) instead of leaning on the
+                visually-laid-out total block, which interleaves a
+                strikethrough original price and could read as garbled
+                by assistive tech. */}
+            <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+              {lang === 'en' ? 'New total ' : 'Nouveau total '}
+              {fmtMoney(cart.getTotal())} $
+            </span>
 
             <button
               type="button"
