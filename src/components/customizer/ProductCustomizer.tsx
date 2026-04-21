@@ -763,12 +763,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           </button>
         </div>
 
-        {/* ── Body ── */}
-        <div className="overflow-auto grid md:grid-cols-[1.2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border min-h-0">
+        {/* ── Body ──
+            Mobile (<768px): stacks vertically — canvas square at top,
+            full-width panel below. Desktop (>=md): side-by-side columns. */}
+        <div className="overflow-auto grid grid-cols-1 md:grid-cols-[1.2fr_1fr] divide-y md:divide-y-0 md:divide-x divide-border min-h-0">
 
-          {/* LEFT — Just the interactive canvas. No duplicated controls.
-              Color palette + step content live in the right panel. */}
-          <div className="p-3 md:p-4 flex flex-col min-h-0">
+          {/* LEFT (top on mobile) — Just the interactive canvas. No duplicated
+              controls. Color palette + step content live in the right panel.
+              Mobile: force a square aspect so the canvas doesn't collapse
+              into a cramped sliver when the panel below expands. */}
+          <div className="p-3 md:p-4 flex flex-col min-h-0 w-full aspect-square md:aspect-auto">
             <ProductCanvas
               product={product}
               garmentColor={activeColor?.hex}
@@ -794,12 +798,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             />
           </div>
 
-          {/* RIGHT — persistent color palette at the TOP + step content below.
-              Colors live here and only here: swap preview color anytime, at
-              any step. This matches the user request to place the palette
-              "tout à droite" and removes the duplicate that used to sit
-              under the canvas. */}
-          <div className="p-4 overflow-auto flex flex-col gap-4">
+          {/* RIGHT (bottom on mobile) — persistent color palette at the TOP
+              + step content below. Colors live here and only here: swap
+              preview color anytime, at any step. This matches the user
+              request to place the palette "tout à droite" and removes the
+              duplicate that used to sit under the canvas. On mobile this
+              panel spans full width beneath the canvas. */}
+          <div className="p-4 overflow-auto flex flex-col gap-4 w-full">
             <div className="flex-shrink-0">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
