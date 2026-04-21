@@ -781,6 +781,20 @@ export const COLOR_IMAGES: Record<string, Record<string, { front?: string; back?
     'white': { front: '/products/C100-front-white.jpg' },
     'white_cil': { front: '/products/C100-front-white_cil.jpg' },
   },
+  // C105 (tuque sans rebord) doesn't have per-colour photography of its own yet.
+  // Reuse C100 beanie imagery for the core palette so the swatches render instead
+  // of being filtered out entirely by hasRealColorImage().
+  'C105': {
+    'black':        { front: '/products/C100-front-black.jpg' },
+    'navy':         { front: '/products/C100-front-navy.jpg' },
+    'white':        { front: '/products/C100-front-white.jpg' },
+    'red':          { front: '/products/C100-front-red_cil.jpg' },
+    'maroon':       { front: '/products/C100-front-maroon_cil.jpg' },
+    'royal':        { front: '/products/C100-front-royal_cil.jpg' },
+    'forestgreen':  { front: '/products/C100-front-military_green_cil.jpg' },
+    'gold':         { front: '/products/C100-front-athletic_gold_cil.jpg' },
+    'steel_grey':   { front: '/products/C100-front-athletic_oxford_cil.jpg' },
+  },
   'L350': {
     'black_102015': { front: '/products/L350-front-black_102015.jpg' },
     'black_2013': { back: '/products/L350-back-black_2013.jpg' },
@@ -1020,8 +1034,54 @@ const FR_EN_COLORS: Record<string, string> = {
   'brun/kaki': 'brown_khaki',
 };
 
+/**
+ * SKU aliases: when a product's SKU doesn't have its own entry in COLOR_IMAGES,
+ * fall through to a sibling SKU that shares imagery (e.g. youth variant → adult).
+ * This is checked *in addition to* the automatic trailing-letter fallback.
+ */
+const SKU_ALIASES: Record<string, string> = {
+  // Catalog uses "6245CM" but image files live under "ATC6245CM-*"
+  '6245CM': 'ATC6245CM',
+  // Youth tee shares garment silhouette with adult ATC1000
+  'ATC1000Y': 'ATC1000',
+};
+
+/**
+ * Resolve a SKU to the list of COLOR_IMAGES keys to try, in priority order.
+ * Example: "ATC1000Y" → ["ATC1000Y", "ATC1000"] (explicit alias + trailing-letter strip).
+ */
+function resolveColorImageSkus(sku: string): string[] {
+  const candidates = [sku];
+  const aliased = SKU_ALIASES[sku];
+  if (aliased && !candidates.includes(aliased)) candidates.push(aliased);
+  // Trailing single-letter size/age variant (Y=youth, L=ladies) → try base SKU
+  const trimmed = sku.replace(/[A-Z]$/, '');
+  if (trimmed !== sku && trimmed.length >= 3 && !candidates.includes(trimmed)) {
+    candidates.push(trimmed);
+  }
+  return candidates;
+}
+
+/**
+ * Score a matched image entry: prefer ones with a front image, since
+ * hasRealColorImage() requires a front to count the colour as "real".
+ */
+function hasFront(entry: { front?: string; back?: string } | undefined): boolean {
+  return !!entry?.front;
+}
+
 /** Find the best per-colour image for a product + colour name (FR or EN) */
 export function findColorImage(sku: string, colorName: string): { front?: string; back?: string } | null {
+  // Try the SKU itself first, then aliases / trimmed-letter fallbacks.
+  for (const candidateSku of resolveColorImageSkus(sku)) {
+    const hit = findColorImageInMap(candidateSku, colorName);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/** Internal: lookup within a single SKU's COLOR_IMAGES map. */
+function findColorImageInMap(sku: string, colorName: string): { front?: string; back?: string } | null {
   const skuMap = COLOR_IMAGES[sku];
   if (!skuMap) return null;
 
@@ -1042,24 +1102,62 @@ export function findColorImage(sku: string, colorName: string): { front?: string
     if (skuMap[key]) return skuMap[key];
   }
 
-  // 2. Match a key that starts with or contains the search term
+  // 2. Match a key that starts with or contains the search term.
+  //    When multiple keys match (e.g. `gold_021612` back-only vs `gold_082015` front),
+  //    prefer the one with a front image — that's what hasRealColorImage requires.
+  //    If we find a front-bearing match and a back-bearing match separately,
+  //    merge them so the UI gets both views.
   for (const key of keys) {
     if (!key) continue;
+    let frontHit: { front?: string; back?: string } | null = null;
+    let anyHit: { front?: string; back?: string } | null = null;
     for (const k of Object.keys(skuMap)) {
       // Skip keys that are just dates
       if (/^\d+$/.test(k)) continue;
       if (k.startsWith(key) || k.includes(key) || key.includes(k.split('_')[0])) {
-        return skuMap[k];
+        const entry = skuMap[k];
+        if (!anyHit) anyHit = entry;
+        if (hasFront(entry)) {
+          frontHit = entry;
+          break;
+        }
       }
     }
+    if (frontHit) {
+      // Try to pick up a back-only sibling so both views render when possible.
+      if (!frontHit.back) {
+        for (const k of Object.keys(skuMap)) {
+          if (/^\d+$/.test(k)) continue;
+          const entry = skuMap[k];
+          if (!entry.back || entry === frontHit) continue;
+          if (k.startsWith(key) || k.includes(key) || key.includes(k.split('_')[0])) {
+            return { front: frontHit.front, back: entry.back };
+          }
+        }
+      }
+      return frontHit;
+    }
+    if (anyHit) return anyHit;
   }
 
   // 3. Try matching just the first word (e.g., "Noir chiné" → "black" → matches "black_012017")
+  //    Again prefer a front-bearing match.
   const firstWord = keys[0]?.split('_')[0];
   if (firstWord && firstWord.length >= 3) {
+    let frontHit: { front?: string; back?: string } | null = null;
+    let anyHit: { front?: string; back?: string } | null = null;
     for (const k of Object.keys(skuMap)) {
-      if (k.startsWith(firstWord)) return skuMap[k];
+      if (k.startsWith(firstWord)) {
+        const entry = skuMap[k];
+        if (!anyHit) anyHit = entry;
+        if (hasFront(entry)) {
+          frontHit = entry;
+          break;
+        }
+      }
     }
+    if (frontHit) return frontHit;
+    if (anyHit) return anyHit;
   }
 
   return null;
