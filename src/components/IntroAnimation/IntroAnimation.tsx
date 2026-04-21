@@ -76,6 +76,10 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
   // already-unmounted Index (setShowLoader(false) → stale-setState
   // warning + wasted tween work running in the background).
   const timelineRef = useRef<ReturnType<typeof gsap.timeline> | null>(null);
+  // Shared skip handler, installed by the effect and invoked by the
+  // on-screen "Passer / Skip" button. Ref so the render path can read
+  // it without needing to re-subscribe the effect on every render.
+  const skipFnRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     // Skip path: returning visitor → instant cross-fade. The setter
@@ -261,6 +265,27 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     }, 1500);
 
     const onInteract = () => startIntro();
+    // Shared short-circuit: kill timeline, cancel audio, mark seen,
+    // hide overlay, fire onComplete exactly once. Used by both the
+    // Escape-key handler and the on-screen Skip button.
+    const shortCircuitToComplete = () => {
+      if (timelineRef.current) {
+        timelineRef.current.kill();
+        timelineRef.current = null;
+      }
+      stopAllScheduledAudio();
+      if (!completedRef.current) {
+        completedRef.current = true;
+        try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* noop */ }
+        const overlay = document.getElementById('va-intro-overlay');
+        if (overlay) {
+          overlay.style.display = 'none';
+          overlay.style.pointerEvents = 'none';
+        }
+        onComplete();
+      }
+    };
+    skipFnRef.current = shortCircuitToComplete;
     // Escape skips straight to the main site — both before the
     // timeline has auto-started (impatient returning visitor who
     // landed during the 200ms pre-roll window) and mid-playback
@@ -269,21 +294,7 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
     // the same onComplete path the natural finish uses.
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (timelineRef.current) {
-          timelineRef.current.kill();
-          timelineRef.current = null;
-        }
-        stopAllScheduledAudio();
-        if (!completedRef.current) {
-          completedRef.current = true;
-          try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* noop */ }
-          const overlay = document.getElementById('va-intro-overlay');
-          if (overlay) {
-            overlay.style.display = 'none';
-            overlay.style.pointerEvents = 'none';
-          }
-          onComplete();
-        }
+        shortCircuitToComplete();
         return;
       }
       // Any other key counts as a "begin" gesture (unlocks audio the
@@ -310,17 +321,33 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       // 2.80s into the timeline, so an early click-through used to
       // play it over the freshly-rendered next page.
       stopAllScheduledAudio();
+      // Drop the skip handler — it closes over the unmounted onComplete.
+      skipFnRef.current = null;
     };
   }, [onComplete, skipIfSeen]);
+
+  // Resolve display language the same way the hint does, so the
+  // Skip button label matches the rest of the intro for bilingual
+  // users.
+  const resolveIsEn = (): boolean => {
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('vision-lang') : null;
+      if (stored === 'en') return true;
+      if (stored === 'fr') return false;
+      return typeof navigator !== 'undefined' && /^en/.test(navigator.language);
+    } catch {
+      return typeof navigator !== 'undefined' && /^en/.test(navigator.language);
+    }
+  };
 
   // Returning visitor: skip rendering the overlay entirely so there's
   // no single-frame flash while the useEffect runs onComplete.
   if (skipOnMount) return null;
 
   return (
-    <div id="va-intro-overlay" aria-hidden="true">
-      <div id="va-intro-line-top" className="intro-line" />
-      <div id="va-intro-line-bottom" className="intro-line" />
+    <div id="va-intro-overlay" role="dialog" aria-label={resolveIsEn() ? 'Brand intro animation' : "Animation d'introduction"}>
+      <div id="va-intro-line-top" className="intro-line" aria-hidden="true" />
+      <div id="va-intro-line-bottom" className="intro-line" aria-hidden="true" />
 
       <svg
         id="va-intro-logo"
@@ -342,6 +369,40 @@ export function IntroAnimation({ onComplete, skipIfSeen = true }: IntroAnimation
       </svg>
       {/* Subtle gold accent line that draws under the logo at exit — premium signature */}
       <div id="va-intro-accent" />
+
+      {/* Skip button — lets users bail without waiting the full 4s.
+          Mirrors the Escape key + reduced-motion / saveData skip paths
+          and runs through the same completion handler so the parent
+          sees exactly one onComplete invocation. stopPropagation
+          prevents the document-level click listener from also firing
+          startIntro() mid-teardown. */}
+      <button
+        type="button"
+        aria-label={resolveIsEn() ? 'Skip intro animation' : "Passer l'animation d'introduction"}
+        onClick={(e) => {
+          e.stopPropagation();
+          skipFnRef.current?.();
+        }}
+        style={{
+          position: 'absolute',
+          bottom: 20,
+          right: 20,
+          padding: '8px 14px',
+          background: 'transparent',
+          color: 'rgba(255, 255, 255, 0.6)',
+          border: '1px solid rgba(255, 255, 255, 0.18)',
+          borderRadius: 999,
+          fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          fontSize: 11,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+          cursor: 'pointer',
+          pointerEvents: 'auto',
+        }}
+        className="focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 hover:text-white/90 hover:border-white/40 transition-colors"
+      >
+        {resolveIsEn() ? 'Skip' : 'Passer'}
+      </button>
 
       <div id="va-intro-hint" className={showHint ? 'show' : ''}>
         {(() => {
