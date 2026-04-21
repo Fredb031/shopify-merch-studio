@@ -569,6 +569,23 @@ export default function Index() {
         </section>
       </FadeIn>
 
+      {/* Localized social proof — named Québec clients anchor the
+          logo marquee with specific, recognizable referents so buyers
+          recognize at least one and the rest borrow credibility.
+          Names are brand names (not translated); label switches lang. */}
+      <FadeIn>
+        <section className="pt-9 pb-2 px-6 md:px-10 bg-background">
+          <div className="max-w-[720px] mx-auto text-center">
+            <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
+              {lang === 'en' ? 'Already trusted by' : 'Déjà commandé par'}
+            </div>
+            <div className="text-xs tracking-wider uppercase text-muted-foreground/90">
+              Sous Pression · Perfocazes · Lacasse Sports · Restaurant Le Beaujolais · Brasserie Mille-Îles · Garage Morin · Salon Aura
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
       {/* Logo Marquee — after reviews */}
       <FadeIn>
         <section className="border-t border-b border-border py-7 overflow-hidden bg-background">
