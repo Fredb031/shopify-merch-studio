@@ -5,6 +5,9 @@ import { useAuthStore, getSignInLockoutRemaining } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 
+const REMEMBER_EMAIL_KEY = 'va:remember-email';
+
+/** Admin/vendor sign-in form with caps-lock hint, password visibility toggle, rate-limit lockout countdown, onBlur email validation and remember-me prefill. */
 export default function AdminLogin() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,8 +22,29 @@ export default function AdminLogin() {
   // tabs open had to click each one to find the login form.
   useDocumentTitle('Connexion — Vision Affichage');
 
-  const [email, setEmail] = useState('');
+  // Prefill the email field with whatever the admin last ticked
+  // "Se souvenir de moi" for — browsers already offer this at the OS
+  // level, but managed-device Chrome policies disable it for many of
+  // our users, leaving them to re-type their address every time.
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem(REMEMBER_EMAIL_KEY) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const [password, setPassword] = useState('');
+  const [rememberEmail, setRememberEmail] = useState(() => {
+    try {
+      return !!localStorage.getItem(REMEMBER_EMAIL_KEY);
+    } catch {
+      return false;
+    }
+  });
+  // Inline invalid-email hint only after the user has blurred the
+  // field — live red borders while typing feel punitive for a half-
+  // typed address. Mirrors the LoginModal pattern.
+  const [emailTouched, setEmailTouched] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   // CapsLock inline hint: only shows while the password input is
   // focused AND caps lock is currently on. Catches the "why is my
@@ -86,6 +110,14 @@ export default function AdminLogin() {
       setSubmitting(false);
     }
     if (!result.ok) return;
+    // Persist / clear the remembered email now that sign-in succeeded,
+    // so a bad attempt doesn't stash a wrong address.
+    try {
+      if (rememberEmail) localStorage.setItem(REMEMBER_EMAIL_KEY, email.trim());
+      else localStorage.removeItem(REMEMBER_EMAIL_KEY);
+    } catch {
+      /* storage disabled — fall through silently */
+    }
     // Clear any stale error so a back-nav to /admin/login doesn't flash
     // the previous attempt's message.
     clearError();
@@ -186,30 +218,50 @@ export default function AdminLogin() {
               <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" aria-hidden="true" />
               {(() => {
                 const invalid = email.trim().length > 0 && !isValidEmail(email);
+                // Only surface the inline red hint once the user has
+                // left the field at least once — otherwise it flashes
+                // on every keystroke while they're still typing "a@b".
+                const showHint = invalid && emailTouched;
+                const describedBy = [
+                  showHint ? 'admin-login-email-hint' : null,
+                  error ? 'admin-login-error' : null,
+                ].filter(Boolean).join(' ') || undefined;
                 return (
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => {
-                      setEmail(e.target.value);
-                      if (error) clearError();
-                    }}
-                    placeholder="admin@visionaffichage.com"
-                    autoComplete="email"
-                    required
-                    aria-invalid={invalid || error ? true : undefined}
-                    // Task 6.9 — when the backend rejects creds, the
-                    // form-level error banner carries the detail the
-                    // email input needs; point describedby at it so
-                    // SRs read the reason on refocus rather than just
-                    // announcing "invalid email" without context.
-                    aria-describedby={error ? 'admin-login-error' : undefined}
-                    className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none focus:ring-2 ${
-                      invalid
-                        ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-400/20'
-                        : 'border-zinc-200 focus:border-[#0052CC] focus:ring-[#0052CC]/10'
-                    }`}
-                  />
+                  <>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => {
+                        setEmail(e.target.value);
+                        if (error) clearError();
+                      }}
+                      onBlur={() => setEmailTouched(true)}
+                      placeholder="admin@visionaffichage.com"
+                      autoComplete="email"
+                      required
+                      aria-invalid={showHint || error ? true : undefined}
+                      // Task 6.9 — when the backend rejects creds, the
+                      // form-level error banner carries the detail the
+                      // email input needs; point describedby at it so
+                      // SRs read the reason on refocus rather than just
+                      // announcing "invalid email" without context.
+                      aria-describedby={describedBy}
+                      className={`w-full pl-10 pr-3 py-3 border rounded-xl text-sm outline-none focus:ring-2 ${
+                        showHint
+                          ? 'border-rose-300 focus:border-rose-500 focus:ring-rose-400/20'
+                          : 'border-zinc-200 focus:border-[#0052CC] focus:ring-[#0052CC]/10'
+                      }`}
+                    />
+                    {showHint && (
+                      <p
+                        id="admin-login-email-hint"
+                        role="alert"
+                        className="mt-1 text-[11px] font-semibold text-rose-600"
+                      >
+                        Adresse courriel invalide
+                      </p>
+                    )}
+                  </>
                 );
               })()}
             </div>
@@ -252,10 +304,21 @@ export default function AdminLogin() {
             )}
           </label>
 
-          <div className="flex items-center justify-end pt-1">
-            {/* The "Stay connected" checkbox used to live here but did
-                nothing — Supabase persists sessions via localStorage by
-                default. Removed to avoid misleading the user. */}
+          <div className="flex items-center justify-between gap-3 pt-1">
+            {/* The old "Stay connected" checkbox was removed because it
+                just mirrored Supabase's default session persistence.
+                This one is different: it only stashes the email under
+                va:remember-email so the field is prefilled on next
+                load — no effect on session lifetime. */}
+            <label className="flex items-center gap-2 text-xs text-zinc-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberEmail}
+                onChange={e => setRememberEmail(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-zinc-300 text-[#0052CC] focus:ring-[#0052CC]/30"
+              />
+              <span>Se souvenir de moi</span>
+            </label>
             <Link
               to="/admin/forgot-password"
               className="text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
