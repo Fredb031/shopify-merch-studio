@@ -84,9 +84,21 @@ export default function Index() {
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [showGame, setShowGame] = useState(false);
-  const [showLoader, setShowLoader] = useState(true);
+  // Intro animation disabled by default. The cinematic GSAP/Web Audio
+  // sequence was reported as "fucking disgusting and fully bugged" by
+  // the site owner. Killing the gating flag means visitors land directly
+  // on the hero with no overlay, no flash, no audio. The IntroAnimation
+  // module + audio engine are still on disk and lazy-loaded only if
+  // showLoader is ever flipped back on, so re-enabling is a one-line
+  // change without bringing the chunk back into the eager bundle.
+  const [showLoader, setShowLoader] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [heroStaggered, setHeroStaggered] = useState(false);
+  // Hero stagger animations are gated by this flag so they fire AFTER
+  // the intro overlay finishes. With the intro disabled (showLoader =
+  // false), nothing flips this to true via onComplete, and the hero
+  // would stay invisible forever (`opacity-0 translate-y-[18px]`).
+  // Default to true so the hero just renders on mount.
+  const [heroStaggered, setHeroStaggered] = useState(true);
   const [playingVideo, setPlayingVideo] = useState<number | null>(null);
 
   // Track timers kicked off by the loader so route change (user clicks
