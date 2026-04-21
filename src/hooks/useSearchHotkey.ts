@@ -28,15 +28,25 @@ export function useSearchHotkey(opts?: { onClear?: () => void }) {
       // CapsLock flips e.key to 'K'; the original `=== 'k'` check
       // silently dropped the shortcut for anyone with CapsLock on,
       // which reads like 'Cmd+K is broken on my machine'. Compare
-      // case-insensitively and skip Shift so Cmd+Shift+K (devtools-
-      // style bindings) doesn't accidentally steal focus.
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'k') {
+      // case-insensitively and skip Shift/Alt so Cmd+Shift+K (devtools-
+      // style bindings) and Option+Cmd+K (types special chars like '˚'
+      // on macOS French/AZERTY layouts) don't accidentally steal focus.
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
         // Don't grab Cmd+K when the user is mid-edit in a different
         // input/textarea/contentEditable surface (e.g. invite modal).
-        const tag = (document.activeElement as HTMLElement | null)?.tagName;
-        const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' ||
-          (document.activeElement as HTMLElement | null)?.isContentEditable;
-        if (isEditing && document.activeElement !== ref.current) return;
+        const active = document.activeElement as HTMLElement | null;
+        const tag = active?.tagName;
+        const isEditing = tag === 'INPUT' || tag === 'TEXTAREA' || !!active?.isContentEditable;
+        if (isEditing && active !== ref.current) return;
+        // Don't yank focus out of an open modal / dialog surface. Admin
+        // pages mount confirm-modals + the global Cmd+K command palette
+        // that share this shortcut — without this guard, pressing Cmd+K
+        // inside an invite-dialog button would race the palette open
+        // AND focus the table's search input behind the backdrop, so
+        // Tab'ing away from the modal would land on an underlying cell.
+        // Only bail when the target input isn't inside the open dialog.
+        const openDialog = document.querySelector<HTMLElement>('[aria-modal="true"]');
+        if (openDialog && !openDialog.contains(ref.current)) return;
         e.preventDefault();
         ref.current?.focus();
         ref.current?.select();
