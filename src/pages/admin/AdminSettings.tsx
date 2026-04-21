@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link2, Building2, CreditCard, Shield, ExternalLink } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { isValidEmail } from '@/lib/utils';
 
 // localStorage key for the settings toggles. Persisting client-side only
 // since these are stub features pending real backend wiring — the keys
@@ -104,7 +105,17 @@ export default function AdminSettings() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Field label="Nom légal" value={settings.companyName} onChange={v => updateField('companyName', v)} />
           <Field label="NEQ" value={settings.companyNeq} onChange={v => updateField('companyNeq', v)} placeholder="Numéro d'entreprise du Québec" />
-          <Field label="Courriel général" type="email" value={settings.companyEmail} onChange={v => updateField('companyEmail', v)} />
+          <Field
+            label="Courriel général"
+            type="email"
+            value={settings.companyEmail}
+            onChange={v => updateField('companyEmail', v)}
+            // If the admin clears the default and types a malformed
+            // address, surface it inline — otherwise a bad "support@"
+            // silently persists to localStorage and ships with the
+            // company profile, which confuses outbound email wiring.
+            error={settings.companyEmail.trim().length > 0 && !isValidEmail(settings.companyEmail) ? 'Courriel invalide' : undefined}
+          />
           <Field label="Téléphone" value={settings.companyPhone} onChange={v => updateField('companyPhone', v)} />
         </div>
       </section>
@@ -167,17 +178,26 @@ export default function AdminSettings() {
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text' }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string }) {
+function Field({ label, value, onChange, placeholder, type = 'text', error }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; error?: string }) {
+  // Build a stable id so the inline error can be wired via
+  // aria-describedby — screen readers then announce "Courriel invalide"
+  // alongside the focused field instead of silently styling red.
+  const id = `admin-settings-${label.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase()}`;
+  const errorId = `${id}-error`;
   return (
-    <label className="flex flex-col gap-1">
+    <label htmlFor={id} className="flex flex-col gap-1">
       <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{label}</span>
       <input
+        id={id}
         type={type}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="border border-zinc-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/10"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        className={`border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ${error ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10' : 'border-zinc-200 focus:border-[#0052CC] focus:ring-[#0052CC]/10'}`}
       />
+      {error ? <span id={errorId} className="text-[11px] text-rose-600">{error}</span> : null}
     </label>
   );
 }
