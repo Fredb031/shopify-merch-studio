@@ -21,6 +21,7 @@ import {
 } from '@/lib/permissions';
 import { logAdminAction } from '@/lib/auditLog';
 import { getUser2faMap } from '@/lib/appSettings';
+import { downloadCsv } from '@/lib/csv';
 
 interface ProfileRow {
   id: string;
@@ -51,18 +52,10 @@ const ROLE_LABEL: Record<UserRole, string> = {
 const VALID_ROLE_FILTERS: readonly (UserRole | 'all')[] = ['all', 'president', 'admin', 'salesman', 'vendor', 'client'];
 
 /** Generate and download a CSV for the currently filtered user list.
- * Mirrors exportOrdersCsv in AdminOrders: UTF-8 BOM so Excel reads
- * accents without a manual prompt, formula-injection-safe escape (cells
- * starting with = + - @ are prefixed with a tab so Excel / Sheets treat
- * them as text — OWASP CSV injection), RFC 4180 quote-wrapping when a
- * delimiter / quote / newline is present. fr-CA dates match the table. */
+ * Delegates escaping / BOM / download mechanics to @/lib/csv so the
+ * users export stays in lockstep with the other admin exports (orders,
+ * customers, quotes, …). fr-CA dates match the table display. */
 function exportUsersCsv(rows: ProfileRow[], twoFa: Record<string, boolean>) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const fmtDate = (iso: string) => {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
@@ -77,16 +70,8 @@ function exportUsersCsv(rows: ProfileRow[], twoFa: Record<string, boolean>) {
     fmtDate(u.created_at),
     twoFa[u.id] ? 'Oui' : 'Non',
   ]);
-  const csv = [header, ...body].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const filename = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+  downloadCsv([header, ...body], filename);
   toast.success(`${rows.length} utilisateur${rows.length > 1 ? 's' : ''} exporté${rows.length > 1 ? 's' : ''}`);
 }
 
