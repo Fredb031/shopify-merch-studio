@@ -98,6 +98,13 @@ export default function TrackOrder() {
   // doesn't advertise an "Expected <past date>" — customers were
   // confused by a weekday already gone by when the order was
   // actually just running behind.
+  //
+  // Weekend nudge: Canada Post doesn't do standard delivery on
+  // Sundays and the Québec shop doesn't print on Saturday/Sunday,
+  // so an ETA landing on a weekend is effectively a lie — the
+  // customer then sees "Expected dimanche 26 avril" and nothing
+  // moves that day. Push any weekend landing to the next Monday
+  // so the date on screen matches what actually happens.
   const eta = (() => {
     if (!order || currentStage === 'delivered') return null;
     const created = new Date(order.createdAt);
@@ -112,6 +119,10 @@ export default function TrackOrder() {
     // literal "Invalid Date" shouting from the badge.
     const nominal = Number.isFinite(createdMs) ? createdMs + days * 86400000 : floor;
     const target = new Date(Math.max(nominal, floor));
+    // 0=Sunday, 6=Saturday — bump into Monday either way.
+    const dow = target.getDay();
+    if (dow === 6) target.setDate(target.getDate() + 2);
+    else if (dow === 0) target.setDate(target.getDate() + 1);
     return target.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', day: 'numeric', month: 'long' });
   })();
 
