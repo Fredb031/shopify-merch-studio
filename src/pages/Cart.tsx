@@ -4,12 +4,25 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Minus, Plus } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Minus, Plus, BookmarkPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
+import { PRODUCTS } from '@/data/products';
+import { readLS, writeLS } from '@/lib/storage';
+import type { CartItemCustomization } from '@/types/customization';
+
+// Save-for-later list persisted independently of the active cart so it
+// survives an "empty cart" click and a Shopify-side sync clear. Same
+// shape as cart items so a restore is a straight re-insert with a
+// fresh cartId (addItem regenerates it). 20-item cap keeps the
+// localStorage footprint bounded on buyers who park a lot of
+// candidates — we drop the OLDEST entry on overflow (FIFO) so the
+// most recently parked item is always kept.
+const SAVED_FOR_LATER_KEY = 'vision-saved-for-later';
+const SAVED_FOR_LATER_CAP = 20;
 
 function PromoCodeInput({
   onApply,
@@ -95,7 +108,7 @@ import { useEffect, useRef, useState } from 'react';
 export default function Cart() {
   const { lang } = useLang();
   const navigate = useNavigate();
-  const { items, removeItem, updateItemQuantity, rollbackItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount, clear } = useCartStore();
+  const { items, addItem, removeItem, updateItemQuantity, rollbackItem, getTotal, getItemCount, discountCode, discountApplied, applyDiscount, clearDiscount, clear } = useCartStore();
   const shopifyCart = useShopifyCartStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -105,6 +118,20 @@ export default function Cart() {
   // Also used to disable the buttons + dim the row while the background
   // sync is inflight so the user sees something is happening.
   const [pendingRows, setPendingRows] = useState<Record<string, boolean>>({});
+
+  // Saved-for-later list. Hydrated from localStorage on mount + written
+  // back on every mutation so it survives a refresh and a cart clear.
+  // We treat the in-memory array as the source of truth during the
+  // session; readLS is only used for the initial hydration.
+  const [savedItems, setSavedItems] = useState<CartItemCustomization[]>(
+    () => {
+      const raw = readLS<CartItemCustomization[]>(SAVED_FOR_LATER_KEY, []);
+      return Array.isArray(raw) ? raw.filter(it => it && typeof it.cartId === 'string' && it.cartId) : [];
+    },
+  );
+  useEffect(() => {
+    writeLS(SAVED_FOR_LATER_KEY, savedItems);
+  }, [savedItems]);
 
   const totalPrice = getTotal();
   const totalQty = getItemCount();
@@ -285,6 +312,53 @@ export default function Cart() {
     }
   };
 
+  // Save-for-later: park the active cart row in the sidelist and drop
+  // it from the active cart (including the Shopify mirror, otherwise
+  // the buyer gets charged at checkout for a line they explicitly
+  // parked). FIFO overflow — when the cap is hit we drop the oldest
+  // saved entry so the freshly-parked item is always retained.
+  const handleSaveForLater = async (cartId: string) => {
+    const item = useCartStore.getState().items.find(i => i.cartId === cartId);
+    if (!item) return;
+    // Append first, evict oldest if we exceed the cap.
+    setSavedItems(prev => {
+      const next = [...prev, item];
+      if (next.length > SAVED_FOR_LATER_CAP) {
+        next.splice(0, next.length - SAVED_FOR_LATER_CAP);
+      }
+      return next;
+    });
+    await handleRemoveItem(cartId);
+    toast.success(
+      lang === 'en' ? 'Saved for later' : 'Sauvegardé pour plus tard',
+      { duration: 2500 },
+    );
+  };
+
+  // Move a saved entry back into the active cart. addItem regenerates
+  // a fresh cartId + addedAt so we strip the stale ones from the saved
+  // snapshot; the rest of the customization (logo, sizes, price) is
+  // preserved verbatim. Note: shopifyVariantIds are NOT re-synced here
+  // because the Shopify cart line was already dropped when the item
+  // was parked; the next checkout will rebuild it.
+  const handleMoveBackToCart = (savedCartId: string) => {
+    const entry = savedItems.find(s => s.cartId === savedCartId);
+    if (!entry) return;
+    // Drop cartId + addedAt for the Omit<> signature on addItem.
+    const { cartId: _c, addedAt: _a, ...rest } = entry;
+    void _c; void _a;
+    addItem(rest);
+    setSavedItems(prev => prev.filter(s => s.cartId !== savedCartId));
+    toast.success(
+      lang === 'en' ? 'Moved back to cart' : 'Remis dans le panier',
+      { duration: 2500 },
+    );
+  };
+
+  const handleRemoveSaved = (savedCartId: string) => {
+    setSavedItems(prev => prev.filter(s => s.cartId !== savedCartId));
+  };
+
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
       <Navbar onOpenCart={() => setCartOpen(true)} />
@@ -423,14 +497,24 @@ export default function Cart() {
                 </div>
 
                 <div className="flex flex-col items-end justify-between flex-shrink-0">
-                  <button
-                    onClick={() => handleRemoveItem(item.cartId)}
-                    className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 bg-transparent cursor-pointer transition-colors"
-                    aria-label={lang === 'en' ? `Remove ${item.productName}` : `Retirer ${item.productName}`}
-                    title={lang === 'en' ? 'Remove' : 'Supprimer'}
-                  >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleSaveForLater(item.cartId)}
+                      className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 bg-transparent cursor-pointer transition-colors"
+                      aria-label={lang === 'en' ? `Save ${item.productName} for later` : `Sauvegarder ${item.productName} pour plus tard`}
+                      title={lang === 'en' ? 'Save for later' : 'Sauvegarder pour plus tard'}
+                    >
+                      <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      onClick={() => handleRemoveItem(item.cartId)}
+                      className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 bg-transparent cursor-pointer transition-colors"
+                      aria-label={lang === 'en' ? `Remove ${item.productName}` : `Retirer ${item.productName}`}
+                      title={lang === 'en' ? 'Remove' : 'Supprimer'}
+                    >
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </button>
+                  </div>
 
                   {/* Logo placement previews — both sides when user ordered
                       Front + Back so they see the full design in the cart. */}
@@ -467,6 +551,97 @@ export default function Cart() {
               );
             })}
           </ul>
+        )}
+
+        {savedItems.length > 0 && (
+          <section
+            aria-label={lang === 'en' ? 'Saved for later' : 'Sauvegardés pour plus tard'}
+            className="mt-8"
+          >
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
+                {lang === 'en' ? 'Saved for later' : 'Sauvegardés pour plus tard'}
+              </h2>
+              <span className="text-[11px] text-muted-foreground">
+                {savedItems.length}/{SAVED_FOR_LATER_CAP}
+              </span>
+            </div>
+            <ul
+              className="space-y-2 list-none p-0"
+              aria-label={lang === 'en' ? 'Saved items' : 'Articles sauvegardés'}
+            >
+              {savedItems.map((saved) => {
+                const product = PRODUCTS.find(p => p.id === saved.productId);
+                const color = product?.colors.find(c => c.id === saved.colorId);
+                return (
+                  <li
+                    key={saved.cartId}
+                    className="flex gap-3 p-3 rounded-xl border border-border/70 bg-muted/30"
+                  >
+                    <div className="w-14 h-14 bg-secondary rounded-lg overflow-hidden flex-shrink-0">
+                      {saved.previewSnapshot && (
+                        <img
+                          src={saved.previewSnapshot}
+                          alt={saved.productName}
+                          width={56}
+                          height={56}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                          onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{saved.productName}</p>
+                      {color && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full ring-1 ring-border"
+                            style={{ background: color.hex }}
+                            aria-hidden="true"
+                          />
+                          <span className="text-[11px] text-muted-foreground">{color.name}</span>
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {saved.totalQuantity} {lang === 'en'
+                          ? `unit${saved.totalQuantity !== 1 ? 's' : ''}`
+                          : `unité${saved.totalQuantity !== 1 ? 's' : ''}`}
+                        <span className="mx-1.5">·</span>
+                        <span className="font-semibold text-foreground">{fmtMoney(saved.totalPrice)} $</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0 self-center">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveBackToCart(saved.cartId)}
+                        className="inline-flex items-center gap-1.5 px-3 h-9 rounded-full bg-primary text-primary-foreground text-[11px] font-bold hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 transition-opacity"
+                        aria-label={lang === 'en' ? `Move ${saved.productName} back to cart` : `Remettre ${saved.productName} dans le panier`}
+                        title={lang === 'en' ? 'Move back to cart' : 'Remettre dans le panier'}
+                      >
+                        <ShoppingCart className="h-3.5 w-3.5" aria-hidden="true" />
+                        <span className="hidden sm:inline">
+                          {lang === 'en' ? 'Move back' : 'Remettre'}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSaved(saved.cartId)}
+                        className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 bg-transparent transition-colors"
+                        aria-label={lang === 'en' ? `Remove ${saved.productName} from saved` : `Supprimer ${saved.productName} des sauvegardés`}
+                        title={lang === 'en' ? 'Remove' : 'Supprimer'}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
 
         {items.length > 0 && (
