@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail, DollarSign, Download, Upload, RotateCcw, DatabaseBackup, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { isValidEmail } from '@/lib/utils';
 import {
   DEFAULT_APP_SETTINGS,
@@ -9,6 +13,12 @@ import {
 } from '@/lib/appSettings';
 import { readLS, writeLS } from '@/lib/storage';
 import { getConfiguredWebhook, setConfiguredWebhook } from '@/lib/outlook';
+import { useAuthStore } from '@/stores/authStore';
+import {
+  coerceToPermissionRole,
+  getUserOverrides,
+  hasPermission,
+} from '@/lib/permissions';
 
 // localStorage key for the settings toggles. Persisting client-side only
 // since these are stub features pending real backend wiring — the keys
@@ -185,7 +195,448 @@ export default function AdminSettings() {
       <DiscountCodesSection />
       <BulkPricingSection />
       <ZapierOutlookSection />
+      <BackupRestoreSection />
     </div>
+  );
+}
+
+// ───────────────────────── Backup / Restore section ─────────────────────────
+//
+// Task 9.17. The admin surface persists a pile of customisations in
+// localStorage — templates, permission overrides, automation flags,
+// manual orders, cart reminders, customer notes, etc. Before this
+// section there was no way to move that state between browsers, share
+// it with another admin, or recover from a corrupted entry short of
+// "clear everything and start over." Three buttons:
+//
+//  - Export: walk localStorage and dump every key starting with
+//    `vision-` into a single JSON file with a schemaVersion + an
+//    exportedAt timestamp. Filename embeds the date so multiple
+//    snapshots on the same machine don't silently overwrite each other
+//    in the downloads folder.
+//  - Import: file input accepts the same shape, validates it has both
+//    schemaVersion and data, then replaces every vision-* key. Gated
+//    by a confirm modal so a wrong-file click doesn't wipe the admin's
+//    real setup. Page reloads on success because many of these keys
+//    are read once at boot (useAppSettings / permission overrides).
+//  - Reset: nuclear — clears every vision-* key and reloads. Also
+//    behind a confirm modal, with a stronger "you will lose
+//    everything" framing so the admin can't mix it up with the import.
+//
+// Gated on settings:write so salesmen with no settings perms never see
+// the buttons. The permission matrix already gates the page itself for
+// most non-admin roles, but gating the section too is defence-in-depth
+// — a future admin override could in theory grant settings:read
+// without settings:write, and the destructive buttons must never be
+// reachable in that state.
+
+const BACKUP_SCHEMA_VERSION = 1;
+const VISION_KEY_PREFIX = 'vision-';
+
+interface BackupFile {
+  schemaVersion: number;
+  exportedAt: string;
+  data: Record<string, string>;
+}
+
+// Collect every localStorage entry whose key starts with the `vision-`
+// prefix. We preserve the raw string values (not parsed JSON) so that
+// whatever serialisation quirks the individual consumers use — nested
+// objects, Zustand's `{state, version}` envelope, plain timestamps —
+// survive a round-trip exactly.
+function collectVisionKeys(): Record<string, string> {
+  const out: Record<string, string> = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(VISION_KEY_PREFIX)) continue;
+      const value = localStorage.getItem(key);
+      if (value !== null) out[key] = value;
+    }
+  } catch {
+    // localStorage can throw in private mode / with a disabled
+    // storage partition — returning an empty object lets the caller
+    // show an empty-backup toast instead of crashing.
+  }
+  return out;
+}
+
+function todayStamp(): string {
+  // Local YYYY-MM-DD (not toISOString, which shifts to UTC and drops
+  // a day around midnight in EST). Matches how admins think about
+  // "today's snapshot."
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function BackupRestoreSection() {
+  const me = useAuthStore(s => s.user);
+  const canWrite = useMemo(() => {
+    if (!me) return false;
+    const role = coerceToPermissionRole(me.role);
+    return hasPermission(role, 'settings:write', getUserOverrides(me.id));
+  }, [me]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [pendingImport, setPendingImport] = useState<BackupFile | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const importModalTrapRef = useFocusTrap<HTMLDivElement>(pendingImport !== null);
+  const resetModalTrapRef = useFocusTrap<HTMLDivElement>(confirmReset);
+  useEscapeKey(pendingImport !== null, useCallback(() => setPendingImport(null), []));
+  useEscapeKey(confirmReset, useCallback(() => setConfirmReset(false), []));
+  useBodyScrollLock(pendingImport !== null || confirmReset);
+
+  // Don't render at all if the current user can't write settings —
+  // returning null keeps the section off the page entirely rather than
+  // showing disabled buttons, which would be misleading.
+  if (!canWrite) return null;
+
+  const onExport = () => {
+    const data = collectVisionKeys();
+    const count = Object.keys(data).length;
+    if (count === 0) {
+      toast.info('Aucune donnée à sauvegarder · No data to back up');
+      return;
+    }
+    const backup: BackupFile = {
+      schemaVersion: BACKUP_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      data,
+    };
+    try {
+      const blob = new Blob([JSON.stringify(backup, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `vision-backup-${todayStamp()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoke after a tick so the download starts. Without the
+      // timeout Safari occasionally cancels because the blob URL
+      // is dead before the navigation fires.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Sauvegarde exportée · Exported ${count} clés`);
+    } catch (err) {
+      toast.error('Échec de l\'export · Export failed');
+      // eslint-disable-next-line no-console
+      console.error('[backup] export failed', err);
+    }
+  };
+
+  const onPickFile = () => {
+    setImportError(null);
+    fileInputRef.current?.click();
+  };
+
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Always clear the input value so re-picking the same file after
+    // an error still fires onChange.
+    e.target.value = '';
+    if (!file) return;
+    if (!/\.json$/i.test(file.name) && file.type !== 'application/json') {
+      setImportError('Fichier .json requis · .json file required');
+      toast.error('Fichier .json requis · .json file required');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => {
+      setImportError('Lecture du fichier impossible · Unable to read file');
+      toast.error('Lecture du fichier impossible · Unable to read file');
+    };
+    reader.onload = () => {
+      try {
+        const text = String(reader.result ?? '');
+        const parsed: unknown = JSON.parse(text);
+        if (
+          !parsed ||
+          typeof parsed !== 'object' ||
+          Array.isArray(parsed) ||
+          typeof (parsed as { schemaVersion?: unknown }).schemaVersion !== 'number' ||
+          typeof (parsed as { data?: unknown }).data !== 'object' ||
+          (parsed as { data?: unknown }).data === null ||
+          Array.isArray((parsed as { data?: unknown }).data)
+        ) {
+          setImportError('Format de sauvegarde invalide · Invalid backup format');
+          toast.error('Format de sauvegarde invalide · Invalid backup format');
+          return;
+        }
+        const backup = parsed as BackupFile;
+        // Coerce values to strings — the file could have been edited
+        // by hand and landed a number/object in there. writeLS on a
+        // non-string would serialise weirdly and break the consumer.
+        const cleaned: Record<string, string> = {};
+        for (const [k, v] of Object.entries(backup.data)) {
+          if (!k.startsWith(VISION_KEY_PREFIX)) continue;
+          cleaned[k] = typeof v === 'string' ? v : JSON.stringify(v);
+        }
+        if (Object.keys(cleaned).length === 0) {
+          setImportError('Aucune clé vision-* trouvée · No vision-* keys found');
+          toast.error('Aucune clé vision-* trouvée · No vision-* keys found');
+          return;
+        }
+        setPendingImport({
+          schemaVersion: backup.schemaVersion,
+          exportedAt: typeof backup.exportedAt === 'string' ? backup.exportedAt : '',
+          data: cleaned,
+        });
+      } catch {
+        setImportError('JSON invalide · Invalid JSON');
+        toast.error('JSON invalide · Invalid JSON');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const confirmImport = () => {
+    if (!pendingImport) return;
+    try {
+      // Clear existing vision-* keys first so a smaller backup
+      // doesn't leave stale entries from the old setup mixed in.
+      const existing: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(VISION_KEY_PREFIX)) existing.push(key);
+      }
+      for (const key of existing) localStorage.removeItem(key);
+      // Write the new keys.
+      for (const [k, v] of Object.entries(pendingImport.data)) {
+        localStorage.setItem(k, v);
+      }
+      toast.success('Sauvegarde restaurée · Backup restored');
+      // Reload so every in-memory cache (useAppSettings, permission
+      // overrides, zustand stores with persist) re-reads from disk.
+      setTimeout(() => window.location.reload(), 400);
+    } catch (err) {
+      toast.error('Échec de la restauration · Restore failed');
+      // eslint-disable-next-line no-console
+      console.error('[backup] import failed', err);
+      setPendingImport(null);
+    }
+  };
+
+  const confirmResetAll = () => {
+    try {
+      const existing: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(VISION_KEY_PREFIX)) existing.push(key);
+      }
+      for (const key of existing) localStorage.removeItem(key);
+      toast.success(`Réinitialisé · Reset (${existing.length} clés)`);
+      setTimeout(() => window.location.reload(), 400);
+    } catch (err) {
+      toast.error('Échec de la réinitialisation · Reset failed');
+      // eslint-disable-next-line no-console
+      console.error('[backup] reset failed', err);
+      setConfirmReset(false);
+    }
+  };
+
+  return (
+    <section className="bg-white border border-zinc-200 rounded-2xl p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg bg-[#1B3A6B]/10 text-[#1B3A6B] flex items-center justify-center">
+          <DatabaseBackup size={18} aria-hidden="true" />
+        </div>
+        <div>
+          <h2 className="font-bold">
+            Sauvegarde · Restauration{' '}
+            <span className="text-xs font-normal text-zinc-500">· Backup · Restore</span>
+          </h2>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Exporte / importe tous les réglages admin stockés localement ·{' '}
+            <span className="italic">Export / import all locally-stored admin settings.</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="flex flex-col gap-2 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
+            <Download size={14} className="text-[#0052CC]" aria-hidden="true" />
+            Exporter · Export
+          </div>
+          <p className="text-[11px] text-zinc-500 leading-relaxed">
+            Télécharge un fichier JSON contenant toutes les clés{' '}
+            <code className="font-mono text-[10px]">vision-*</code>.
+          </p>
+          <button
+            type="button"
+            onClick={onExport}
+            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-[#0052CC] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0043a8] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <Download size={12} aria-hidden="true" /> Télécharger · Download
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-2 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
+            <Upload size={14} className="text-[#1B3A6B]" aria-hidden="true" />
+            Importer · Import
+          </div>
+          <p className="text-[11px] text-zinc-500 leading-relaxed">
+            Charge un fichier de sauvegarde et remplace tous les réglages.
+          </p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            onChange={onFileChange}
+            className="hidden"
+            aria-label="Fichier de sauvegarde JSON"
+          />
+          <button
+            type="button"
+            onClick={onPickFile}
+            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0F2341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+          >
+            <Upload size={12} aria-hidden="true" /> Choisir un fichier · Choose file
+          </button>
+          {importError ? (
+            <p className="text-[11px] text-rose-600 mt-0.5">{importError}</p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-2 p-3 bg-rose-50/40 rounded-lg border border-rose-100">
+          <div className="flex items-center gap-2 text-sm font-semibold text-rose-900">
+            <RotateCcw size={14} className="text-rose-600" aria-hidden="true" />
+            Tout réinitialiser · Reset all
+          </div>
+          <p className="text-[11px] text-rose-700/80 leading-relaxed">
+            Efface toutes les clés <code className="font-mono text-[10px]">vision-*</code>. Action irréversible.
+          </p>
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-1"
+          >
+            <RotateCcw size={12} aria-hidden="true" /> Réinitialiser · Reset
+          </button>
+        </div>
+      </div>
+
+      {pendingImport ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="backup-import-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        >
+          <div
+            ref={importModalTrapRef}
+            className="bg-white rounded-2xl shadow-xl border border-zinc-200 max-w-md w-full p-5"
+          >
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={18} aria-hidden="true" />
+              </div>
+              <div>
+                <h3 id="backup-import-title" className="font-bold text-zinc-900">
+                  Restaurer la sauvegarde ?
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5 italic">Restore backup?</p>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-700 leading-relaxed">
+              Ceci remplacera tous les réglages admin. Continuer ?
+            </p>
+            <p className="text-xs text-zinc-500 italic mt-1">
+              This will replace all admin settings. Continue?
+            </p>
+            <div className="mt-3 p-2.5 bg-zinc-50 rounded-lg border border-zinc-100 text-[11px] text-zinc-600 space-y-0.5">
+              <div>
+                <span className="font-semibold">Clés · Keys:</span>{' '}
+                {Object.keys(pendingImport.data).length}
+              </div>
+              {pendingImport.exportedAt ? (
+                <div>
+                  <span className="font-semibold">Exportée · Exported:</span>{' '}
+                  {pendingImport.exportedAt}
+                </div>
+              ) : null}
+              <div>
+                <span className="font-semibold">Schéma · Schema:</span>{' '}
+                v{pendingImport.schemaVersion}
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingImport(null)}
+                className="text-xs font-bold px-3 py-2 rounded-lg text-zinc-600 hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+              >
+                Annuler · Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmImport}
+                className="inline-flex items-center gap-1.5 bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0F2341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+              >
+                <Upload size={12} aria-hidden="true" /> Restaurer · Restore
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmReset ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="backup-reset-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+        >
+          <div
+            ref={resetModalTrapRef}
+            className="bg-white rounded-2xl shadow-xl border border-zinc-200 max-w-md w-full p-5"
+          >
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={18} aria-hidden="true" />
+              </div>
+              <div>
+                <h3 id="backup-reset-title" className="font-bold text-zinc-900">
+                  Tout réinitialiser ?
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5 italic">Reset everything?</p>
+              </div>
+            </div>
+            <p className="text-sm text-zinc-700 leading-relaxed">
+              Ceci effacera tous les réglages admin, modèles, surcharges de permissions et données locales.
+              Action irréversible.
+            </p>
+            <p className="text-xs text-zinc-500 italic mt-1">
+              This will wipe all admin settings, templates, permission overrides, and local data. This cannot be undone.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmReset(false)}
+                className="text-xs font-bold px-3 py-2 rounded-lg text-zinc-600 hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+              >
+                Annuler · Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmResetAll}
+                className="inline-flex items-center gap-1.5 bg-rose-600 text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-1"
+              >
+                <RotateCcw size={12} aria-hidden="true" /> Tout effacer · Wipe all
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
