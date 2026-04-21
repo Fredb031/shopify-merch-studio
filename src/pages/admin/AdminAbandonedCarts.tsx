@@ -1,4 +1,4 @@
-import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search, Check, X, Clock, Zap } from 'lucide-react';
+import { Download, ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search, Check, X, Clock, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -154,6 +154,51 @@ const VALID_SORTS: readonly AbandonedSort[] = ['recent', 'value'];
 type ReminderFilter = 'all' | 'sent' | 'unsent';
 const VALID_REMINDER_FILTERS: readonly ReminderFilter[] = ['all', 'sent', 'unsent'];
 
+// Age-bucket filter — narrows the visible carts by `now - createdAt`.
+// 'all' skips the filter; the numeric buckets match the recovery-sequence
+// timings the ops team already uses (1h / 24h / 7j).
+type AgeBucket = 'all' | '1h' | '24h' | '7j';
+const VALID_AGE_BUCKETS: readonly AgeBucket[] = ['all', '1h', '24h', '7j'];
+const AGE_BUCKET_MS: Record<Exclude<AgeBucket, 'all'>, number> = {
+  '1h': 60 * 60 * 1000,
+  '24h': 24 * 60 * 60 * 1000,
+  '7j': 7 * 24 * 60 * 60 * 1000,
+};
+
+/** Generate + download a CSV for the currently filtered abandoned-cart
+ * list. Mirrors the AdminOrders helper verbatim for the injection guard
+ * and BOM handling so Excel/Numbers handle accents + leading
+ * '=' / '+' / '-' / '@' safely (OWASP formula injection). Columns:
+ * Courriel, Nom, Articles, Total, Abandonné le. Date formatted fr-CA. */
+function exportAbandonedCartsCsv(carts: ReadonlyArray<ShopifyAbandonedCheckoutSnapshot>) {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = ['Courriel', 'Nom', 'Articles', 'Total', 'Abandonné le'];
+  const rows = carts.map(c => [
+    c.email,
+    c.customerName,
+    String(c.itemsCount),
+    // No currency symbol — keeps the column numeric-parseable in Excel.
+    c.total.toFixed(2),
+    new Date(c.createdAt).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' }),
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `abandoned-carts-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${carts.length} panier${carts.length > 1 ? 's' : ''} exporté${carts.length > 1 ? 's' : ''}`);
+}
+
 // Default subject + body builder — kept in sync with the mailto fallback
 // so whether the admin clicks "Envoyer un rappel" (dialog) or the mail
 // icon (native mailto), they get identical copy.
@@ -184,9 +229,14 @@ export default function AdminAbandonedCarts() {
   const initialReminderFilter: ReminderFilter = (VALID_REMINDER_FILTERS as readonly string[]).includes(initialReminderRaw)
     ? (initialReminderRaw as ReminderFilter)
     : 'all';
+  const initialAgeRaw = searchParams.get('age') ?? 'all';
+  const initialAgeBucket: AgeBucket = (VALID_AGE_BUCKETS as readonly string[]).includes(initialAgeRaw)
+    ? (initialAgeRaw as AgeBucket)
+    : 'all';
 
   const [sort, setSort] = useState<AbandonedSort>(initialSort);
   const [reminderFilter, setReminderFilter] = useState<ReminderFilter>(initialReminderFilter);
+  const [ageBucket, setAgeBucket] = useState<AgeBucket>(initialAgeBucket);
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [page, setPage] = useState(0);
   const [reminders, setReminders] = useState<RemindersMap>(() => loadReminders());
@@ -212,14 +262,15 @@ export default function AdminAbandonedCarts() {
     if (trimmed) next.set('q', trimmed); else next.delete('q');
     if (sort !== 'value') next.set('sort', sort); else next.delete('sort');
     if (reminderFilter !== 'all') next.set('reminder', reminderFilter); else next.delete('reminder');
+    if (ageBucket !== 'all') next.set('age', ageBucket); else next.delete('age');
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [sort, query, reminderFilter, searchParams, setSearchParams]);
+  }, [sort, query, reminderFilter, ageBucket, searchParams, setSearchParams]);
 
   // Reset pagination when search / filter changes so narrowing doesn't
   // strand the user on an empty page 5.
-  useEffect(() => { setPage(0); }, [query, reminderFilter]);
+  useEffect(() => { setPage(0); }, [query, reminderFilter, ageBucket]);
 
   const markReminderSent = useCallback((cartId: number): void => {
     setReminders(prev => {
@@ -277,17 +328,31 @@ export default function AdminAbandonedCarts() {
           return email.includes(q) || name.includes(q);
         })
       : SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT;
-    const base = reminderFilter === 'all'
+    const reminderFiltered = reminderFilter === 'all'
       ? textFiltered
       : textFiltered.filter(c => {
           const hasReminder = Boolean(reminders[String(c.id)]);
           return reminderFilter === 'sent' ? hasReminder : !hasReminder;
         });
+    // Age-bucket filter — compare `now - createdAt` against the bucket
+    // window. `Date.now()` is captured once so a cart right on the edge
+    // isn't classified differently per-row within a single sort pass.
+    const base = ageBucket === 'all'
+      ? reminderFiltered
+      : (() => {
+          const windowMs = AGE_BUCKET_MS[ageBucket];
+          const now = Date.now();
+          return reminderFiltered.filter(c => {
+            const created = new Date(c.createdAt).getTime();
+            if (Number.isNaN(created)) return false;
+            return now - created <= windowMs;
+          });
+        })();
     const arr = [...base];
     if (sort === 'value') arr.sort((a, b) => b.total - a.total);
     else arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return arr;
-  }, [sort, query, reminderFilter, reminders]);
+  }, [sort, query, reminderFilter, ageBucket, reminders]);
 
   // Reset page on sort change so user isn't stranded.
   useEffect(() => { setPage(0); }, [sort]);
@@ -351,6 +416,25 @@ export default function AdminAbandonedCarts() {
             the button was decorative with no onClick and clicking produced
             no visible reaction — the whole page read as broken. */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* CSV export — mirrors AdminOrders chrome and the same
+              injection-safe helper. Disabled state when the filter
+              yields zero rows so the admin doesn't download a
+              header-only file and the title explains why. */}
+          <button
+            type="button"
+            onClick={() => exportAbandonedCartsCsv(sorted)}
+            disabled={sorted.length === 0}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={sorted.length === 0 ? 'Aucun panier à exporter' : 'Exporter en CSV'}
+            aria-label={
+              sorted.length === 0
+                ? 'Aucun panier à exporter'
+                : `Exporter ${sorted.length} panier${sorted.length > 1 ? 's' : ''} en CSV`
+            }
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
           {/* Bulk quick-send — amber/gold Zap chrome matches the
               single-row button so the relationship reads at a glance.
               Disabled when no eligible rows remain, so the count going
@@ -443,6 +527,23 @@ export default function AdminAbandonedCarts() {
                 <option value="unsent">Sans rappel</option>
               </select>
             </label>
+            {/* Age-bucket filter — slices by `now - createdAt`. Default
+                'Tout' keeps parity with the previous behaviour so admins
+                who didn't set a preference see the same list on load. */}
+            <label className="inline-flex items-center gap-1.5 text-xs text-zinc-500">
+              <span className="sr-only">Filtrer par âge du panier</span>
+              <select
+                value={ageBucket}
+                onChange={e => setAgeBucket(e.target.value as AgeBucket)}
+                aria-label="Filtrer les paniers par âge"
+                className="bg-zinc-100 rounded-lg px-2 py-1.5 text-xs font-bold text-zinc-700 border-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+              >
+                <option value="all">Tout</option>
+                <option value="1h">1h</option>
+                <option value="24h">24h</option>
+                <option value="7j">7j</option>
+              </select>
+            </label>
             <div className="inline-flex bg-zinc-100 rounded-lg p-0.5" role="radiogroup" aria-label="Trier les paniers">
               {(['value', 'recent'] as const).map(s => (
                 <button
@@ -471,11 +572,13 @@ export default function AdminAbandonedCarts() {
             <div className="text-center text-xs text-zinc-500 py-10">
               {query.trim()
                 ? `Aucun panier ne correspond à « ${query.trim()} ».`
-                : reminderFilter === 'sent'
-                  ? 'Aucun rappel envoyé pour le moment.'
-                  : reminderFilter === 'unsent'
-                    ? 'Tous les paniers ont reçu un rappel.'
-                    : 'Aucun panier abandonné pour le moment.'}
+                : ageBucket !== 'all'
+                  ? `Aucun panier abandonné dans la fenêtre ${ageBucket}.`
+                  : reminderFilter === 'sent'
+                    ? 'Aucun rappel envoyé pour le moment.'
+                    : reminderFilter === 'unsent'
+                      ? 'Tous les paniers ont reçu un rappel.'
+                      : 'Aucun panier abandonné pour le moment.'}
             </div>
           ) : (
             pageItems.map(c => (
