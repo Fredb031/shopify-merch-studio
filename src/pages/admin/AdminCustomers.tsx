@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Search, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   SHOPIFY_CUSTOMERS_SNAPSHOT,
@@ -57,6 +57,52 @@ interface EnrichedCustomer extends ShopifyCustomerSnapshot {
   orderCount: number;
   lastOrderAt: string | null;
   daysSinceLastOrder: number | null;
+}
+
+/** Generate and download a CSV for the currently filtered customer list.
+ * Mirrors the AdminOrders export idiom: RFC-4180 quoting, formula-
+ * injection-safe escaping (cells starting with '=' '+' '-' '@' are
+ * prefixed with a tab so Excel / Google Sheets treat them as text
+ * instead of formulas — OWASP CSV injection), UTF-8 BOM up front so
+ * Excel reads accents correctly, and fr-CA date formatting. No
+ * currency symbol on totalSpent — keeps the column numeric-parseable. */
+function exportCustomersCsv(customers: EnrichedCustomer[]) {
+  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+  const csvEscape = (v: unknown) => {
+    let s = String(v ?? '');
+    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
+    // Wrap when the value contains a delimiter/quote/newline OR when we
+    // prefixed a tab above (defensive — a bare leading tab in a field
+    // confuses Numbers.app's CSV auto-detect). Double inner quotes.
+    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const header = ['Nom', 'Courriel', 'Téléphone', 'Étiquettes', 'Commandes', 'Total dépensé', 'Inscrit le'];
+  const rows = customers.map(c => [
+    fullName(c),
+    c.email,
+    c.phone ?? '',
+    // Tags are stored as a comma-separated string in the snapshot; split
+    // and re-join with "; " per spec so the column stays readable when
+    // the CSV itself uses "," as the delimiter.
+    c.tags
+      ? c.tags.split(',').map(t => t.trim()).filter(Boolean).join('; ')
+      : '',
+    String(c.orderCount),
+    // No currency symbol — keeps the column numeric-parseable in Excel.
+    c.lifetimeValue.toFixed(2),
+    formatDate(c.createdAt),
+  ]);
+  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `customers-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success(`${customers.length} client${customers.length > 1 ? 's' : ''} exporté${customers.length > 1 ? 's' : ''}`);
 }
 
 export default function AdminCustomers() {
@@ -219,18 +265,39 @@ export default function AdminCustomers() {
             </span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            toast.info('Synchronisation en cours…');
-            if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
-            resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
-          }}
-          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
-        >
-          <RefreshCw size={15} aria-hidden="true" />
-          Resync
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              toast.info('Synchronisation en cours…');
+              if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+              resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
+            }}
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          >
+            <RefreshCw size={15} aria-hidden="true" />
+            Resync
+          </button>
+          <button
+            type="button"
+            onClick={() => exportCustomersCsv(filtered)}
+            disabled={filtered.length === 0}
+            // Disabled state when the filter yields nothing — avoids
+            // downloading a header-only CSV and signals to the admin
+            // that the filter is the thing to change. Tooltip + aria
+            // explain why the button is dead.
+            className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            title={filtered.length === 0 ? 'Aucun client à exporter' : 'Exporter en CSV'}
+            aria-label={
+              filtered.length === 0
+                ? 'Aucun client à exporter'
+                : `Exporter ${filtered.length} client${filtered.length > 1 ? 's' : ''} en CSV`
+            }
+          >
+            <Download size={15} aria-hidden="true" />
+            Exporter CSV
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
