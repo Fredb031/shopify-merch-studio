@@ -174,11 +174,11 @@ export default function QuoteAccept() {
                 {lang === 'en' ? 'Shipping address' : 'Adresse de livraison'}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Input label={lang === 'en' ? 'Full name' : 'Nom complet'} autoComplete="name" autoCapitalize="words" />
-                <Input label={lang === 'en' ? 'Company' : 'Entreprise'} defaultValue={MOCK_QUOTE.client} autoComplete="organization" autoCapitalize="words" />
-                <Input label={lang === 'en' ? 'Street address' : 'Adresse'} autoComplete="street-address" autoCapitalize="words" className="md:col-span-2" />
-                <Input label={lang === 'en' ? 'City' : 'Ville'} autoComplete="address-level2" autoCapitalize="words" />
-                <Input label={lang === 'en' ? 'Postal code' : 'Code postal'} autoComplete="postal-code" autoCapitalize="characters" />
+                <Input label={lang === 'en' ? 'Full name' : 'Nom complet'} name="name" autoComplete="name" autoCapitalize="words" />
+                <Input label={lang === 'en' ? 'Company' : 'Entreprise'} name="organization" defaultValue={MOCK_QUOTE.client} autoComplete="organization" autoCapitalize="words" />
+                <Input label={lang === 'en' ? 'Street address' : 'Adresse'} name="street-address" autoComplete="street-address" autoCapitalize="words" className="md:col-span-2" />
+                <Input label={lang === 'en' ? 'City' : 'Ville'} name="address-level2" autoComplete="address-level2" autoCapitalize="words" />
+                <Input label={lang === 'en' ? 'Postal code' : 'Code postal'} name="postal-code" autoComplete="postal-code" autoCapitalize="characters" />
               </div>
             </section>
 
@@ -278,12 +278,13 @@ export default function QuoteAccept() {
   );
 }
 
-function Input({ label, defaultValue, autoComplete, className = '', autoCapitalize }: { label: string; defaultValue?: string; autoComplete?: string; className?: string; autoCapitalize?: 'off' | 'none' | 'characters' | 'words' | 'sentences' }) {
+function Input({ label, name, defaultValue, autoComplete, className = '', autoCapitalize }: { label: string; name?: string; defaultValue?: string; autoComplete?: string; className?: string; autoCapitalize?: 'off' | 'none' | 'characters' | 'words' | 'sentences' }) {
   return (
     <label className={`flex flex-col gap-1 ${className}`}>
       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
       <input
         type="text"
+        name={name}
         defaultValue={defaultValue}
         autoComplete={autoComplete}
         autoCapitalize={autoCapitalize}
