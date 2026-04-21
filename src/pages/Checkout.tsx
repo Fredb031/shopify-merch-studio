@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Lock, ShieldCheck, MapPin, Mail, Truck, CreditCard, CheckCircle2, Loader2, Package, MailCheck, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
@@ -50,8 +50,52 @@ export default function Checkout() {
   const shopifyCart = useShopifyCartStore();
   const user = useAuthStore(s => s.user);
 
-  const [step, setStep] = useState<Step>('info');
+  // On mount, detect a return-from-Shopify handoff. Shopify's thank-you
+  // page can redirect back here with `?step=done&order=VA-1234` (or the
+  // equivalent `?order_number=…` alias) so we can render the local
+  // confirmation screen without depending on Shopify's UI. If the URL
+  // carries a pending-checkout payload from localStorage we fall back to
+  // that buyer's name/email so the confirmation feels personal.
+  const initialStep = useMemo<Step>(() => {
+    if (typeof window === 'undefined') return 'info';
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('step');
+    return s === 'done' ? 'done' : 'info';
+  }, []);
+  const initialOrderNumber = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    const params = new URLSearchParams(window.location.search);
+    return params.get('order') ?? params.get('order_number') ?? '';
+  }, []);
+
+  const [step, setStep] = useState<Step>(initialStep);
+  const [orderNumber, setOrderNumber] = useState<string>(initialOrderNumber);
   const [form, setForm] = useState<ShippingForm>(empty);
+
+  // Rehydrate buyer info from the pending-checkout payload we stashed
+  // before redirecting to Shopify. Lets the 'Merci, {name}!' line still
+  // greet them by first name on the return trip even if the user isn't
+  // signed in.
+  useEffect(() => {
+    if (step !== 'done') return;
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('vision-pending-checkout');
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Partial<ShippingForm> & { ts?: number };
+      // Ignore anything older than 24h — a stale payload probably isn't
+      // from the order we're confirming.
+      if (parsed?.ts && Date.now() - parsed.ts > 24 * 60 * 60 * 1000) return;
+      setForm(f => ({
+        ...f,
+        email: f.email || parsed.email || '',
+        firstName: f.firstName || parsed.firstName || '',
+        lastName: f.lastName || parsed.lastName || '',
+      }));
+    } catch (e) {
+      console.warn('[Checkout] Could not rehydrate pending checkout payload:', e);
+    }
+  }, [step]);
 
   // Pre-fill email from the signed-in user's profile so they don't
   // have to retype what the app already knows. Only fills if the
@@ -119,6 +163,23 @@ export default function Checkout() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+
+  if (step === 'done') {
+    return (
+      <div id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
+        <Navbar />
+        <div className="max-w-[720px] mx-auto px-4 md:px-8 pt-20 pb-32">
+          <DoneState
+            lang={lang}
+            firstName={form.firstName}
+            orderNumber={orderNumber}
+          />
+        </div>
+        <AIChat />
+        <BottomNav />
+      </div>
+    );
+  }
 
   if (cart.items.length === 0 && step !== 'done') {
     return (
@@ -776,6 +837,198 @@ function Row({ label, value, muted = false }: { label: string; value: string; mu
     <div className="flex justify-between">
       <span className={muted ? 'text-muted-foreground' : ''}>{label}</span>
       <span className={muted ? 'font-semibold' : 'font-bold'}>{value}</span>
+    </div>
+  );
+}
+
+/**
+ * Post-payment confirmation screen. Shown either when Shopify's
+ * thank-you page redirects back with `?step=done&order=…` or when the
+ * local flow reaches the final step directly (future extensibility for
+ * an on-site order submission path). CSS-only confetti keeps the bundle
+ * size flat — no react-confetti / canvas-confetti dependency.
+ */
+function DoneState({
+  lang,
+  firstName,
+  orderNumber,
+}: {
+  lang: 'en' | 'fr';
+  firstName: string;
+  orderNumber: string;
+}) {
+  const displayName = (firstName || '').trim() || (lang === 'en' ? 'there' : 'à toi');
+  const displayOrder = orderNumber.trim() || (lang === 'en' ? 'in progress' : 'en cours');
+
+  // Announce success to screen readers the moment the view mounts so
+  // non-sighted buyers get the same "Commande confirmée" reassurance as
+  // the big check icon provides sighted users.
+  useEffect(() => {
+    const prev = document.title;
+    document.title = lang === 'en'
+      ? `Order confirmed — Vision Affichage`
+      : `Commande confirmée — Vision Affichage`;
+    return () => { document.title = prev; };
+  }, [lang]);
+
+  // Pre-compute 24 confetti pieces with varied left position, delay,
+  // duration, color, and rotation so the animation feels organic
+  // without pulling in a heavy library. Math.random is fine here — we
+  // render once per mount and the visual doesn't need to be reproducible.
+  const confettiPieces = useMemo(() => {
+    const colors = ['#0052CC', '#E8A838', '#10B981', '#EC4899', '#8B5CF6', '#F59E0B'];
+    return Array.from({ length: 24 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.8,
+      duration: 2.4 + Math.random() * 1.6,
+      color: colors[i % colors.length],
+      rotate: Math.random() * 360,
+      scale: 0.8 + Math.random() * 0.6,
+    }));
+  }, []);
+
+  return (
+    <div className="relative bg-white border border-border rounded-2xl p-6 md:p-10 overflow-hidden">
+      {/* Local keyframes — kept inline so the confetti is fully
+          self-contained to this component and we don't have to touch
+          index.css. The reduced-motion override at the global scope
+          will still neutralize this via the universal selector. */}
+      <style>{`
+        @keyframes vaConfettiFall {
+          0%   { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+          10%  { opacity: 1; }
+          100% { transform: translateY(520px) rotate(720deg); opacity: 0; }
+        }
+        @keyframes vaCheckPop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          60%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes vaCheckRing {
+          0%   { transform: scale(0.6); opacity: 0.6; }
+          100% { transform: scale(1.6); opacity: 0; }
+        }
+      `}</style>
+
+      {/* Confetti layer — absolutely positioned, pointer-events: none
+          so it doesn't eat clicks on the links below. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+      >
+        {confettiPieces.map(p => (
+          <span
+            key={p.id}
+            style={{
+              position: 'absolute',
+              top: '-16px',
+              left: `${p.left}%`,
+              width: '8px',
+              height: '14px',
+              backgroundColor: p.color,
+              transform: `rotate(${p.rotate}deg) scale(${p.scale})`,
+              animation: `vaConfettiFall ${p.duration}s ${p.delay}s ease-in forwards`,
+              borderRadius: '2px',
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="relative z-[1] flex flex-col items-center text-center">
+        {/* Check icon with pulsing ring. aria-live=polite on the status
+            row below is the SR signal — the icon itself is decorative. */}
+        <div className="relative w-20 h-20 mb-5">
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 rounded-full bg-emerald-400/40"
+            style={{ animation: 'vaCheckRing 1.6s ease-out infinite' }}
+          />
+          <div
+            className="relative w-20 h-20 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg"
+            style={{ animation: 'vaCheckPop 0.6s cubic-bezier(.34,1.56,.64,1) forwards' }}
+          >
+            <CheckCircle2 size={44} strokeWidth={2.4} aria-hidden="true" />
+          </div>
+        </div>
+
+        <h1
+          role="status"
+          aria-live="polite"
+          className="text-2xl md:text-3xl font-extrabold mb-2"
+        >
+          {lang === 'en'
+            ? <>Thank you, {displayName}! Order {displayOrder} confirmed.</>
+            : <>Merci, {displayName}! Commande {displayOrder} confirmée.</>}
+        </h1>
+
+        <p className="text-sm text-muted-foreground max-w-md mb-8">
+          {lang === 'en'
+            ? "We've received your payment. Here's what happens next."
+            : "Paiement reçu. Voici la suite des choses."}
+        </p>
+
+        {/* Next-steps list — email confirmation, 5-day production window,
+            tracking. Using an ordered list so AT announces "1 of 3" etc. */}
+        <ol className="w-full max-w-md space-y-3 text-left mb-8">
+          <li className="flex items-start gap-3 bg-secondary/40 border border-border rounded-xl p-4">
+            <MailCheck size={20} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <div className="font-bold text-sm">
+                {lang === 'en' ? 'Confirmation email on its way' : 'Courriel de confirmation en route'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'en'
+                  ? "Check your inbox in the next few minutes — look in spam if it doesn't show up."
+                  : "Vérifie ta boîte courriel dans les prochaines minutes — regarde dans les indésirables au besoin."}
+              </div>
+            </div>
+          </li>
+          <li className="flex items-start gap-3 bg-secondary/40 border border-border rounded-xl p-4">
+            <Clock size={20} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <div className="font-bold text-sm">
+                {lang === 'en' ? 'Production · 5 business days' : 'Production · 5 jours ouvrables'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'en'
+                  ? 'We print, trim, and QC every order in our Québec shop before it ships.'
+                  : "On imprime, coupe et contrôle chaque commande dans notre atelier au Québec avant l'envoi."}
+              </div>
+            </div>
+          </li>
+          <li className="flex items-start gap-3 bg-secondary/40 border border-border rounded-xl p-4">
+            <Package size={20} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <div>
+              <div className="font-bold text-sm">
+                {lang === 'en' ? 'Tracking link when it ships' : "Lien de suivi à l'expédition"}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                {lang === 'en'
+                  ? 'You\u2019ll get a second email with a carrier tracking number the moment it leaves our shop.'
+                  : "Tu recevras un deuxième courriel avec le numéro de suivi dès que ta commande quitte l'atelier."}
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md">
+          {orderNumber.trim() && (
+            <Link
+              to={`/track/${encodeURIComponent(orderNumber.trim())}`}
+              className="flex-1 py-3 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold text-center hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+            >
+              {lang === 'en' ? 'Track order' : 'Suivre ma commande'}
+            </Link>
+          )}
+          <Link
+            to="/products"
+            className="flex-1 py-3 border-2 border-border text-foreground rounded-xl text-sm font-extrabold text-center hover:border-primary/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            {lang === 'en' ? 'Continue shopping' : 'Continuer à magasiner'}
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
