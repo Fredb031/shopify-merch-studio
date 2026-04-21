@@ -17,7 +17,7 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Brush, PackageCheck } from 'lucide-react';
+import { Shirt, Brush, PackageCheck, CreditCard, Smartphone, ShoppingBag, Lock } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 
@@ -577,6 +577,43 @@ export default function Index() {
           >
             {t('heroCta')}
           </Link>
+        </section>
+      </FadeIn>
+
+      {/* Trust badges row — sits just above the footer so the final
+          pre-footer impression is the payment-safety promise. Using
+          text-style pill labels (no external logos) to keep clear of
+          brand-mark license complexity; lucide-react icons stand in
+          for the payment categories. Muted greys keep the row calm
+          so it reads as reassurance, not a sales element. */}
+      <FadeIn>
+        <section className="border-t border-border py-8 px-6 md:px-10 bg-background">
+          <div className="max-w-[1060px] mx-auto">
+            <div className="flex items-center justify-center gap-2 mb-3 text-muted-foreground">
+              <Lock size={12} strokeWidth={2} aria-hidden="true" />
+              <span className="text-[11px] font-bold tracking-[2px] uppercase">
+                {lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}
+              </span>
+            </div>
+            <ul className="flex flex-wrap items-center justify-center gap-2">
+              {[
+                { label: 'Visa',        Icon: CreditCard },
+                { label: 'Mastercard',  Icon: CreditCard },
+                { label: 'Amex',        Icon: CreditCard },
+                { label: 'Apple Pay',   Icon: Smartphone },
+                { label: 'Google Pay',  Icon: Smartphone },
+                { label: 'Shopify',     Icon: ShoppingBag },
+              ].map(({ label, Icon }) => (
+                <li
+                  key={label}
+                  className="inline-flex items-center gap-1.5 h-[26px] px-3 rounded-full border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.3px] text-muted-foreground"
+                >
+                  <Icon size={12} strokeWidth={2} aria-hidden="true" />
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       </FadeIn>
 
