@@ -230,11 +230,13 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   //   2 = Where to print
   //   3 = Sizes & quantities
   //   4 = Review & cart
+  // Each step has a short clear label (never just a number) so users
+  // always know what the step does at a glance. Bilingual by design.
   const STEPS = [
-    { id: 1, label: t('tonLogo'),          shortLabel: lang === 'en' ? 'Logo'   : 'Logo',    done: anyLogoUploaded || store.placementSides === 'none' },
-    { id: 2, label: t('zoneImpression'),   shortLabel: lang === 'en' ? 'Where'  : 'Où',      done: placementComplete },
-    { id: 3, label: t('taillesQuantites'), shortLabel: lang === 'en' ? 'Sizes'  : 'Tailles', done: totalQty > 0 },
-    { id: 4, label: t('resume'),           shortLabel: lang === 'en' ? 'Review' : 'Récap',   done: false },
+    { id: 1, label: lang === 'en' ? 'Logo'      : 'Logo',       shortLabel: 'Logo',                               done: anyLogoUploaded || store.placementSides === 'none' },
+    { id: 2, label: lang === 'en' ? 'Placement' : 'Placement',  shortLabel: 'Placement',                          done: placementComplete },
+    { id: 3, label: lang === 'en' ? 'Sizes'     : 'Tailles',    shortLabel: lang === 'en' ? 'Sizes'    : 'Tailles',  done: totalQty > 0 },
+    { id: 4, label: lang === 'en' ? 'Review'    : 'Révision',   shortLabel: lang === 'en' ? 'Review'   : 'Révision', done: false },
   ];
 
   const canNext = () => {
@@ -731,14 +733,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     type="button"
                     onClick={() => isClickable && store.setStep(s.id as 1 | 2 | 3 | 4)}
                     disabled={!isClickable && !isActive}
-                    aria-label={`${s.label} — ${stateSr}`}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
-                      isActive ? 'bg-primary text-primary-foreground' :
-                      isDone ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200' :
-                      'text-muted-foreground cursor-default disabled:opacity-70'
+                    aria-label={`${s.id}. ${s.label} — ${stateSr}`}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold transition-all origin-center focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                      isActive
+                        ? 'bg-[#1B3A6B] text-white scale-110 shadow-sm'
+                      : isDone
+                        ? 'bg-green-100 text-green-700 cursor-pointer hover:bg-green-200'
+                      : 'text-muted-foreground cursor-default disabled:opacity-70'
                     }`}
                   >
-                    {isDone ? <Check size={9} aria-hidden="true" /> : <span aria-hidden="true">{s.id}</span>}
+                    {isDone ? <Check size={10} strokeWidth={3} aria-hidden="true" /> : <span aria-hidden="true">{s.id}</span>}
                     <span className="sm:hidden">{s.shortLabel}</span>
                     <span className="hidden sm:inline">{s.label}</span>
                   </button>
