@@ -27,11 +27,20 @@ export function useProductColors(handle: string | undefined) {
       return parseProductColors(product);
     },
     enabled: !!normalized,
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    // Colour/variant data is effectively static per product handle —
+    // cache aggressively (30 min) so jumping between PDPs and the
+    // catalogue grid doesn't re-hit Storefront for swatches we already
+    // have. Shopify admin edits to variants are rare and a full reload
+    // bypasses the cache anyway.
+    staleTime: 30 * 60 * 1000,
+    // Keep swatch data in memory for an hour after unmount so back/forward
+    // navigation to a recently-viewed PDP feels instant instead of
+    // flashing an empty swatch row while Storefront is re-queried.
+    gcTime: 60 * 60 * 1000,
     // Retry transient Shopify blips with exponential backoff before
-    // locking in an empty list for the 5-min staleTime. Without this,
+    // locking in an empty list for the 30-min staleTime. Without this,
     // a dropped fetch during PDP load showed no colour swatches for
-    // five full minutes even if Shopify was up the whole time after.
+    // the full stale window even if Shopify was up the whole time after.
     retry: 2,
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000),
   });

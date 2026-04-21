@@ -12,9 +12,16 @@ export function useProducts(first = 50) {
       const data = await storefrontApiRequest(PRODUCTS_QUERY, { first });
       return data?.data?.products?.edges ?? [];
     },
-    // Product catalog rarely changes mid-session — cache for 10 min
+    // Product catalog rarely changes mid-session — cache for 30 min
     // so swapping pages doesn't re-fetch and flash a skeleton each time.
-    staleTime: 10 * 60 * 1000,
+    // Catalog edits in Shopify admin are infrequent relative to typical
+    // browsing sessions, so a longer staleTime trades near-zero staleness
+    // risk for a noticeably snappier UX across navigations.
+    staleTime: 30 * 60 * 1000,
+    // Keep the cached payload around for 60 min even after all observers
+    // unmount, so a user who bounces to cart then back to the listing
+    // page re-hydrates instantly instead of hitting Shopify again.
+    gcTime: 60 * 60 * 1000,
     // Retry transient Shopify network blips with exponential backoff
     // before surfacing an error to the user.
     retry: 2,
