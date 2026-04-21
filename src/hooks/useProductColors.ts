@@ -4,11 +4,36 @@
  *
  * Returns: live color list with imageDevant/imageDos per color.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { storefrontApiRequest, parseProductColors, PRODUCT_FULL_QUERY } from '@/lib/shopify';
 import type { ShopifyVariantColor } from '@/lib/shopify';
 
-export function useProductColors(handle: string | undefined) {
+// Dedupe by normalized colorName (trim+lowercase) and sort alphabetically
+// so identical refetches produce identical array contents, and the UI
+// swatch row has a stable visual order regardless of Shopify's variant
+// insertion order. Shopify admin occasionally reorders variants when
+// editing, which used to shuffle our swatches for no user-visible reason.
+function dedupeAndSortColors(colors: ShopifyVariantColor[]): ShopifyVariantColor[] {
+  const seen = new Set<string>();
+  const unique: ShopifyVariantColor[] = [];
+  for (const c of colors) {
+    const key = (c.colorName ?? '').trim().toLowerCase();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    unique.push(c);
+  }
+  return unique.sort((a, b) =>
+    (a.colorName ?? '').localeCompare(b.colorName ?? '', undefined, { sensitivity: 'base' })
+  );
+}
+
+/**
+ * Return type for useProductColors. Exposed so callers (e.g. wrapper
+ * hooks / HOCs) can type their props without re-deriving it manually.
+ */
+export type ProductColors = ReturnType<typeof useProductColors>;
+
+export function useProductColors(handle: string | undefined): UseQueryResult<ShopifyVariantColor[]> {
   // Normalize before the cache key so callers that pass 'ATCF2500',
   // ' atcf2500', or 'atcf2500\n' all hit the same React Query entry
   // instead of firing three duplicate Storefront requests for the same
@@ -24,7 +49,7 @@ export function useProductColors(handle: string | undefined) {
       const data = await storefrontApiRequest(PRODUCT_FULL_QUERY, { handle: normalized });
       const product = data?.data?.product;
       if (!product) return [];
-      return parseProductColors(product);
+      return dedupeAndSortColors(parseProductColors(product));
     },
     enabled: !!normalized,
     // Colour/variant data is effectively static per product handle —
@@ -46,5 +71,13 @@ export function useProductColors(handle: string | undefined) {
     // they don't retry in lock-step and re-trigger the same rate limit.
     retry: 2,
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000) + Math.random() * 300,
+    // Explicit structural sharing keeps the data array reference stable
+    // across refetches whose payload deep-equals the previous one. Without
+    // it, a background refetch that returns identical colours would still
+    // produce a fresh array, busting downstream useMemo / React.memo gates
+    // in consumers like ProductCustomizer that map over swatches on every
+    // data change. React Query defaults this to true already; we pin it
+    // here so a future QueryClient default flip can't silently regress.
+    structuralSharing: true,
   });
 }
