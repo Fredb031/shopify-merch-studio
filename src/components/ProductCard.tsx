@@ -4,6 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { ShopifyProduct } from '@/lib/shopify';
 import { useWishlist } from '@/hooks/useWishlist';
+import { Highlight } from '@/components/Highlight';
 // Customizer pulls in fabric.js (~310kB) and its own siblings — lazy-
 // load so just rendering the grid doesn't eagerly fetch it. The
 // customizer only opens when the user clicks the inline 'Personnaliser'.
@@ -20,9 +21,15 @@ interface ProductCardProps {
   /** Set true for the handful of above-the-fold cards so their image
    *  competes for LCP instead of being lazy-loaded. */
   eager?: boolean;
+  /** Task 2.18 — when the card is rendered inside a search-results
+   *  grid, pass the active (debounced) query. The title will wrap
+   *  matching substrings in a gold <mark>. Optional so unrelated
+   *  surfaces (RecentlyViewed, 404 popular strip, etc.) stay
+   *  un-highlighted by default. */
+  highlight?: string;
 }
 
-export function ProductCard({ product, eager = false }: ProductCardProps) {
+export function ProductCard({ product, eager = false, highlight }: ProductCardProps) {
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const [customizerOpen, setCustomizerOpen] = useState(false);
@@ -320,7 +327,17 @@ export function ProductCard({ product, eager = false }: ProductCardProps) {
             {local?.sku ?? node.productType ?? ''}
           </p>
           <div className="text-[14px] font-extrabold text-foreground leading-tight mb-1">
-            {local ? categoryLabel(local.category, lang) : title}
+            {(() => {
+              const displayTitle = local ? categoryLabel(local.category, lang) : title;
+              // Task 2.18 — only wrap in Highlight when a search query
+              // is active. Highlight is a no-op for empty strings, but
+              // the explicit guard keeps the DOM output identical to
+              // the pre-2.18 surface on the default (non-search) case.
+              if (highlight && highlight.trim()) {
+                return <Highlight text={displayTitle} query={highlight} />;
+              }
+              return displayTitle;
+            })()}
           </div>
 
           {/* Explicit color count — derived from the same findColorImage

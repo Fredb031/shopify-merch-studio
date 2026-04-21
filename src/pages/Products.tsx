@@ -669,7 +669,9 @@ export default function Products() {
                   try {
                     // First row is above the fold (2-col mobile, 4-col desktop)
                     // — mark those eager so the LCP image isn't lazy-loaded.
-                    return <ProductCard key={key} product={product} eager={i < 4} />;
+                    // Task 2.18 — pass the debounced search query so the
+                    // card's title highlights the matching substring.
+                    return <ProductCard key={key} product={product} eager={i < 4} highlight={debouncedQuery} />;
                   } catch (err) {
                     console.warn('[Products] ProductCard threw, skipping', key, err);
                     return null;
