@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Shield,
   ShieldAlert,
+  RefreshCw,
 } from 'lucide-react';
 import { StatCard } from '@/components/admin/StatCard';
 import { TodayWidget } from '@/components/admin/TodayWidget';
@@ -25,6 +26,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getAuditLog, type AuditEntry } from '@/lib/auditLog';
 import { useAppSettings, getUser2faMap } from '@/lib/appSettings';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthStore } from '@/stores/authStore';
 
 const STATUS_COLORS: Record<string, string> = {
   paid: 'bg-emerald-100 text-emerald-800',
@@ -192,10 +194,19 @@ function ActivityFeedCard() {
     <div className="bg-white border border-zinc-200 rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-bold text-zinc-900">Activité récente</h2>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 inline-flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Live
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Live
+          </span>
+          <Link
+            to="/admin/orders"
+            aria-label="Voir toute l'activité"
+            className="text-xs font-semibold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+          >
+            Voir tout →
+          </Link>
+        </div>
       </div>
       <ul className="divide-y divide-zinc-100 -mx-2">
         {items.map(item => {
@@ -428,8 +439,36 @@ function TwoFaEnforcementBanner() {
   );
 }
 
+/** Admin home page — headline metrics, today's priorities, recent orders
+ * + activity feed, Shopify sync status, low-stock nudge, and audit log. */
 export default function AdminDashboard() {
   useDocumentTitle('Tableau de bord — Admin Vision Affichage');
+  const currentUser = useAuthStore(s => s.user);
+  // The dashboard pulls from static snapshots + localStorage-memoized
+  // widgets, so "refresh" remounts the data-bearing section by bumping
+  // a key. Cheaper than threading a refetch signal through every child
+  // and matches what an operator expects from a tiny refresh affordance.
+  const [refreshKey, setRefreshKey] = useState(0);
+  const handleRefresh = useCallback(() => setRefreshKey(k => k + 1), []);
+  // Greeting name: prefer the profile's first name, fall back to the
+  // email local-part so a freshly-signed-in account without a full_name
+  // still gets a human-feeling salutation instead of an empty comma.
+  const greetingName = (() => {
+    const raw = currentUser?.name?.trim() ?? '';
+    if (raw) return raw.split(' ')[0];
+    const email = currentUser?.email ?? '';
+    return email.includes('@') ? email.split('@')[0] : '';
+  })();
+  // fr-CA formatter intentionally spells out the weekday + month so the
+  // header reads like "lundi 21 avril 2026" — dense enough to anchor
+  // the admin's sense of time but still a single line at standard
+  // dashboard widths.
+  const todayLabel = new Date().toLocaleDateString('fr-CA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
   const recentOrders = SHOPIFY_ORDERS_SNAPSHOT.slice(0, 6);
   const revenueFmt = SHOPIFY_STATS.revenueLast7Days.toLocaleString('fr-CA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   // Count from the live snapshot instead of a hardcoded "3". Threshold
@@ -444,18 +483,38 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-2xl font-extrabold tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-emerald-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live Shopify via Zapier
-          </span>
-          <span className="text-zinc-400">·</span>
-          <span>{SHOPIFY_SNAPSHOT_META.shop}</span>
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight">
+              {greetingName ? `Bonjour, ${greetingName}` : 'Tableau de bord'}
+            </h1>
+            <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 text-emerald-700">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Shopify via Zapier
+              </span>
+              <span className="text-zinc-400">·</span>
+              <span>{SHOPIFY_SNAPSHOT_META.shop}</span>
+              <span className="text-zinc-400">·</span>
+              <span className="capitalize">{todayLabel}</span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            aria-label="Rafraîchir les données du tableau de bord"
+            title="Rafraîchir"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-50 rounded-lg px-3 py-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 flex-shrink-0"
+          >
+            <RefreshCw size={14} aria-hidden="true" />
+            Rafraîchir
+          </button>
+        </div>
       </header>
 
       <TwoFaEnforcementBanner />
+
+      <div key={refreshKey} className="contents">
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Commandes (7j)" value={String(SHOPIFY_STATS.ordersLast7Days)} delta={12} deltaLabel="vs. sem. dernière" icon={ShoppingBag} accent="blue" />
@@ -591,6 +650,8 @@ export default function AdminDashboard() {
       <ActivityFeedCard />
 
       <RecentAuditCard />
+
+      </div>
     </div>
   );
 }
