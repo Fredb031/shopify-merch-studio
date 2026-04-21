@@ -19,6 +19,24 @@ export interface SanmarInventoryResult {
   error: unknown;
 }
 
+// Stable empty summary reference. Without this, every "no style number"
+// or "data not yet loaded" render allocated a fresh StockSummary whose
+// byColor / bySize / byColorSize Maps were brand-new identities, which
+// defeated `useMemo(..., [stock.byColorSize])` / effect deps in consumers
+// like ProductDetail that key variant-stock work on the Map reference.
+// Empty Maps are safe to share because the hook never mutates them —
+// summarizeStock always constructs its own Maps when `parts` is a real
+// array. Frozen to catch any accidental future mutation in dev.
+const EMPTY_BY_COLOR: ReadonlyMap<string, number> = new Map();
+const EMPTY_BY_SIZE: ReadonlyMap<string, number> = new Map();
+const EMPTY_BY_COLOR_SIZE: ReadonlyMap<string, number> = new Map();
+const EMPTY_SUMMARY: StockSummary = Object.freeze({
+  totalAvailable: 0,
+  byColor: EMPTY_BY_COLOR as Map<string, number>,
+  bySize: EMPTY_BY_SIZE as Map<string, number>,
+  byColorSize: EMPTY_BY_COLOR_SIZE as Map<string, number>,
+}) as StockSummary;
+
 export function useSanmarInventory(styleNumber: string | null | undefined): SanmarInventoryResult {
   // Normalize before the cache key so 'ATCF2500', ' atcf2500 ', and
   // 'atcf2500\n' all hit the same React Query entry instead of firing
@@ -44,7 +62,14 @@ export function useSanmarInventory(styleNumber: string | null | undefined): Sanm
   // any downstream useMemo / useEffect depending on `summary` as a
   // reference would re-run unnecessarily. React Query already
   // stabilizes `data` across renders as long as it hasn't refetched.
-  const summary = useMemo(() => summarizeStock(data ?? null), [data]);
+  // When there's no data (empty style number, pre-fetch, or the edge
+  // function returned null) we hand back the module-level EMPTY_SUMMARY
+  // so consumers see one stable reference across every such render
+  // rather than a churn of brand-new empty Maps.
+  const summary = useMemo(
+    () => (data ? summarizeStock(data) : EMPTY_SUMMARY),
+    [data],
+  );
 
   return {
     parts: data ?? null,
