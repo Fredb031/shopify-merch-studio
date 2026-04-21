@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag, AlertTriangle, Trash2, Download } from 'lucide-react';
+import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, ExternalLink, ShoppingBag, AlertTriangle, Trash2, Download, Languages, BellRing } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
@@ -66,6 +66,45 @@ function readJSON(key: string): unknown {
     try { return JSON.parse(raw); } catch { return raw; }
   } catch { return null; }
 }
+// Account-level email-notifications preferences. Persisted under a
+// namespaced key so the nightly-newsletter worker (Supabase Edge fn)
+// can cross-reference it against subscriber state without colliding
+// with the older vision-newsletter-subscribers shape. All three flags
+// default to true so we don't silently drop transactional receipts on
+// legacy visitors; the user opts *out* explicitly.
+const EMAIL_PREFS_KEY = 'va:account-email-prefs';
+interface EmailPrefs {
+  orderConfirmations: boolean;
+  promos: boolean;
+  newcomers: boolean;
+}
+const DEFAULT_EMAIL_PREFS: EmailPrefs = {
+  orderConfirmations: true,
+  promos: true,
+  newcomers: true,
+};
+function readEmailPrefs(): EmailPrefs {
+  try {
+    const raw = localStorage.getItem(EMAIL_PREFS_KEY);
+    if (!raw) return DEFAULT_EMAIL_PREFS;
+    const parsed = JSON.parse(raw) as Partial<EmailPrefs>;
+    return {
+      orderConfirmations: typeof parsed.orderConfirmations === 'boolean' ? parsed.orderConfirmations : true,
+      promos: typeof parsed.promos === 'boolean' ? parsed.promos : true,
+      newcomers: typeof parsed.newcomers === 'boolean' ? parsed.newcomers : true,
+    };
+  } catch {
+    return DEFAULT_EMAIL_PREFS;
+  }
+}
+function writeEmailPrefs(prefs: EmailPrefs): void {
+  try {
+    localStorage.setItem(EMAIL_PREFS_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    console.warn('[Account] Could not persist email prefs:', e);
+  }
+}
+
 function filterDeletionRequestsForEmail(email: string | undefined): unknown {
   if (!email) return [];
   const raw = readJSON(EXPORT_KEYS.deletionRequests);
@@ -79,7 +118,7 @@ function filterDeletionRequestsForEmail(email: string | undefined): unknown {
 }
 
 export default function Account() {
-  const { lang } = useLang();
+  const { lang, setLang } = useLang();
   const navigate = useNavigate();
   const user = useAuthStore(s => s.user);
   const signOut = useAuthStore(s => s.signOut);
@@ -94,6 +133,17 @@ export default function Account() {
   // the same request and calls signOut a second time mid-async.
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  // Email-notifications prefs — lazy-init from localStorage so the
+  // checkbox row reflects the visitor's last-saved state on first
+  // render instead of flashing the defaults and then snapping.
+  const [emailPrefs, setEmailPrefs] = useState<EmailPrefs>(() => readEmailPrefs());
+  const updateEmailPref = (key: keyof EmailPrefs, next: boolean) => {
+    setEmailPrefs(prev => {
+      const merged = { ...prev, [key]: next };
+      writeEmailPrefs(merged);
+      return merged;
+    });
+  };
   const verificationWord = lang === 'en' ? 'DELETE' : 'SUPPRIMER';
   const canConfirmDelete = deleteConfirm.trim().toUpperCase() === verificationWord;
 
@@ -439,6 +489,99 @@ export default function Account() {
             {lang === 'en' ? 'Change password →' : 'Changer mon mot de passe →'}
           </Link>
         </div>
+
+        {/* Preferences — explicit language switch (mirrors the nav
+            toggle but surfaced inside the account UI for people who
+            opened /account directly from a bookmark) and per-channel
+            email opt-outs. Both flip localStorage synchronously so
+            the existing cross-tab listeners in langContext pick up
+            the new language immediately. */}
+        <section
+          aria-labelledby="preferences-heading"
+          className="bg-white border border-border rounded-2xl p-5 md:p-6 mt-5"
+        >
+          <h2 id="preferences-heading" className="font-bold flex items-center gap-2 mb-4">
+            <Languages size={16} className="text-primary" aria-hidden="true" />
+            {lang === 'en' ? 'Preferences' : 'Préférences'}
+          </h2>
+
+          <fieldset className="mb-5">
+            <legend className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+              {lang === 'en' ? 'Preferred language' : 'Langue préférée'}
+            </legend>
+            <div role="radiogroup" aria-label={lang === 'en' ? 'Preferred language' : 'Langue préférée'} className="inline-flex items-center gap-2 p-1 bg-secondary/60 rounded-full">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={lang === 'fr'}
+                onClick={() => setLang('fr')}
+                className={`px-4 py-1.5 text-xs font-extrabold rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                  lang === 'fr' ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={lang === 'en'}
+                onClick={() => setLang('en')}
+                className={`px-4 py-1.5 text-xs font-extrabold rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
+                  lang === 'en' ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <BellRing size={12} aria-hidden="true" />
+              {lang === 'en' ? 'Email me about' : 'Recevoir les courriels pour'}
+            </legend>
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={emailPrefs.orderConfirmations}
+                  onChange={e => updateEmailPref('orderConfirmations', e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                />
+                <span className="text-sm">
+                  {lang === 'en' ? 'Order confirmations' : 'Confirmations de commande'}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={emailPrefs.promos}
+                  onChange={e => updateEmailPref('promos', e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                />
+                <span className="text-sm">
+                  {lang === 'en' ? 'Promos' : 'Promos'}
+                </span>
+              </label>
+              <label className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={emailPrefs.newcomers}
+                  onChange={e => updateEmailPref('newcomers', e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                />
+                <span className="text-sm">
+                  {lang === 'en' ? 'New products' : 'Nouveautés produits'}
+                </span>
+              </label>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+              {lang === 'en'
+                ? 'Saved to this device. Server-side preferences sync on your next sign-in.'
+                : 'Enregistré sur cet appareil. La synchronisation serveur se fait à la prochaine connexion.'}
+            </p>
+          </fieldset>
+        </section>
 
         <button
           type="button"
