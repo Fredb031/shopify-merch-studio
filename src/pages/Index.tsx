@@ -102,6 +102,44 @@ export default function Index() {
   const [heroStaggered, setHeroStaggered] = useState(true);
   const [playingVideo, setPlayingVideo] = useState<number | null>(null);
 
+  // Sticky bottom CTA (mobile only) — Task 1.11. The sentinel sits at
+  // the bottom of the hero section; when it leaves the viewport we
+  // know the user has scrolled past the hero and should see the
+  // always-visible "Soumission gratuite" CTA. Re-entering the viewport
+  // on scroll-back hides it. Desktop breakpoints (>=768px) never show
+  // the bar — the top-nav CTA handles desktop conversion.
+  const heroSentinelRef = useRef<HTMLDivElement>(null);
+  const [showStickyCta, setShowStickyCta] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(mq.matches);
+    update();
+    // addEventListener is the modern API; older Safari uses addListener.
+    if (mq.addEventListener) mq.addEventListener('change', update);
+    else mq.addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', update);
+      else mq.removeListener(update);
+    };
+  }, []);
+  useEffect(() => {
+    const el = heroSentinelRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        // Visible bar once the sentinel is no longer intersecting the
+        // viewport — i.e. the hero bottom has scrolled off the top of
+        // the screen.
+        setShowStickyCta(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   // FAQ accordion — one-at-a-time open behaviour. Native <details> gives
   // us keyboard/SR semantics + no-JS progressive enhancement for free;
   // this handler just enforces mutual exclusion so opening one card
@@ -382,6 +420,10 @@ export default function Index() {
             <span className="text-[14px] font-bold text-foreground">{t('googleReviews')}</span>
           </div>
         </div>
+        {/* Sentinel for mobile sticky CTA — placed at the bottom of the
+            hero section. Once this leaves the viewport we know the hero
+            has scrolled off and the sticky bar should reveal. */}
+        <div ref={heroSentinelRef} aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full pointer-events-none" />
       </section>
 
       {/* Trust signals — right below hero */}
@@ -810,6 +852,42 @@ export default function Index() {
       </FadeIn>
 
       <SiteFooter />
+
+      {/* Sticky mobile CTA bar — Task 1.11. Appears once the hero
+          sentinel exits the viewport. `md:hidden` keeps it off desktop
+          where the top-nav CTA does the job. `z-40` sits below the
+          toast/modal stack (z-50+) so dialogs can still cover it.
+          safe-area-inset-bottom padding protects against the iOS
+          home indicator. Respects prefers-reduced-motion by skipping
+          the slide transform. */}
+      <div
+        aria-hidden={!showStickyCta}
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-primary text-primary-foreground shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${reducedMotion ? '' : 'transition-transform duration-300 ease-out'} ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="flex items-center justify-between gap-3 h-16 px-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center flex-shrink-0">
+              <Shirt className="text-primary-foreground" size={20} strokeWidth={1.75} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[12px] font-bold leading-tight text-primary-foreground truncate">
+                {lang === 'en' ? 'Need quality merch?' : 'Du merch de qualité?'}
+              </div>
+              <div className="text-[10px] text-primary-foreground/70 leading-tight truncate">
+                {lang === 'en' ? 'No minimum · 5-day delivery' : 'Aucun minimum · 5 jours'}
+              </div>
+            </div>
+          </div>
+          <Link
+            to="/contact"
+            tabIndex={showStickyCta ? 0 : -1}
+            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-accent text-accent-foreground text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_hsla(var(--gold),0.4)] transition-shadow hover:shadow-[0_6px_18px_hsla(var(--gold),0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+          >
+            {lang === 'en' ? 'Free quote' : 'Soumission gratuite'}
+          </Link>
+        </div>
+      </div>
 
       <AIChat />
       <BottomNav />
