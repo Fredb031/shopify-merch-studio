@@ -127,6 +127,31 @@ export default function ProductDetail() {
   // (fires twice on Android). Lock the button for the duration of
   // the share/clipboard async so the second click is swallowed.
   const [sharing, setSharing] = useState(false);
+
+  // Hunt 133 — sticky mobile CTA visibility. We only want the pinned
+  // Personnaliser button to appear once the user has scrolled the
+  // in-flow CTA off-screen; otherwise we'd stack two identical
+  // buttons on top of each other on small phones. IntersectionObserver
+  // on the inline CTA's ref toggles the sticky variant's hidden state.
+  // The observer is cheap (1 target, default threshold) and cleans up
+  // on unmount; falls back to "always show" if IO is unavailable
+  // (old Safari < 12.2) rather than silently hiding the button.
+  const inlineCtaRef = useRef<HTMLButtonElement | null>(null);
+  const [inlineCtaInView, setInlineCtaInView] = useState(true);
+  useEffect(() => {
+    const el = inlineCtaRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') {
+      setInlineCtaInView(false); // force sticky visible as a fallback
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setInlineCtaInView(!!entry?.isIntersecting),
+      { threshold: 0, rootMargin: '0px 0px -60px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [product]);
   const handleWishlistClick = () => {
     if (!handle) return;
     const wasAdding = !saved;
@@ -863,9 +888,37 @@ export default function ProductDetail() {
                 without a specific warning, but steps aside when Task 3.17's
                 per-variant pill (low-stock / out-of-stock) has something
                 more urgent to say — we don't want both pills fighting for
-                the user's attention right above the CTA. */}
+                the user's attention right above the CTA.
+
+                Hunt 133 — product-level urgency pills sit next to the
+                "In stock" badge. When SanMar reports total < 10 we nudge
+                with an amber "Plus que N en stock" / "Only N left"; when
+                totalAvailable === 0 we flip red "Rupture de stock". Only
+                rendered once SanMar has loaded (stockLoading === false)
+                AND returned a non-empty Maps payload, so a missing edge
+                function degrades to silence instead of "0 left" noise. */}
             <div className="flex items-center gap-2 flex-wrap text-xs">
-              {!stockLoading && stock.totalAvailable > 0 && !isVariantLowStock && !isVariantSoldOut && (
+              {!stockLoading && stock.totalAvailable > 0 && stock.totalAvailable < 10 && !isVariantLowStock && !isVariantSoldOut && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-700 font-bold"
+                  role="status"
+                >
+                  <AlertTriangle size={11} aria-hidden="true" />
+                  {lang === 'en'
+                    ? `Only ${stock.totalAvailable} left`
+                    : `Plus que ${stock.totalAvailable} en stock`}
+                </span>
+              )}
+              {!stockLoading && stock.byColorSize && stock.byColorSize.size > 0 && stock.totalAvailable === 0 && !isVariantSoldOut && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-red-50 border border-red-200 text-red-700 font-bold"
+                  role="status"
+                >
+                  <PackageX size={11} aria-hidden="true" />
+                  {lang === 'en' ? 'Out of stock' : 'Rupture de stock'}
+                </span>
+              )}
+              {!stockLoading && stock.totalAvailable >= 10 && !isVariantLowStock && !isVariantSoldOut && (
                 <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold">
                   <Package size={11} aria-hidden="true" />
                   {lang === 'en' ? 'In stock' : 'En stock'}
@@ -1089,6 +1142,8 @@ export default function ProductDetail() {
 
             {/* CTA */}
             <button
+              ref={inlineCtaRef}
+              type="button"
               className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:hover:translate-y-0"
               style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
               onClick={() => setCustomizerOpen(true)}
@@ -1217,6 +1272,43 @@ export default function ProductDetail() {
           </section>
         )}
       </div>
+
+      {/* Hunt 133 — mobile sticky Personnaliser CTA.
+          On narrow viewports the inline "Personnaliser ce produit"
+          button scrolls out of view as soon as the user starts reading
+          the description / features / similar products. Pinning a
+          mirror of that CTA to the bottom of the viewport keeps the
+          purchase path one tap away at all times. Desktop (>=md) is
+          unaffected — the inline CTA is already within reach on a
+          wide layout. Bottom offset of 60px clears the BottomNav so
+          we don't cover its icons; the fade-in gate driven by the
+          IntersectionObserver above makes sure the pinned button
+          only appears once the inline CTA is off-screen. Safe-area
+          inset keeps it clear of iOS home-indicator territory. */}
+      {!inlineCtaInView && !customizerOpen && (
+        <div
+          className="md:hidden fixed left-0 right-0 bottom-[60px] bg-white/95 backdrop-blur border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-3 z-30"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <button
+            type="button"
+            onClick={() => setCustomizerOpen(true)}
+            disabled={isVariantSoldOut}
+            aria-disabled={isVariantSoldOut || undefined}
+            aria-label={isVariantSoldOut
+              ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
+              : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
+            className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
+          >
+            <Shirt size={18} aria-hidden="true" />
+            {isVariantSoldOut
+              ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
+              : (lang === 'en' ? 'Customize' : 'Personnaliser')}
+            <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       <AnimatePresence>
         {customizerOpen && (
