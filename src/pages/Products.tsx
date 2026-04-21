@@ -61,7 +61,23 @@ export default function Products() {
   })();
   const [activeCategory, setActiveCategory] = useState(initialCat);
   const [searchQuery, setSearchQuery] = useState('');
+  // Debounce the search query so the filter doesn't recompute on every
+  // keystroke during fast typing. The input still updates immediately
+  // (`searchQuery` drives the controlled input + clear button), but
+  // `debouncedQuery` lags ~275ms and is what actually feeds filter logic.
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>(initialSort);
+
+  useEffect(() => {
+    // Clearing the field should feel instant — no reason to keep stale
+    // results on screen for 275ms after the user hits the X button.
+    if (searchQuery === '') {
+      setDebouncedQuery('');
+      return;
+    }
+    const t = setTimeout(() => setDebouncedQuery(searchQuery), 275);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   // Keep the URL in sync with category + sort — replace history so
   // Back still returns to the previous page. Combines both params in
@@ -133,8 +149,8 @@ export default function Products() {
     let result = activeCategory === 'overview'
       ? products
       : products.filter(p => matchesCategory(p, activeCategory));
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedQuery.trim()) {
+      const q = debouncedQuery.toLowerCase();
       result = result.filter(p =>
         p.node.title.toLowerCase().includes(q) ||
         p.node.handle.toLowerCase().includes(q)
@@ -159,7 +175,7 @@ export default function Products() {
       result = sorted;
     }
     return result;
-  }, [products, activeCategory, searchQuery, sortMode, lang]);
+  }, [products, activeCategory, debouncedQuery, sortMode, lang]);
 
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
