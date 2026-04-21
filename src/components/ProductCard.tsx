@@ -382,36 +382,51 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
           })()}
 
           {/* Pricing with quantity breaks */}
-          {local ? (() => {
-            const unit = local.basePrice + PRINT_PRICE;
-            const bulk = unit * (1 - BULK_DISCOUNT_RATE);
+          {(() => {
+            // Screen readers pronounce "$27.54" as "dollar twenty seven
+            // point five four" and "27,54 $" as "twenty seven comma
+            // five four dollar sign", neither of which sounds like a
+            // real price. Spell out the amount with a decimal comma/dot
+            // replaced by the word "and" cents — no, simpler: feed the
+            // raw value followed by "dollars" / "dollars" so VoiceOver
+            // says "Prix : 27,54 dollars" / "Price: 27.54 dollars".
+            const priceAria = (n: number | null | undefined): string | undefined => {
+              if (n == null || !Number.isFinite(n)) return undefined;
+              const fixed = n.toFixed(2);
+              return lang === 'en'
+                ? `Price: ${fixed} dollars`
+                : `Prix : ${fixed.replace('.', ',')} dollars`;
+            };
+            if (local) {
+              const unit = local.basePrice + PRINT_PRICE;
+              const bulk = unit * (1 - BULK_DISCOUNT_RATE);
+              return (
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-[14px] font-extrabold text-primary" aria-label={priceAria(unit)}>{fmtMoney(unit, lang)}</span>
+                    <span className="text-[10px] text-muted-foreground">/ {lang === 'en' ? 'unit' : 'unité'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-bold text-green-700" aria-label={priceAria(bulk)}>{fmtMoney(bulk, lang)}</span>
+                    <span className="text-[9px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full font-bold">
+                      {BULK_DISCOUNT_THRESHOLD}+ = -{Math.round(BULK_DISCOUNT_RATE * 100)}%
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+            // Defensive: price.amount can be missing/non-numeric on
+            // a partial Shopify response. fmtMoney handles NaN /
+            // nullish by returning '—' so we render something visible
+            // instead of 'NaN $'.
+            const raw = price?.amount;
+            const n = raw != null ? parseFloat(raw) : NaN;
             return (
-              <div className="mt-2 space-y-1">
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[14px] font-extrabold text-primary">{fmtMoney(unit, lang)}</span>
-                  <span className="text-[10px] text-muted-foreground">/ {lang === 'en' ? 'unit' : 'unité'}</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-green-700">{fmtMoney(bulk, lang)}</span>
-                  <span className="text-[9px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full font-bold">
-                    {BULK_DISCOUNT_THRESHOLD}+ = -{Math.round(BULK_DISCOUNT_RATE * 100)}%
-                  </span>
-                </div>
+              <div className="mt-2">
+                <span className="text-[14px] font-extrabold text-primary" aria-label={priceAria(n)}>{fmtMoney(n, lang)}</span>
               </div>
             );
-          })() : (
-            <div className="mt-2">
-              <span className="text-[14px] font-extrabold text-primary">{(() => {
-                // Defensive: price.amount can be missing/non-numeric on
-                // a partial Shopify response. fmtMoney handles NaN /
-                // nullish by returning '—' so we render something visible
-                // instead of 'NaN $'.
-                const raw = price?.amount;
-                const n = raw != null ? parseFloat(raw) : NaN;
-                return fmtMoney(n, lang);
-              })()}</span>
-            </div>
-          )}
+          })()}
 
           <div className="mt-2.5">
             <span className="text-[10px] font-bold text-muted-foreground border border-border px-2 py-0.5 rounded-full group-hover:border-primary/50 group-hover:text-primary transition-colors">
