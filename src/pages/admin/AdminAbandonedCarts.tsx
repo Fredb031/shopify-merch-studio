@@ -1,6 +1,7 @@
 import { ExternalLink, Mail, Send, RefreshCw, ShoppingBag, Search } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT,
   SHOPIFY_STATS,
@@ -53,6 +54,17 @@ export default function AdminAbandonedCarts() {
   const [page, setPage] = useState(0);
   useDocumentTitle('Paniers abandonnés — Admin Vision Affichage');
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
+
+  // Cancel the resync delay if the admin navigates away in the 400ms
+  // before the reload — same pattern as AdminProducts / AdminOrders /
+  // AdminCustomers, otherwise the reload yanks them back here
+  // mid-navigation.
+  const resyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+    };
+  }, []);
 
   // Sync state → URL with replace history.
   useEffect(() => {
@@ -108,9 +120,19 @@ export default function AdminAbandonedCarts() {
             <span>{SHOPIFY_STATS.abandonedCheckoutsCount} checkouts à recuperer</span>
           </p>
         </div>
+        {/* Match the Resync UX on AdminProducts / AdminOrders /
+            AdminCustomers: toast for immediate feedback, then reload after
+            a short delay so the admin sees the spinner state. Before this
+            the button was decorative with no onClick and clicking produced
+            no visible reaction — the whole page read as broken. */}
         <button
           type="button"
-          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          onClick={() => {
+            toast.info('Synchronisation en cours…');
+            if (resyncTimerRef.current) clearTimeout(resyncTimerRef.current);
+            resyncTimerRef.current = setTimeout(() => window.location.reload(), 400);
+          }}
+          className="inline-flex items-center gap-2 text-sm font-bold px-4 py-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
         >
           <RefreshCw size={15} aria-hidden="true" />
           Resync
