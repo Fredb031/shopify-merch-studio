@@ -3,7 +3,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
-import { findProductByHandle, PRODUCTS, POPULAR_SKUS } from '@/data/products';
+import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useLang } from '@/lib/langContext';
 import { Search, X } from 'lucide-react';
@@ -157,10 +157,12 @@ export default function Products() {
   };
 
   // Popular product suggestions shown when a search yields nothing.
-  // Map POPULAR_SKUS onto the live Shopify list (which may not include
-  // every local SKU), keep first 3, and exclude anything whose title
-  // already matches the failed query — suggesting the same miss back
-  // to the user would be pointless.
+  // Task 2.4: surface a curated 3-SKU fallback (ATC1000 cotton tee,
+  // ATCF2500 hoodie, ATC6606 cap) so the user always has a one-click
+  // path to a real product page even if their query was a typo.
+  // We map those SKUs onto the live Shopify list (which may not include
+  // every local SKU) and keep first 3 matches.
+  const EMPTY_STATE_POPULAR_SKUS = ['ATC1000', 'ATCF2500', 'ATC6606'] as const;
   const popularSuggestions = useMemo(() => {
     try {
       // Defensive: products can be null/undefined while loading, or if
@@ -168,8 +170,7 @@ export default function Products() {
       // accepted. Guarding with Array.isArray covers both nullish and
       // "it was an object, not a list" cases.
       if (!products || !Array.isArray(products)) return [];
-      const popular = [...POPULAR_SKUS];
-      const matched = popular
+      const matched = EMPTY_STATE_POPULAR_SKUS
         .map(sku => {
           const local = PRODUCTS.find(p => p.sku === sku);
           if (!local) return undefined;
@@ -490,75 +491,108 @@ export default function Products() {
 
             {filteredProducts.length === 0 ? (
               <div className="py-12">
-                <div className="text-center">
-                  <p className="text-muted-foreground">
-                    {searchQuery
-                      ? lang === 'en'
-                        ? `No products match "${searchQuery}"`
-                        : `Aucun produit ne correspond \u00e0 \u00ab ${searchQuery} \u00bb`
-                      : lang === 'en'
-                      ? 'No products in this category yet.'
-                      : 'Aucun produit dans cette cat\u00e9gorie pour l\'instant.'}
-                  </p>
-                  {searchQuery && (
-                    <button
-                      onClick={() => {
-                        setSearchQuery('');
-                        setActiveCategory('overview');
-                      }}
-                      className="mt-3 text-sm font-bold text-primary bg-transparent border-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-                    >
-                      {lang === 'en' ? 'See all products' : 'Voir tous les produits'}
-                    </button>
-                  )}
-                </div>
-
-                {searchQuery && nearestCategories.length > 0 && (
-                  <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
-                    <span className="text-[12px] text-muted-foreground">
-                      {lang === 'en' ? 'Try a category:' : 'Essaie une cat\u00e9gorie :'}
-                    </span>
-                    {nearestCategories.map(cat => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => selectCategory(cat.id)}
-                        className="text-[12px] font-bold px-3 py-1.5 rounded-full bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                      >
-                        {lang === 'en' ? cat.en : cat.fr}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {searchQuery && popularSuggestions.length > 0 && (
-                  <div className="mt-10">
-                    <div className="flex items-baseline justify-between gap-3 mb-4 flex-wrap">
-                      <h3 className="text-lg font-extrabold text-foreground">
-                        {lang === 'en' ? 'Popular right now' : 'Populaires en ce moment'}
-                      </h3>
+                {searchQuery ? (
+                  // Search-driven empty state: big muted Search icon,
+                  // friendly heading echoing the query, helper subtext,
+                  // a Clear-search button, nearest-category chips, and
+                  // a 3-card Populaires row of curated best-sellers.
+                  <>
+                    <div className="mx-auto max-w-[480px] text-center flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5" aria-hidden="true">
+                        <Search className="w-7 h-7 text-muted-foreground" />
+                      </div>
+                      <h2 className="text-xl md:text-2xl font-extrabold text-foreground mb-2">
+                        {lang === 'en'
+                          ? `No results for \u00ab ${searchQuery} \u00bb`
+                          : `Aucun r\u00e9sultat pour \u00ab ${searchQuery} \u00bb`}
+                      </h2>
+                      <p className="text-sm text-muted-foreground mb-5">
+                        {lang === 'en'
+                          ? 'Try another keyword or explore our best-sellers below.'
+                          : 'Essayez un autre mot ou explorez nos best-sellers ci-dessous.'}
+                      </p>
                       <button
                         type="button"
                         onClick={() => {
                           setSearchQuery('');
                           setActiveCategory('overview');
                         }}
-                        className="text-[12px] font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                        className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
                       >
-                        {lang === 'en' ? 'See all \u2192' : 'Voir tous \u2192'}
+                        <X className="w-4 h-4" aria-hidden="true" />
+                        {lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
                       </button>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
-                      {popularSuggestions.map((product, i) => {
-                        const key = product?.node?.id ?? product?.node?.handle ?? `pop-${i}`;
-                        try {
-                          return <ProductCard key={key} product={product} />;
-                        } catch (err) {
-                          console.warn('[Products] popular ProductCard threw, skipping', key, err);
-                          return null;
-                        }
-                      })}
+
+                    {nearestCategories.length > 0 && (
+                      <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
+                        <span className="text-[12px] text-muted-foreground">
+                          {lang === 'en' ? 'Try a category:' : 'Essaie une cat\u00e9gorie :'}
+                        </span>
+                        {nearestCategories.map(cat => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => selectCategory(cat.id)}
+                            className="text-[12px] font-bold px-3 py-1.5 rounded-full bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                          >
+                            {lang === 'en' ? cat.en : cat.fr}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {popularSuggestions.length > 0 && (
+                      <div className="mt-10">
+                        <div className="flex items-baseline justify-between gap-3 mb-4 flex-wrap">
+                          <h3 className="text-lg font-extrabold text-foreground">
+                            {lang === 'en' ? 'Popular' : 'Populaires'}
+                          </h3>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSearchQuery('');
+                              setActiveCategory('overview');
+                            }}
+                            className="text-[12px] font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                          >
+                            {lang === 'en' ? 'See all \u2192' : 'Voir tous \u2192'}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
+                          {popularSuggestions.map((product, i) => {
+                            const key = product?.node?.id ?? product?.node?.handle ?? `pop-${i}`;
+                            try {
+                              return <ProductCard key={key} product={product} />;
+                            } catch (err) {
+                              console.warn('[Products] popular ProductCard threw, skipping', key, err);
+                              return null;
+                            }
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  // Truly empty catalog slice: a category filter matched
+                  // nothing. No search to clear — instead, a "Voir tout"
+                  // button resets the category filter back to overview.
+                  <div className="mx-auto max-w-[480px] text-center flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5" aria-hidden="true">
+                      <Search className="w-7 h-7 text-muted-foreground" />
                     </div>
+                    <p className="text-base text-foreground font-semibold mb-5">
+                      {lang === 'en'
+                        ? 'No products in this category.'
+                        : 'Aucun produit dans cette cat\u00e9gorie.'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveCategory('overview')}
+                      className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                    >
+                      {lang === 'en' ? 'See all' : 'Voir tout'}
+                    </button>
                   </div>
                 )}
               </div>
