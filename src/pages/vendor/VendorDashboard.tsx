@@ -1,5 +1,6 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check, Users, StickyNote, Send, ChevronDown, ChevronRight, Plus, Sparkles, HelpCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { StatCard } from '@/components/admin/StatCard';
 import { Sparkline } from '@/components/admin/Sparkline';
@@ -338,6 +339,318 @@ function formatDateTime(iso: string, lang: 'fr' | 'en'): string {
   } catch { return iso; }
 }
 
+// --- Onboarding tour (Task 10.5) ----------------------------------------
+//
+// Five-step first-visit tour. Each step has a ref pointing at a DOM
+// element in the dashboard; the overlay measures the target's bounding
+// rect on mount / resize / scroll and renders three layered elements:
+//
+//   1. A full-viewport dim backdrop (pointer-events: auto, catches clicks
+//      to advance — except we prefer explicit buttons, so it's inert).
+//   2. A "hole" div positioned over the target using absolute left/top/
+//      width/height and a giant inset box-shadow to paint everything
+//      outside the hole at rgba(0,0,0,0.6). This is the classic
+//      Shepherd.js / Intro.js cut-out trick.
+//   3. A tooltip card placed below (or above, if there's no room) the
+//      target, with title, body, Next/Skip buttons, and a step counter.
+//
+// First-view detection uses localStorage key `vision-vendor-tour-seen`.
+// A "Revoir la visite" button in the footer lets the vendor re-run the
+// tour at any time (clears the flag + forces the tour open).
+//
+// Keyboard: Escape skips the whole tour; Enter/Space advances (or
+// finishes on the last step). Focus is returned to the trigger button
+// when the tour closes, so keyboard users don't lose their place.
+
+const TOUR_SEEN_STORAGE_KEY = 'vision-vendor-tour-seen';
+
+interface TourStep {
+  id: 'welcome' | 'ticker' | 'quotes' | 'clients' | 'profile';
+  titleFr: string;
+  titleEn: string;
+  bodyFr: string;
+  bodyEn: string;
+}
+
+const TOUR_STEPS: TourStep[] = [
+  {
+    id: 'welcome',
+    titleFr: 'Bienvenue sur ton tableau de bord',
+    titleEn: 'Welcome to your dashboard',
+    bodyFr:
+      'Voici ton espace vendeur Vision Affichage. En 5 étapes rapides, je te montre où tout se trouve. Tu peux sauter à tout moment.',
+    bodyEn:
+      'This is your Vision Affichage vendor workspace. In 5 quick steps I\u2019ll show you where everything lives. You can skip anytime.',
+  },
+  {
+    id: 'ticker',
+    titleFr: 'Commission en direct',
+    titleEn: 'Live commission',
+    bodyFr:
+      'Le gros chiffre en bleu est ta commission gagnée aujourd\u2019hui. Le trait doré montre les 7 derniers jours. Il s\u2019anime à chaque nouvelle vente.',
+    bodyEn:
+      'The big navy number is the commission you\u2019ve earned today. The gold sparkline covers the last 7 days and re-animates on every new sale.',
+  },
+  {
+    id: 'quotes',
+    titleFr: 'Tes soumissions',
+    titleEn: 'Your quotes',
+    bodyFr:
+      'Crée une soumission client en un clic. C\u2019est d\u2019ici que tu lances ton prochain devis — enseigne extérieure, lettrage, installation, etc.',
+    bodyEn:
+      'Create a client quote in one click. This is where you kick off your next estimate — exterior sign, lettering, install, etc.',
+  },
+  {
+    id: 'clients',
+    titleFr: 'Mes clients',
+    titleEn: 'My clients',
+    bodyFr:
+      'Tes clients apparaissent ici avec leur valeur vie et un espace de notes privées. Idéal avant un appel de suivi.',
+    bodyEn:
+      'Your clients appear here with their lifetime value and a private notes pad — handy right before a follow-up call.',
+  },
+  {
+    id: 'profile',
+    titleFr: 'Ton profil public',
+    titleEn: 'Your public profile',
+    bodyFr:
+      'Partage ton profil public avec un client : copie le lien et envoie-le par courriel ou LinkedIn. Ton profil est la carte de visite numérique de Vision Affichage.',
+    bodyEn:
+      'Share your public profile with a client: copy the link and send it over email or LinkedIn. Your profile is your digital business card.',
+  },
+];
+
+interface TargetRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+/** Measure an element relative to the viewport (position:fixed space). */
+function measure(el: HTMLElement | null): TargetRect | null {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  // Pad the highlight a little so the cut-out breathes around the target.
+  const pad = 6;
+  return {
+    top: r.top - pad,
+    left: r.left - pad,
+    width: r.width + pad * 2,
+    height: r.height + pad * 2,
+  };
+}
+
+interface OnboardingTourProps {
+  lang: 'fr' | 'en';
+  targets: Array<HTMLElement | null>;
+  onDone: () => void;
+}
+
+function OnboardingTour({ lang, targets, onDone }: OnboardingTourProps) {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [rect, setRect] = useState<TargetRect | null>(null);
+  const step = TOUR_STEPS[stepIndex];
+  const total = TOUR_STEPS.length;
+
+  const L = (fr: string, en: string) => (lang === 'fr' ? fr : en);
+
+  // Re-measure on step change, resize, and scroll. useLayoutEffect so
+  // the tooltip never flashes at (0,0) before the first measure.
+  useLayoutEffect(() => {
+    const el = targets[stepIndex] ?? null;
+    if (el && typeof el.scrollIntoView === 'function') {
+      // Scroll the target into view before measuring so the tooltip
+      // card ends up on-screen for long dashboards.
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    const recalc = () => setRect(measure(el));
+    recalc();
+    window.addEventListener('resize', recalc);
+    window.addEventListener('scroll', recalc, true);
+    // Re-poll once after the scrollIntoView animation likely settled.
+    const t = window.setTimeout(recalc, 350);
+    return () => {
+      window.removeEventListener('resize', recalc);
+      window.removeEventListener('scroll', recalc, true);
+      window.clearTimeout(t);
+    };
+  }, [stepIndex, targets]);
+
+  const advance = useCallback(() => {
+    setStepIndex(i => {
+      if (i + 1 >= total) {
+        onDone();
+        return i;
+      }
+      return i + 1;
+    });
+  }, [total, onDone]);
+
+  const skip = useCallback(() => {
+    onDone();
+  }, [onDone]);
+
+  // Keyboard: Escape = skip, Enter/Space = advance.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        skip();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        // Don't hijack when the user is typing in a field.
+        const tgt = e.target as HTMLElement | null;
+        const tag = tgt?.tagName;
+        if (tag === 'TEXTAREA' || tag === 'INPUT' || tgt?.isContentEditable) return;
+        e.preventDefault();
+        advance();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [advance, skip]);
+
+  // Tooltip position — below the target if there's room, otherwise above.
+  const tooltipStyle: React.CSSProperties = useMemo(() => {
+    if (!rect) {
+      // Welcome-style centered fallback for first render / missing target.
+      return {
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        maxWidth: 420,
+        width: 'calc(100vw - 32px)',
+      };
+    }
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+    const below = rect.top + rect.height + 14;
+    const placeAbove = below + 220 > vh && rect.top > 240;
+    const top = placeAbove ? Math.max(16, rect.top - 14) : below;
+    const transform = placeAbove ? 'translateY(-100%)' : undefined;
+    // Clamp left so the card stays fully on-screen on narrow viewports.
+    const desiredLeft = rect.left + rect.width / 2;
+    const cardWidth = Math.min(420, vw - 32);
+    const left = Math.min(Math.max(16 + cardWidth / 2, desiredLeft), vw - 16 - cardWidth / 2);
+    return {
+      position: 'fixed',
+      top,
+      left,
+      transform: transform ? `translate(-50%, -100%)` : 'translateX(-50%)',
+      maxWidth: 420,
+      width: `calc(100vw - 32px)`,
+    };
+  }, [rect]);
+
+  // Cut-out highlight. One giant box-shadow paints the whole viewport
+  // dim; the element itself stays transparent, creating the "spotlight".
+  // pointer-events:none so clicks still reach the underlying UI for
+  // accessibility (keyboard users can still tab through the page).
+  const holeStyle: React.CSSProperties | undefined = rect
+    ? {
+        position: 'fixed',
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)',
+        borderRadius: 12,
+        pointerEvents: 'none',
+        zIndex: 9998,
+        transition: 'all 260ms ease-out',
+        outline: '2px solid rgba(232, 168, 56, 0.9)',
+        outlineOffset: 2,
+      }
+    : undefined;
+
+  // If the target isn't measured yet (step 1 "welcome" deliberately has
+  // no anchor — it's the whole-page intro), fall back to a full-screen
+  // dim backdrop behind the centered tooltip.
+  const backdropStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    background: rect ? 'transparent' : 'rgba(0,0,0,0.6)',
+    zIndex: 9997,
+    pointerEvents: 'auto',
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="vendor-tour-title"
+      aria-describedby="vendor-tour-body"
+    >
+      <div style={backdropStyle} aria-hidden="true" />
+      {holeStyle && <div style={holeStyle} aria-hidden="true" />}
+      <div
+        style={{ ...tooltipStyle, zIndex: 9999 }}
+        className="rounded-2xl border border-zinc-200 bg-white shadow-2xl px-5 py-4 sm:px-6 sm:py-5"
+      >
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#1B3A6B]/10 text-[#1B3A6B]">
+              <Sparkles size={14} aria-hidden="true" />
+            </span>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500">
+              {L(`Étape ${stepIndex + 1} sur ${total}`, `Step ${stepIndex + 1} of ${total}`)}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={skip}
+            className="text-[11px] font-bold text-zinc-500 hover:text-zinc-800 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 rounded-sm px-1"
+            aria-label={L('Passer la visite', 'Skip tour')}
+          >
+            {L('Passer', 'Skip')}
+          </button>
+        </div>
+        <h2
+          id="vendor-tour-title"
+          className="text-lg font-extrabold tracking-tight text-[#1B3A6B]"
+        >
+          {lang === 'fr' ? step.titleFr : step.titleEn}
+        </h2>
+        <p id="vendor-tour-body" className="mt-1 text-sm text-zinc-700 leading-relaxed">
+          {lang === 'fr' ? step.bodyFr : step.bodyEn}
+        </p>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-1.5" aria-hidden="true">
+            {TOUR_STEPS.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === stepIndex
+                    ? 'w-6 bg-[#0052CC]'
+                    : i < stepIndex
+                      ? 'w-1.5 bg-[#0052CC]/60'
+                      : 'w-1.5 bg-zinc-300'
+                }`}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={advance}
+            autoFocus
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2 bg-[#0052CC] text-white rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            aria-label={
+              stepIndex + 1 >= total
+                ? L('Terminer la visite', 'Finish tour')
+                : L('Étape suivante', 'Next step')
+            }
+          >
+            {stepIndex + 1 >= total
+              ? L('Terminer', 'Finish')
+              : L('Suivant', 'Next')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VendorDashboard() {
   useDocumentTitle('Tableau de bord — Vendeur Vision Affichage');
   const { lang } = useLang();
@@ -618,6 +931,50 @@ export default function VendorDashboard() {
     }
   }, [vendorId, lang]);
 
+  // Task 10.5 — onboarding tour. Open on first visit (no localStorage
+  // flag) and re-openable via the "Revoir la visite" footer button.
+  // The 5 refs below are attached to the elements the tour highlights;
+  // step 1 ("welcome") deliberately leaves its ref null so the tooltip
+  // centers and the backdrop goes fully dim.
+  const [tourOpen, setTourOpen] = useState(false);
+  const tickerRef = useRef<HTMLElement | null>(null);
+  const quotesCtaRef = useRef<HTMLAnchorElement | null>(null);
+  const clientsRef = useRef<HTMLElement | null>(null);
+  const profileBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(TOUR_SEEN_STORAGE_KEY);
+      if (!seen) setTourOpen(true);
+    } catch {
+      // localStorage unavailable (Safari private mode, quota) — skip.
+    }
+  }, []);
+
+  const closeTour = useCallback(() => {
+    try {
+      localStorage.setItem(TOUR_SEEN_STORAGE_KEY, '1');
+    } catch {
+      // Ignore — next page load will just re-show the tour.
+    }
+    setTourOpen(false);
+  }, []);
+
+  const replayTour = useCallback(() => {
+    try {
+      localStorage.removeItem(TOUR_SEEN_STORAGE_KEY);
+    } catch { /* ignore */ }
+    setTourOpen(true);
+  }, []);
+
+  const tourTargets: Array<HTMLElement | null> = [
+    null, // step 1 "welcome" — no specific target, centered card.
+    tickerRef.current,
+    quotesCtaRef.current,
+    clientsRef.current,
+    profileBtnRef.current,
+  ];
+
   const L = (fr: string, en: string) => (lang === 'fr' ? fr : en);
 
   return (
@@ -646,7 +1003,17 @@ export default function VendorDashboard() {
               ))}
             </select>
           </label>
+          <Link
+            ref={quotesCtaRef}
+            to="/vendor/quotes/new"
+            aria-label={L('Nouvelle soumission', 'New quote')}
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-[#E8A838] text-[#1B3A6B] rounded-lg hover:opacity-90 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60"
+          >
+            <Plus size={13} aria-hidden="true" />
+            {L('Nouvelle soumission', 'New quote')}
+          </Link>
           <button
+            ref={profileBtnRef}
             type="button"
             onClick={onCopyPublicProfile}
             aria-label={L('Copier le lien du profil public', 'Copy public profile link')}
@@ -686,6 +1053,7 @@ export default function VendorDashboard() {
           or a cross-tab write) via the vision-commission-change hook
           below. */}
       <section
+        ref={tickerRef}
         aria-label={L('Commission en direct', 'Live commission')}
         className="relative overflow-hidden rounded-2xl border border-zinc-200 bg-gradient-to-br from-white via-white to-[#1B3A6B]/[0.04] px-5 py-4 sm:px-6 sm:py-5"
       >
@@ -855,6 +1223,7 @@ export default function VendorDashboard() {
           that opens on row click. Notes are strictly private and
           scoped by vendorId + customer email. */}
       <section
+        ref={clientsRef}
         aria-labelledby="vendor-clients-heading"
         className="bg-white border border-zinc-200 rounded-2xl overflow-hidden"
       >
@@ -1127,6 +1496,27 @@ export default function VendorDashboard() {
           </ul>
         )}
       </section>
+
+      {/* Footer — re-trigger the onboarding tour (Task 10.5). */}
+      <footer className="flex items-center justify-center pt-2 pb-4">
+        <button
+          type="button"
+          onClick={replayTour}
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 hover:text-[#1B3A6B] px-3 py-1.5 rounded-lg hover:bg-zinc-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50"
+          aria-label={L('Revoir la visite guidée du tableau de bord', 'See the dashboard tour again')}
+        >
+          <HelpCircle size={12} aria-hidden="true" />
+          {L('Revoir la visite', 'See tour again')}
+        </button>
+      </footer>
+
+      {tourOpen && (
+        <OnboardingTour
+          lang={lang}
+          targets={tourTargets}
+          onDone={closeTour}
+        />
+      )}
     </div>
   );
 }
