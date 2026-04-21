@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
  * Cleanup cancels the pending setTimeout on each change, so rapid
  * keystrokes coalesce into a single trailing update once typing settles.
  */
-export function useDebouncedValue<T>(value: T, delayMs: number): T {
+export function useDebouncedValue<T>(value: T, delayMs: number = 200): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(value), delayMs);
