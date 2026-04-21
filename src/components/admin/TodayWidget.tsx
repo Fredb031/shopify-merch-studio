@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ShoppingCart, Clock, Package, ArrowRight } from 'lucide-react';
 import {
@@ -14,6 +14,20 @@ interface ActionItem {
   href: string;
   icon: typeof AlertCircle;
   priority: 'urgent' | 'normal' | 'low';
+}
+
+// Freshness stamp — rounds to the nearest human-friendly bucket so the
+// widget header subtly communicates that the list is live. Data itself
+// is a static snapshot, but the rendered view re-evaluates on mount,
+// so "il y a Ns" reflects how long the operator has been staring at
+// this card without refreshing the dashboard.
+function formatFreshness(seconds: number): string {
+  if (seconds < 5) return "à l'instant";
+  if (seconds < 60) return `il y a ${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return `il y a ${hours} h`;
 }
 
 function TodayWidgetInner() {
@@ -84,12 +98,33 @@ function TodayWidgetInner() {
     return acc;
   }, []);
 
+  // "Mis à jour il y a Ns" — a 30 s tick is enough granularity for the
+  // copy ("à l'instant" / "il y a Ns" / "il y a N min") without being
+  // a source of re-render pressure. The mountedAt ref equivalent is
+  // done via a lazy initial state so we don't capture a stale Date on
+  // every render.
+  const [mountedAt] = useState(() => Date.now());
+  const [freshnessSeconds, setFreshnessSeconds] = useState(0);
+  useEffect(() => {
+    const tick = () => setFreshnessSeconds(Math.floor((Date.now() - mountedAt) / 1000));
+    tick();
+    const id = window.setInterval(tick, 30_000);
+    return () => window.clearInterval(id);
+  }, [mountedAt]);
+  const freshnessLabel = formatFreshness(freshnessSeconds);
+
   if (items.length === 0) {
     return (
       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center" role="status">
         <div className="text-4xl mb-2" aria-hidden="true">✨</div>
         <div className="font-bold text-emerald-900">Tout est à jour</div>
         <div className="text-xs text-emerald-700 mt-1">Aucune action requise pour le moment.</div>
+        <div
+          className="text-[10px] text-emerald-600/80 mt-2"
+          aria-label={`Mis à jour ${freshnessLabel}`}
+        >
+          Mis à jour {freshnessLabel}
+        </div>
       </div>
     );
   }
@@ -97,8 +132,19 @@ function TodayWidgetInner() {
   return (
     <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
       <div className="px-5 py-3 border-b border-zinc-100 bg-gradient-to-r from-[#0F2341] to-[#1B3A6B]">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-white/60">À faire aujourd'hui</div>
-        <div className="text-sm font-extrabold text-white mt-0.5">{items.length} action{items.length > 1 ? 's' : ''} prioritaire{items.length > 1 ? 's' : ''}</div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-white/60">À faire aujourd'hui</div>
+            <div className="text-sm font-extrabold text-white mt-0.5">{items.length} action{items.length > 1 ? 's' : ''} prioritaire{items.length > 1 ? 's' : ''}</div>
+          </div>
+          <Link
+            to="/admin/orders"
+            className="text-[11px] font-semibold text-white/80 hover:text-white underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded px-1 flex-shrink-0"
+            aria-label="Voir toutes les actions dans la liste des commandes"
+          >
+            Voir tout
+          </Link>
+        </div>
       </div>
       <div className="divide-y divide-zinc-100">
         {items.map(item => {
@@ -125,6 +171,12 @@ function TodayWidgetInner() {
             </Link>
           );
         })}
+      </div>
+      <div
+        className="px-5 py-2 bg-zinc-50 border-t border-zinc-100 text-[10px] text-zinc-500"
+        aria-label={`Mis à jour ${freshnessLabel}`}
+      >
+        Mis à jour {freshnessLabel}
       </div>
     </div>
   );
