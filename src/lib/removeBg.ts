@@ -35,6 +35,7 @@ export type RemoveBgStage =
   | 'api-success'
   | 'api-fallback'
   | 'canvas-start'
+  | 'canvas-progress'
   | 'canvas-success'
   | 'canvas-failure';
 
@@ -44,6 +45,13 @@ export interface RemoveBgProgress {
   elapsedMs: number;
   /** Optional human-readable detail (e.g. the HTTP status on api-fallback) */
   detail?: string;
+  /**
+   * Fraction complete in [0..1] for long-running stages.
+   * Currently populated on `canvas-progress` ticks so UIs can render a real
+   * progress bar instead of a blind spinner during the pixel pass (which
+   * can take 1-2s on a 4000×4000 image on low-end mobile).
+   */
+  fraction?: number;
 }
 
 export type RemoveBgProgressCallback = (progress: RemoveBgProgress) => void;
@@ -65,9 +73,9 @@ export async function removeBackground(
   };
   // Wrap the callback so a buggy caller can never break the BG-removal
   // pipeline — progress reporting is strictly advisory.
-  const report = (stage: RemoveBgStage, detail?: string) => {
+  const report = (stage: RemoveBgStage, detail?: string, fraction?: number) => {
     try {
-      onProgress({ stage, elapsedMs: elapsed(), detail });
+      onProgress({ stage, elapsedMs: elapsed(), detail, fraction });
     } catch {
       /* swallow — progress is advisory */
     }
@@ -123,7 +131,9 @@ export async function removeBackground(
   console.info(`[removeBg] canvas fallback starting at +${elapsed()}ms`);
   report('canvas-start');
   try {
-    const blob = await removeWhiteBackground(file);
+    const blob = await removeWhiteBackground(file, (fraction) => {
+      report('canvas-progress', undefined, fraction);
+    });
     console.info(`[removeBg] canvas fallback finished in ${elapsed()}ms total`);
     report('canvas-success');
     return blob;
@@ -145,10 +155,13 @@ export async function removeBackground(
  *   4. Pixels in SOFT range       → linearly feathered alpha (avoids halos)
  *   5. Pixels below SOFT          → kept opaque (the logo content)
  */
-async function removeWhiteBackground(file: File): Promise<Blob> {
+async function removeWhiteBackground(
+  file: File,
+  onFraction?: (fraction: number) => void,
+): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   try {
-    return await processBitmap(bitmap);
+    return await processBitmap(bitmap, onFraction);
   } finally {
     // createImageBitmap allocates a GPU-backed buffer that only gets
     // freed when .close() is called (or on GC, which is unpredictable
@@ -159,7 +172,10 @@ async function removeWhiteBackground(file: File): Promise<Blob> {
   }
 }
 
-async function processBitmap(bitmap: ImageBitmap): Promise<Blob> {
+async function processBitmap(
+  bitmap: ImageBitmap,
+  onFraction?: (fraction: number) => void,
+): Promise<Blob> {
   // Cap canvas dimensions so an 8k+ logo upload doesn't OOM lower-end
   // mobile browsers on the getImageData call. A cap of 4000px on the
   // longest edge is well above the print DPI we need for a 40cm logo
@@ -185,7 +201,19 @@ async function processBitmap(bitmap: ImageBitmap): Promise<Blob> {
   const HARD = 245; // luminance ≥ 245 → fully transparent
   const SOFT = 215; // luminance in [215..244] → fading
 
-  for (let i = 0; i < px.length; i += 4) {
+  // Emit progress at 25 / 50 / 75% so a caller can render a real bar
+  // instead of a blind spinner. We pre-compute the pixel-index boundaries
+  // (every i is a 4-byte stride) so the hot loop just does a cheap
+  // integer compare against a single `nextTick` variable — avoids any
+  // modulo math per pixel on 16M-pixel images.
+  const total = px.length;
+  const tickStride = Math.max(1, Math.floor(total / 4 / 4) * 4);
+  let nextTick = tickStride;
+  for (let i = 0; i < total; i += 4) {
+    if (i >= nextTick) {
+      onFraction?.(i / total);
+      nextTick += tickStride;
+    }
     const r = px[i], g = px[i + 1], b = px[i + 2];
     const y = 0.299 * r + 0.587 * g + 0.114 * b;
 
@@ -203,6 +231,7 @@ async function processBitmap(bitmap: ImageBitmap): Promise<Blob> {
       px[i + 3] = Math.round(px[i + 3] * (1 - t));
     }
   }
+  onFraction?.(1);
 
   ctx.putImageData(imageData, 0, 0);
 
