@@ -4,6 +4,7 @@ import { Mail, Phone, MapPin, Gift, Instagram, Facebook } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import { SubmitButton, type SubmitButtonState } from '@/components/SubmitButton';
 
 // Shape of a single subscriber row persisted to localStorage. Keeping
 // the captured-at timestamp alongside the email lets a future backend
@@ -20,6 +21,10 @@ export function SiteFooter() {
   // pass the browser's type=email check but fail our stricter regex —
   // the user saw nothing, assumed it worked, and never got a newsletter.
   const [emailErr, setEmailErr] = useState(false);
+  // Task 17.4 — morphing submit: loading spinner during the synchronous
+  // dedupe/write beat, then a gold check for 2s before reverting so the
+  // signup feels acknowledged instead of silently toast-only.
+  const [submitState, setSubmitState] = useState<SubmitButtonState>('idle');
   const emailInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSubscribe = (e: React.FormEvent) => {
@@ -36,6 +41,7 @@ export function SiteFooter() {
       return;
     }
     setEmailErr(false);
+    setSubmitState('loading');
     let duplicate = false;
     try {
       const raw = JSON.parse(localStorage.getItem(NEWSLETTER_KEY) ?? '[]');
@@ -60,22 +66,32 @@ export function SiteFooter() {
       }
     } catch { /* noop */ }
 
-    if (duplicate) {
-      toast.success(
-        lang === 'en' ? 'Already subscribed — thank you!' : 'Déjà inscrit(e) — merci !',
-      );
-    } else {
-      toast.success(
-        lang === 'en'
-          ? 'Subscribed! Your code: VISION10'
-          : 'Inscription réussie ! Voici ton code : VISION10',
-        { duration: 6000 },
-      );
-    }
-    setEmail('');
-    // Refocus the input so a keyboard / screen-reader user can subscribe
-    // another address without tabbing back from <body>.
-    emailInputRef.current?.focus();
+    // Short loading dwell so the spinner is visible before the tick —
+    // the write above is synchronous, so without this delay the state
+    // flips idle→success in a single frame and the user misses the beat.
+    window.setTimeout(() => {
+      if (duplicate) {
+        toast.success(
+          lang === 'en' ? 'Already subscribed — thank you!' : 'Déjà inscrit(e) — merci !',
+        );
+      } else {
+        toast.success(
+          lang === 'en'
+            ? 'Subscribed! Your code: VISION10'
+            : 'Inscription réussie ! Voici ton code : VISION10',
+          { duration: 6000 },
+        );
+      }
+      setSubmitState('success');
+      setEmail('');
+      // Hold the tick for 2s then revert — long enough to read "Envoyé"
+      // but short enough that a user who wants to subscribe another
+      // address doesn't feel locked out.
+      window.setTimeout(() => setSubmitState('idle'), 2000);
+      // Refocus the input so a keyboard / screen-reader user can subscribe
+      // another address without tabbing back from <body>.
+      emailInputRef.current?.focus();
+    }, 350);
   };
 
   return (
@@ -133,13 +149,13 @@ export function SiteFooter() {
                   required
                 />
               </div>
-              <button
-                type="submit"
+              <SubmitButton
+                state={submitState}
                 disabled={!email.trim()}
                 className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
               >
                 {lang === 'en' ? 'Subscribe' : "S'abonner"}
-              </button>
+              </SubmitButton>
             </div>
             {emailErr ? (
               <p role="alert" className="text-[11px] text-rose-300 font-semibold mt-1.5 pl-1">

@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { SiteFooter } from '@/components/SiteFooter';
+import { SubmitButton, type SubmitButtonState } from '@/components/SubmitButton';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
@@ -44,6 +45,12 @@ export default function Contact() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [emailErr, setEmailErr] = useState(false);
+  // Task 17.4 — morphing submit state. The button swaps idle → loading →
+  // success, then a 2s timer reverts to idle. We don't dwell on loading:
+  // the localStorage write is synchronous so the UX reads as a single
+  // 'sending...' beat before the tick lands (kept ~350ms for honesty — a
+  // user who sees the spinner for one frame won't register "it worked").
+  const [submitState, setSubmitState] = useState<SubmitButtonState>('idle');
   const nameInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -54,6 +61,7 @@ export default function Contact() {
       return;
     }
     setEmailErr(false);
+    setSubmitState('loading');
 
     try {
       const raw = JSON.parse(localStorage.getItem(CONTACT_KEY) ?? '[]');
@@ -84,17 +92,27 @@ export default function Contact() {
       localStorage.setItem(CONTACT_KEY, JSON.stringify(capped));
     } catch { /* noop — toast still fires so the user isn't left in limbo */ }
 
-    toast.success(
-      lang === 'en'
-        ? 'Message received! We reply within 24h.'
-        : 'Message reçu\u00a0! On vous répond sous 24h.',
-      { duration: 6000 },
-    );
-    setName('');
-    setEmail('');
-    setSubject('');
-    setMessage('');
-    nameInputRef.current?.focus();
+    // Brief loading dwell so the spinner registers before the tick —
+    // without this delay the synchronous write flips straight from idle
+    // to success and the user misses the "sending" beat entirely.
+    window.setTimeout(() => {
+      toast.success(
+        lang === 'en'
+          ? 'Message received! We reply within 24h.'
+          : 'Message reçu\u00a0! On vous répond sous 24h.',
+        { duration: 6000 },
+      );
+      setSubmitState('success');
+      setName('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+      // Hold the check mark for 2 seconds, then revert. The user gets
+      // enough dwell time to read the "Envoyé" / "Sent" label before
+      // the button goes back to its default call-to-action state.
+      window.setTimeout(() => setSubmitState('idle'), 2000);
+      nameInputRef.current?.focus();
+    }, 350);
   };
 
   // Generic Google Maps embed URL for Saint-Hyacinthe, QC — the `pb=`
@@ -309,14 +327,20 @@ export default function Contact() {
                   ? 'We don\u2019t share your info. Reply within 24h on business days.'
                   : 'Vos coordonnées restent privées. Réponse sous 24h en jours ouvrables.'}
               </p>
-              <button
-                type="submit"
+              <SubmitButton
+                state={submitState}
                 disabled={!name.trim() || !email.trim() || !subject.trim() || !message.trim()}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#0041A6] disabled:opacity-50 disabled:hover:bg-[#0052CC] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+                // Success swap tints the button emerald so the tick lands
+                // on a matching surface instead of fighting the CTA blue.
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                  submitState === 'success'
+                    ? 'bg-emerald-600 hover:bg-emerald-600 focus-visible:ring-emerald-500/50'
+                    : 'bg-[#0052CC] hover:bg-[#0041A6] disabled:opacity-50 disabled:hover:bg-[#0052CC] focus-visible:ring-[#0052CC]/50'
+                }`}
               >
                 <Send size={15} aria-hidden="true" />
                 {lang === 'en' ? 'Send message' : 'Envoyer le message'}
-              </button>
+              </SubmitButton>
             </div>
           </form>
         </section>
