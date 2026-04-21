@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2 } from 'lucide-react';
+import { DollarSign, TrendingUp, FileText, CheckCircle2, Clock, Calendar, Download, FileUp, Trash2, Link2, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import { StatCard } from '@/components/admin/StatCard';
 import { Sparkline } from '@/components/admin/Sparkline';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -424,6 +425,48 @@ export default function VendorDashboard() {
     document.body.removeChild(a);
   }, []);
 
+  // Task 10.4 — share the public profile URL. We copy to clipboard
+  // instead of opening a new tab because the primary use-case is
+  // pasting the link into an email or LinkedIn DM, not previewing.
+  // Fall back to a temporary textarea + execCommand for the legacy
+  // path since navigator.clipboard isn't available on http:// dev
+  // origins in some browsers.
+  const [publicLinkCopied, setPublicLinkCopied] = useState(false);
+  const onCopyPublicProfile = useCallback(async () => {
+    const base = typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : '';
+    const url = `${base}/vendor/${encodeURIComponent(vendorId)}`;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'absolute';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setPublicLinkCopied(true);
+      toast.success(
+        lang === 'fr'
+          ? 'Lien du profil public copié.'
+          : 'Public profile link copied.',
+      );
+      setTimeout(() => setPublicLinkCopied(false), 2000);
+    } catch {
+      toast.error(
+        lang === 'fr'
+          ? 'Impossible de copier le lien. Réessaie.'
+          : 'Could not copy link. Try again.',
+      );
+    }
+  }, [vendorId, lang]);
+
   const L = (fr: string, en: string) => (lang === 'fr' ? fr : en);
 
   return (
@@ -452,6 +495,21 @@ export default function VendorDashboard() {
               ))}
             </select>
           </label>
+          <button
+            type="button"
+            onClick={onCopyPublicProfile}
+            aria-label={L('Copier le lien du profil public', 'Copy public profile link')}
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-white border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50"
+          >
+            {publicLinkCopied ? (
+              <Check size={13} aria-hidden="true" className="text-emerald-600" />
+            ) : (
+              <Link2 size={13} aria-hidden="true" />
+            )}
+            {publicLinkCopied
+              ? L('Copié!', 'Copied!')
+              : L('Mon profil public', 'My public profile')}
+          </button>
           {canExport && (
             <button
               type="button"

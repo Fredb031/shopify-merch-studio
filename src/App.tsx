@@ -49,6 +49,10 @@ const VendorLayout = lazy(() => import("@/components/vendor/VendorLayout").then(
 const VendorDashboard = lazy(() => import("./pages/vendor/VendorDashboard"));
 const QuoteBuilder = lazy(() => import("./pages/vendor/QuoteBuilder"));
 const QuoteList = lazy(() => import("./pages/vendor/QuoteList"));
+// Public vendor profile (Task 10.4) — shareable URL for prospects, no
+// auth required. Lazy because it's reached from an external link, not
+// the hot path.
+const VendorProfile = lazy(() => import("./pages/vendor/VendorProfile"));
 
 // Client-facing (lazy)
 const QuoteAccept = lazy(() => import("./pages/QuoteAccept"));
@@ -225,6 +229,11 @@ const AnimatedRoutes = () => {
           />
 
           <Route path="/quote/:id" element={<QuoteAccept />} />
+
+          {/* Public vendor profile (Task 10.4). Sits outside the
+              /vendor AuthGuard tree on purpose — prospects follow the
+              link without a login. */}
+          <Route path="/vendor/:vendorId" element={<VendorProfile />} />
 
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
