@@ -27,6 +27,7 @@ import { ProductCanvas } from './ProductCanvas';
 import { LogoUploader } from './LogoUploader';
 import { MultiVariantPicker, type VariantQty } from './MultiVariantPicker';
 import { ColorPicker } from './ColorPicker';
+import { TemplatesSection, type CustomizerTemplate } from './TemplatesSection';
 import { Confetti } from '@/components/Confetti';
 import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
@@ -1798,6 +1799,41 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       </div>
                     </div>
                   )}
+
+                  {/* Task 4.19 — "Mes modèles". Save current config
+                      (color + placementSides + product handle) to
+                      localStorage and load later. No logo blob — the
+                      user re-uploads after applying. Collapsed into a
+                      <details> so the Récap step doesn't balloon for
+                      users who never save templates. */}
+                  <TemplatesSection
+                    handle={product.shopifyHandle}
+                    colorId={shopifyColor?.variantId ?? store.colorId ?? undefined}
+                    colorName={shopifyColor?.colorName ?? activeColor?.name ?? undefined}
+                    placementSides={store.placementSides}
+                    lang={lang}
+                    onApply={(cfg: CustomizerTemplate['config']) => {
+                      // Only apply colour when the template's handle
+                      // matches the current product — a variantId from
+                      // a DIFFERENT product will fail the displayColors
+                      // lookup and leave the canvas on the default
+                      // colour anyway. Skipping the cross-product
+                      // colour apply keeps the placementSides side of
+                      // the template useful even when loading a
+                      // template saved against a different product.
+                      if (cfg.handle === product.shopifyHandle && cfg.colorId) {
+                        store.setColor(cfg.colorId);
+                      }
+                      store.setPlacementSides(cfg.placementSides);
+                      // Return the user to the Design step so they can
+                      // re-upload their logo against the restored
+                      // placement mode. Without this, they'd stay on
+                      // Récap and see "blank — no print" in the summary
+                      // even though placementSides is now 'front'.
+                      store.setStep(1);
+                    }}
+                  />
+
                   <p className="text-xs text-muted-foreground text-center">{t('taxesNote')}</p>
                 </motion.div>
               )}
