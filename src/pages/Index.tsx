@@ -158,6 +158,13 @@ export default function Index() {
         <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
           {/* Kicker */}
           <div className={`mb-6 flex flex-col items-center gap-3 ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
+            {/* Eyebrow — short gold-accent line that orients the visitor
+                before the h1 carries the weight. Uppercase + wide tracking
+                reads as a category label, matching the type-scale hierarchy
+                used elsewhere on the page (testimonials/steps eyebrows). */}
+            <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-[#E8A838]">
+              {lang === 'en' ? 'Corporate merch · Quebec' : 'Merch · Entreprises · Québec'}
+            </p>
             <DeliveryBadge size="md" />
             <p className="text-sm text-muted-foreground max-w-[600px] leading-relaxed">
               {t('kicker')}
