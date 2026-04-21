@@ -130,6 +130,10 @@ export function ProductCanvas({
 
   const [ready, setReady] = useState(false);
   const [imgError, setImgError] = useState(false);
+  // Fabric canvas zoom for preview-only zoom controls (corner +/−). Purely
+  // a viewport transform — does NOT alter placement math, emitted coords,
+  // or the canvas lifecycle. Clamped 0.5–2.0 at a 0.25 step.
+  const [zoomLevel, setZoomLevel] = useState(1);
   // Local mirror of the detected bbox so we can render a centre crosshair
   // over the canvas without asking the parent to feed it back.
   const [localBbox, setLocalBbox] = useState<{ cx: number; cy: number } | null>(null);
@@ -803,8 +807,10 @@ export function ProductCanvas({
           visible: asset.side === activeView,
           hasControls: true,
           lockUniScaling: true,
-          cornerStyle: 'circle', cornerSize: 12,
-          cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
+          cornerStyle: 'circle', cornerSize: 10,
+          cornerColor: '#0052CC', borderColor: '#0052CC',
+          cornerStrokeColor: '#FFFFFF',
+          borderScaleFactor: 1.5,
           transparentCorners: false,
         });
         t.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
@@ -892,9 +898,10 @@ export function ProductCanvas({
             evented:    showPlacementTools,
             hasControls: showPlacementTools,
             hasBorders:  showPlacementTools,
-            cornerStyle: 'circle', cornerSize: 12,
-            cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
-            borderScaleFactor: 2, transparentCorners: false,
+            cornerStyle: 'circle', cornerSize: 10,
+            cornerColor: '#0052CC', borderColor: '#0052CC',
+            cornerStrokeColor: '#FFFFFF',
+            borderScaleFactor: 1.5, transparentCorners: false,
             // Expand the hit area by 8px on every side so small logos
             // (<30px per dimension) are still draggable on touch screens.
             // Default fabric hit-test is the rect, which is roughly the
@@ -1111,8 +1118,10 @@ export function ProductCanvas({
         selectable: true,
         hasControls: true,
         lockUniScaling: true,
-        cornerStyle: 'circle', cornerSize: 12,
-        cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
+        cornerStyle: 'circle', cornerSize: 10,
+        cornerColor: '#0052CC', borderColor: '#0052CC',
+        cornerStrokeColor: '#FFFFFF',
+        borderScaleFactor: 1.5,
         transparentCorners: false,
       });
       t.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
@@ -1158,6 +1167,48 @@ export function ProductCanvas({
     textObjects.current.delete(id);
     setTextAssets(prev => prev.filter(t => t.id !== id));
   };
+
+  // Apply zoom level to the fabric canvas whenever the user bumps the
+  // corner +/- buttons. Zoom is a viewport transform: placement math,
+  // emitted percentages, and bbox detection all continue to operate in
+  // UN-zoomed canvas coordinates. Zooming around the canvas centre keeps
+  // the garment centred instead of drifting toward the top-left. We do
+  // NOT tear down / rebuild the fabric canvas here.
+  useEffect(() => {
+    if (!ready || !fc.current) return;
+    const canvas = fc.current;
+    const W = canvas.width as number;
+    const H = canvas.height as number;
+    try {
+      // Prefer zoomToPoint so the zoom anchors at the canvas centre
+      // instead of the top-left (fabric's setZoom default). We fall back
+      // to setZoom if zoomToPoint is unavailable on this fabric build.
+      if (typeof canvas.zoomToPoint === 'function') {
+        canvas.zoomToPoint({ x: W / 2, y: H / 2 }, zoomLevel);
+      } else if (typeof canvas.setZoom === 'function') {
+        canvas.setZoom(zoomLevel);
+      }
+      canvas.requestRenderAll?.();
+    } catch {
+      // Fabric API variations — swallow; zoom is a polish feature and
+      // must never break the core canvas.
+    }
+  }, [zoomLevel, ready, canvasKey]);
+
+  // Reset zoom back to 1 whenever the canvas is rebuilt (resize / first
+  // mount). The fresh fabric canvas starts at zoom 1, so our state has
+  // to match reality.
+  useEffect(() => {
+    setZoomLevel(1);
+  }, [canvasKey]);
+
+  const ZOOM_MIN = 0.5;
+  const ZOOM_MAX = 2.0;
+  const ZOOM_STEP = 0.25;
+  const clampZoom = (z: number) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(z / ZOOM_STEP) * ZOOM_STEP));
+  const zoomIn  = () => setZoomLevel(z => clampZoom(z + ZOOM_STEP));
+  const zoomOut = () => setZoomLevel(z => clampZoom(z - ZOOM_STEP));
+  const zoomReset = () => setZoomLevel(1);
 
   // Delete/Backspace key removes the currently selected canvas object.
   // Arrow keys nudge the selected object by 1 px (default) / 5 px (Shift)
@@ -1307,6 +1358,48 @@ export function ProductCanvas({
                 {lang === 'en' ? 'Upload your logo to start' : 'Téléverse ton logo pour commencer'}
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Zoom controls — preview-only viewport zoom, anchored bottom-left.
+            Clamped 0.5x – 2.0x at 0.25 steps. Reset returns to 1.0. Does
+            NOT affect placement math / emitted percentages / persistence;
+            it's a view transform on the fabric canvas only. */}
+        {ready && (
+          <div
+            className="absolute bottom-3 left-3 flex items-center gap-0.5 bg-white/95 backdrop-blur-sm rounded-full p-0.5 border border-border shadow-sm"
+            role="group"
+            aria-label={lang === 'en' ? 'Zoom' : 'Zoom'}
+          >
+            <button
+              type="button"
+              onClick={zoomOut}
+              disabled={zoomLevel <= ZOOM_MIN + 1e-6}
+              aria-label={lang === 'en' ? 'Zoom out' : 'Dézoomer'}
+              title={lang === 'en' ? 'Zoom out' : 'Dézoomer'}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            >
+              <ZoomOut size={13} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={zoomReset}
+              aria-label={lang === 'en' ? `Reset zoom (currently ${Math.round(zoomLevel * 100)}%)` : `Réinitialiser le zoom (${Math.round(zoomLevel * 100)}%)`}
+              title={lang === 'en' ? 'Reset zoom' : 'Réinitialiser'}
+              className="px-2 h-7 min-w-[44px] rounded-full text-[10px] font-bold tabular-nums text-foreground hover:bg-secondary transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            >
+              {Math.round(zoomLevel * 100)}%
+            </button>
+            <button
+              type="button"
+              onClick={zoomIn}
+              disabled={zoomLevel >= ZOOM_MAX - 1e-6}
+              aria-label={lang === 'en' ? 'Zoom in' : 'Zoomer'}
+              title={lang === 'en' ? 'Zoom in' : 'Zoomer'}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:hover:bg-transparent transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+            >
+              <ZoomIn size={13} aria-hidden="true" />
+            </button>
           </div>
         )}
 
