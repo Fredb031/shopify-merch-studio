@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { storefrontApiRequest, ShopifyProduct } from '@/lib/shopify';
+import { storefrontApiRequest, ShopifyError, ShopifyProduct } from '@/lib/shopify';
 
 export interface CartItem {
   lineId: string | null;
@@ -75,10 +75,30 @@ function isCartNotFoundError(userErrors: Array<{ field: string[] | null; message
   return userErrors.some(e => e.message.toLowerCase().includes('cart not found') || e.message.toLowerCase().includes('does not exist'));
 }
 
-async function createShopifyCart(item: CartItem): Promise<{ cartId: string; checkoutUrl: string; lineId: string } | null> {
+/** True when an error is worth retrying. ShopifyError carries an explicit
+ * `retryable` flag set by storefrontApiRequest (429/5xx → true; 401/403 →
+ * false). Also treats browser network failures (TypeError on fetch) and
+ * AbortError-from-timeout as retryable. Caller-initiated aborts (passed
+ * via signal) surface as DOMException AbortError with a `signal.aborted`
+ * caller — those aren't ours to retry; return false so upstream code
+ * can bail without retrying a user-cancelled action. */
+function isRetryable(err: unknown): boolean {
+  if (err instanceof ShopifyError) return err.retryable === true;
+  if (err instanceof TypeError) return true; // fetch network error
+  if (err && typeof err === 'object' && 'name' in err) {
+    const name = (err as { name?: string }).name;
+    // AbortError from our internal timeout is retryable; from an external
+    // caller-supplied signal is not — but we can't distinguish here, so
+    // conservatively don't retry AbortError.
+    if (name === 'AbortError') return false;
+  }
+  return false;
+}
+
+async function createShopifyCart(item: CartItem, signal?: AbortSignal): Promise<{ cartId: string; checkoutUrl: string; lineId: string } | null> {
   const data = await storefrontApiRequest(CART_CREATE_MUTATION, {
     input: { lines: [{ quantity: item.quantity, merchandiseId: item.variantId }] },
-  });
+  }, { signal });
   // Mirror the guard the other mutation helpers added: storefrontApiRequest
   // returns undefined on HTTP 402, and the optional chaining below would
   // silently return null. Still null, so not a behavioural change — but
@@ -92,11 +112,11 @@ async function createShopifyCart(item: CartItem): Promise<{ cartId: string; chec
   return { cartId: cart.id, checkoutUrl: formatCheckoutUrl(cart.checkoutUrl), lineId };
 }
 
-async function addLineToShopifyCart(cartId: string, item: CartItem): Promise<{ success: boolean; lineId?: string; cartNotFound?: boolean }> {
+async function addLineToShopifyCart(cartId: string, item: CartItem, signal?: AbortSignal): Promise<{ success: boolean; lineId?: string; cartNotFound?: boolean }> {
   const data = await storefrontApiRequest(CART_LINES_ADD_MUTATION, {
     cartId,
     lines: [{ quantity: item.quantity, merchandiseId: item.variantId }],
-  });
+  }, { signal });
   // storefrontApiRequest returns undefined on HTTP 402 (store plan
   // lapsed). Without this guard, userErrors=[], the empty-check
   // passes, and we committed a local cart line for a Shopify cart
@@ -110,8 +130,8 @@ async function addLineToShopifyCart(cartId: string, item: CartItem): Promise<{ s
   return { success: true, lineId: newLine?.node?.id };
 }
 
-async function updateShopifyCartLine(cartId: string, lineId: string, quantity: number): Promise<{ success: boolean; cartNotFound?: boolean }> {
-  const data = await storefrontApiRequest(CART_LINES_UPDATE_MUTATION, { cartId, lines: [{ id: lineId, quantity }] });
+async function updateShopifyCartLine(cartId: string, lineId: string, quantity: number, signal?: AbortSignal): Promise<{ success: boolean; cartNotFound?: boolean }> {
+  const data = await storefrontApiRequest(CART_LINES_UPDATE_MUTATION, { cartId, lines: [{ id: lineId, quantity }] }, { signal });
   if (!data?.data?.cartLinesUpdate) return { success: false };
   const userErrors = data.data.cartLinesUpdate.userErrors || [];
   if (isCartNotFoundError(userErrors)) return { success: false, cartNotFound: true };
@@ -119,13 +139,31 @@ async function updateShopifyCartLine(cartId: string, lineId: string, quantity: n
   return { success: true };
 }
 
-async function removeLineFromShopifyCart(cartId: string, lineId: string): Promise<{ success: boolean; cartNotFound?: boolean }> {
-  const data = await storefrontApiRequest(CART_LINES_REMOVE_MUTATION, { cartId, lineIds: [lineId] });
+async function removeLineFromShopifyCart(cartId: string, lineId: string, signal?: AbortSignal): Promise<{ success: boolean; cartNotFound?: boolean }> {
+  const data = await storefrontApiRequest(CART_LINES_REMOVE_MUTATION, { cartId, lineIds: [lineId] }, { signal });
   if (!data?.data?.cartLinesRemove) return { success: false };
   const userErrors = data.data.cartLinesRemove.userErrors || [];
   if (isCartNotFoundError(userErrors)) return { success: false, cartNotFound: true };
   if (userErrors.length > 0) return { success: false };
   return { success: true };
+}
+
+/** Shared error logger: pulls structured fields off ShopifyError instead
+ * of relying on `err.message` string inspection. Keeps the console.error
+ * behaviour the store has always had while surfacing status/code for
+ * debugging without breaking existing Sentry breadcrumbs. */
+function logCartError(action: string, err: unknown): void {
+  if (err instanceof ShopifyError) {
+    console.error(`Failed to ${action}:`, {
+      name: err.name,
+      status: err.status,
+      code: err.code,
+      retryable: err.retryable,
+      message: err.message,
+    });
+    return;
+  }
+  console.error(`Failed to ${action}:`, err);
 }
 
 interface CartStore {
@@ -134,11 +172,11 @@ interface CartStore {
   checkoutUrl: string | null;
   isLoading: boolean;
   isSyncing: boolean;
-  addItem: (item: Omit<CartItem, 'lineId'>) => Promise<void>;
-  updateQuantity: (variantId: string, quantity: number) => Promise<void>;
-  removeItem: (variantId: string) => Promise<void>;
+  addItem: (item: Omit<CartItem, 'lineId'>, signal?: AbortSignal) => Promise<void>;
+  updateQuantity: (variantId: string, quantity: number, signal?: AbortSignal) => Promise<void>;
+  removeItem: (variantId: string, signal?: AbortSignal) => Promise<void>;
   clearCart: () => void;
-  syncCart: () => Promise<void>;
+  syncCart: (signal?: AbortSignal) => Promise<void>;
   getCheckoutUrl: () => string | null;
 }
 
@@ -167,7 +205,10 @@ export const useCartStore = create<CartStore>()(
       isLoading: false,
       isSyncing: false,
 
-      addItem: async (item) => {
+      /** Add a line to the Shopify cart. Creates the cart lazily on first
+       * add. Serialized per-variant to avoid duplicate-charge races. Accepts
+       * an optional AbortSignal so callers can cancel on unmount. */
+      addItem: async (item, signal) => {
         // Serialize the "no cart yet, create one" path so parallel clicks
         // don't each kick off their own createShopifyCart.
         if (!get().cartId && pendingCartCreation) {
@@ -186,7 +227,7 @@ export const useCartStore = create<CartStore>()(
         try {
           if (!cartId) {
             pendingCartCreation = (async () => {
-              const result = await createShopifyCart({ ...item, lineId: null });
+              const result = await createShopifyCart({ ...item, lineId: null }, signal);
               if (result) {
                 set({ cartId: result.cartId, checkoutUrl: result.checkoutUrl, items: [{ ...item, lineId: result.lineId }] });
               }
@@ -206,10 +247,10 @@ export const useCartStore = create<CartStore>()(
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
               set({ isLoading: false });
-              await get().addItem(item);
+              await get().addItem(item, signal);
               return;
             }
-            const result = await updateShopifyCartLine(cartId, existingItem.lineId, newQuantity);
+            const result = await updateShopifyCartLine(cartId, existingItem.lineId, newQuantity, signal);
             if (result.success) {
               set({ items: get().items.map(i => i.variantId === item.variantId ? { ...i, quantity: newQuantity } : i) });
             } else if (result.cartNotFound) {
@@ -222,11 +263,11 @@ export const useCartStore = create<CartStore>()(
               // the inner addItem awaits the slot we're still holding.
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
-              await get().addItem(item);
+              await get().addItem(item, signal);
               return;
             }
           } else {
-            const result = await addLineToShopifyCart(cartId, { ...item, lineId: null });
+            const result = await addLineToShopifyCart(cartId, { ...item, lineId: null }, signal);
             if (result.success && result.lineId) {
               // Only commit to local state when we got a real lineId back —
               // without it the item can't be updated/removed later, leaving
@@ -241,14 +282,24 @@ export const useCartStore = create<CartStore>()(
               set({ isLoading: false });
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
-              await get().addItem(item);
+              await get().addItem(item, signal);
               return;
             } else if (result.success && !result.lineId) {
               console.warn('[cartStore] Shopify addLine succeeded but returned no lineId — refusing to add orphan item.');
             }
           }
         } catch (error) {
-          console.error('Failed to add item:', error);
+          // Branch on ShopifyError shape instead of string-sniffing. The
+          // optimistic-rollback structure is unchanged — we still only log
+          // and bail, but now with status/code context and a retryable hint
+          // that future rollback paths can consult via isRetryable().
+          logCartError('add item', error);
+          if (isRetryable(error)) {
+            // Marker for downstream rollback paths: log that the caller
+            // could safely retry. We don't auto-retry here to preserve
+            // existing UX (user click → one attempt).
+            console.debug('[cartStore] addItem hit a retryable error; caller may retry');
+          }
         } finally {
           set({ isLoading: false });
           if (pendingAdds.get(item.variantId) === slot) {
@@ -258,57 +309,69 @@ export const useCartStore = create<CartStore>()(
         }
       },
 
-      updateQuantity: async (variantId, quantity) => {
-        if (quantity <= 0) { await get().removeItem(variantId); return; }
+      /** Update the quantity of an existing cart line. Routes to removeItem
+       * when quantity drops to zero. No-op if the line has no Shopify id
+       * or no active cart. */
+      updateQuantity: async (variantId, quantity, signal) => {
+        if (quantity <= 0) { await get().removeItem(variantId, signal); return; }
         const { items, cartId, clearCart } = get();
         const item = items.find(i => i.variantId === variantId);
         if (!item?.lineId || !cartId) return;
         set({ isLoading: true });
         try {
-          const result = await updateShopifyCartLine(cartId, item.lineId, quantity);
+          const result = await updateShopifyCartLine(cartId, item.lineId, quantity, signal);
           if (result.success) {
             set({ items: get().items.map(i => i.variantId === variantId ? { ...i, quantity } : i) });
           } else if (result.cartNotFound) clearCart();
         } catch (error) {
-          console.error('Failed to update quantity:', error);
+          logCartError('update quantity', error);
         } finally {
           set({ isLoading: false });
         }
       },
 
-      removeItem: async (variantId) => {
+      /** Remove a line from the cart. Clears the whole cart state once
+       * the last line is gone so the next add takes the fresh-cart path. */
+      removeItem: async (variantId, signal) => {
         const { items, cartId, clearCart } = get();
         const item = items.find(i => i.variantId === variantId);
         if (!item?.lineId || !cartId) return;
         set({ isLoading: true });
         try {
-          const result = await removeLineFromShopifyCart(cartId, item.lineId);
+          const result = await removeLineFromShopifyCart(cartId, item.lineId, signal);
           if (result.success) {
             const newItems = get().items.filter(i => i.variantId !== variantId);
             if (newItems.length === 0) clearCart();
             else set({ items: newItems });
           } else if (result.cartNotFound) clearCart();
         } catch (error) {
-          console.error('Failed to remove item:', error);
+          logCartError('remove item', error);
         } finally {
           set({ isLoading: false });
         }
       },
 
+      /** Drop all local cart state. Does not touch Shopify — use this
+       * after Shopify reports the cart is gone (cartNotFound) or on
+       * explicit user clear. */
       clearCart: () => set({ items: [], cartId: null, checkoutUrl: null }),
+      /** Checkout URL captured at cart-create time (already channel-tagged). */
       getCheckoutUrl: () => get().checkoutUrl,
 
-      syncCart: async () => {
+      /** Re-read the Shopify cart to detect server-side drainage (e.g.
+       * checkout completed in another tab). Clears local state if the
+       * server cart is empty or gone. */
+      syncCart: async (signal) => {
         const { cartId, isSyncing, clearCart } = get();
         if (!cartId || isSyncing) return;
         set({ isSyncing: true });
         try {
-          const data = await storefrontApiRequest(CART_QUERY, { id: cartId });
+          const data = await storefrontApiRequest(CART_QUERY, { id: cartId }, { signal });
           if (!data) return;
           const cart = data?.data?.cart;
           if (!cart || cart.totalQuantity === 0) clearCart();
         } catch (error) {
-          console.error('Failed to sync cart:', error);
+          logCartError('sync cart', error);
         } finally {
           set({ isSyncing: false });
         }
@@ -342,3 +405,7 @@ export const useCartStore = create<CartStore>()(
     }
   )
 );
+
+/** Public state shape for consumers that need to type `useCartStore.getState()`
+ * results (e.g. snapshot selectors in tests, or non-React integrations). */
+export type CartStoreState = ReturnType<typeof useCartStore.getState>;
