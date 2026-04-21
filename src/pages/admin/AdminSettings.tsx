@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save } from 'lucide-react';
+import { Link2, Building2, CreditCard, Shield, ExternalLink, Percent, Tag, Layers, Plus, Trash2, Save, Mail } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 import {
@@ -8,6 +8,7 @@ import {
   useAppSettings,
 } from '@/lib/appSettings';
 import { readLS, writeLS } from '@/lib/storage';
+import { getConfiguredWebhook, setConfiguredWebhook } from '@/lib/outlook';
 
 // localStorage key for the settings toggles. Persisting client-side only
 // since these are stub features pending real backend wiring — the keys
@@ -182,7 +183,125 @@ export default function AdminSettings() {
       <TaxesSection />
       <DiscountCodesSection />
       <BulkPricingSection />
+      <ZapierOutlookSection />
     </div>
+  );
+}
+
+// ───────────────────────── Zapier Outlook webhook section ─────────────────────────
+//
+// The admin pastes the "Catch Hook" URL from their Zap here. Stored
+// client-side only (`vision-zapier-mail-webhook` localStorage key) so
+// we never bake a personal endpoint into the bundle. The URL is used
+// by sendTestEmail() in @/lib/outlook.ts. A build-time
+// VITE_ZAPIER_MAIL_WEBHOOK env var takes precedence when set, in which
+// case we grey out the input + explain that it's being overridden.
+
+function ZapierOutlookSection() {
+  const envUrl = typeof import.meta !== 'undefined'
+    ? (import.meta as { env?: Record<string, string | undefined> }).env?.VITE_ZAPIER_MAIL_WEBHOOK
+    : undefined;
+  const envOverride = typeof envUrl === 'string' && envUrl.trim().length > 0 ? envUrl.trim() : null;
+
+  const [url, setUrl] = useState<string>(() => getConfiguredWebhook() ?? '');
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Basic URL shape check — we don't call out to verify the Zap is
+  // actually live (no CORS-friendly preflight from Zapier's side), but
+  // we can at least stop obviously-broken strings before they land on
+  // disk and silently fail every test send.
+  const trimmed = url.trim();
+  const invalidUrl = trimmed.length > 0 && !(() => {
+    try {
+      const u = new URL(trimmed);
+      return u.protocol === 'https:' || u.protocol === 'http:';
+    } catch {
+      return false;
+    }
+  })();
+
+  const persisted = getConfiguredWebhook() ?? '';
+  const dirty = trimmed !== persisted && !envOverride;
+
+  const save = () => {
+    if (invalidUrl || envOverride) return;
+    setConfiguredWebhook(trimmed.length > 0 ? trimmed : null);
+    setSavedAt(Date.now());
+  };
+
+  return (
+    <section className="bg-white border border-zinc-200 rounded-2xl p-5">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-9 h-9 rounded-lg bg-[#E8A838]/20 text-[#1B3A6B] flex items-center justify-center">
+          <Mail size={18} aria-hidden="true" />
+        </div>
+        <div>
+          <h2 className="font-bold">Intégrations · Zapier → Outlook</h2>
+          <p className="text-xs text-zinc-500 mt-0.5">
+            Webhook utilisé par le bouton <strong>Envoyer un test</strong> de l'éditeur de modèles.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="zapier-mail-webhook" className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+          URL du webhook « Catch Hook »
+        </label>
+        <input
+          id="zapier-mail-webhook"
+          type="url"
+          value={envOverride ?? url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://hooks.zapier.com/hooks/catch/..."
+          disabled={!!envOverride}
+          aria-describedby="zapier-mail-webhook-help"
+          aria-invalid={invalidUrl || undefined}
+          className={`w-full border rounded-lg px-3 py-2 text-sm font-mono outline-none focus:ring-2 ${
+            invalidUrl
+              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10'
+              : 'border-zinc-200 focus:border-[#1B3A6B] focus:ring-[#1B3A6B]/10'
+          } ${envOverride ? 'bg-zinc-100 text-zinc-500 cursor-not-allowed' : 'bg-white'}`}
+        />
+        {invalidUrl && (
+          <p className="text-[11px] text-rose-600">URL invalide (https:// requis).</p>
+        )}
+        <p id="zapier-mail-webhook-help" className="text-[11px] text-zinc-500 leading-relaxed">
+          Crée un Zap avec trigger <em>Webhooks by Zapier → Catch Hook</em> et action <em>Microsoft Outlook → Send Email</em>.
+          Mappe les champs <code className="font-mono">to</code>, <code className="font-mono">subject</code>, et <code className="font-mono">html</code>{' '}
+          depuis la charge utile du webhook. Le corps envoyé inclut aussi <code className="font-mono">sentBy</code> et{' '}
+          <code className="font-mono">sentAt</code> pour la traçabilité.
+        </p>
+        {envOverride && (
+          <div className="text-[11px] text-indigo-800 bg-indigo-50 border border-indigo-200 rounded px-2 py-1.5">
+            Surchargé par la variable d'environnement <code className="font-mono">VITE_ZAPIER_MAIL_WEBHOOK</code> au moment du build.
+            La valeur saisie ici est ignorée tant que la variable est définie.
+          </div>
+        )}
+      </div>
+
+      {!envOverride && (
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={save}
+            disabled={invalidUrl || !dirty}
+            className="inline-flex items-center gap-1.5 bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0F2341] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+          >
+            <Save size={12} aria-hidden="true" /> Enregistrer
+          </button>
+          {url.trim().length > 0 && (
+            <button
+              type="button"
+              onClick={() => { setUrl(''); setConfiguredWebhook(null); setSavedAt(Date.now()); }}
+              className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 underline underline-offset-2"
+            >
+              Effacer
+            </button>
+          )}
+          {savedAt && !dirty ? <span className="text-[11px] text-emerald-600 font-semibold">Enregistré</span> : null}
+        </div>
+      )}
+    </section>
   );
 }
 

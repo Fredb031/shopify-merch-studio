@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Mail, Copy, Check, Pencil, RotateCcw, Save, Eye, X } from 'lucide-react';
+import { Mail, Copy, Check, Pencil, RotateCcw, Save, Eye, X, Send, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   quoteSentEmail,
   paymentConfirmationEmail,
@@ -8,6 +9,14 @@ import {
 } from '@/lib/emailTemplates';
 import { readLS, writeLS } from '@/lib/storage';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import {
+  sendTestEmail,
+  readSentLog,
+  clearSentLog,
+  getConfiguredWebhook,
+  type SentLogEntry,
+} from '@/lib/outlook';
+import { useAuthStore } from '@/stores/authStore';
 
 type TemplateId = 'quote-sent' | 'payment' | 'shipped' | 'delivered';
 type Lang = 'fr' | 'en';
@@ -278,10 +287,15 @@ interface EditorDrawerProps {
   onSave: (entry: OverrideEntry) => void;
   onReset: () => void;
   onClose: () => void;
+  /** Called after a send test attempt so the parent page can refresh
+   * the Recent sends panel without having to poll localStorage. */
+  onTestSent?: () => void;
+  /** Default recipient — usually the admin's own email. */
+  defaultRecipient?: string;
 }
 
 function TemplateEditorDrawer(props: EditorDrawerProps) {
-  const { templateId, lang, defaultSubject, defaultHtml, override, onSave, onReset, onClose } = props;
+  const { templateId, lang, defaultSubject, defaultHtml, override, onSave, onReset, onClose, onTestSent, defaultRecipient } = props;
 
   // Seed the form with the current override if one exists, else with
   // the defaults. Using the default HTML as the starting point lets an
@@ -289,6 +303,21 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
   const [subject, setSubject] = useState<string>(override?.subject ?? defaultSubject);
   const [html, setHtml] = useState<string>(override?.html ?? defaultHtml);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Send-test mini-form state. `sendOpen` controls a small popover that
+  // mirrors the Shopify "Send test" UX — an inline recipient input and
+  // a Send button, rather than opening yet another modal on top of the
+  // drawer. `sending` blocks double-submits while the fetch is in flight.
+  const [sendOpen, setSendOpen] = useState(false);
+  const [recipient, setRecipient] = useState<string>(defaultRecipient ?? '');
+  const [sending, setSending] = useState(false);
+
+  // Keep the recipient field in sync when the admin user changes (e.g.
+  // re-login in another tab while the drawer is open). The input is
+  // controlled so we only overwrite when the user hasn't typed yet.
+  useEffect(() => {
+    setRecipient(prev => (prev.length === 0 && defaultRecipient ? defaultRecipient : prev));
+  }, [defaultRecipient]);
 
   // If the parent switches which override we're editing (should rarely
   // happen — the drawer normally re-mounts — but keep state honest).
@@ -316,6 +345,45 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
   }, [onClose]);
 
   const templateLabel = TEMPLATES.find(t => t.id === templateId)?.label ?? templateId;
+
+  // Kick off a test send. Substitute sample variables in the subject +
+  // body before firing so the recipient actually sees a realistic
+  // rendering (otherwise raw `{{clientName}}` placeholders land in
+  // their inbox, which is confusing even for an admin test).
+  const handleSendTest = async () => {
+    if (sending) return;
+    const to = recipient.trim();
+    if (!to) {
+      toast.error('Entre une adresse de destination.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      toast.error('Adresse de destination invalide.');
+      return;
+    }
+    setSending(true);
+    try {
+      const renderedSubject = substituteVars(subject, templateId);
+      const renderedHtml = substituteVars(html, templateId);
+      const sentBy = useAuthStore.getState().user?.email ?? '';
+      const res = await sendTestEmail({
+        to,
+        subject: renderedSubject,
+        html: renderedHtml,
+        sentBy,
+        template: `${templateId}:${lang}`,
+      });
+      if (res.ok) {
+        toast.success(`Courriel test envoyé à ${to}.`);
+        setSendOpen(false);
+      } else {
+        toast.error(res.error);
+      }
+    } finally {
+      setSending(false);
+      onTestSent?.();
+    }
+  };
 
   return (
     <div
@@ -354,12 +422,22 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
           )}
           <button
             type="button"
+            onClick={() => setSendOpen(v => !v)}
+            aria-expanded={sendOpen}
+            aria-controls={`send-test-form-${templateId}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#E8A838] text-[#1B3A6B] hover:bg-[#d19725] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+          >
+            <Send size={13} aria-hidden="true" />
+            Envoyer un test
+          </button>
+          <button
+            type="button"
             onClick={() => {
               onSave({ subject, html });
               setSavedAt(Date.now());
             }}
             disabled={!isDirty}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0052CC] text-white hover:bg-[#003D99] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#1B3A6B] text-white hover:bg-[#0F2341] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
           >
             <Save size={13} aria-hidden="true" />
             Sauvegarder
@@ -373,6 +451,67 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
             <X size={18} aria-hidden="true" />
           </button>
         </header>
+
+        {sendOpen && (
+          <div
+            id={`send-test-form-${templateId}`}
+            className="mx-6 mt-4 bg-[#1B3A6B]/5 border border-[#1B3A6B]/20 rounded-lg px-4 py-3"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Send size={13} className="text-[#1B3A6B]" aria-hidden="true" />
+              <h3 className="text-xs font-bold text-[#1B3A6B] uppercase tracking-wider">
+                Envoyer un courriel test
+              </h3>
+            </div>
+            <p className="text-[11px] text-zinc-600 mb-2">
+              Utilise l'éditeur actuel (non sauvegardé si modifié) pour envoyer un test via Zapier → Outlook.
+              Les variables <code className="font-mono">{`{{...}}`}</code> seront remplacées par des valeurs d'exemple.
+            </p>
+            <form
+              className="flex flex-wrap items-end gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSendTest();
+              }}
+            >
+              <label htmlFor={`send-test-to-${templateId}`} className="flex-1 min-w-[200px]">
+                <span className="block text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1">
+                  Destinataire
+                </span>
+                <input
+                  id={`send-test-to-${templateId}`}
+                  type="email"
+                  value={recipient}
+                  onChange={(e) => setRecipient(e.target.value)}
+                  placeholder="admin@visionaffichage.com"
+                  autoComplete="email"
+                  required
+                  className="w-full px-3 py-1.5 rounded-lg border border-zinc-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B] focus:border-transparent"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={sending}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-[#E8A838] text-[#1B3A6B] hover:bg-[#d19725] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+              >
+                <Send size={13} aria-hidden="true" />
+                {sending ? 'Envoi…' : 'Envoyer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSendOpen(false)}
+                className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+              >
+                Annuler
+              </button>
+            </form>
+            {!getConfiguredWebhook() && (
+              <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+                Aucun webhook Zapier configuré. Ajoute l'URL dans <strong>Paramètres → Intégrations</strong> avant d'envoyer.
+              </div>
+            )}
+          </div>
+        )}
 
         {savedAt !== null && (
           <div className="mx-6 mt-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg px-4 py-2 text-xs font-bold flex items-center gap-2">
@@ -487,6 +626,17 @@ export default function AdminEmails() {
 
   const [overrides, setOverrides] = useState<OverrideMap>(() => readOverrides());
   const [editing, setEditing] = useState<{ id: TemplateId; lang: Lang } | null>(null);
+  const [sentLog, setSentLog] = useState<SentLogEntry[]>(() => readSentLog());
+  const currentUserEmail = useAuthStore(s => s.user?.email ?? '');
+
+  // Refresh the Recent sends panel. Called after every test send and
+  // on window focus (in case a second tab just fired a test).
+  const refreshSentLog = () => setSentLog(readSentLog());
+  useEffect(() => {
+    const onFocus = () => refreshSentLog();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
 
   useEffect(() => () => {
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
@@ -725,6 +875,8 @@ export default function AdminEmails() {
         </main>
       </section>
 
+      <RecentSendsPanel entries={sentLog} onClear={() => { clearSentLog(); setSentLog([]); }} onRefresh={refreshSentLog} />
+
       {editing && editingDefault && (
         <TemplateEditorDrawer
           templateId={editing.id}
@@ -735,8 +887,119 @@ export default function AdminEmails() {
           onSave={(entry) => saveOverride(editing.id, editing.lang, entry)}
           onReset={() => resetOverride(editing.id, editing.lang)}
           onClose={() => setEditing(null)}
+          onTestSent={refreshSentLog}
+          defaultRecipient={currentUserEmail}
         />
       )}
     </div>
+  );
+}
+
+// ───────────────────────── Recent sends panel ─────────────────────────
+//
+// Shows the last 10 entries from the `vision-email-sent-log` so the
+// admin can see recent send activity without navigating away from the
+// editor. Entries appear newest-first; failures get a red pill so they
+// stand out against the ok rows.
+
+function formatTimestamp(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('fr-CA', {
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function RecentSendsPanel({ entries, onClear, onRefresh }: {
+  entries: SentLogEntry[];
+  onClear: () => void;
+  onRefresh: () => void;
+}) {
+  const visible = entries.slice(0, 10);
+  return (
+    <section aria-label="Envois récents" className="bg-white border border-zinc-200 rounded-2xl p-4">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <Send size={14} className="text-[#1B3A6B]" aria-hidden="true" />
+          <h2 className="font-bold text-sm text-[#1B3A6B]">Envois récents</h2>
+          <span className="text-[11px] text-zinc-500">({entries.length} au total · 10 derniers)</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-800 underline underline-offset-2"
+          >
+            Rafraîchir
+          </button>
+          {entries.length > 0 && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-800"
+              aria-label="Effacer le journal des envois"
+            >
+              <Trash2 size={11} aria-hidden="true" />
+              Effacer
+            </button>
+          )}
+        </div>
+      </div>
+      {visible.length === 0 ? (
+        <div className="text-center py-6 text-xs text-zinc-500">
+          Aucun courriel test envoyé pour l'instant. Ouvre un modèle et clique <strong>Envoyer un test</strong>.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-200">
+                <th className="pb-2 pr-3">Date</th>
+                <th className="pb-2 pr-3">Modèle</th>
+                <th className="pb-2 pr-3">Destinataire</th>
+                <th className="pb-2 pr-3">Sujet</th>
+                <th className="pb-2">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((entry, i) => (
+                <tr key={`${entry.sentAt}-${i}`} className="border-b border-zinc-100 last:border-b-0 align-top">
+                  <td className="py-2 pr-3 text-zinc-700 whitespace-nowrap">{formatTimestamp(entry.sentAt)}</td>
+                  <td className="py-2 pr-3 text-zinc-700 font-mono">{entry.template ?? '—'}</td>
+                  <td className="py-2 pr-3 text-zinc-700">{entry.to}</td>
+                  <td className="py-2 pr-3 text-zinc-700 max-w-xs truncate" title={entry.subject}>{entry.subject}</td>
+                  <td className="py-2">
+                    {entry.status === 'ok' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
+                        <Check size={10} aria-hidden="true" />
+                        OK
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold uppercase tracking-wider"
+                        title={entry.error ?? 'Échec'}
+                      >
+                        <X size={10} aria-hidden="true" />
+                        Échec
+                      </span>
+                    )}
+                    {entry.status === 'fail' && entry.error && (
+                      <div className="text-[10px] text-rose-600 mt-0.5 max-w-xs">{entry.error}</div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
