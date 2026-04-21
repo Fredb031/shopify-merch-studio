@@ -67,7 +67,16 @@ export default function ProductDetail() {
   const { lang } = useLang();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [cartOpen, setCartOpen] = useState(false);
-  const [customizerOpen, setCustomizerOpen] = useState(false);
+  // Task 4.15 — auto-open the customizer when the PDP is reached via a
+  // shared config link (?customize=1). The customizer itself reads the
+  // same query string on mount to pre-apply colour + placement. Lazy
+  // initialiser runs once per mount so an in-session URL change (we
+  // don't do any, but a future push-state might) doesn't re-open the
+  // modal after a user closes it. typeof-window guard keeps SSR-safe.
+  const [customizerOpen, setCustomizerOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('customize') === '1';
+  });
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
   // Task 3.19 — has the user manually picked anything this mount? The
