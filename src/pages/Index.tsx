@@ -14,6 +14,7 @@ import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
+import { CountUp } from '@/components/CountUp';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -214,7 +215,9 @@ export default function Index() {
                 is the difference between a claim and proof. */}
             <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[88px]">
               <div className="flex items-baseline gap-1 text-foreground font-extrabold tabular-nums">
-                <span className="text-[22px] md:text-[26px] leading-none tracking-[-0.5px]">{lang === 'fr' ? '4,9' : '4.9'}</span>
+                <span className="text-[22px] md:text-[26px] leading-none tracking-[-0.5px]">
+                  <CountUp to={4.9} decimals={1} />
+                </span>
                 <span className="text-[#E8A838] text-[18px] md:text-[20px] leading-none" aria-hidden="true">★</span>
               </div>
               <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground">
@@ -229,7 +232,9 @@ export default function Index() {
                 a real number someone actually counted, not a marketing
                 round-up. */}
             <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[96px]">
-              <div className="text-[22px] md:text-[26px] leading-none font-extrabold tracking-[-0.5px] text-foreground tabular-nums">547</div>
+              <div className="text-[22px] md:text-[26px] leading-none font-extrabold tracking-[-0.5px] text-foreground tabular-nums">
+                <CountUp to={547} />
+              </div>
               <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground text-center">
                 {lang === 'en' ? 'Orders this year' : 'Commandes cette année'}
               </div>
@@ -243,7 +248,9 @@ export default function Index() {
                 stating intent. */}
             <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[92px]">
               <div className="flex items-baseline gap-[2px] text-foreground font-extrabold tabular-nums tracking-[-0.5px]">
-                <span className="text-[22px] md:text-[26px] leading-none">{lang === 'fr' ? '4,7' : '4.7'}</span>
+                <span className="text-[22px] md:text-[26px] leading-none">
+                  <CountUp to={4.7} decimals={1} />
+                </span>
                 <span className="text-[16px] md:text-[18px] leading-none">{lang === 'fr' ? 'j' : 'd'}</span>
               </div>
               <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground text-center">
