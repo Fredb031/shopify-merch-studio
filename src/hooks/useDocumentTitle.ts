@@ -95,6 +95,39 @@ export function useDocumentTitle(
       canonicalEl.setAttribute('href', window.location.origin + window.location.pathname);
     }
 
+    // hreflang alternates (Task 8.10) — signals to Google that each URL
+    // serves both French and English content. The SPA doesn't split
+    // content into /fr/ and /en/ paths; the UI picks the language via
+    // useLang + <html lang>, so all three alternates point at the same
+    // canonical URL. x-default is the fallback for locales we don't
+    // explicitly target. Pre-existing tags (e.g. a global one in
+    // index.html) have their href captured and restored on unmount; any
+    // tag we create is removed on unmount so SPA nav doesn't leak.
+    const hreflangs: Array<'fr-CA' | 'en-CA' | 'x-default'> = ['fr-CA', 'en-CA', 'x-default'];
+    const hreflangRestore: Array<{
+      el: HTMLLinkElement;
+      prev: string | null;
+      created: boolean;
+    }> = [];
+    if (typeof window !== 'undefined') {
+      const altHref = window.location.origin + window.location.pathname;
+      for (const lang of hreflangs) {
+        const selector = `link[rel="alternate"][hreflang="${lang}"]`;
+        let el = document.head.querySelector<HTMLLinkElement>(selector);
+        let created = false;
+        if (!el) {
+          el = document.createElement('link');
+          el.setAttribute('rel', 'alternate');
+          el.setAttribute('hreflang', lang);
+          document.head.appendChild(el);
+          created = true;
+        }
+        const prev = created ? null : el.getAttribute('href');
+        el.setAttribute('href', altHref);
+        hreflangRestore.push({ el, prev, created });
+      }
+    }
+
     let metaEl: HTMLMetaElement | null = null;
     let prevDescription: string | null = null;
     if (description !== undefined) {
@@ -185,6 +218,16 @@ export function useDocumentTitle(
           if (canonicalEl.parentNode) canonicalEl.parentNode.removeChild(canonicalEl);
         } else if (prevCanonicalHref !== null) {
           canonicalEl.setAttribute('href', prevCanonicalHref);
+        }
+      }
+      // Walk hreflang entries in reverse for the same head-ordering
+      // reason as the meta tags below.
+      for (let i = hreflangRestore.length - 1; i >= 0; i--) {
+        const entry = hreflangRestore[i];
+        if (entry.created) {
+          if (entry.el.parentNode) entry.el.parentNode.removeChild(entry.el);
+        } else if (entry.prev !== null) {
+          entry.el.setAttribute('href', entry.prev);
         }
       }
       // Walk in reverse so tags we appended get removed before any
