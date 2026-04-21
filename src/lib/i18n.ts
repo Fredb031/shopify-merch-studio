@@ -173,3 +173,33 @@ export function t(lang: Lang, key: TranslationKey, ...args: (string | number)[])
   args.forEach((arg) => { str = str.replace('%d', String(arg)).replace('%s', String(arg)); });
   return str;
 }
+
+// ── Pluralisation helper ────────────────────────────────────────────────────
+// Uses Intl.PluralRules to resolve the correct plural form for a given count
+// and language. FR and EN both map cleanly to `one`/`other` for our UI copy
+// (FR groups 0 and 1 under `one`; EN reserves `one` strictly for 1). Callers
+// pass explicit strings to keep translations colocated and type-safe.
+export interface PluralForms {
+  one: string;
+  other: string;
+}
+
+// Cache Intl.PluralRules instances — constructing them is not free and we hit
+// this helper on every render of list-count strings.
+const pluralRulesCache = new Map<Lang, Intl.PluralRules>();
+
+function getPluralRules(lang: Lang): Intl.PluralRules {
+  let rules = pluralRulesCache.get(lang);
+  if (!rules) {
+    rules = new Intl.PluralRules(lang);
+    pluralRulesCache.set(lang, rules);
+  }
+  return rules;
+}
+
+export function plural(lang: Lang, count: number, forms: PluralForms): string {
+  const category = getPluralRules(lang).select(count);
+  // FR/EN only emit `one` or `other` for integers, but guard defensively for
+  // `zero`/`two`/`few`/`many` by falling back to `other`.
+  return category === 'one' ? forms.one : forms.other;
+}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Mail, TrendingUp, Trash2, X, Search } from 'lucide-react';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import { plural } from '@/lib/i18n';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -191,7 +192,7 @@ export default function AdminVendors() {
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">Vendeurs</h1>
-          <p className="text-sm text-zinc-500 mt-1">Gère ton équipe et leurs accès · {all.length} vendeur{all.length > 1 ? 's' : ''}</p>
+          <p className="text-sm text-zinc-500 mt-1">Gère ton équipe et leurs accès · {all.length} {plural('fr', all.length, { one: 'vendeur', other: 'vendeurs' })}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {/* Search — name / email. Cmd+K focuses it (same shortcut
