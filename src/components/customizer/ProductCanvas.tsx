@@ -138,6 +138,14 @@ export function ProductCanvas({
   // 50,50 even after the real garment center is detected.
   const bboxRef = useRef<{ cx: number; cy: number } | null>(null);
   bboxRef.current = localBbox;
+  // Ref mirror of currentPlacement so the logo re-add effect (deps
+  // [ready, logoUrl]) reads the LIVE placement instead of whatever was
+  // captured in its closure. Without this, a rapid resize in the middle
+  // of a drag would fire the effect with a stale currentPlacement and
+  // snap the logo back to its pre-drag coordinates. Same pattern as
+  // bboxRef / textAssetsRef / zoneIdRef.
+  const currentPlacementRef = useRef(currentPlacement);
+  useEffect(() => { currentPlacementRef.current = currentPlacement; }, [currentPlacement]);
   const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (product.printZones[0]?.id ?? ''),
@@ -700,6 +708,17 @@ export function ProductCanvas({
 
     return () => {
       disposed = true;
+      // Explicitly dispose every fabric object we tracked so their internal
+      // listeners unbind from the canvas we're about to tear down. Without
+      // this the fabric IText objects stayed in the Map pointing at a
+      // disposed canvas — on the next canvasKey bump the text silently
+      // vanished from the canvas while still showing in the assets list.
+      textObjects.current.forEach(t => {
+        (t as FabricObj & { dispose?: () => void }).dispose?.();
+      });
+      textObjects.current.clear();
+      (logoObj.current as (FabricObj & { dispose?: () => void }) | null)?.dispose?.();
+      logoObj.current = null;
       fc.current?.dispose();
       fc.current = null;
     };
@@ -708,6 +727,72 @@ export function ProductCanvas({
     // so the user's logo placement survives a color pick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasKey]);
+
+  // ── Re-hydrate text assets after a canvas rebuild ───────────────────────
+  // When canvasKey bumps (resize), the init effect disposes the old canvas
+  // and recreates it, but React keeps our textAssets state. Without this
+  // effect, the text would be gone from the canvas while still present in
+  // the asset list — so re-add each asset as a fresh fabric IText whenever
+  // `ready` flips true after a rebuild. Mirrors the initial add-text logic.
+  useEffect(() => {
+    if (!ready || !fc.current) return;
+    const assets = textAssetsRef.current;
+    if (assets.length === 0) return;
+    let disposed = false;
+    import('fabric').then(({ fabric }) => {
+      if (disposed || !fc.current) return;
+      const canvas = fc.current;
+      const W = canvas.width as number;
+      const H = canvas.height as number;
+      const zone = product.printZones[0];
+      const cx = zone ? (zone.x / 100) * W + (zone.width / 100) * W / 2 : W / 2;
+      const cy = zone ? (zone.y / 100) * H + (zone.height / 100) * H / 2 + 40 : H / 2;
+      for (const asset of assets) {
+        // Skip if we already re-added this one (guards against double-fire)
+        if (textObjects.current.has(asset.id)) continue;
+        const hex = asset.color.replace('#', '');
+        const isLightText = hex.length >= 6
+          ? (parseInt(hex.slice(0, 2), 16) * 299 +
+             parseInt(hex.slice(2, 4), 16) * 587 +
+             parseInt(hex.slice(4, 6), 16) * 114) / 1000 > 160
+          : false;
+        const baseSize = W * 0.06;
+        const lengthFactor = Math.max(0.5, Math.min(1, 14 / Math.max(1, asset.text.length)));
+        const fontSize = Math.max(14, Math.round(baseSize * lengthFactor));
+        const t = new fabric.IText(asset.text, {
+          left: cx, top: cy,
+          originX: 'center', originY: 'center',
+          fontFamily: textFont,
+          fontSize,
+          fontWeight: 'bold',
+          fill: asset.color,
+          stroke: isLightText ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
+          strokeWidth: 1,
+          strokeUniform: true,
+          paintFirst: 'stroke',
+          textAlign: 'center',
+          editable: true,
+          selectable: asset.side === activeView,
+          evented: asset.side === activeView,
+          visible: asset.side === activeView,
+          hasControls: true,
+          lockUniScaling: true,
+          cornerStyle: 'circle', cornerSize: 12,
+          cornerColor: '#FFFFFF', borderColor: '#FFFFFF',
+          transparentCorners: false,
+        });
+        t.setControlsVisibility({ mt: false, mb: false, ml: false, mr: false });
+        (t as FabricObj & { side: ProductView }).side = asset.side;
+        canvas.add(t);
+        textObjects.current.set(asset.id, t as FabricObj & { side: ProductView });
+      }
+      canvas.renderAll();
+    });
+    return () => { disposed = true; };
+    // textAssetsRef/textFont/activeView/product are stable-enough — we only
+    // want this to run when a rebuild flips `ready` back true.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   // ── Place / replace the user's logo whenever it changes ───────────────────
   useEffect(() => {
@@ -735,14 +820,17 @@ export function ProductCanvas({
       const H = canvas.height as number;
 
       // If the user already placed the logo, restore that position.
-      // Otherwise, default to the zone center.
-      const hasExistingPlacement = currentPlacement?.x != null && currentPlacement?.y != null;
+      // Otherwise, default to the zone center. Read from the ref so a
+      // resize mid-drag doesn't re-bind the effect to a stale closure
+      // and snap the logo back to its pre-drag coordinates.
+      const livePlacement = currentPlacementRef.current;
+      const hasExistingPlacement = livePlacement?.x != null && livePlacement?.y != null;
       let cx: number, cy: number, initWidthPct: number;
 
       if (hasExistingPlacement) {
-        cx = (currentPlacement!.x! / 100) * W;
-        cy = (currentPlacement!.y! / 100) * H;
-        initWidthPct = (currentPlacement!.width ?? 26) / 100;
+        cx = (livePlacement!.x! / 100) * W;
+        cy = (livePlacement!.y! / 100) * H;
+        initWidthPct = (livePlacement!.width ?? 26) / 100;
       } else {
         const zone = product.printZones.find(z => z.id === zoneId) ?? product.printZones[0];
         cx = W / 2; cy = H * 0.36; initWidthPct = 0.26;
@@ -770,7 +858,7 @@ export function ProductCanvas({
             left: cx,
             top:  cy,
             scaleX: s, scaleY: s,
-            angle: currentPlacement?.rotation ?? 0,
+            angle: livePlacement?.rotation ?? 0,
             // Logo is only draggable / selectable during the placement
             // step ("Where to print"). On other steps it's locked so
             // the user can't accidentally shove it off the garment.
