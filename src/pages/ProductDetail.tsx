@@ -72,8 +72,12 @@ export default function ProductDetail() {
   // the user was considering.
   const { track: trackRecentlyViewed } = useRecentlyViewed();
   useEffect(() => {
-    if (handle) trackRecentlyViewed(handle);
-  }, [handle, trackRecentlyViewed]);
+    // Only record once the product actually resolves — a dead handle
+    // (404) shouldn't pollute the Recently Viewed surface with a URL
+    // that will 404 again when the user clicks it from the cart empty
+    // state.
+    if (handle && product) trackRecentlyViewed(handle);
+  }, [handle, product, trackRecentlyViewed]);
 
   const { toggle: toggleWishlist, has: isWishlisted } = useWishlist();
   const saved = handle ? isWishlisted(handle) : false;
@@ -283,11 +287,13 @@ export default function ProductDetail() {
     : shopifyImages;
   const productOptions: Array<{ name: string; values: string[] }> = product.options ?? [];
   const options = productOptions.filter(
-    (o: { name: string; values: string[] }) =>
-      !(o.values.length === 1 && o.values[0] === 'Default Title'),
+    (o: { name: string; values: string[] }) => {
+      const vals = o.values ?? [];
+      return !(vals.length === 1 && vals[0] === 'Default Title');
+    },
   );
   const currentOptions = {
-    ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, o.values[0]])),
+    ...Object.fromEntries(options.map((o: { name: string; values: string[] }) => [o.name, (o.values ?? [])[0]])),
     ...selectedOptions,
   };
 
@@ -295,7 +301,7 @@ export default function ProductDetail() {
   const selectedVariant =
     variantEdges.find(
       (v: { node: { selectedOptions: Array<{ name: string; value: string }> } }) =>
-        v.node.selectedOptions.every(
+        (v.node.selectedOptions ?? []).every(
           (so: { name: string; value: string }) => currentOptions[so.name] === so.value,
         ),
     )?.node || variantEdges[0]?.node || null;
@@ -361,7 +367,7 @@ export default function ProductDetail() {
     return variantEdges.some(
       (v: { node: { availableForSale: boolean; selectedOptions: Array<{ name: string; value: string }> } }) =>
         v.node.availableForSale &&
-        v.node.selectedOptions.every(
+        (v.node.selectedOptions ?? []).every(
           (so: { name: string; value: string }) => probe[so.name] === so.value,
         ),
     );
@@ -678,7 +684,7 @@ export default function ProductDetail() {
 
             {/* Options — Color shown as swatches in header above; render Color here too with FR label, hide if a single value */}
             {options
-              .filter((opt: { name: string; values: string[] }) => opt.values.length > 1)
+              .filter((opt: { name: string; values: string[] }) => (opt.values ?? []).length > 1)
               .map((option: { name: string; values: string[] }) => {
                 const isColor = /color|colour|couleur/i.test(option.name);
                 const localizedName = (() => {
@@ -714,7 +720,7 @@ export default function ProductDetail() {
                           const localNames = localProduct.colors
                             .filter(c => !!findColorImage(localProduct.sku, c.nameEn) || !!findColorImage(localProduct.sku, c.name) || /^(black|noir)$/i.test(c.nameEn))
                             .map(c => c.name);
-                          const extra = option.values.filter(v => !localNames.some(n => norm(n) === norm(v)));
+                          const extra = (option.values ?? []).filter(v => !localNames.some(n => norm(n) === norm(v)));
                           const entries = [...localNames, ...extra];
                           // Put Black first.
                           entries.sort((a, b) => {
@@ -729,13 +735,13 @@ export default function ProductDetail() {
                             const hex = match?.hex ?? colorNameToHex(value);
                             // Select by whichever NAME Shopify uses if it's there,
                             // else by the local name — stays consistent.
-                            const shopifyValueForMatch = option.values.find(v => norm(v) === norm(value)) ?? value;
+                            const shopifyValueForMatch = (option.values ?? []).find(v => norm(v) === norm(value)) ?? value;
                             const isSelected = norm(currentOptions[option.name] ?? '') === norm(shopifyValueForMatch);
                             // Only run availability check against Shopify values;
                             // a local-catalog-only colour (not in option.values)
                             // is treated as available so we don't strike colours
                             // that Shopify just hasn't listed yet.
-                            const isInShopify = option.values.some(v => norm(v) === norm(value));
+                            const isInShopify = (option.values ?? []).some(v => norm(v) === norm(value));
                             const isAvailable = !isInShopify || isOptionValueAvailable(option.name, shopifyValueForMatch);
                             const soldOutTitle = lang === 'en' ? 'Sold out' : 'Épuisé';
                             return (
@@ -794,7 +800,7 @@ export default function ProductDetail() {
                     ) : (
                       /* Size + others: text pills */
                       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
-                        {option.values.map((value: string) => {
+                        {(option.values ?? []).map((value: string) => {
                           const isSel = currentOptions[option.name] === value;
                           const isAvailable = isOptionValueAvailable(option.name, value);
                           const soldOutTitle = lang === 'en' ? 'Sold out' : 'Épuisé';
