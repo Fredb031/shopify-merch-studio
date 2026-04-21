@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   SHOPIFY_CUSTOMERS_SNAPSHOT,
+  SHOPIFY_ORDERS_SNAPSHOT,
   SHOPIFY_STATS,
   type ShopifyCustomerSnapshot,
 } from '@/data/shopifySnapshot';
@@ -12,6 +13,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { TablePagination } from '@/components/admin/TablePagination';
 import { normalizeInvisible } from '@/lib/utils';
+import { fmtMoney } from '@/lib/format';
 
 function initials(c: ShopifyCustomerSnapshot): string {
   const first = (c.firstName?.[0] ?? '').toUpperCase();
@@ -29,10 +31,33 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
+// Format days-since-last-order into a short FR label. Returns an em-dash when
+// no order exists so the column stays visually quiet for prospects.
+function formatRecency(days: number | null): string {
+  if (days == null) return '—';
+  if (days <= 0) return "aujourd'hui";
+  if (days === 1) return 'hier';
+  if (days > 365) return '> 1 an';
+  return `il y a ${days} j`;
+}
+
 const PAGE_SIZE = 25;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 type CustomerFilter = 'all' | 'paying' | 'prospects';
 const VALID_FILTERS: readonly CustomerFilter[] = ['all', 'paying', 'prospects'];
+
+type SortKey = 'default' | 'ltv-desc' | 'ltv-asc';
+
+// Enriched row computed by folding SHOPIFY_ORDERS_SNAPSHOT over each customer
+// by email. LTV supersedes the per-customer totalSpent field because orders
+// is the authoritative source (totalSpent in the snapshot can lag).
+interface EnrichedCustomer extends ShopifyCustomerSnapshot {
+  lifetimeValue: number;
+  orderCount: number;
+  lastOrderAt: string | null;
+  daysSinceLastOrder: number | null;
+}
 
 export default function AdminCustomers() {
   // Read initial state from URL params so reload/share preserves the
@@ -48,6 +73,9 @@ export default function AdminCustomers() {
   const [query, setQuery] = useState(initialQuery);
   const [filter, setFilter] = useState<CustomerFilter>(initialFilter);
   const [page, setPage] = useState(0);
+  // Clicking the LTV header cycles default → desc → asc → default so an
+  // admin can compare top spenders or find the long-tail cheapskates.
+  const [sort, setSort] = useState<SortKey>('default');
   const navigate = useNavigate();
   // Cmd+K focuses the search input; Esc clears + blurs while focused.
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
@@ -85,14 +113,77 @@ export default function AdminCustomers() {
     };
   }, []);
 
+  // Fold orders into a by-email index once — rebuilding this per row would
+  // be O(n·m). Gives us LTV, order count, and most-recent order timestamp.
+  const ordersByEmail = useMemo(() => {
+    const map = new Map<string, { total: number; count: number; lastAt: number }>();
+    for (const o of SHOPIFY_ORDERS_SNAPSHOT) {
+      const key = o.email.trim().toLowerCase();
+      if (!key) continue;
+      const ts = new Date(o.createdAt).getTime();
+      const prev = map.get(key);
+      if (prev) {
+        prev.total += o.total;
+        prev.count += 1;
+        if (ts > prev.lastAt) prev.lastAt = ts;
+      } else {
+        map.set(key, { total: o.total, count: 1, lastAt: ts });
+      }
+    }
+    return map;
+  }, []);
+
+  // "Now" is pinned to the snapshot date so the recency label stays stable
+  // in the UI even as real wall-clock time drifts away from the seed data.
+  const nowMs = useMemo(() => Date.now(), []);
+
+  const enriched = useMemo<EnrichedCustomer[]>(() => {
+    return SHOPIFY_CUSTOMERS_SNAPSHOT.map(c => {
+      const agg = ordersByEmail.get(c.email.trim().toLowerCase());
+      // Fall back to the customer's reported totalSpent / ordersCount when
+      // orders snapshot doesn't include this email (snapshot only has the
+      // 20 most-recent orders).
+      const lifetimeValue = agg?.total ?? c.totalSpent;
+      const orderCount = agg?.count ?? c.ordersCount;
+      const lastOrderAt = agg ? new Date(agg.lastAt).toISOString() : null;
+      const daysSinceLastOrder = agg
+        ? Math.max(0, Math.floor((nowMs - agg.lastAt) / MS_PER_DAY))
+        : null;
+      return { ...c, lifetimeValue, orderCount, lastOrderAt, daysSinceLastOrder };
+    });
+  }, [ordersByEmail, nowMs]);
+
+  // Top-10% LTV threshold used to gold-accent big spenders. Computed once
+  // over the non-zero-spender subset so prospects don't depress the cutoff.
+  const topLtvThreshold = useMemo(() => {
+    const spenders = enriched.filter(c => c.lifetimeValue > 0).map(c => c.lifetimeValue);
+    if (spenders.length < 5) return Infinity;
+    spenders.sort((a, b) => a - b);
+    return spenders[Math.floor(spenders.length * 0.9)] ?? Infinity;
+  }, [enriched]);
+
+  // Cohort strip: "Active in last 30 days" = has ordered within 30d;
+  // "New this quarter" = createdAt falls in the current calendar quarter.
+  const cohortStats = useMemo(() => {
+    const now = new Date(nowMs);
+    const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1).getTime();
+    let active30 = 0;
+    let newThisQuarter = 0;
+    for (const c of enriched) {
+      if (c.daysSinceLastOrder != null && c.daysSinceLastOrder <= 30) active30 += 1;
+      if (new Date(c.createdAt).getTime() >= quarterStart) newThisQuarter += 1;
+    }
+    return { active30, newThisQuarter };
+  }, [enriched, nowMs]);
+
   const filtered = useMemo(() => {
     // Strip invisibles on both sides so a paste-from-Slack search term
     // still matches customer records that might also carry ZWSP from
     // a Shopify export.
     const q = normalizeInvisible(query).trim().toLowerCase();
-    return SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => {
-      if (filter === 'paying' && c.ordersCount === 0) return false;
-      if (filter === 'prospects' && c.ordersCount > 0) return false;
+    const rows = enriched.filter(c => {
+      if (filter === 'paying' && c.orderCount === 0) return false;
+      if (filter === 'prospects' && c.orderCount > 0) return false;
       if (!q) return true;
       const email = normalizeInvisible(c.email).toLowerCase();
       const first = normalizeInvisible(c.firstName ?? '').toLowerCase();
@@ -100,13 +191,21 @@ export default function AdminCustomers() {
       const city  = normalizeInvisible(c.city ?? '').toLowerCase();
       return email.includes(q) || first.includes(q) || last.includes(q) || city.includes(q);
     });
-  }, [query, filter]);
+    if (sort === 'ltv-desc') return [...rows].sort((a, b) => b.lifetimeValue - a.lifetimeValue);
+    if (sort === 'ltv-asc')  return [...rows].sort((a, b) => a.lifetimeValue - b.lifetimeValue);
+    return rows;
+  }, [enriched, query, filter, sort]);
 
   // Paginated slice — don't render 1000+ table rows at once.
   const pageItems = useMemo(
     () => filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
     [filtered, page],
   );
+
+  const cycleLtvSort = () => {
+    setSort(s => (s === 'default' ? 'ltv-desc' : s === 'ltv-desc' ? 'ltv-asc' : 'default'));
+    setPage(0);
+  };
 
   return (
     <div className="space-y-6">
@@ -143,6 +242,22 @@ export default function AdminCustomers() {
           value={SHOPIFY_STATS.totalLifetimeRevenue.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
           accent="green"
         />
+      </div>
+
+      {/* Cohort summary strip — pulse of who's active and who just showed up.
+          Kept inline + compact so it reads at a glance without stealing
+          chart real estate from the proper dashboards. */}
+      <div className="flex flex-wrap gap-2 text-xs" aria-label="Cohortes clients">
+        <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-200 bg-emerald-50/60">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+          <span className="text-zinc-500">Actifs (30 derniers jours)</span>
+          <span className="font-extrabold text-emerald-700">{cohortStats.active30}</span>
+        </div>
+        <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-200 bg-amber-50/60">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+          <span className="text-zinc-500">Nouveaux ce trimestre</span>
+          <span className="font-extrabold text-amber-700">{cohortStats.newThisQuarter}</span>
+        </div>
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
@@ -186,19 +301,38 @@ export default function AdminCustomers() {
                 <th className="text-left px-4 py-3">Contact</th>
                 <th className="text-left px-4 py-3">Emplacement</th>
                 <th className="text-right px-4 py-3">Commandes</th>
-                <th className="text-right px-4 py-3">Dépensé</th>
+                <th className="text-right px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={cycleLtvSort}
+                    aria-sort={sort === 'ltv-desc' ? 'descending' : sort === 'ltv-asc' ? 'ascending' : 'none'}
+                    className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-zinc-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                  >
+                    LTV
+                    {sort === 'ltv-desc' ? (
+                      <ArrowDown size={11} aria-hidden="true" />
+                    ) : sort === 'ltv-asc' ? (
+                      <ArrowUp size={11} aria-hidden="true" />
+                    ) : (
+                      <ArrowUpDown size={11} aria-hidden="true" className="opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="text-left px-4 py-3">Dernière cmd</th>
                 <th className="text-left px-4 py-3">Inscrit</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-12 text-zinc-400 text-sm">
+                  <td colSpan={7} className="text-center py-12 text-zinc-400 text-sm">
                     Aucun client trouvé
                   </td>
                 </tr>
               ) : (
-                pageItems.map(c => (
+                pageItems.map(c => {
+                  const isTop = c.lifetimeValue > 0 && c.lifetimeValue >= topLtvThreshold;
+                  return (
                   <tr
                     key={c.id}
                     onClick={() => navigate(`/admin/customers/${c.id}`)}
@@ -235,15 +369,24 @@ export default function AdminCustomers() {
                     <td className="px-4 py-3 text-xs text-zinc-500">
                       {c.city ? `${c.city}${c.province ? ', ' + c.province : ''}` : '—'}
                     </td>
-                    <td className="px-4 py-3 text-right font-bold">{c.ordersCount}</td>
-                    <td className="px-4 py-3 text-right font-bold">
-                      {c.totalSpent > 0
-                        ? c.totalSpent.toLocaleString('fr-CA', { minimumFractionDigits: 2 }) + ' $'
+                    <td className="px-4 py-3 text-right font-bold">{c.orderCount}</td>
+                    <td
+                      className={`px-4 py-3 text-right font-medium ${
+                        isTop ? 'text-amber-600 font-bold' : ''
+                      }`}
+                      title={isTop ? 'Top 10 % des dépenseurs' : undefined}
+                    >
+                      {c.lifetimeValue > 0
+                        ? fmtMoney(c.lifetimeValue)
                         : <span className="text-zinc-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-500 text-xs">
+                      {formatRecency(c.daysSinceLastOrder)}
                     </td>
                     <td className="px-4 py-3 text-zinc-500 text-xs">{formatDate(c.createdAt)}</td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>
