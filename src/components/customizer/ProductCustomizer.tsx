@@ -82,6 +82,21 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const bboxRef = useRef(bbox);
   useEffect(() => { bboxRef.current = bbox; }, [bbox]);
 
+  // Mirror the active view + placement-sides mode so setCurrentPlacement
+  // always routes to the correct slot, even when called from an async
+  // fabric callback (object:modified / object:moving rAF, fromURL
+  // resolution inside ProductCanvas' logo re-add effect) whose closure
+  // captured an earlier render's snapshot. Before this fix, a user who
+  // repositioned the logo on "back" and then immediately swapped colour
+  // + flipped the view could end up emitting the post-flip position into
+  // the pre-flip slot — so the back canvas visually snapped to a stale
+  // logoPlacement and the front would pick up bottom-right coords the
+  // user had only dragged on the back. Same pattern as bboxRef above.
+  const activeViewRef = useRef(store.activeView);
+  useEffect(() => { activeViewRef.current = store.activeView; }, [store.activeView]);
+  const placementSidesRef = useRef(store.placementSides);
+  useEffect(() => { placementSidesRef.current = store.placementSides; }, [store.placementSides]);
+
   // RESET the customizer state every time the modal mounts. User
   // explicitly asked: 'when we go back on the customiser, it restarts
   // the process'. The persisted customizer store was designed to keep
@@ -317,9 +332,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     : store.logoPlacement;
 
   const setCurrentPlacement = (p: LogoPlacement | null) => {
-    if (store.placementSides === 'back') {
+    // Read mode + view off the refs — not off the render-time `store`
+    // snapshot — so an async fabric callback (drag rAF, fromURL resolve)
+    // always writes into the slot that matches the LIVE view, even if it
+    // was bound before the user flipped sides or swapped colours.
+    const sides = placementSidesRef.current;
+    const view  = activeViewRef.current;
+    if (sides === 'back') {
       store.setLogoPlacementBack(p);
-    } else if (store.placementSides === 'both' && store.activeView === 'back') {
+    } else if (sides === 'both' && view === 'back') {
       store.setLogoPlacementBack(p);
     } else {
       store.setLogoPlacement(p);
