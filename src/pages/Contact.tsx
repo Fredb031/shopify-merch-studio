@@ -56,7 +56,16 @@ export default function Contact() {
   // 'sending...' beat before the tick lands (kept ~350ms for honesty — a
   // user who sees the spinner for one frame won't register "it worked").
   const [submitState, setSubmitState] = useState<SubmitButtonState>('idle');
+  // Task 173 — after a successful submit we swap the whole form for a
+  // compact "merci, sous 24h" confirmation card so the user has a clear
+  // end-state instead of an emptied form + toast that the button tick
+  // alone barely signals. "Send another" rewinds the state in-place.
+  const [sent, setSent] = useState(false);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  // Task 173 — cap the message textarea at the same 500-char budget we
+  // advertise via the counter. Kept below the sanitize 2000-char ceiling
+  // so the visible counter is the binding constraint (not a silent truncate).
+  const MESSAGE_MAX = 500;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,8 +131,22 @@ export default function Contact() {
       // enough dwell time to read the "Envoyé" / "Sent" label before
       // the button goes back to its default call-to-action state.
       window.setTimeout(() => setSubmitState('idle'), 2000);
-      nameInputRef.current?.focus();
+      // Swap the form for the confirmation card on the next tick so the
+      // success tint on the button still registers visually before the
+      // section morphs out from under it.
+      setSent(true);
     }, 350);
+  };
+
+  // Rewind the confirmation card back to a fresh form. Used by the
+  // "Send another" button inside the success state so the user can file
+  // a follow-up without a full page reload.
+  const handleSendAnother = () => {
+    setSent(false);
+    setSubmitState('idle');
+    setEmailErr(false);
+    // Defer focus so the form has a chance to mount before we grab it.
+    window.setTimeout(() => nameInputRef.current?.focus(), 0);
   };
 
   // Generic Google Maps embed URL for Saint-Hyacinthe, QC — the `pb=`
@@ -264,6 +287,43 @@ export default function Contact() {
               ? 'Fill in the form below and we\u2019ll get back to you within 24 hours.'
               : 'Remplissez le formulaire ci-dessous et nous vous reviendrons sous 24h.'}
           </p>
+          {sent ? (
+            // Task 173 — post-submit confirmation card. Replaces the
+            // form entirely so the user has an unambiguous end-state
+            // (an emptied form alone can read as "did it even go?").
+            // role=status + aria-live=polite makes assistive tech
+            // announce the confirmation on mount without stealing focus.
+            <div
+              role="status"
+              aria-live="polite"
+              className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 md:p-6 text-[#0F2341]"
+            >
+              <div className="flex items-start gap-3">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-600 text-white shrink-0">
+                  <Send size={18} aria-hidden="true" />
+                </span>
+                <div className="flex-1">
+                  <h3 className="text-base md:text-lg font-extrabold tracking-[-0.2px] mb-1">
+                    {lang === 'en'
+                      ? 'Thanks — we\u2019ll reply within 24h'
+                      : 'Merci — on te répond sous 24h'}
+                  </h3>
+                  <p className="text-sm text-zinc-700 mb-4">
+                    {lang === 'en'
+                      ? 'Your message is on its way. Watch your inbox (and the spam folder, just in case).'
+                      : 'Votre message est parti. Surveillez votre boîte de réception (et les pourriels, au cas où).'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleSendAnother}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-extrabold bg-white border border-emerald-300 text-[#0F2341] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                  >
+                    {lang === 'en' ? 'Send another' : 'Envoyer un autre message'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
             <div className="grid sm:grid-cols-2 gap-4">
               <label className="block">
@@ -289,6 +349,14 @@ export default function Contact() {
                   type="email"
                   value={email}
                   onChange={e => { setEmail(e.target.value); if (emailErr) setEmailErr(false); }}
+                  // Task 173 — onBlur check surfaces the invalid-email
+                  // hint the moment the user leaves the field, not only
+                  // when they hit submit. Empty blur is tolerated so we
+                  // don't scold a user who tabs through the form first.
+                  onBlur={() => {
+                    const trimmed = normalizeInvisible(email).trim();
+                    if (trimmed && !isValidEmail(trimmed.toLowerCase())) setEmailErr(true);
+                  }}
                   required
                   autoComplete="email"
                   aria-invalid={emailErr || undefined}
@@ -335,12 +403,33 @@ export default function Contact() {
               </span>
               <textarea
                 value={message}
-                onChange={e => setMessage(e.target.value)}
+                onChange={e => {
+                  // Hard-cap at MESSAGE_MAX so the visible counter is
+                  // the binding limit; paste beyond the cap is silently
+                  // truncated rather than accepted then rejected later.
+                  const next = e.target.value.slice(0, MESSAGE_MAX);
+                  setMessage(next);
+                }}
                 required
                 rows={6}
+                maxLength={MESSAGE_MAX}
+                aria-describedby="contact-message-counter"
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow resize-y min-h-[140px]"
                 placeholder={lang === 'en' ? 'Tell us how we can help...' : 'Dites-nous comment nous pouvons aider...'}
               />
+              {/* Task 173 — live character counter. aria-live=polite so
+                  screen readers hear the remaining budget without being
+                  interrupted on every keystroke. Tints rose when within
+                  20 chars of the cap to signal "wrap up soon". */}
+              <div
+                id="contact-message-counter"
+                aria-live="polite"
+                className={`text-[11px] mt-1 text-right font-semibold tabular-nums ${
+                  message.length >= MESSAGE_MAX - 20 ? 'text-rose-600' : 'text-zinc-500'
+                }`}
+              >
+                {message.length}/{MESSAGE_MAX}
+              </div>
             </label>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <p className="text-[11px] text-zinc-500">
@@ -364,6 +453,7 @@ export default function Contact() {
               </SubmitButton>
             </div>
           </form>
+          )}
         </section>
       </main>
       <SiteFooter />
