@@ -8,6 +8,7 @@ import { Sparkline } from '@/components/admin/Sparkline';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useSearchHotkey } from '@/hooks/useSearchHotkey';
 import { normalizeInvisible } from '@/lib/utils';
+import { downloadCsv } from '@/lib/csv';
 
 const PAGE_SIZE = 32;
 
@@ -17,20 +18,14 @@ function formatPrice(min: number, max: number): string {
 }
 
 /** Generate and download a CSV for the currently filtered product list.
- * Mirrors the AdminOrders helper: RFC 4180 quoting, formula-injection
- * neutralising (leading '=' '+' '-' '@' get a TAB prefix so Excel /
- * Sheets treat them as text), UTF-8 BOM so accents render without a
- * manual encoding prompt, Blob + revokeObjectURL for a clean download.
- * The snapshot shape has no per-size inventory or explicit colour list
- * — we only know totalInventory (scalar) and variantsCount — so we
- * export those honestly rather than fabricating sizes. */
+ * Delegates quoting / BOM / injection-guard to {@link downloadCsv} so
+ * this file stays focused on column shape. The snapshot has no per-size
+ * inventory or explicit colour list — we only know totalInventory
+ * (scalar) and variantsCount — so we export those honestly rather than
+ * fabricating sizes. Filename keeps the page-specific
+ * `products-YYYY-MM-DD.csv` pattern (not the `vision-*` helper) so
+ * existing download folders / Finance macros keep working. */
 function exportProductsCsv(products: typeof SHOPIFY_PRODUCTS_SNAPSHOT) {
-  const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
-  const csvEscape = (v: unknown) => {
-    let s = String(v ?? '');
-    if (FORMULA_TRIGGERS.test(s)) s = '\t' + s;
-    return /[",\n\r\t]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const priceCell = (min: number, max: number) =>
     min === max ? min.toFixed(2) : `${min.toFixed(2)} – ${max.toFixed(2)}`;
   const header = ['Nom', 'Catégorie', 'Fournisseur', 'Prix', 'Stock', 'Variantes'];
@@ -41,19 +36,10 @@ function exportProductsCsv(products: typeof SHOPIFY_PRODUCTS_SNAPSHOT) {
     priceCell(p.minPrice, p.maxPrice),
     // Clamp negatives — Shopify reports backorder as negative inventory,
     // but an admin scanning a stock column wants 0 for "out", not -37.
-    String(Math.max(0, p.totalInventory)),
-    String(p.variantsCount),
+    Math.max(0, p.totalInventory),
+    p.variantsCount,
   ]);
-  const csv = [header, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `products-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  downloadCsv([header, ...rows], `products-${new Date().toISOString().slice(0, 10)}.csv`);
   toast.success(`${products.length} produit${products.length > 1 ? 's' : ''} exporté${products.length > 1 ? 's' : ''}`);
 }
 
