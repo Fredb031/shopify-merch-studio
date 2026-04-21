@@ -1164,6 +1164,7 @@ export function ProductCanvas({
   // mode separately so backspace inside an editing text won't nuke it.)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (!showPlacementTools) return;
       if (!fc.current) return;
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
       const target = e.target as HTMLElement | null;
@@ -1190,9 +1191,10 @@ export function ProductCanvas({
     return () => window.removeEventListener('keydown', onKey);
     // removeTextAsset is stable within a render; a dep here would just force
     // us to memoize it for no behavioural gain. The handler always reads
-    // fresh state via refs.
+    // fresh state via refs. showPlacementTools is included so the early
+    // bail-out reflects the current step (step 3/4 must not delete the logo).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showPlacementTools]);
 
   // Keyboard arrow nudge — competitor pattern (CustomInk, Printful, Figma).
   // When the canvas wrapper has focus and an arrow key is pressed, shift
