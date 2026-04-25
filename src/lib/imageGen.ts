@@ -222,8 +222,19 @@ async function callOpenAI(params: GenerateImageParams, apiKey: string): Promise<
     });
   }
   const data = await res.json();
+  // Mirror the Replicate guard below: a 200 OK from OpenAI normally
+  // carries `{ data: [{ url: '...' }] }`, but a malformed payload
+  // (proxy stripping the body, content-policy refusal returning an
+  // empty array, future API shape change) would otherwise throw an
+  // opaque TypeError on `.url` deep in the admin UI. Surface the
+  // same shaped ImageGenError as every other failure path so the
+  // AdminImageGen toast can render a useful message.
+  const url = Array.isArray(data?.data) ? data.data[0]?.url : undefined;
+  if (typeof url !== 'string' || url.length === 0) {
+    throw new ImageGenError('OpenAI returned no output URL', { provider: 'openai' });
+  }
   return {
-    url: data.data[0].url,
+    url,
     prompt: params.prompt,
     provider: 'openai',
     generatedAt: new Date().toISOString(),
