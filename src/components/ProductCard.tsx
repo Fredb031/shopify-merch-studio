@@ -134,7 +134,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
            trailing em-dash ('T-shirt — ') that screen readers read out
            loud. */
         aria-label={local ? `${categoryLabel(local.category, lang)} — ${local.sku}` : title}
-        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+        className="group border border-border rounded-[18px] overflow-hidden bg-card cursor-pointer transition-all duration-300 hover:border-brand-blue/30 hover:shadow-[0_16px_40px_rgba(10,10,10,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
       >
         {/* Image */}
         <div className="relative overflow-hidden bg-secondary" style={{ aspectRatio: '1' }}>
@@ -184,7 +184,7 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
 
           {/* Popular badge */}
           {isPopular && (
-            <div className="absolute top-2.5 left-2.5 z-[5] text-[10px] font-extrabold text-primary-foreground gradient-navy-dark px-2.5 py-[3px] rounded-full shadow-sm">
+            <div className="absolute top-2.5 left-2.5 z-[5] text-[10px] font-extrabold text-brand-white bg-brand-black px-2.5 py-[3px] rounded-full shadow-sm">
               {lang === 'en' ? '⭐ Popular' : '⭐ Populaire'}
             </div>
           )}
@@ -205,9 +205,9 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
               ? (lang === 'en' ? `Remove ${title} from wishlist` : `Retirer ${title} des favoris`)
               : (lang === 'en' ? `Save ${title} to wishlist` : `Ajouter ${title} aux favoris`)}
             aria-pressed={saved}
-            className={`absolute top-2.5 right-2.5 z-[5] w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+            className={`absolute top-2.5 right-2.5 z-[5] w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 ${
               saved
-                ? 'border-[#E8A838] text-[#B37D10]'
+                ? 'border-brand-blue text-brand-blue'
                 : 'border-white/70 text-muted-foreground hover:text-foreground hover:border-border'
             }`}
             style={{ overflow: 'visible' }}
