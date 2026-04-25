@@ -744,10 +744,42 @@ function OnboardingTour({ lang, targets, onDone }: OnboardingTourProps) {
   );
 }
 
+/** Vendor / salesman commission dashboard — month picker, KPI cards,
+ *  live ticker, orders table, quick actions. Default landing page for
+ *  the salesman role. */
 export default function VendorDashboard() {
   useDocumentTitle('Tableau de bord — Vendeur Vision Affichage');
   const { lang } = useLang();
   const user = useAuthStore(s => s.user);
+
+  // Greeting derived from the auth user's display name (first token) with
+  // an email-prefix fallback so a brand-new salesman who hasn't set a
+  // name yet still gets a personal "Bonjour, <handle>". Sanitized via
+  // sanitizeText since name/email are user-controlled. Mirrors the
+  // admin-dashboard 552c049 pattern (`Bonjour, <name>` + today's date
+  // in fr-CA) — keeping cross-role headers visually consistent.
+  const greetingName = useMemo(() => {
+    const raw = (user?.name ?? '').trim();
+    if (raw) return sanitizeText(raw.split(/\s+/)[0], { maxLength: 40 });
+    const email = user?.email ?? '';
+    if (email.includes('@')) return sanitizeText(email.split('@')[0], { maxLength: 40 });
+    return '';
+  }, [user]);
+  // fr-CA spells out weekday + month — matches the admin dashboard
+  // header so a salesman who occasionally previews /admin sees the
+  // same date format. Locale stays fr-CA regardless of the L() toggle
+  // because the rest of the app's date strings (formatMonth, the CSV
+  // export footer, the relevé) are anchored in Quebec French dates.
+  const todayLabel = useMemo(
+    () =>
+      new Date().toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }),
+    [lang],
+  );
 
   const isAdminLevel = Boolean(user && (user.role === 'president' || user.role === 'admin'));
   const canMarkPaid = Boolean(user && hasPermission(user.role, 'orders:write') && isAdminLevel);
@@ -1288,10 +1320,14 @@ export default function VendorDashboard() {
       <header className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">
-            {L('Tableau de bord', 'Dashboard')}
+            {greetingName
+              ? L(`Bonjour, ${greetingName}`, `Hello, ${greetingName}`)
+              : L('Tableau de bord', 'Dashboard')}
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {L('Tes commissions ce mois-ci', 'Your commissions this month')} · {formatMonth(month, lang)}
+          <p className="text-sm text-zinc-500 mt-1 flex items-center gap-2 flex-wrap">
+            <span className="capitalize">{todayLabel}</span>
+            <span className="text-zinc-400" aria-hidden="true">·</span>
+            <span>{L('Tes commissions ce mois-ci', 'Your commissions this month')} · {formatMonth(month, lang)}</span>
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
