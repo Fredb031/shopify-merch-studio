@@ -34,7 +34,7 @@ interface ProfileRow {
 }
 
 const ROLE_TONE: Record<UserRole, string> = {
-  president: 'bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white',
+  president: 'bg-gradient-to-br from-brand-blue to-[#B37D10] text-white',
   admin: 'bg-blue-100 text-blue-800',
   salesman: 'bg-indigo-100 text-indigo-800',
   vendor: 'bg-amber-100 text-amber-800',
@@ -475,13 +475,13 @@ export default function AdminUsers() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-[11px] font-extrabold ${
-                          u.role === 'president' ? 'bg-gradient-to-br from-[#E8A838] to-[#B37D10]' : 'bg-gradient-to-br from-[#0052CC] to-[#1B3A6B]'
+                          u.role === 'president' ? 'bg-gradient-to-br from-brand-blue to-[#B37D10]' : 'bg-gradient-to-br from-[#0052CC] to-brand-black'
                         }`}>
                           {initials}
                         </div>
                         <div className="min-w-0">
                           <div className="font-semibold flex items-center gap-1.5">
-                            {u.role === 'president' && <Crown size={12} className="text-[#E8A838]" aria-label="Président" />}
+                            {u.role === 'president' && <Crown size={12} className="text-brand-blue" aria-label="Président" />}
                             {(u.full_name ?? '').trim() || u.email.split('@')[0]}
                             {isMe && <span className="text-[10px] font-bold text-[#0052CC]">(toi)</span>}
                             {twoFaMap[u.id] && (
@@ -672,7 +672,7 @@ export default function AdminUsers() {
                   <button
                     type="button"
                     onClick={savePermOverrides}
-                    className="text-xs font-extrabold text-white px-5 py-2 rounded-lg bg-[#0052CC] hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-1"
+                    className="text-xs font-extrabold text-white px-5 py-2 rounded-lg bg-[#0052CC] hover:opacity-90 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-1"
                   >
                     Enregistrer
                   </button>
@@ -763,7 +763,7 @@ export default function AdminUsers() {
               <button
                 type="submit"
                 disabled={inviteSubmitting}
-                className="w-full py-3 bg-[#0052CC] text-white rounded-lg text-sm font-extrabold hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="w-full py-3 bg-[#0052CC] text-white rounded-lg text-sm font-extrabold hover:opacity-90 disabled:opacity-60 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
               >
                 {inviteSubmitting ? 'Envoi…' : "Envoyer l'invitation"}
               </button>
