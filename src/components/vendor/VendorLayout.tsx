@@ -75,7 +75,7 @@ export function VendorLayout() {
             aria-label="Vision Affichage — Espace vendeur"
             className="font-extrabold text-lg tracking-tight flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
           >
-            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center text-xs" aria-hidden="true">V</span>
+            <span className="w-8 h-8 rounded-lg bg-brand-blue text-white flex items-center justify-center text-xs" aria-hidden="true">V</span>
             Espace vendeur
           </Link>
           <div className="text-[11px] text-zinc-500 mt-1">Vision Affichage</div>
@@ -123,7 +123,7 @@ export function VendorLayout() {
               the bottom of the sidebar rather than a second nav block. */}
           {user && (
             <div className="px-3 py-2 mb-1 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">
+              <div className="w-8 h-8 rounded-full bg-brand-blue text-white flex items-center justify-center text-xs font-bold flex-shrink-0" aria-hidden="true">
                 {user.initials || '?'}
               </div>
               <div className="min-w-0">
@@ -184,7 +184,7 @@ export function VendorLayout() {
               <FilePlus size={18} strokeWidth={2} aria-hidden="true" />
             </Link>
             <div
-              className="w-9 h-9 rounded-full bg-gradient-to-br from-[#E8A838] to-[#B37D10] text-white flex items-center justify-center text-sm font-bold"
+              className="w-9 h-9 rounded-full bg-brand-blue text-white flex items-center justify-center text-sm font-bold"
               aria-label={user ? `${user.name} — ${roleLabel}` : undefined}
               title={user ? `${user.name} — ${roleLabel}` : undefined}
             >
