@@ -40,6 +40,12 @@ export function CountUp({
     }
     return 0;
   });
+  // Mirror `value` into a ref so the rAF effect can read the
+  // most-recent displayed number when it kicks off without listing
+  // `value` in its deps (which would re-run the effect on every frame
+  // and cancel the in-flight animation it just spawned).
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   useEffect(() => {
     const el = nodeRef.current;
@@ -55,6 +61,17 @@ export function CountUp({
       return;
     }
 
+    // `to` is a non-finite number (NaN / ±Infinity) — toFixed() throws
+    // on Infinity in some engines and renders a misleading 'NaN' string
+    // otherwise, so short-circuit to a safe fallback. We freeze the
+    // displayed value at 0 rather than blindly piping NaN into setValue
+    // and the ease() math, which would propagate NaN through every
+    // subsequent rAF tick.
+    if (!Number.isFinite(to)) {
+      setValue(0);
+      return;
+    }
+
     // Track the active rAF so unmount mid-animation cancels it. Without
     // this, the previous implementation returned a cleanup from the
     // inner `run()` closure but never propagated it to the outer
@@ -62,11 +79,24 @@ export function CountUp({
     // last frame land on an unmounted node and warn in dev.
     let raf = 0;
 
+    // Reset the one-shot guard whenever `to` changes so an updated
+    // target re-animates from the current displayed value. Without this,
+    // a parent that re-fetches a stat and hands a new `to` would see the
+    // CountUp freeze at the previously-animated final value: the effect
+    // re-runs, but `run()` short-circuits on `hasRunRef.current === true`
+    // and the new target never lands on screen. Resetting per effect
+    // run keeps the IntersectionObserver gate while letting subsequent
+    // `to` updates animate naturally — and we capture the current
+    // displayed `value` as the starting point so the count nudges from
+    // where the user last saw it instead of snapping back to 0.
+    hasRunRef.current = false;
+    const startValue = valueRef.current;
+
     const run = () => {
       if (hasRunRef.current) return;
       hasRunRef.current = true;
       const start = performance.now();
-      const from = 0;
+      const from = startValue;
       // ease-out-cubic: 1 - (1 - t)^3
       const ease = (t: number) => 1 - Math.pow(1 - t, 3);
       const tick = (now: number) => {
