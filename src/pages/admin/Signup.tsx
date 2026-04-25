@@ -43,6 +43,13 @@ export default function Signup() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // HTML5 `required` accepts a whitespace-only string, so a name of
+    // "   " would otherwise round-trip to Supabase and land as an empty
+    // full_name in user_metadata. Reject locally with a friendly note.
+    if (name.trim().length === 0) {
+      useAuthStore.getState().setError('Nom complet requis');
+      return;
+    }
     // Pre-validate with the stricter email regex — Supabase bounces
     // 'a@b'-style inputs back with an unfriendly message. Catch here
     // so the user gets our own friendly error before a round-trip.
@@ -139,7 +146,7 @@ export default function Signup() {
                 <input
                   type="text"
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={e => { setName(e.target.value); if (error) clearError(); }}
                   required
                   autoComplete="name"
                   className="w-full pl-10 pr-3 py-3 border border-zinc-200 rounded-xl text-sm outline-none focus:border-[#0052CC]"
@@ -213,7 +220,7 @@ export default function Signup() {
                 <input
                   type={showConfirm ? 'text' : 'password'}
                   value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
+                  onChange={e => { setConfirm(e.target.value); if (error) clearError(); }}
                   onKeyDown={handleCapsCheck}
                   onKeyUp={handleCapsCheck}
                   onFocus={() => setPwdFocus('confirm')}
