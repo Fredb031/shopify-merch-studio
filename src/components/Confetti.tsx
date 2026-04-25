@@ -35,7 +35,11 @@ interface ConfettiProps {
 // Brand colors (per Task 17.3 spec)
 const COLORS = ['#E8A838', '#1B3A6B', '#F5F2E8'];
 
-const DURATION_MS = 1500;
+// Longest possible particle lifetime: max duration (1500ms) + max delay
+// (150ms). The fire-and-fade timer below adds a 200ms cushion so onDone
+// never fires while a particle is still mid-flight on a slow device.
+const MAX_PARTICLE_LIFETIME_MS = 1500 + 150;
+const DONE_CUSHION_MS = 200;
 
 export function Confetti({ fire, onDone }: ConfettiProps) {
   // Precompute particles ONCE per mount. `fire` is in the deps so
@@ -73,7 +77,7 @@ export function Confetti({ fire, onDone }: ConfettiProps) {
     if (!fire) return;
     const t = window.setTimeout(() => {
       onDoneRef.current?.();
-    }, DURATION_MS + 200); // small cushion past the longest particle
+    }, MAX_PARTICLE_LIFETIME_MS + DONE_CUSHION_MS); // cushion past the longest particle
     return () => window.clearTimeout(t);
   }, [fire]);
 
