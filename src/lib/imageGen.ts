@@ -286,12 +286,20 @@ async function callReplicate(params: GenerateImageParams, apiKey: string): Promi
     });
   }
   const data = await res.json();
-  const url = Array.isArray(data.output) ? data.output[0] : data.output;
-  if (!url) {
+  // Mirror the OpenAI guard above: a 200 OK from Replicate normally
+  // carries `{ output: 'https://...' }` (single string) or
+  // `{ output: ['https://...'] }` (array), but a malformed payload
+  // (proxy stripping the body, model returning a non-string scalar,
+  // future API shape change to objects) would otherwise throw an
+  // opaque TypeError on `.url` deep in AdminImageGen — or worse,
+  // pass a non-string to <img src>. The previous truthy-only check
+  // (`if (!url)`) accepted numbers/objects/arrays as valid URLs.
+  const raw = Array.isArray(data?.output) ? data.output[0] : data?.output;
+  if (typeof raw !== 'string' || raw.length === 0) {
     throw new ImageGenError('Replicate returned no output URL', { provider: 'replicate' });
   }
   return {
-    url,
+    url: raw,
     prompt: params.prompt,
     provider: 'replicate',
     generatedAt: new Date().toISOString(),
