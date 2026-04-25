@@ -51,6 +51,10 @@ const MOCK_QUOTE = {
   notes: 'Livraison prioritaire demandée pour événement du 30 avril.',
 };
 
+/** Customer-facing quote acceptance page — review line items, upload a
+ *  logo, fill the shipping address, agree to terms, then proceed to
+ *  Shopify checkout. Includes a print stylesheet, copy-link, and a
+ *  live expiry countdown so the buyer always sees how long they have. */
 export default function QuoteAccept() {
   const { id } = useParams();
   const { lang } = useLang();
@@ -60,9 +64,17 @@ export default function QuoteAccept() {
   const [now, setNow] = useState(() => Date.now());
 
   const quoteNumber = id ?? MOCK_QUOTE.number;
-  useDocumentTitle(lang === 'en'
-    ? `Quote ${quoteNumber} — Vision Affichage`
-    : `Soumission ${quoteNumber} — Vision Affichage`);
+  // Per-page meta description (Task 8.12) — quote-acceptance pages are
+  // shared as private links, but if one is ever previewed in chat or
+  // search, a descriptive snippet beats inheriting the generic default.
+  useDocumentTitle(
+    lang === 'en'
+      ? `Quote ${quoteNumber} — Vision Affichage`
+      : `Soumission ${quoteNumber} — Vision Affichage`,
+    lang === 'en'
+      ? 'Review your custom quote, upload your logo, and proceed to secure Shopify checkout.'
+      : 'Vérifie ta soumission personnalisée, téléverse ton logo et passe au paiement Shopify sécurisé.',
+  );
 
   const subtotal = useMemo(() => MOCK_QUOTE.items.reduce((s, it) => s + it.unit * it.qty, 0), []);
   const discountAmount = (subtotal * MOCK_QUOTE.discount.value) / 100;
