@@ -31,17 +31,19 @@ export function DeliveryBadge({ size = 'md', variant = 'gold', className = '', s
     // Honor the 3pm production cutoff so the badge matches the
     // Checkout ship-by promise and the homepage hero — without this,
     // a shopper late in the day saw an earlier date on the badge
-    // than the one Checkout quoted them. The cutoff only applies on
-    // business days; on Sat/Sun production is closed regardless of the
-    // hour, so ignoring it there (previously a Sat 10am buyer saw
-    // Friday while a Sat 4pm buyer saw the following Monday — same
-    // weekend, contradictory promises).
+    // than the one Checkout quoted them. On Sat/Sun production is
+    // closed for the entire day, so the order will not start moving
+    // until Monday — same effect as a weekday after-cutoff order.
+    // Treating weekends as "past cutoff" (rather than ignoring the
+    // cutoff) keeps the Fri-4pm and Sat-anytime buyers on the same
+    // ETA, which is what Checkout would quote them on Monday.
     const now = new Date();
     const dow = now.getDay();
     const isWeekend = dow === 0 || dow === 6;
     const cutoff = new Date(now);
     cutoff.setHours(15, 0, 0, 0);
-    const days = !isWeekend && now > cutoff ? 6 : 5;
+    const pastCutoff = isWeekend || now > cutoff;
+    const days = pastCutoff ? 6 : 5;
     const eta = addBusinessDays(now, days);
     const dateStr = eta.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', {
       weekday: 'short', day: 'numeric', month: 'short',
