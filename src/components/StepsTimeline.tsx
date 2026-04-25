@@ -8,7 +8,7 @@ import { useLang } from '@/lib/langContext';
  * The bar, the progress colours around each ring, and the ring borders
  * are all animated AMBIENTLY — they move on their own without needing
  * a hover. Nothing pops, nothing scales on mouseover. The colours just
- * drift through the Vision blue → gold → emerald gradient.
+ * drift through the new flat brand-blue accent system.
  */
 export function StepsTimeline() {
   const { lang } = useLang();
@@ -32,27 +32,33 @@ export function StepsTimeline() {
     return () => io.disconnect();
   }, []);
 
+  // Freud × Bernays redesign: the new B2B brand language uses ONE
+  // accent (brand-blue / #0052CC). The previous gold + emerald per-step
+  // accents collapse onto that single colour so the timeline reads as
+  // one disciplined flow instead of three competing rainbow stops.
+  const BRAND_BLUE = '#0052CC';
+
   const steps = [
     {
       icon: Palette,
       day: lang === 'en' ? 'Day 1-2' : 'Jour 1-2',
       title: lang === 'en' ? 'Design & proofing' : 'Conception & épreuve',
       desc: lang === 'en' ? 'We validate your artwork and send a digital proof' : 'On valide ton logo et t\'envoie une épreuve numérique',
-      accent: '#0052CC',
+      accent: BRAND_BLUE,
     },
     {
       icon: Printer,
       day: lang === 'en' ? 'Day 3-4' : 'Jour 3-4',
       title: lang === 'en' ? 'Local production' : 'Production locale',
       desc: lang === 'en' ? 'Printed in Québec, inspected for quality' : 'Imprimé au Québec, inspection qualité',
-      accent: '#E8A838',
+      accent: BRAND_BLUE,
     },
     {
       icon: Truck,
       day: lang === 'en' ? 'Day 5' : 'Jour 5',
       title: lang === 'en' ? 'Delivered to your door' : 'Livré chez toi',
       desc: lang === 'en' ? 'Tracked shipping anywhere in Canada' : 'Livraison suivie partout au Canada',
-      accent: '#10B981',
+      accent: BRAND_BLUE,
     },
   ];
 
@@ -74,20 +80,20 @@ export function StepsTimeline() {
 
       <div className="max-w-[1060px] mx-auto">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-3">
+          <div className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[2px] uppercase text-brand-blue mb-3">
             <Sparkles size={14} aria-hidden="true" />
             {lang === 'en' ? 'How it works' : 'Comment ça marche'}
           </div>
-          <h2 className="text-[clamp(28px,4vw,44px)] font-extrabold tracking-[-1px] text-foreground leading-tight">
+          <h2 className="text-[clamp(28px,4vw,44px)] font-extrabold tracking-[-1px] text-brand-black leading-tight">
             {lang === 'en' ? (
               <>
                 From idea to doorstep<br />
-                <span className="text-[#0052CC]">in just 5 business days.</span>
+                <span className="text-brand-blue">in just 5 business days.</span>
               </>
             ) : (
               <>
                 De l'idée à la livraison<br />
-                <span className="text-[#0052CC]">en 5 jours ouvrables.</span>
+                <span className="text-brand-blue">en 5 jours ouvrables.</span>
               </>
             )}
           </h2>
@@ -106,7 +112,7 @@ export function StepsTimeline() {
           >
             <line
               x1="0" y1="1" x2="100" y2="1"
-              stroke="#E8A838"
+              stroke={BRAND_BLUE}
               strokeOpacity="0.3"
               strokeWidth="2"
               strokeDasharray="1.2 1.8"
@@ -115,21 +121,22 @@ export function StepsTimeline() {
           </svg>
           <div
             className="md:hidden absolute top-10 bottom-10 left-1/2 -translate-x-1/2 w-0 border-l-2 border-dashed z-0 pointer-events-none"
-            style={{ borderColor: 'rgba(232, 168, 56, 0.3)' }}
+            style={{ borderColor: 'rgba(0, 82, 204, 0.3)' }}
             aria-hidden="true"
           />
 
-          {/* Base progress rail — draws in on scroll-into-view, then the
-              coloured gradient drifts across it forever. */}
+          {/* Base progress rail — draws in on scroll-into-view. The new
+              brand language is flatter (single accent), so the rail is a
+              solid brand-blue fill instead of the old tri-colour gradient.
+              The ambient shift keyframe is preserved for continuity. */}
           <div
             className="absolute top-10 left-0 right-0 h-[2px] bg-border overflow-hidden z-0"
             aria-hidden="true"
           >
             <div
-              className="va-animate-bar h-full origin-left transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)]"
+              className="va-animate-bar h-full origin-left transition-transform duration-[1800ms] ease-[cubic-bezier(0.16,1,0.3,1)] bg-brand-blue"
               style={{
                 transform: `scaleX(${visible ? 1 : 0})`,
-                background: 'linear-gradient(90deg, #0052CC 0%, #E8A838 50%, #10B981 100%)',
                 backgroundSize: '200% 100%',
                 animation: visible ? 'va-bar-shift 12s linear infinite' : undefined,
               }}
@@ -158,19 +165,20 @@ export function StepsTimeline() {
                       }}
                       aria-hidden="true"
                     />
-                    {/* Conic ring — slowly rotates the brand gradient around
-                        each circle so the entire timeline feels alive. */}
+                    {/* Conic ring — slowly rotates around each circle so the
+                        timeline still feels alive. Gradient stops collapsed to
+                        a single brand-blue per the flatter B2B brand. */}
                     <div
                       className="va-animate-ring absolute -inset-[3px] rounded-full"
                       style={{
-                        background: `conic-gradient(from 0deg, ${accent}, #E8A838, #10B981, #0052CC, ${accent})`,
+                        background: `conic-gradient(from 0deg, ${BRAND_BLUE}, ${BRAND_BLUE})`,
                         animation: `va-ring-rotate ${14 + i * 2}s linear infinite`,
                         filter: 'blur(0.5px)',
                       }}
                       aria-hidden="true"
                     />
                     <div
-                      className="relative w-20 h-20 rounded-full bg-white border-2 flex items-center justify-center"
+                      className="relative w-20 h-20 rounded-full bg-brand-white border-2 flex items-center justify-center"
                       style={{
                         borderColor: accent,
                         boxShadow: `0 8px 24px ${accent}26`,
@@ -179,8 +187,7 @@ export function StepsTimeline() {
                       <Icon size={30} strokeWidth={1.75} aria-hidden="true" style={{ color: accent }} />
                     </div>
                     <div
-                      className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full text-[10px] font-extrabold flex items-center justify-center shadow-md"
-                      style={{ background: '#E8A838', color: '#1B3A6B' }}
+                      className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full text-[10px] font-extrabold flex items-center justify-center shadow-md bg-brand-blue text-brand-white"
                       aria-hidden="true"
                     >
                       {i + 1}
@@ -192,8 +199,8 @@ export function StepsTimeline() {
                   >
                     {step.day}
                   </div>
-                  <h3 className="text-lg font-extrabold text-foreground mb-1.5">{step.title}</h3>
-                  <p className="text-[13px] text-muted-foreground leading-relaxed max-w-[260px] mx-auto">
+                  <h3 className="text-lg font-extrabold text-brand-black mb-1.5">{step.title}</h3>
+                  <p className="text-[13px] text-brand-grey leading-relaxed max-w-[260px] mx-auto">
                     {step.desc}
                   </p>
                 </div>
