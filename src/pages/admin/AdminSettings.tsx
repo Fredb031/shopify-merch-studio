@@ -721,7 +721,7 @@ function BackupRestoreSection() {
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg bg-[#1B3A6B]/10 text-[#1B3A6B] flex items-center justify-center">
+        <div className="w-9 h-9 rounded-lg bg-brand-black/10 text-brand-black flex items-center justify-center">
           <DatabaseBackup size={18} aria-hidden="true" />
         </div>
         <div>
@@ -757,7 +757,7 @@ function BackupRestoreSection() {
 
         <div className="flex flex-col gap-2 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
           <div className="flex items-center gap-2 text-sm font-semibold text-zinc-800">
-            <Upload size={14} className="text-[#1B3A6B]" aria-hidden="true" />
+            <Upload size={14} className="text-brand-black" aria-hidden="true" />
             Importer · Import
           </div>
           <p className="text-[11px] text-zinc-500 leading-relaxed">
@@ -774,7 +774,7 @@ function BackupRestoreSection() {
           <button
             type="button"
             onClick={onPickFile}
-            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0F2341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+            className="mt-auto inline-flex items-center justify-center gap-1.5 bg-brand-black text-brand-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-brand-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-black focus-visible:ring-offset-1"
           >
             <Upload size={12} aria-hidden="true" /> Choisir un fichier · Choose file
           </button>
@@ -856,7 +856,7 @@ function BackupRestoreSection() {
               <button
                 type="button"
                 onClick={confirmImport}
-                className="inline-flex items-center gap-1.5 bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0F2341] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+                className="inline-flex items-center gap-1.5 bg-brand-black text-brand-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-brand-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-black focus-visible:ring-offset-1"
               >
                 <Upload size={12} aria-hidden="true" /> Restaurer · Restore
               </button>
@@ -966,7 +966,7 @@ function CommissionsSection() {
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg bg-[#E8A838]/20 text-[#B37D10] flex items-center justify-center">
+        <div className="w-9 h-9 rounded-lg bg-brand-blue/20 text-brand-blue flex items-center justify-center">
           <DollarSign size={18} aria-hidden="true" />
         </div>
         <div>
@@ -988,7 +988,7 @@ function CommissionsSection() {
           error={rateError ? 'Entre 0 et 50 · Between 0 and 50' : undefined}
         />
       </div>
-      <div className="mt-3 p-3 bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-lg text-xs text-[#4a3509]">
+      <div className="mt-3 p-3 bg-brand-blue/10 border border-brand-blue/30 rounded-lg text-xs text-brand-black">
         <div className="font-bold mb-1">Exemple · commande de 100 $ · Example · $100 order</div>
         <div>Commission: {previewCommission.toFixed(2)} $ ({(Number.isFinite(rateNum) ? rateNum : 0).toFixed(2)} %)</div>
       </div>
@@ -1060,7 +1060,7 @@ function ZapierOutlookSection() {
   return (
     <section className="bg-white border border-zinc-200 rounded-2xl p-5">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-9 h-9 rounded-lg bg-[#E8A838]/20 text-[#1B3A6B] flex items-center justify-center">
+        <div className="w-9 h-9 rounded-lg bg-brand-blue/20 text-brand-black flex items-center justify-center">
           <Mail size={18} aria-hidden="true" />
         </div>
         <div>
@@ -1087,7 +1087,7 @@ function ZapierOutlookSection() {
           className={`w-full border rounded-lg px-3 py-2 text-sm font-mono outline-none focus:ring-2 ${
             invalidUrl
               ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10'
-              : 'border-zinc-200 focus:border-[#1B3A6B] focus:ring-[#1B3A6B]/10'
+              : 'border-zinc-200 focus:border-brand-black focus:ring-brand-black/10'
           } ${envOverride ? 'bg-zinc-100 text-zinc-500 cursor-not-allowed' : 'bg-white'}`}
         />
         {invalidUrl && (
@@ -1113,7 +1113,7 @@ function ZapierOutlookSection() {
             type="button"
             onClick={save}
             disabled={invalidUrl || !dirty}
-            className="inline-flex items-center gap-1.5 bg-[#1B3A6B] text-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0F2341] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-1.5 bg-brand-black text-brand-white text-xs font-bold px-3 py-2 rounded-lg hover:bg-brand-blue disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-black focus-visible:ring-offset-1"
           >
             <Save size={12} aria-hidden="true" /> Enregistrer
           </button>
