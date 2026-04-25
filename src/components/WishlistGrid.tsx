@@ -199,7 +199,7 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
     <section className="bg-white border border-border rounded-2xl p-5 mt-5" aria-labelledby="wishlist-heading">
       <div className="flex items-center justify-between mb-4 gap-3">
         <h2 id="wishlist-heading" className="font-bold text-base flex items-center gap-2">
-          <Heart size={16} className="text-[#E8A838] fill-[#E8A838]" aria-hidden="true" />
+          <Heart size={16} className="text-brand-blue fill-brand-blue" aria-hidden="true" />
           {lang === 'en' ? 'Saved products' : 'Produits enregistr\u00e9s'}
           <span className="text-xs font-normal text-muted-foreground">({handles.length})</span>
         </h2>
@@ -320,9 +320,9 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
               type="button"
               onClick={() => toggle(p.shopifyHandle)}
               aria-label={lang === 'en' ? `Remove ${p.sku} from wishlist` : `Retirer ${p.sku} des favoris`}
-              className="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border border-border text-[#B37D10] flex items-center justify-center hover:bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+              className="absolute top-2 right-2 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border border-border text-brand-blue flex items-center justify-center hover:bg-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
             >
-              <Heart size={14} className="fill-[#E8A838]" aria-hidden="true" />
+              <Heart size={14} className="fill-brand-blue" aria-hidden="true" />
             </button>
           </div>
         ))}
