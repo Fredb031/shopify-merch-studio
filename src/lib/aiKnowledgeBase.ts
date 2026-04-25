@@ -478,6 +478,15 @@ function tokens(q: string): string[] {
     .filter(t => t.length >= 3 && !STOPWORDS.has(t));
 }
 
+/** Minimum prefix length required for a fuzzy keyword match. Without
+ *  this floor, a 2-char keyword like 'no' (in the no-logo-design-help
+ *  entry) would match any token that starts with 'no' — 'noir' (black),
+ *  'noter', 'nord', etc. — and pull the user toward the wrong answer.
+ *  Tokens are already ≥3 chars (see `tokens`), so requiring the shorter
+ *  side of the overlap to be ≥3 keeps "fast"/"faster" style fuzz while
+ *  rejecting accidental 2-char prefixes. */
+const MIN_PREFIX_OVERLAP = 3;
+
 /** Score an entry against a tokenized question. Higher = better match. */
 function scoreEntry(entry: KBEntry, qTokens: string[], lang: Lang): number {
   if (qTokens.length === 0) return 0;
@@ -488,7 +497,10 @@ function scoreEntry(entry: KBEntry, qTokens: string[], lang: Lang): number {
   let score = 0;
   for (const t of qTokens) {
     if (keywordsNorm.includes(t))       score += 3;            // exact keyword match
-    else if (keywordsNorm.some(k => k.startsWith(t) || t.startsWith(k))) score += 2; // prefix overlap
+    else if (keywordsNorm.some(k =>
+      k.length >= MIN_PREFIX_OVERLAP &&
+      (k.startsWith(t) || t.startsWith(k))
+    )) score += 2;                                              // prefix overlap (both sides ≥3)
     if (questionTokens.has(t))          score += 1;            // word appears in the reference question
     if (questionNorm.includes(t))       score += 0.5;          // substring match (looser)
   }
