@@ -16,7 +16,7 @@ export default function Terms() {
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       <Navbar />
       <main id="main-content" className="flex-1 max-w-[860px] w-full mx-auto px-6 md:px-10 py-12 md:py-16">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-3">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-brand-black tracking-[-0.5px] mb-3">
           {lang === 'en' ? 'Terms of service' : "Conditions d'utilisation"}
         </h1>
         <p className="text-xs text-zinc-500 mb-8">
