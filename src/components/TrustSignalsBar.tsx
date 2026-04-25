@@ -41,8 +41,8 @@ export function TrustSignalsBar() {
               className="flex items-center gap-3 text-left"
               aria-label={`${s.title} — ${s.sub}`}
             >
-              <div className="w-10 h-10 rounded-xl bg-white border border-border flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
-                <Icon size={18} className="text-[#0052CC]" strokeWidth={2} aria-hidden="true" />
+              <div className="w-10 h-10 rounded-xl bg-brand-white border border-border flex items-center justify-center flex-shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.03)]">
+                <Icon size={18} className="text-brand-blue" strokeWidth={2} aria-hidden="true" />
               </div>
               <div className="min-w-0">
                 <div className="text-[13px] font-extrabold text-foreground leading-tight" aria-hidden="true">{s.title}</div>
