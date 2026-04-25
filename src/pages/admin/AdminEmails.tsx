@@ -402,7 +402,7 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
       <div className="relative ml-auto h-full w-full max-w-6xl bg-zinc-50 shadow-2xl overflow-y-auto">
         <header className="sticky top-0 z-10 bg-white border-b border-zinc-200 px-6 py-4 flex items-center gap-4">
           <div className="flex-1">
-            <h2 id={`editor-title-${templateId}`} className="text-lg font-extrabold tracking-tight text-[#0F2341]">
+            <h2 id={`editor-title-${templateId}`} className="text-lg font-extrabold tracking-tight text-brand-black">
               Éditer : {templateLabel} <span className="text-xs font-normal text-zinc-500">({lang.toUpperCase()})</span>
             </h2>
             <p className="text-xs text-zinc-500 mt-0.5">
@@ -426,7 +426,7 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
             onClick={() => setSendOpen(v => !v)}
             aria-expanded={sendOpen}
             aria-controls={`send-test-form-${templateId}`}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#E8A838] text-[#1B3A6B] hover:bg-[#d19725] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-blue text-brand-white hover:bg-brand-blue-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
           >
             <Send size={13} aria-hidden="true" />
             Envoyer un test
@@ -438,7 +438,7 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
               setSavedAt(Date.now());
             }}
             disabled={!isDirty}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#1B3A6B] text-white hover:bg-[#0F2341] disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1B3A6B] focus-visible:ring-offset-1"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-black text-brand-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-black focus-visible:ring-offset-1"
           >
             <Save size={13} aria-hidden="true" />
             Sauvegarder
@@ -456,11 +456,11 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
         {sendOpen && (
           <div
             id={`send-test-form-${templateId}`}
-            className="mx-6 mt-4 bg-[#1B3A6B]/5 border border-[#1B3A6B]/20 rounded-lg px-4 py-3"
+            className="mx-6 mt-4 bg-brand-black/5 border border-brand-black/20 rounded-lg px-4 py-3"
           >
             <div className="flex items-center gap-2 mb-2">
-              <Send size={13} className="text-[#1B3A6B]" aria-hidden="true" />
-              <h3 className="text-xs font-bold text-[#1B3A6B] uppercase tracking-wider">
+              <Send size={13} className="text-brand-black" aria-hidden="true" />
+              <h3 className="text-xs font-bold text-brand-black uppercase tracking-wider">
                 Envoyer un courriel test
               </h3>
             </div>
@@ -487,13 +487,13 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
                   placeholder="admin@visionaffichage.com"
                   autoComplete="email"
                   required
-                  className="w-full px-3 py-1.5 rounded-lg border border-zinc-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B] focus:border-transparent"
+                  className="w-full px-3 py-1.5 rounded-lg border border-zinc-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-black focus:border-transparent"
                 />
               </label>
               <button
                 type="submit"
                 disabled={sending}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-[#E8A838] text-[#1B3A6B] hover:bg-[#d19725] disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-brand-blue text-brand-white hover:bg-brand-blue-hover disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
               >
                 <Send size={13} aria-hidden="true" />
                 {sending ? 'Envoi…' : 'Envoyer'}
@@ -563,7 +563,7 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
                       key={v}
                       className={`inline-block px-2 py-1 rounded text-[11px] font-mono border ${
                         inUse
-                          ? 'bg-[#0052CC]/10 border-[#0052CC]/30 text-[#0F2341]'
+                          ? 'bg-brand-blue/10 border-brand-blue/30 text-brand-black'
                           : 'bg-zinc-50 border-zinc-200 text-zinc-600'
                       }`}
                       title={inUse ? 'Utilisée dans ce modèle' : 'Disponible mais pas utilisée'}
@@ -593,7 +593,7 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <Eye size={14} className="text-[#0052CC]" aria-hidden="true" />
-              <h3 className="font-bold text-sm text-[#0F2341]">Aperçu en direct</h3>
+              <h3 className="font-bold text-sm text-brand-black">Aperçu en direct</h3>
               <span className="text-[11px] text-zinc-500">
                 Avec des valeurs d'exemple
               </span>
@@ -740,9 +740,9 @@ export default function AdminEmails() {
                 className="group text-left bg-white border border-zinc-200 rounded-2xl p-4 hover:border-[#0052CC] hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
               >
                 <div className="flex items-start justify-between gap-2 mb-1">
-                  <div className="font-bold text-sm text-[#0F2341]">{t.label}</div>
+                  <div className="font-bold text-sm text-brand-black">{t.label}</div>
                   {customized && (
-                    <span className="shrink-0 inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E8A838]/20 text-[#8A5E00] uppercase tracking-wider">
+                    <span className="shrink-0 inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-brand-blue/15 text-brand-blue uppercase tracking-wider">
                       Édité
                     </span>
                   )}
@@ -791,7 +791,7 @@ export default function AdminEmails() {
                   <div className="font-bold text-sm">{t.label}</div>
                   {customized && (
                     <span className={`shrink-0 inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                      active === t.id ? 'bg-white/25 text-white' : 'bg-[#E8A838]/20 text-[#8A5E00]'
+                      active === t.id ? 'bg-white/25 text-white' : 'bg-brand-blue/15 text-brand-blue'
                     }`}>
                       Édité
                     </span>
@@ -815,7 +815,7 @@ export default function AdminEmails() {
               <button
                 type="button"
                 onClick={() => setEditing({ id: active, lang })}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#0F2341] text-white hover:bg-[#1B3A6B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-black text-brand-white hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
               >
                 <Pencil size={13} aria-hidden="true" />
                 Éditer
@@ -1031,8 +1031,8 @@ function RecentSendsPanel({ entries, onClear, onRefresh }: {
     <section aria-label="Envois récents" className="bg-white border border-zinc-200 rounded-2xl p-4">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Send size={14} className="text-[#1B3A6B]" aria-hidden="true" />
-          <h2 className="font-bold text-sm text-[#1B3A6B]">Envois récents</h2>
+          <Send size={14} className="text-brand-black" aria-hidden="true" />
+          <h2 className="font-bold text-sm text-brand-black">Envois récents</h2>
           <span className="text-[11px] text-zinc-500">
             ({entries.length} au total
             {filtersActive ? ` · ${filtered.length} filtré${filtered.length > 1 ? 's' : ''}` : ''}
