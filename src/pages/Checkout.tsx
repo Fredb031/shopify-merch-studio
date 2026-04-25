@@ -494,7 +494,7 @@ export default function Checkout() {
 
   if (step === 'done') {
     return (
-      <div id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
+      <div id="main-content" tabIndex={-1} className="min-h-screen bg-brand-grey-light focus:outline-none">
         <Navbar />
         <div className="max-w-[720px] mx-auto px-4 md:px-8 pt-20 pb-32">
           <DoneState
@@ -519,7 +519,7 @@ export default function Checkout() {
             <p className="text-sm text-muted-foreground mb-6">
               {lang === 'en' ? 'Add a product before checkout.' : "Ajoute un produit avant de passer la commande."}
             </p>
-            <Link to="/products" className="inline-block text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy">
+            <Link to="/products" className="inline-block text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-dark px-6 py-3 rounded-full shadow-md">
               {lang === 'en' ? 'See products' : 'Voir les produits'}
             </Link>
           </div>
@@ -742,7 +742,7 @@ export default function Checkout() {
   };
 
   return (
-    <div id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
+    <div id="main-content" tabIndex={-1} className="min-h-screen bg-brand-grey-light focus:outline-none">
       <Navbar />
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
@@ -750,7 +750,7 @@ export default function Checkout() {
           <div
             role="region"
             aria-label={lang === 'en' ? 'Resume in-progress checkout' : 'Reprendre la commande en cours'}
-            className="mb-4 flex items-start gap-3 border-l-4 border-[#0052CC] bg-blue-50/60 rounded-r-lg px-4 py-3"
+            className="mb-4 flex items-start gap-3 border-l-4 border-brand-blue bg-brand-blue-light rounded-r-lg px-4 py-3"
           >
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground">
@@ -767,7 +767,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={() => hydrateFromDraft(draftOffer)}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#0052CC] text-white text-xs font-extrabold hover:bg-[#003d99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-brand-blue text-brand-white text-xs font-extrabold hover:bg-brand-blue-hover transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Resume' : 'Reprendre'}
                 </button>
@@ -835,7 +835,7 @@ export default function Checkout() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
                     isDone ? 'bg-emerald-500 text-white'
-                      : isActive ? 'bg-[#0052CC] text-white scale-110'
+                      : isActive ? 'bg-brand-blue text-brand-white scale-110'
                       : 'bg-zinc-200 text-zinc-500'
                   }`}
                   aria-hidden="true"
@@ -858,7 +858,7 @@ export default function Checkout() {
                     type="button"
                     onClick={() => setStep(s)}
                     aria-label={`${labels[s][lang]} — ${stateLabel}${actionLabel}`}
-                    className="flex items-center hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded-full"
+                    className="flex items-center hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 rounded-full"
                   >
                     {indicator}
                   </button>
@@ -880,7 +880,7 @@ export default function Checkout() {
               <div className="space-y-5">
                 <div>
                   <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
-                    <Mail size={18} className="text-[#0052CC]" aria-hidden="true" />
+                    <Mail size={18} className="text-brand-blue" aria-hidden="true" />
                     {lang === 'en' ? 'Contact' : 'Contact'}
                   </h2>
                   {(() => {
@@ -924,7 +924,7 @@ export default function Checkout() {
 
                 <div>
                   <h2 className="text-xl font-extrabold flex items-center gap-2 mb-3">
-                    <MapPin size={18} className="text-[#0052CC]" aria-hidden="true" />
+                    <MapPin size={18} className="text-brand-blue" aria-hidden="true" />
                     {lang === 'en' ? 'Shipping address' : 'Adresse de livraison'}
                   </h2>
                   <div className="grid grid-cols-2 gap-3">
@@ -977,7 +977,7 @@ export default function Checkout() {
                   type="button"
                   disabled={!infoValid}
                   onClick={goNext}
-                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full py-3.5 bg-brand-black hover:bg-brand-dark text-brand-white rounded-xl text-sm font-extrabold disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Continue to shipping' : 'Continuer à la livraison'}
                 </button>
@@ -987,7 +987,7 @@ export default function Checkout() {
             {step === 'shipping' && (
               <div className="space-y-5">
                 <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
-                  <Truck size={18} className="text-[#0052CC]" aria-hidden="true" />
+                  <Truck size={18} className="text-brand-blue" aria-hidden="true" />
                   {lang === 'en' ? 'Shipping method' : 'Mode de livraison'}
                 </h2>
                 <p className="text-xs text-muted-foreground">
@@ -1023,10 +1023,10 @@ export default function Checkout() {
                         key={m}
                         className={`relative flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
                           selected
-                            // Gold selection ring on the chosen tile — same
-                            // accent the checkout CTAs use for focus so it
-                            // reads as brand-consistent emphasis.
-                            ? 'border-[#E8A838] bg-[#E8A838]/5 ring-2 ring-[#E8A838]/40 shadow-sm'
+                            // Brand-blue selection ring on the chosen tile —
+                            // same accent the checkout CTAs use for focus so
+                            // it reads as brand-consistent emphasis.
+                            ? 'border-brand-blue bg-brand-blue-light ring-2 ring-brand-blue/40 shadow-sm'
                             : 'border-border hover:border-primary/40 hover:bg-secondary/30'
                         }`}
                       >
@@ -1036,7 +1036,7 @@ export default function Checkout() {
                           value={m}
                           checked={selected}
                           onChange={() => setShippingMethod(m)}
-                          className="mt-1 w-4 h-4 accent-[#E8A838]"
+                          className="mt-1 w-4 h-4 accent-brand-blue"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline justify-between gap-3">
@@ -1074,7 +1074,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full py-3.5 bg-brand-black hover:bg-brand-dark text-brand-white rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Continue to payment' : 'Continuer au paiement'}
                 </button>
@@ -1084,7 +1084,7 @@ export default function Checkout() {
             {step === 'payment' && (
               <div className="space-y-5">
                 <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
-                  <CreditCard size={18} className="text-[#0052CC]" aria-hidden="true" />
+                  <CreditCard size={18} className="text-brand-blue" aria-hidden="true" />
                   {lang === 'en' ? 'Payment' : 'Paiement'}
                 </h2>
 
@@ -1282,7 +1282,7 @@ export default function Checkout() {
                   disabled={!acceptedTerms || processing}
                   onClick={handlePay}
                   aria-busy={processing}
-                  className="w-full py-4 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full py-4 bg-brand-black hover:bg-brand-dark text-brand-white rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                 >
                   {processing ? (
                     <Loader2 size={18} className="animate-spin" aria-hidden="true" />
@@ -1485,7 +1485,7 @@ function DoneState({
   // without pulling in a heavy library. Math.random is fine here — we
   // render once per mount and the visual doesn't need to be reproducible.
   const confettiPieces = useMemo(() => {
-    const colors = ['#0052CC', '#E8A838', '#10B981', '#EC4899', '#8B5CF6', '#F59E0B'];
+    const colors = ['#0052CC', '#003D99', '#10B981', '#EC4899', '#8B5CF6', '#0A0A0A'];
     return Array.from({ length: 24 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -1581,7 +1581,7 @@ function DoneState({
             tracking. Using an ordered list so AT announces "1 of 3" etc. */}
         <ol className="w-full max-w-md space-y-3 text-left mb-8">
           <li className="flex items-start gap-3 bg-secondary/40 border border-border rounded-xl p-4">
-            <MailCheck size={20} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <MailCheck size={20} className="text-brand-blue flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <div className="font-bold text-sm">
                 {lang === 'en' ? 'Confirmation email on its way' : 'Courriel de confirmation en route'}
@@ -1594,7 +1594,7 @@ function DoneState({
             </div>
           </li>
           <li className="flex items-start gap-3 bg-secondary/40 border border-border rounded-xl p-4">
-            <Clock size={20} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <Clock size={20} className="text-brand-blue flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <div className="font-bold text-sm">
                 {lang === 'en' ? 'Production · 5 business days' : 'Production · 5 jours ouvrables'}
@@ -1607,7 +1607,7 @@ function DoneState({
             </div>
           </li>
           <li className="flex items-start gap-3 bg-secondary/40 border border-border rounded-xl p-4">
-            <Package size={20} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <Package size={20} className="text-brand-blue flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div>
               <div className="font-bold text-sm">
                 {lang === 'en' ? 'Tracking link when it ships' : "Lien de suivi à l'expédition"}
@@ -1625,7 +1625,7 @@ function DoneState({
           {orderNumber.trim() && (
             <Link
               to={`/track/${encodeURIComponent(orderNumber.trim())}`}
-              className="flex-1 py-3 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold text-center hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="flex-1 py-3 bg-brand-black hover:bg-brand-dark text-brand-white rounded-xl text-sm font-extrabold text-center hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Track order' : 'Suivre ma commande'}
             </Link>
