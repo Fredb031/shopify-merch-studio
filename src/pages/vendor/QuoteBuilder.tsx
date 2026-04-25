@@ -563,7 +563,7 @@ export default function QuoteBuilder() {
               <Bookmark size={14} aria-hidden="true" />
               <span className="hidden sm:inline">Templates</span>
               {templates.length > 0 && (
-                <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#1B3A6B] text-white text-[10px] font-extrabold">
+                <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-black text-white text-[10px] font-extrabold">
                   {templates.length}
                 </span>
               )}
@@ -602,7 +602,7 @@ export default function QuoteBuilder() {
                   type="button"
                   onClick={handleSaveTemplate}
                   disabled={items.length === 0}
-                  className="w-full flex items-center gap-2 text-left px-4 py-3 min-h-[48px] md:min-h-0 text-sm font-bold text-[#1B3A6B] hover:bg-[#1B3A6B]/5 disabled:opacity-40 disabled:cursor-not-allowed border-b border-zinc-100 focus:outline-none focus-visible:bg-[#1B3A6B]/5"
+                  className="w-full flex items-center gap-2 text-left px-4 py-3 min-h-[48px] md:min-h-0 text-sm font-bold text-brand-black hover:bg-brand-black/5 disabled:opacity-40 disabled:cursor-not-allowed border-b border-zinc-100 focus:outline-none focus-visible:bg-brand-black/5"
                 >
                   <BookmarkPlus size={15} aria-hidden="true" />
                   Enregistrer comme template / Save as template
@@ -1005,14 +1005,14 @@ function QuoteLineItemRow({
                   aria-pressed={selected}
                   aria-label={`${selected ? 'Retirer' : 'Ajouter'} la couleur ${c.colorName}`}
                   title={c.colorName}
-                  className={`group relative flex items-center gap-2 pl-1 pr-2.5 py-1 min-h-[44px] md:min-h-0 snap-start flex-shrink-0 md:flex-shrink rounded-full border text-[12px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+                  className={`group relative flex items-center gap-2 pl-1 pr-2.5 py-1 min-h-[44px] md:min-h-0 snap-start flex-shrink-0 md:flex-shrink rounded-full border text-[12px] font-semibold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 ${
                     selected
-                      ? 'border-[#1B3A6B] bg-[#1B3A6B]/5 text-[#1B3A6B] shadow-sm'
+                      ? 'border-brand-black bg-brand-black/5 text-brand-black shadow-sm'
                       : 'border-zinc-200 text-zinc-600 hover:border-zinc-400'
                   }`}
                 >
                   <span
-                    className={`w-6 h-6 rounded-full border ${selected ? 'border-[#E8A838] ring-2 ring-[#E8A838]/40' : 'border-zinc-300'}`}
+                    className={`w-6 h-6 rounded-full border ${selected ? 'border-brand-blue ring-2 ring-brand-blue/40' : 'border-zinc-300'}`}
                     style={{ backgroundColor: c.hex }}
                     aria-hidden="true"
                   />
@@ -1079,7 +1079,7 @@ function QuoteLineItemRow({
                           />
                         </td>
                       ))}
-                      <td className="py-1.5 pl-3 text-right font-bold text-[#1B3A6B]">
+                      <td className="py-1.5 pl-3 text-right font-bold text-brand-black">
                         {rowTotal}
                       </td>
                     </tr>
@@ -1106,14 +1106,14 @@ function QuoteLineItemRow({
                 role="radio"
                 aria-checked={active}
                 onClick={() => onPatch({ placement: p })}
-                className={`flex flex-col items-center justify-center py-2 min-h-[48px] md:min-h-0 rounded-lg border text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+                className={`flex flex-col items-center justify-center py-2 min-h-[48px] md:min-h-0 rounded-lg border text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 ${
                   active
-                    ? 'border-[#1B3A6B] bg-[#1B3A6B] text-white shadow-sm'
+                    ? 'border-brand-black bg-brand-black text-white shadow-sm'
                     : 'border-zinc-200 text-zinc-600 hover:border-zinc-400 bg-white'
                 }`}
               >
                 <span>{PLACEMENT_LABEL[p]}</span>
-                <span className={`text-[10px] font-normal mt-0.5 ${active ? 'text-[#E8A838]' : 'text-zinc-400'}`}>
+                <span className={`text-[10px] font-normal mt-0.5 ${active ? 'text-brand-blue' : 'text-zinc-400'}`}>
                   {PLACEMENT_ZONES[p]} zone{PLACEMENT_ZONES[p] > 1 ? 's' : ''}
                 </span>
               </button>
@@ -1134,7 +1134,7 @@ function QuoteLineItemRow({
       </div>
 
       {/* Live pricing breakdown */}
-      <div className="p-4 bg-[#1B3A6B]/[0.03] flex flex-wrap items-baseline justify-between gap-3">
+      <div className="p-4 bg-brand-black/[0.03] flex flex-wrap items-baseline justify-between gap-3">
         <div className="text-xs text-zinc-500 space-y-0.5">
           <div>
             <span className="font-semibold text-zinc-700">Prix unitaire :</span>{' '}
@@ -1151,8 +1151,8 @@ function QuoteLineItemRow({
         </div>
         <div className="text-right">
           <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Sous-total ligne</div>
-          <div className="font-extrabold text-xl text-[#1B3A6B]">
-            {lineTotal.toFixed(2)} <span className="text-sm font-bold text-[#E8A838]">$</span>
+          <div className="font-extrabold text-xl text-brand-black">
+            {lineTotal.toFixed(2)} <span className="text-sm font-bold text-brand-blue">$</span>
           </div>
         </div>
       </div>
