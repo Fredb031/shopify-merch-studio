@@ -34,6 +34,7 @@ function deriveStage(o: typeof SHOPIFY_ORDERS_SNAPSHOT[0]): Stage {
   return 'pending';
 }
 
+/** Public order-tracking page — gated lookup (order # + email) over the Shopify snapshot, with copy/share/print and timeline UI. */
 export default function TrackOrder() {
   const { lang } = useLang();
   const { orderNumber: paramOrder } = useParams();
