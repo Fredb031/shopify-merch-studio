@@ -161,7 +161,7 @@ export default function Contact() {
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       <Navbar />
       <main id="main-content" className="flex-1 max-w-[1100px] w-full mx-auto px-6 md:px-10 py-12 md:py-16">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-brand-black tracking-[-0.5px] mb-2">
           Contact
         </h1>
         <p className="text-sm text-zinc-600 mb-10 max-w-[640px]">
@@ -178,12 +178,12 @@ export default function Contact() {
             aria-label={lang === 'en' ? 'Contact information' : 'Informations de contact'}
             className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-7 shadow-sm"
           >
-            <h2 className="text-lg font-extrabold text-[#0F2341] mb-5 tracking-[-0.3px]">
+            <h2 className="text-lg font-extrabold text-brand-black mb-5 tracking-[-0.3px]">
               {lang === 'en' ? 'Reach us directly' : 'Nous joindre directement'}
             </h2>
             <ul className="space-y-5">
               <li className="flex items-start gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A838]/15 text-[#E8A838] shrink-0">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-blue/15 text-brand-blue shrink-0">
                   <Phone size={18} aria-hidden="true" />
                 </span>
                 <div>
@@ -192,14 +192,14 @@ export default function Contact() {
                   </div>
                   <a
                     href="tel:+13673804808"
-                    className="text-[15px] font-semibold text-[#0F2341] hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 rounded"
+                    className="text-[15px] font-semibold text-brand-black hover:text-brand-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 rounded"
                   >
                     367-380-4808
                   </a>
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A838]/15 text-[#E8A838] shrink-0">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-blue/15 text-brand-blue shrink-0">
                   <Mail size={18} aria-hidden="true" />
                 </span>
                 <div className="min-w-0">
@@ -208,34 +208,34 @@ export default function Contact() {
                   </div>
                   <a
                     href="mailto:info@visionaffichage.com"
-                    className="text-[15px] font-semibold text-[#0F2341] hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 rounded break-all"
+                    className="text-[15px] font-semibold text-brand-black hover:text-brand-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 rounded break-all"
                   >
                     info@visionaffichage.com
                   </a>
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A838]/15 text-[#E8A838] shrink-0">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-blue/15 text-brand-blue shrink-0">
                   <MapPin size={18} aria-hidden="true" />
                 </span>
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-0.5">
                     {lang === 'en' ? 'Address' : 'Adresse'}
                   </div>
-                  <div className="text-[15px] font-semibold text-[#0F2341]">
+                  <div className="text-[15px] font-semibold text-brand-black">
                     Saint-Hyacinthe, QC
                   </div>
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#E8A838]/15 text-[#E8A838] shrink-0">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-blue/15 text-brand-blue shrink-0">
                   <Clock size={18} aria-hidden="true" />
                 </span>
                 <div>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-0.5">
                     {lang === 'en' ? 'Business hours' : 'Heures d\u2019ouverture'}
                   </div>
-                  <div className="text-[15px] font-semibold text-[#0F2341]">
+                  <div className="text-[15px] font-semibold text-brand-black">
                     {lang === 'en' ? 'Mon-Fri 8am-5pm' : 'Lun-Ven 8h-17h'}
                   </div>
                 </div>
@@ -262,7 +262,7 @@ export default function Contact() {
               href={mapsLinkHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-[#0F2341] hover:text-[#E8A838] bg-white border-t border-zinc-200 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/50"
+              className="flex items-center justify-center gap-1.5 text-[13px] font-bold text-brand-black hover:text-brand-blue bg-white border-t border-zinc-200 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50"
             >
               <MapPin size={14} aria-hidden="true" />
               {lang === 'en' ? 'View on Google Maps' : 'Voir sur Google Maps'}
@@ -279,7 +279,7 @@ export default function Contact() {
           aria-label={lang === 'en' ? 'Send us a message' : 'Envoyez-nous un message'}
           className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm max-w-[760px]"
         >
-          <h2 className="text-xl md:text-2xl font-extrabold text-[#0F2341] mb-2 tracking-[-0.3px]">
+          <h2 className="text-xl md:text-2xl font-extrabold text-brand-black mb-2 tracking-[-0.3px]">
             {lang === 'en' ? 'Send us a message' : 'Envoyez-nous un message'}
           </h2>
           <p className="text-sm text-zinc-600 mb-6">
@@ -296,10 +296,10 @@ export default function Contact() {
             <div
               role="status"
               aria-live="polite"
-              className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 md:p-6 text-[#0F2341]"
+              className="rounded-xl border border-brand-blue/30 bg-brand-blue-light p-5 md:p-6 text-brand-black"
             >
               <div className="flex items-start gap-3">
-                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-emerald-600 text-white shrink-0">
+                <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-brand-blue text-brand-white shrink-0">
                   <Send size={18} aria-hidden="true" />
                 </span>
                 <div className="flex-1">
@@ -316,7 +316,7 @@ export default function Contact() {
                   <button
                     type="button"
                     onClick={handleSendAnother}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-extrabold bg-white border border-emerald-300 text-[#0F2341] hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-extrabold bg-brand-white border border-brand-blue/30 text-brand-black hover:bg-brand-blue/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50"
                   >
                     {lang === 'en' ? 'Send another' : 'Envoyer un autre message'}
                   </button>
@@ -337,7 +337,7 @@ export default function Contact() {
                   onChange={e => setName(e.target.value)}
                   required
                   autoComplete="name"
-                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-brand-black placeholder:text-zinc-400 focus:outline-none focus:border-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue/25 transition-shadow"
                   placeholder={lang === 'en' ? 'Full name' : 'Nom complet'}
                 />
               </label>
@@ -365,8 +365,8 @@ export default function Contact() {
                   // reader re-announces the hint on refocus (otherwise
                   // role=alert only fires once when the span mounts).
                   aria-describedby={emailErr ? 'contact-email-error' : undefined}
-                  className={`w-full px-3.5 py-2.5 text-sm rounded-xl border bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow ${
-                    emailErr ? 'border-rose-400 focus:border-rose-500' : 'border-zinc-300 focus:border-[#0052CC]'
+                  className={`w-full px-3.5 py-2.5 text-sm rounded-xl border bg-white text-brand-black placeholder:text-zinc-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/25 transition-shadow ${
+                    emailErr ? 'border-rose-400 focus:border-rose-500' : 'border-zinc-300 focus:border-brand-blue'
                   }`}
                   placeholder={lang === 'en' ? 'you@email.com' : 'vous@courriel.com'}
                 />
@@ -393,7 +393,7 @@ export default function Contact() {
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 required
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow"
+                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-brand-black placeholder:text-zinc-400 focus:outline-none focus:border-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue/25 transition-shadow"
                 placeholder={lang === 'en' ? 'What\u2019s this about?' : 'De quoi s\u2019agit-il\u00a0?'}
               />
             </label>
@@ -414,7 +414,7 @@ export default function Contact() {
                 rows={6}
                 maxLength={MESSAGE_MAX}
                 aria-describedby="contact-message-counter"
-                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow resize-y min-h-[140px]"
+                className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-brand-black placeholder:text-zinc-400 focus:outline-none focus:border-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue/25 transition-shadow resize-y min-h-[140px]"
                 placeholder={lang === 'en' ? 'Tell us how we can help...' : 'Dites-nous comment nous pouvons aider...'}
               />
               {/* Task 173 — live character counter. aria-live=polite so
@@ -440,12 +440,12 @@ export default function Contact() {
               <SubmitButton
                 state={submitState}
                 disabled={!name.trim() || !email.trim() || !subject.trim() || !message.trim()}
-                // Success swap tints the button emerald so the tick lands
-                // on a matching surface instead of fighting the CTA blue.
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                // Success swap keeps the button on brand-blue so the tick
+                // lands on the same single-accent surface as the idle CTA.
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-brand-white font-extrabold text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                   submitState === 'success'
-                    ? 'bg-emerald-600 hover:bg-emerald-600 focus-visible:ring-emerald-500/50'
-                    : 'bg-[#0052CC] hover:bg-[#0041A6] disabled:opacity-50 disabled:hover:bg-[#0052CC] focus-visible:ring-[#0052CC]/50'
+                    ? 'bg-brand-blue hover:bg-brand-blue focus-visible:ring-brand-blue/50'
+                    : 'bg-brand-blue hover:bg-brand-blue-hover disabled:opacity-50 disabled:hover:bg-brand-blue focus-visible:ring-brand-blue/50'
                 }`}
               >
                 <Send size={15} aria-hidden="true" />
