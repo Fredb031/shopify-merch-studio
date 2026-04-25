@@ -592,7 +592,7 @@ export default function AdminAbandonedCarts() {
         />
       </div>
 
-      <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
+      <div className="bg-gradient-to-br from-brand-black to-brand-black text-white rounded-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
             <Send size={18} aria-hidden="true" />
@@ -612,7 +612,7 @@ export default function AdminAbandonedCarts() {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Configurer la séquence de récupération dans Shopify Marketing (nouvel onglet)"
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+              className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black rounded"
             >
               Configurer la séquence dans Shopify
               <ExternalLink size={11} aria-hidden="true" />
