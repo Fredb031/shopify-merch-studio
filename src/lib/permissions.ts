@@ -147,6 +147,15 @@ export const OVERRIDES_STORAGE_KEY = 'vision-permission-overrides';
 
 export type OverrideMap = Record<string, Permission[]>;
 
+// Pre-computed set of valid permission strings, including the `!`-prefixed
+// revoke form that hasPermission accepts. Used by loadOverrides to drop
+// unknown entries instead of trusting whatever was in localStorage. Built
+// once at module load — ALL_PERMISSIONS is constant.
+const VALID_OVERRIDE_ENTRIES: ReadonlySet<string> = new Set<string>([
+  ...ALL_PERMISSIONS,
+  ...ALL_PERMISSIONS.map(p => `!${p}`),
+]);
+
 export function loadOverrides(): OverrideMap {
   // Defensive: localStorage can throw in private mode, return
   // malformed JSON from a legacy build, or return a non-object from
@@ -158,8 +167,22 @@ export function loadOverrides(): OverrideMap {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
   const cleaned: OverrideMap = {};
   for (const [userId, perms] of Object.entries(parsed as Record<string, unknown>)) {
+    // Reject empty/non-string keys — a bad userId would silently grant or
+    // revoke the wrong account, far worse than dropping a malformed row.
+    if (!userId || typeof userId !== 'string') continue;
     if (!Array.isArray(perms)) continue;
-    cleaned[userId] = perms.filter((p): p is Permission => typeof p === 'string') as Permission[];
+    // Validate each entry against the known permission catalogue (including
+    // the `!`-prefixed revoke form). Previously we kept any string, which
+    // meant a stale rename ('orders:edit' → 'orders:write'), a typo from a
+    // hand-edited devtools session, or a key from an unrelated app reusing
+    // the storage namespace would leak through and quietly do nothing — but
+    // also bloat the saved map and confuse the AdminUsers permissions
+    // dialog when it round-tripped the unknown entries back to disk.
+    const valid = perms.filter(
+      (p): p is Permission =>
+        typeof p === 'string' && VALID_OVERRIDE_ENTRIES.has(p),
+    ) as Permission[];
+    cleaned[userId] = valid;
   }
   return cleaned;
 }
