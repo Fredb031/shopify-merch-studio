@@ -25,7 +25,7 @@
  * - Self-unmount: after ~1.5s we call `onDone` so the parent can
  *   flip `fire` back to false and drop the tree.
  */
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 interface ConfettiProps {
   fire: boolean;
@@ -59,13 +59,23 @@ export function Confetti({ fire, onDone }: ConfettiProps) {
   }, [fire]);
 
   // Self-unmount trigger — let the parent drop the subtree.
+  // `onDone` is held in a ref so the effect's deps stay stable on
+  // [fire] alone. Callers commonly pass an inline arrow ({ onDone:
+  // () => setX(false) }) that gets a fresh identity on every parent
+  // render. Including it in the dep array used to clear+restart the
+  // 1.7 s timer on each parent re-render — which, inside the
+  // customizer (re-renders on every keystroke / qty bump), meant the
+  // particles flew but onDone never fired and the Confetti subtree
+  // stayed mounted indefinitely until the modal closed.
+  const onDoneRef = useRef(onDone);
+  useEffect(() => { onDoneRef.current = onDone; }, [onDone]);
   useEffect(() => {
     if (!fire) return;
     const t = window.setTimeout(() => {
-      onDone?.();
+      onDoneRef.current?.();
     }, DURATION_MS + 200); // small cushion past the longest particle
     return () => window.clearTimeout(t);
-  }, [fire, onDone]);
+  }, [fire]);
 
   if (!fire || particles.length === 0) return null;
 
