@@ -122,6 +122,12 @@ function parseDayKeyLocal(key: string): Date {
   return new Date(y, m - 1, d);
 }
 
+/**
+ * Admin Analytique page — slices the static Shopify snapshot by a
+ * persisted date range (7j/30j/90j/annuel) to render KPI cards, daily
+ * revenue bars, top customers, catalog-by-type, and a recovery-revenue
+ * highlight; all sections expose CSV exports gated on `orders:read`.
+ */
 export default function AdminAnalytics() {
   useDocumentTitle('Analytique — Admin Vision Affichage');
   // Gate the export buttons on the same permission used by the other
