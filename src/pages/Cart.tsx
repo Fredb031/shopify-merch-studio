@@ -221,7 +221,7 @@ function PromoCodeInput({
                     onMouseDown={e => { e.preventDefault(); pickSuggestion(s.code); }}
                     onMouseEnter={() => setActiveIdx(idx)}
                     className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ${
-                      active ? 'bg-[#E8A838]/15 text-foreground' : 'hover:bg-secondary text-foreground'
+                      active ? 'bg-brand-blue/15 text-foreground' : 'hover:bg-secondary text-foreground'
                     }`}
                   >
                     <span className="font-mono font-extrabold tracking-wider">{s.code}</span>
@@ -612,11 +612,11 @@ export default function Cart() {
         {items.length === 0 ? (
           <div className="text-center py-16 px-6 max-w-md mx-auto">
             <div className="relative w-32 h-32 mx-auto mb-7" aria-hidden="true">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-2xl" />
+              <div className="absolute inset-0 rounded-full bg-brand-blue/10 blur-2xl" />
               <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-secondary to-background border-2 border-border flex items-center justify-center">
-                <ShoppingCart className="h-12 w-12 text-[#0052CC]" strokeWidth={1.5} />
+                <ShoppingCart className="h-12 w-12 text-brand-blue" strokeWidth={1.5} />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#E8A838] text-[#1B3A6B] rounded-full text-sm font-extrabold flex items-center justify-center shadow-lg">
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-brand-blue text-brand-white rounded-full text-sm font-extrabold flex items-center justify-center shadow-lg">
                 0
               </div>
             </div>
@@ -630,7 +630,7 @@ export default function Cart() {
             </p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-blue px-8 py-3.5 rounded-full shadow-lg hover:-translate-y-0.5 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Browse products →' : 'Voir les produits →'}
             </Link>
@@ -870,7 +870,7 @@ export default function Cart() {
                       <Link
                         to={`/product/${p.shopifyHandle}`}
                         aria-label={`${categoryLabel(p.category, lang)} ${p.sku} — ${lang === 'en' ? 'from' : 'à partir de'} ${priceFmt} $`}
-                        className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-[#0052CC]/40 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                        className="group block bg-background rounded-xl overflow-hidden border border-border hover:border-brand-blue/40 hover:shadow-md transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                       >
                         <div className="aspect-square bg-secondary relative overflow-hidden">
                           {p.imageDevant && (
@@ -893,7 +893,7 @@ export default function Cart() {
                           <div className="text-[12px] font-extrabold text-foreground truncate">
                             {categoryLabel(p.category, lang)}
                           </div>
-                          <div className="text-[11px] font-bold text-[#0052CC] mt-0.5">
+                          <div className="text-[11px] font-bold text-brand-blue mt-0.5">
                             {lang === 'en' ? 'From' : 'À partir de'} {priceFmt} $
                           </div>
                         </div>
@@ -1129,9 +1129,9 @@ export default function Cart() {
                         </span>
                       </div>
                       {discountApplied && discountCode ? (
-                        <div className="flex justify-between items-center -mx-2 px-2 py-1.5 rounded-lg bg-[#E8A838]/10 border border-[#E8A838]/30">
+                        <div className="flex justify-between items-center -mx-2 px-2 py-1.5 rounded-lg bg-brand-blue/10 border border-brand-blue/30">
                           <span className="font-semibold text-foreground flex items-baseline gap-1.5">
-                            <Tag size={12} className="text-[#E8A838] self-center" aria-hidden="true" />
+                            <Tag size={12} className="text-brand-blue self-center" aria-hidden="true" />
                             {lang === 'en' ? 'Discount' : 'Rabais'}{' '}
                             <code className="font-mono text-[11px] text-foreground">{discountCode}</code>
                             {ratePct > 0 && (
@@ -1141,14 +1141,14 @@ export default function Cart() {
                             )}
                           </span>
                           <span className="flex items-center gap-2">
-                            <span className="font-extrabold text-[#E8A838] tabular-nums">
+                            <span className="font-extrabold text-brand-blue tabular-nums">
                               −{fmtMoney(savings)} $
                             </span>
                             <button
                               type="button"
                               onClick={clearDiscount}
                               aria-label={lang === 'en' ? `Remove promo code ${discountCode}` : `Retirer le code promo ${discountCode}`}
-                              className="text-[11px] font-bold text-muted-foreground underline hover:no-underline hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 rounded"
+                              className="text-[11px] font-bold text-muted-foreground underline hover:no-underline hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 rounded"
                             >
                               {lang === 'en' ? 'Remove' : 'Retirer'}
                             </button>
@@ -1209,8 +1209,8 @@ export default function Cart() {
 
               <button
                 onClick={handleCheckout}
-                className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-opacity hover:opacity-85 disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-                style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
+                className="w-full py-4 bg-brand-black hover:bg-brand-blue text-brand-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
+                style={{ boxShadow: '0 8px 24px rgba(10,10,10,0.35)' }}
                 disabled={checkingOut}
               >
                 {lang === 'en' ? 'Place order' : 'Passer la commande'} →
