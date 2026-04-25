@@ -38,13 +38,23 @@ const NotFound = () => {
   // Tell crawlers not to index the 404 page itself. Without it, Google
   // can end up storing random non-existent URLs as 'soft 404s' tied to
   // our domain, which dilutes trust. robots meta takes precedence over
-  // robots.txt for per-page directives.
+  // robots.txt for per-page directives. Dataset marker + duplicate
+  // check mirror the JSON-LD injection pattern in Blog.tsx /
+  // BlogPost.tsx so a remount (e.g. React strict-mode in dev) can't
+  // stack two identical robots metas in <head>, and the parentNode
+  // guard on cleanup avoids an unhandled removeChild error if the node
+  // has already been detached by an outside script.
   useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (document.head.querySelector('meta[data-notfound-robots]')) return;
     const meta = document.createElement('meta');
     meta.name = 'robots';
     meta.content = 'noindex, follow';
+    meta.dataset.notfoundRobots = 'true';
     document.head.appendChild(meta);
-    return () => { document.head.removeChild(meta); };
+    return () => {
+      if (meta.parentNode) meta.parentNode.removeChild(meta);
+    };
   }, []);
 
   // Browser tab + SERP label reflect the 404 state. Restore on unmount
