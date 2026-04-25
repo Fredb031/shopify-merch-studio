@@ -32,7 +32,15 @@ export function TrustSignalsBar() {
       className="bg-secondary/60 border-y border-border py-6 px-6 md:px-10"
       aria-label={lang === 'en' ? 'Trust signals' : 'Nos garanties'}
     >
-      <ul className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 list-none">
+      {/*
+        role="list" is intentional: Tailwind's `list-none` applies
+        list-style: none, which Safari/VoiceOver interprets as a cue
+        to drop the implicit list semantics (the four trust signals
+        stop being announced as "list, 4 items"). Re-asserting the
+        ARIA role keeps the landmark intact for screen-reader users
+        without bringing back the visible bullets.
+      */}
+      <ul role="list" className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-5 list-none">
         {signals.map((s, i) => {
           const Icon = s.icon;
           return (
