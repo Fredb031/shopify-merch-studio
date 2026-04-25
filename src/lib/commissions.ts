@@ -23,6 +23,7 @@
 
 import { readLS, writeLS } from './storage';
 import { getSettings } from './appSettings';
+import { csvEscape } from '@/lib/csv';
 import { SHOPIFY_ORDERS_SNAPSHOT, type ShopifyOrderSnapshot } from '@/data/shopifySnapshot';
 
 export const DEFAULT_COMMISSION_RATE = 0.10;
@@ -154,6 +155,8 @@ function readOverrides(): Record<string, string> {
   return out;
 }
 
+/** Reattribute (or clear) the vendor credited for an order. Passing
+ *  `null` removes the override so the seed map (or "uncredited") wins. */
 export function setOrderCredit(orderId: string | number, vendorId: string | null): void {
   const key = String(orderId);
   const current = readOverrides();
@@ -183,10 +186,12 @@ function readPaidMap(): Record<string, string> {
   return out;
 }
 
+/** Whether an order has been stamped as paid via {@link markCommissionPaid}. */
 export function isCommissionPaid(orderId: string | number): boolean {
   return Boolean(readPaidMap()[String(orderId)]);
 }
 
+/** ISO-8601 payout timestamp for an order, or `null` if still pending. */
 export function getCommissionPaidAt(orderId: string | number): string | null {
   return readPaidMap()[String(orderId)] ?? null;
 }
@@ -204,6 +209,9 @@ export function markCommissionPaid(orderId: string | number): string {
   return iso;
 }
 
+/** Reverse a payout stamp. Idempotent — unmarking an already-pending
+ *  order is a no-op. Fires `vision-commission-change` so dashboards
+ *  re-read the paid map. */
 export function unmarkCommissionPaid(orderId: string | number): void {
   const map = readPaidMap();
   delete map[String(orderId)];
@@ -213,6 +221,8 @@ export function unmarkCommissionPaid(orderId: string | number): void {
   }
 }
 
+/** One row of a vendor's commission ledger — the source order plus the
+ *  computed commission and paid/pending state. */
 export interface VendorCommissionLine {
   order: ShopifyOrderSnapshot;
   commission: number;
@@ -220,6 +230,8 @@ export interface VendorCommissionLine {
   paidAt: string | null;
 }
 
+/** Aggregated commissions for a vendor: per-line detail plus
+ *  pre-rolled totals so dashboards don't re-fold the same numbers. */
 export interface VendorCommissionSummary {
   vendorId: string;
   rate: number;
@@ -327,20 +339,15 @@ export function listVendorMonths(summary: VendorCommissionSummary): string[] {
   return Array.from(set).sort((a, b) => b.localeCompare(a));
 }
 
-/** Escape a single CSV field. Wraps in double quotes and doubles any
- *  embedded double quotes; also wraps when the value contains a comma,
- *  quote, or newline. Empty/nullish → empty string. This mirrors RFC 4180
- *  so Excel + Numbers + Google Sheets all open the file cleanly. */
-function csvField(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  const s = String(value);
-  if (s === '') return '';
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
+/** Build a single CSV row by routing each cell through the shared
+ *  {@link csvEscape} helper from `@/lib/csv` — RFC 4180 quoting plus
+ *  the CSV-injection guard so vendor names like `=SUM(A:A)` or
+ *  `@Brown` can't execute as formulas when an accountant opens the
+ *  export in Excel/Sheets. Keeping every admin export on one escape
+ *  policy means a cell rendered the same way in `commissions.csv`,
+ *  `orders.csv`, and `analytics.csv`. */
 function csvRow(cells: unknown[]): string {
-  return cells.map(csvField).join(',');
+  return cells.map(csvEscape).join(',');
 }
 
 function toYmd(iso: string | null): string {
