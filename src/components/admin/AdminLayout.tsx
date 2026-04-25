@@ -365,6 +365,10 @@ export function AdminLayout() {
       // editing something you'd lose."
       if (isEditing && !paletteOpen) return;
       e.preventDefault();
+      // Close the shortcuts cheatsheet first if it's open so the two
+      // modals don't stack at the same z-index and fight for focus.
+      // Mirrors the "?" handler that already skips while paletteOpen.
+      setShortcutsOpen(false);
       setPaletteOpen(prev => !prev);
     };
     window.addEventListener('keydown', onKey);
