@@ -153,6 +153,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         {user ? (
           <div className="relative">
             <button
+              type="button"
               ref={menuTriggerRef}
               onClick={() => setMenuOpen(o => !o)}
               className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
@@ -170,6 +171,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             {menuOpen && (
               <>
                 <button
+                  type="button"
                   className="fixed inset-0 z-[410] bg-transparent border-none cursor-default"
                   onClick={() => setMenuOpen(false)}
                   aria-label={lang === 'en' ? 'Close menu' : 'Fermer le menu'}
@@ -234,6 +236,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           </div>
         ) : (
           <button
+            type="button"
             onClick={openLogin}
             className="flex items-center gap-1.5 text-[12px] font-bold text-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
           >
@@ -253,6 +256,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         )}
 
         <button
+          type="button"
           onClick={onOpenCart}
           aria-label={`${t('panier')}${itemCount > 0 ? ` (${itemCount})` : ''}`}
           aria-keyshortcuts="Meta+Shift+C Control+Shift+C"
