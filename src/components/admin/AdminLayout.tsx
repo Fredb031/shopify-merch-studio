@@ -62,7 +62,7 @@ type ShortcutsDialogProps = {
 // Discoverable keyboard shortcut reference. Pressing "?" anywhere in
 // /admin/* opens this; Esc, backdrop click, and the corner close button
 // all dismiss. Chrome matches CommandPalette: white rounded card with a
-// navy (#0F2341) header strip so the docs modal reads as part of the
+// brand-black header strip so the docs modal reads as part of the
 // same admin surface. Focus is trapped so Tab can't leak to the dimmed
 // page underneath.
 function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
@@ -91,8 +91,8 @@ function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
         tabIndex={-1}
         className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl border border-zinc-200 overflow-hidden max-h-[80vh] flex flex-col"
       >
-        {/* Brand-navy header strip to match CommandPalette / notifications. */}
-        <div className="px-5 py-4 bg-[#0F2341] text-white flex items-center justify-between shrink-0">
+        {/* Brand-black header strip to match CommandPalette / notifications. */}
+        <div className="px-5 py-4 bg-brand-black text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <Keyboard size={18} aria-hidden="true" />
             <h2 id="admin-shortcuts-title" className="text-sm font-bold">
@@ -107,7 +107,7 @@ function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
               type="button"
               onClick={close}
               aria-label="Fermer"
-              className="w-7 h-7 rounded-md hover:bg-white/10 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 transition-colors"
+              className="w-7 h-7 rounded-md hover:bg-white/10 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 transition-colors"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -118,7 +118,7 @@ function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
             <section key={group.title} aria-labelledby={`shortcut-group-${group.title}`}>
               <h3
                 id={`shortcut-group-${group.title}`}
-                className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC] mb-2"
+                className="text-[11px] font-extrabold uppercase tracking-wider text-brand-blue mb-2"
               >
                 {group.title}
               </h3>
@@ -322,7 +322,7 @@ export function AdminLayout() {
   // the JSX branch below.
   const badgeLabel = totalNotifications > 9 ? '9+' : String(totalNotifications);
   // When everything is stale (acknowledged), we still show the bell
-  // but skip the gold dot — nothing is "new" until the next refresh.
+  // but skip the brand-blue dot — nothing is "new" until the next refresh.
   const showUnreadDot = hasUnread && !isStale;
 
   const handleMarkAllRead = () => {
@@ -516,7 +516,7 @@ export function AdminLayout() {
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <aside
         id="admin-sidebar"
-        className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-[#0F2341] dark:bg-[#1B3A6B] text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-40 ${sidebarWidthClass} bg-brand-black dark:bg-brand-dark text-white flex flex-col transition-[transform,width] duration-200 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Admin navigation"
@@ -525,9 +525,9 @@ export function AdminLayout() {
           <Link
             to="/admin"
             aria-label="Vision Affichage — Admin dashboard"
-            className="text-white font-extrabold text-lg tracking-tight flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+            className="text-white font-extrabold text-lg tracking-tight flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black rounded"
           >
-            <span className="w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] flex items-center justify-center text-xs" aria-hidden="true">VA</span>
+            <span className="w-8 h-8 shrink-0 rounded-lg bg-brand-blue flex items-center justify-center text-xs" aria-hidden="true">VA</span>
             <span className={desktopCollapsed ? 'md:hidden' : ''}>Admin</span>
           </Link>
           <div className={`text-[11px] text-white/50 mt-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>Vision Affichage</div>
@@ -544,17 +544,17 @@ export function AdminLayout() {
                 onClick={() => setMobileOpen(false)}
                 title={desktopCollapsed ? item.label : undefined}
                 className={({ isActive }) =>
-                  // Active state: brand-blue pill + bold + gold left border
+                  // Active state: brand-blue pill + bold + brand-blue left border
                   // so the current section stands out clearly against the
-                  // navy sidebar. NavLink emits aria-current="page" on the
+                  // brand-black sidebar. NavLink emits aria-current="page" on the
                   // active row automatically. The left border is swapped
                   // for a full transparent one on inactive rows so hover +
                   // active swaps never jitter width by 3px.
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] border-l-[3px] ${
+                  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-0.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black border-l-[3px] ${
                     desktopCollapsed ? 'md:justify-center' : ''
                   } ${
                     isActive
-                      ? 'bg-[#0052CC] text-white font-bold border-[#E8A838] shadow-sm'
+                      ? 'bg-brand-blue text-white font-bold border-brand-blue shadow-sm'
                       : 'text-white/70 font-medium border-transparent hover:bg-white/5 hover:text-white'
                   }`
                 }
@@ -563,7 +563,7 @@ export function AdminLayout() {
                 <span className={`flex-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>{item.label}</span>
                 {'badge' in item && item.badge === 'pendingFulfillment' && SHOPIFY_STATS.awaitingFulfillment > 0 && (
                   <span
-                    className={`text-[10px] font-extrabold bg-[#E8A838] text-[#1B3A6B] px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${desktopCollapsed ? 'md:hidden' : ''}`}
+                    className={`text-[10px] font-extrabold bg-brand-blue text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center ${desktopCollapsed ? 'md:hidden' : ''}`}
                     aria-label={`${SHOPIFY_STATS.awaitingFulfillment} commande${SHOPIFY_STATS.awaitingFulfillment > 1 ? 's' : ''} à expédier`}
                     aria-live="polite"
                     aria-atomic="true"
@@ -580,7 +580,7 @@ export function AdminLayout() {
           <Link
             to="/"
             title={desktopCollapsed ? 'Retour au site' : undefined}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center md:text-[10px]' : ''}`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black ${desktopCollapsed ? 'md:justify-center md:text-[10px]' : ''}`}
           >
             <span className={desktopCollapsed ? 'md:hidden' : ''}>Retour au site</span>
             <span className={desktopCollapsed ? 'hidden md:inline' : 'hidden'} aria-hidden="true">←</span>
@@ -595,7 +595,7 @@ export function AdminLayout() {
             title={desktopCollapsed ? 'Raccourcis clavier (?)' : undefined}
             aria-haspopup="dialog"
             aria-expanded={shortcutsOpen}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center' : ''}`}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black ${desktopCollapsed ? 'md:justify-center' : ''}`}
           >
             <Keyboard size={16} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
             <span className={`flex-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>Raccourcis clavier</span>
@@ -616,7 +616,7 @@ export function AdminLayout() {
             onClick={cycleTheme}
             title={desktopCollapsed ? `Thème : ${themeLabel}` : undefined}
             aria-label={`Thème actuel : ${themeLabel}. Cliquer pour changer.`}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center' : ''}`}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black ${desktopCollapsed ? 'md:justify-center' : ''}`}
           >
             <ThemeIcon size={16} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
             <span className={`flex-1 ${desktopCollapsed ? 'md:hidden' : ''}`}>Thème</span>
@@ -631,7 +631,7 @@ export function AdminLayout() {
             type="button"
             onClick={handleLogout}
             title={desktopCollapsed ? 'Déconnexion' : undefined}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'md:justify-center' : ''}`}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors bg-transparent border-none cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black ${desktopCollapsed ? 'md:justify-center' : ''}`}
           >
             <LogOut size={18} strokeWidth={1.8} aria-hidden="true" className="shrink-0" />
             <span className={desktopCollapsed ? 'md:hidden' : ''}>Déconnexion</span>
@@ -645,7 +645,7 @@ export function AdminLayout() {
             aria-expanded={!desktopCollapsed}
             aria-controls="admin-sidebar"
             title={desktopCollapsed ? 'Déployer' : 'Réduire'}
-            className={`hidden md:flex w-full items-center gap-2 px-3 py-2 mt-1 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] ${desktopCollapsed ? 'justify-center' : 'justify-start'}`}
+            className={`hidden md:flex w-full items-center gap-2 px-3 py-2 mt-1 rounded-lg text-xs text-white/60 hover:bg-white/5 hover:text-white transition-colors bg-transparent border-none cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black ${desktopCollapsed ? 'justify-center' : 'justify-start'}`}
           >
             {desktopCollapsed ? (
               <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
@@ -662,7 +662,7 @@ export function AdminLayout() {
           <button
             type="button"
             onClick={() => setMobileOpen(o => !o)}
-            className="md:hidden w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
+            className="md:hidden w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 transition-colors"
             aria-label={mobileOpen ? 'Fermer le menu latéral' : 'Ouvrir le menu latéral'}
             aria-expanded={mobileOpen}
             aria-controls="admin-sidebar"
@@ -681,7 +681,7 @@ export function AdminLayout() {
               <button
                 type="button"
                 onClick={() => setNotifOpen(o => !o)}
-                className="relative w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 transition-colors"
+                className="relative w-10 h-10 rounded-lg hover:bg-zinc-100 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 transition-colors"
                 aria-label={
                   hasUnread
                     ? `Notifications, ${totalNotifications} non lue${totalNotifications > 1 ? 's' : ''}`
@@ -695,7 +695,7 @@ export function AdminLayout() {
                 {showUnreadDot && (
                   <span
                     aria-hidden="true"
-                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8A838] text-[#1B3A6B] text-[10px] font-extrabold leading-[18px] text-center ring-2 ring-white"
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-brand-blue text-white text-[10px] font-extrabold leading-[18px] text-center ring-2 ring-white"
                   >
                     {badgeLabel}
                   </span>
@@ -709,10 +709,10 @@ export function AdminLayout() {
                   aria-label="Notifications"
                   className="absolute right-0 mt-2 w-80 max-w-80 rounded-xl border border-zinc-200 bg-white shadow-xl z-40 overflow-hidden"
                 >
-                  {/* Brand-navy header strip — matches the sidebar palette
+                  {/* Brand-black header strip — matches the sidebar palette
                       so the dropdown reads as part of the admin chrome, not
                       a generic popup. */}
-                  <div className="px-4 py-3 bg-[#0F2341] text-white flex items-center justify-between">
+                  <div className="px-4 py-3 bg-brand-black text-white flex items-center justify-between">
                     <div className="text-sm font-bold">Notifications</div>
                     <div className="text-[11px] text-white/60">
                       {hasUnread
@@ -746,7 +746,7 @@ export function AdminLayout() {
                             }`}
                           >
                             <span className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center ${
-                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-[#E8A838]/15 text-[#B37D10]'
+                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-brand-blue-light text-brand-blue'
                             }`}>
                               <ShoppingBag size={16} aria-hidden="true" />
                             </span>
@@ -762,7 +762,7 @@ export function AdminLayout() {
                             </span>
                             {pendingOrdersCount > 0 && (
                               <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center ${
-                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-[#E8A838] text-[#1B3A6B]'
+                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-brand-blue text-white'
                               }`}>
                                 {pendingOrdersCount}
                               </span>
@@ -779,7 +779,7 @@ export function AdminLayout() {
                             }`}
                           >
                             <span className={`w-8 h-8 shrink-0 rounded-lg flex items-center justify-center ${
-                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-[#0052CC]/10 text-[#0052CC]'
+                              isStale ? 'bg-zinc-100 text-zinc-400' : 'bg-brand-blue-light text-brand-blue'
                             }`}>
                               <ShoppingCart size={16} aria-hidden="true" />
                             </span>
@@ -795,7 +795,7 @@ export function AdminLayout() {
                             </span>
                             {abandonedCartsCount > 0 && (
                               <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-full min-w-[20px] text-center self-center ${
-                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-[#0052CC] text-white'
+                                isStale ? 'bg-zinc-200 text-zinc-500' : 'bg-brand-blue text-white'
                               }`}>
                                 {abandonedCartsCount}
                               </span>
@@ -844,7 +844,7 @@ export function AdminLayout() {
                           type="button"
                           onClick={handleMarkAllRead}
                           disabled={isStale}
-                          className="w-full text-center text-[12px] font-semibold text-[#0052CC] hover:text-[#003D99] disabled:text-zinc-400 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer py-1.5 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+                          className="w-full text-center text-[12px] font-semibold text-brand-blue hover:text-brand-blue-hover disabled:text-zinc-400 disabled:cursor-not-allowed bg-transparent border-none cursor-pointer py-1.5 rounded transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue"
                         >
                           {isStale ? 'Tout est marqué comme lu' : 'Tout marquer comme lu'}
                         </button>
@@ -868,8 +868,8 @@ export function AdminLayout() {
             </div>
             <div className={`w-9 h-9 rounded-full text-white flex items-center justify-center text-sm font-bold ${
               user?.role === 'president'
-                ? 'bg-gradient-to-br from-[#E8A838] to-[#B37D10] ring-2 ring-[#E8A838]/30'
-                : 'bg-gradient-to-br from-[#0052CC] to-[#1B3A6B]'
+                ? 'bg-brand-black ring-2 ring-brand-blue/30'
+                : 'bg-brand-blue'
             }`}>
               {user?.initials ?? '?'}
             </div>
@@ -888,7 +888,7 @@ export function AdminLayout() {
               aria-live="polite"
               className="max-w-xl rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#E8A838]/15 text-[#B37D10] flex items-center justify-center mb-4">
+              <div className="w-12 h-12 rounded-xl bg-brand-blue-light text-brand-blue flex items-center justify-center mb-4">
                 <Lock size={22} aria-hidden="true" />
               </div>
               <h1 className="text-lg font-bold text-zinc-900">Access denied</h1>
@@ -902,7 +902,7 @@ export function AdminLayout() {
               </p>
               <Link
                 to="/admin"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#0052CC] px-4 py-2 text-sm font-semibold text-white hover:bg-[#003D99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 transition-colors"
+                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 transition-colors"
               >
                 <LayoutDashboard size={16} aria-hidden="true" />
                 Back to dashboard
