@@ -12,7 +12,7 @@ import gsap from 'gsap';
 import { playHorizonTone, playLogoTone, playExitWhisper, unlockAudio, stopAllScheduledAudio } from './audio';
 import './intro.css';
 
-interface IntroAnimationProps {
+export interface IntroAnimationProps {
   onComplete: () => void;
   skipIfSeen?: boolean;
 }
