@@ -114,7 +114,7 @@ const NotFound = () => {
         <div className="max-w-[780px] mx-auto">
           {/* Heading block — 404 tastefully small above, friendly title below */}
           <div className="text-center">
-            <p className="text-[11px] font-mono tracking-[4px] text-[#E8A838] uppercase mb-2">
+            <p className="text-[11px] font-mono tracking-[4px] text-brand-blue uppercase mb-2">
               404
             </p>
             <h1 className="text-3xl md:text-5xl font-extrabold text-foreground tracking-tight mb-4">
@@ -153,12 +153,12 @@ const NotFound = () => {
               aria-label={lang === 'en' ? 'Search for a product' : 'Chercher un produit'}
               autoComplete="off"
               enterKeyHint="search"
-              className="w-full pl-11 pr-28 py-3.5 text-sm rounded-full bg-white border border-border shadow-sm focus:outline-none focus:ring-2 focus:ring-[#E8A838]/40 focus:border-[#E8A838]/60 transition-all"
+              className="w-full pl-11 pr-28 py-3.5 text-sm rounded-full bg-white border border-border shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/40 focus:border-brand-blue/60 transition-all"
             />
             <button
               type="submit"
               aria-label={lang === 'en' ? 'Search for a product' : 'Chercher un produit'}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 text-xs font-extrabold text-primary-foreground gradient-navy px-4 py-2 rounded-full shadow-navy hover:-translate-y-[1px] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1.5 text-xs font-extrabold text-brand-white bg-brand-black px-4 py-2 rounded-full shadow-lg hover:-translate-y-[1px] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
             >
               <Search aria-hidden="true" className="w-3.5 h-3.5" />
               {lang === 'en' ? 'Search' : 'Rechercher'}
@@ -202,7 +202,7 @@ const NotFound = () => {
               <Link
                 key={`${to}-${en}`}
                 to={to}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-zinc-200 text-zinc-700 text-xs font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-zinc-200 text-zinc-700 text-xs font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
               >
                 <Icon aria-hidden="true" className="w-3.5 h-3.5" />
                 {lang === 'en' ? en : fr}
@@ -223,15 +223,15 @@ const NotFound = () => {
                 <Link
                   key={tile.slug}
                   to={`/products?cat=${tile.slug}`}
-                  className="group relative flex items-center justify-between gap-3 px-5 py-5 rounded-2xl bg-white border border-border hover:border-[#0052CC]/40 hover:shadow-[0_12px_32px_rgba(27,58,107,0.12)] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="group relative flex items-center justify-between gap-3 px-5 py-5 rounded-2xl bg-white border border-border hover:border-brand-blue/40 hover:shadow-[0_12px_32px_rgba(10,10,10,0.12)] transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
                 >
-                  <span className="text-base md:text-lg font-extrabold text-foreground group-hover:text-[#1B3A6B] tracking-tight">
+                  <span className="text-base md:text-lg font-extrabold text-foreground group-hover:text-brand-black tracking-tight">
                     {lang === 'en' ? tile.en : tile.fr}
                   </span>
-                  <span className="w-9 h-9 rounded-full bg-secondary/60 group-hover:bg-[#E8A838] flex items-center justify-center transition-colors">
+                  <span className="w-9 h-9 rounded-full bg-secondary/60 group-hover:bg-brand-blue flex items-center justify-center transition-colors">
                     <ArrowRight
                       aria-hidden="true"
-                      className="w-4 h-4 text-[#1B3A6B] group-hover:text-[#1B3A6B] transition-transform group-hover:translate-x-0.5"
+                      className="w-4 h-4 text-brand-black group-hover:text-brand-white transition-transform group-hover:translate-x-0.5"
                     />
                   </span>
                 </Link>
@@ -262,7 +262,7 @@ const NotFound = () => {
           <div className="text-center mt-14">
             <Link
               to="/"
-              className="text-sm font-bold text-muted-foreground hover:text-[#1B3A6B] underline underline-offset-4 decoration-dotted focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 rounded"
+              className="text-sm font-bold text-muted-foreground hover:text-brand-black underline underline-offset-4 decoration-dotted focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2 rounded"
             >
               {lang === 'en' ? 'Back to home' : "Retour à l'accueil"}
             </Link>
