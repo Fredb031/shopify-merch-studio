@@ -665,7 +665,7 @@ export default function Index() {
                   ? <>{`Today, we've dressed over 500 teams. And with every order, it's the same conviction: `}<strong className="text-foreground">the image you project builds the reputation you deserve.</strong></>
                   : <>{"Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : "}<strong className="text-foreground">{"l'image que tu projettes construit la réputation que tu mérites."}</strong></>}
               </p>
-              <div className="font-lora text-[22px] italic text-primary mt-6">— Samuel</div>
+              <div className="font-display text-[22px] italic text-primary mt-6">— Samuel</div>
               <div className="text-[12px] text-muted-foreground mt-[3px]">
                 {lang === 'en' ? 'Founder, Vision Affichage' : 'Fondateur, Vision Affichage'}
               </div>

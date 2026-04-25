@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -75,7 +75,7 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; font-family: 'Plus Jakarta Sans', sans-serif; }
+  body { @apply bg-background text-foreground antialiased; font-family: 'Inter', 'Plus Jakarta Sans', sans-serif; }
 
   /* Global default focus-visible ring (Task 6.1).
      `:where()` keeps specificity at 0 so any component-level
@@ -99,7 +99,6 @@
   .gradient-navy-dark { background: linear-gradient(140deg, hsl(var(--navy)), hsl(var(--navydark))); }
   .shadow-navy { box-shadow: 0 8px 28px hsla(var(--navy), 0.35); }
   .shadow-navy-lg { box-shadow: 0 14px 36px hsla(var(--navy), 0.45); }
-  .font-lora { font-family: 'Lora', serif; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }
