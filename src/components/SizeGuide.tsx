@@ -86,6 +86,14 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
   // (e.g. a newly added '7XL' or a localized label) — otherwise tbody
   // renders empty and the user sees column headers with no data.
   const rows = product.sizes.filter(s => chart[s]);
+  // Show the sleeve column when ANY row being rendered actually has a
+  // sleeve measurement, not just the first chart entry. Previously this
+  // peeked at chart[Object.keys(chart)[0]]?.sleeve which happens to work
+  // for today's data (all hoodies carry sleeve) but would silently
+  // misalign the table the day a chart's first row lacks sleeve while a
+  // later row has it. With this we also pad sleeve-less rows with a '—'
+  // cell so cell counts always match the header even on mixed charts.
+  const hasSleeveColumn = rows.some(s => chart[s]?.sleeve);
 
   const [unit, setUnit] = useState<Unit>(() => readStoredUnit());
   // Roving-focus ref array for the cm/in radiogroup — arrow keys hop
@@ -213,7 +221,7 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
                         {!isCap && (
                           <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Length' : 'Longueur'} ({unitLabel})</th>
                         )}
-                        {chart[Object.keys(chart)[0]]?.sleeve && (
+                        {hasSleeveColumn && (
                           <th className="py-2 px-2 font-bold text-foreground text-xs">{lang === 'en' ? 'Sleeve' : 'Manche'} ({unitLabel})</th>
                         )}
                       </tr>
@@ -226,7 +234,11 @@ export function SizeGuide({ product, isOpen, onClose }: { product: Product; isOp
                             <td className="py-2.5 px-2 font-bold text-foreground">{size}</td>
                             <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.chest, unit)}</td>
                             {!isCap && <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.length, unit)}</td>}
-                            {row.sleeve && <td className="py-2.5 px-2 text-muted-foreground">{convertValue(row.sleeve, unit)}</td>}
+                            {hasSleeveColumn && (
+                              <td className="py-2.5 px-2 text-muted-foreground">
+                                {row.sleeve ? convertValue(row.sleeve, unit) : '—'}
+                              </td>
+                            )}
                           </tr>
                         );
                       })}
