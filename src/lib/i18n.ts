@@ -1,6 +1,21 @@
 // ── Internationalisation — FR/EN ────────────────────────────────────────────
+
+/**
+ * Supported UI languages for Vision Affichage.
+ *
+ * - `fr` — Canadian French (default, primary market)
+ * - `en` — English (secondary)
+ */
 export type Lang = 'fr' | 'en';
 
+/**
+ * Frozen dictionary of translation strings for every supported {@link Lang}.
+ *
+ * The French entry is treated as the source of truth — its keys define the
+ * {@link TranslationKey} union, and {@link t} falls back to French when an
+ * English key is missing. Strings may contain `%d`/`%s` placeholders that are
+ * substituted positionally by {@link t}.
+ */
 export const translations = {
   fr: {
     // Nav
@@ -166,8 +181,34 @@ export const translations = {
   },
 } as const;
 
+/**
+ * Union of every valid translation key, derived from the French dictionary
+ * (the source of truth). Use this to constrain props/parameters that accept
+ * a copy reference — TypeScript will refuse keys missing from {@link translations.fr}.
+ */
 export type TranslationKey = keyof typeof translations.fr;
 
+/**
+ * Resolve a localised string for the current language with positional
+ * interpolation.
+ *
+ * Lookup order:
+ * 1. `translations[lang][key]` — exact match for the requested locale
+ * 2. `translations.fr[key]` — French fallback (source of truth)
+ * 3. The raw `key` itself — last-resort label so the UI never throws or
+ *    renders `undefined` for an unmapped key
+ *
+ * Each `%d` / `%s` placeholder is replaced once, in order, by the next entry
+ * from `args`. Extra args are ignored; missing args leave placeholders intact.
+ *
+ * @param lang  Active UI language.
+ * @param key   Translation key (must exist in the French dictionary).
+ * @param args  Values substituted into `%d` / `%s` placeholders, in order.
+ * @returns The resolved, interpolated string — never `undefined`.
+ *
+ * @example
+ * t('fr', 'commanderPlus', 12, 15); // "Commande 12+ pour -15%"
+ */
 export function t(lang: Lang, key: TranslationKey, ...args: (string | number)[]): string {
   let str = (translations[lang][key] as string) ?? (translations.fr[key] as string) ?? key;
   args.forEach((arg) => { str = str.replace('%d', String(arg)).replace('%s', String(arg)); });
@@ -179,8 +220,16 @@ export function t(lang: Lang, key: TranslationKey, ...args: (string | number)[])
 // and language. FR and EN both map cleanly to `one`/`other` for our UI copy
 // (FR groups 0 and 1 under `one`; EN reserves `one` strictly for 1). Callers
 // pass explicit strings to keep translations colocated and type-safe.
+
+/**
+ * Two-form plural shape used by {@link plural}. FR and EN only ever resolve
+ * to `one` or `other` for integer counts in our UI copy, so we do not model
+ * `zero` / `two` / `few` / `many` — {@link plural} folds those into `other`.
+ */
 export interface PluralForms {
+  /** Singular form (FR: 0–1, EN: exactly 1). */
   one: string;
+  /** Plural form — also the catch-all for any unhandled CLDR category. */
   other: string;
 }
 
@@ -197,6 +246,20 @@ function getPluralRules(lang: Lang): Intl.PluralRules {
   return rules;
 }
 
+/**
+ * Pick the correct plural form for `count` in the active language.
+ *
+ * Backed by `Intl.PluralRules` (cached per-language). Any CLDR category other
+ * than `one` falls through to `forms.other`, so callers never need to enumerate
+ * `zero` / `two` / `few` / `many` themselves.
+ *
+ * @param lang   Active UI language.
+ * @param count  Integer-ish count being described.
+ * @param forms  Singular / plural copy. See {@link PluralForms}.
+ *
+ * @example
+ * plural('en', items.length, { one: 'item', other: 'items' });
+ */
 export function plural(lang: Lang, count: number, forms: PluralForms): string {
   const category = getPluralRules(lang).select(count);
   // FR/EN only emit `one` or `other` for integers, but guard defensively for
