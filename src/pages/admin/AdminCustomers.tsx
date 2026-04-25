@@ -432,7 +432,7 @@ export default function AdminCustomers() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
+                          className="w-9 h-9 rounded-full bg-gradient-to-br from-[#0052CC] to-brand-black text-white flex items-center justify-center text-[11px] font-extrabold flex-shrink-0"
                           aria-hidden="true"
                         >
                           {initials(c)}

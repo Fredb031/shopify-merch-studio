@@ -387,7 +387,7 @@ export default function AdminCustomerDetail() {
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <div
-              className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-xl font-extrabold flex-shrink-0"
+              className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0052CC] to-brand-black text-white flex items-center justify-center text-xl font-extrabold flex-shrink-0"
               aria-hidden="true"
             >
               {initials(customer)}
