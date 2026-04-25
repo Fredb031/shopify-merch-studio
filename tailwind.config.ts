@@ -12,8 +12,14 @@ export default {
     },
     extend: {
       fontFamily: {
+        // Existing `sans` kept (Plus Jakarta Sans) so components that
+        // rely on the default `font-sans` utility don't reflow before
+        // the migration phase. New `display`/`mono` utilities are
+        // additive — see Freud × Bernays redesign PROMPT 1.
         sans: ['Plus Jakarta Sans', 'sans-serif'],
         lora: ['Lora', 'serif'],
+        display: ['DM Sans', 'Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -38,6 +44,21 @@ export default {
           light: "hsl(var(--gold2))",
         },
         green: "hsl(var(--green))",
+        // Freud × Bernays redesign — PROMPT 1 brand palette.
+        // Components migrate onto these in subsequent commits;
+        // existing navy/gold tokens above are intentionally preserved
+        // so live renders don't break during the transition.
+        brand: {
+          black: '#0A0A0A',
+          white: '#FFFFFF',
+          blue: '#0052CC',
+          'blue-hover': '#003D99',
+          'blue-light': '#EBF2FF',
+          dark: '#111827',
+          grey: '#6B7280',
+          'grey-light': '#F9FAFB',
+          'grey-border': '#E5E7EB',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

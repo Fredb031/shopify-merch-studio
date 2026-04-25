@@ -33,6 +33,22 @@
     --gold2: 35 91% 55%;
     --goldb: 40 82% 40%;
     --green: 152 62% 29%;
+
+    /* Freud × Bernays redesign — PROMPT 1 brand tokens.
+       Hex (not HSL) on purpose — these are concrete brand colors
+       sourced directly from the redesign brief and consumed via
+       Tailwind's brand.* utilities. Existing --navy/--gold/etc.
+       above are intentionally preserved so the migration can land
+       component-by-component in subsequent commits. */
+    --brand-black: #0A0A0A;
+    --brand-white: #FFFFFF;
+    --brand-blue: #0052CC;
+    --brand-blue-hover: #003D99;
+    --brand-blue-light: #EBF2FF;
+    --brand-dark: #111827;
+    --brand-grey: #6B7280;
+    --brand-grey-light: #F9FAFB;
+    --brand-grey-border: #E5E7EB;
   }
   .dark {
     --background: 222 30% 5%;

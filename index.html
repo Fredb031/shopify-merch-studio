@@ -80,6 +80,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
+    <!-- Freud × Bernays redesign — PROMPT 1 typography.
+         Inter (UI body), DM Sans (display headings), JetBrains Mono
+         (numeric/code accents). Existing Plus Jakarta Sans + Lora are
+         still loaded via @import in src/index.css; component migration
+         lands in subsequent commits. -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
     <!-- Security headers (CSP) — Task 14.1.
          NOTE: this is a meta-level Content-Security-Policy. It's weaker
          than a real HTTP response header: `frame-ancestors` and CSP
