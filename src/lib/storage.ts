@@ -47,3 +47,19 @@ export function writeLS(key: string, value: unknown): boolean {
     return false;
   }
 }
+
+// removeLS centralises the delete path's guard. Most callers wrap
+// localStorage.removeItem in their own try/catch already (Safari
+// private mode and SecurityError-throwing origins are the realistic
+// failure modes), but several scattered sites still call it raw and
+// would surface an exception inside a render or effect cleanup. This
+// helper makes the safe pattern as cheap as the unsafe one.
+export function removeLS(key: string): boolean {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+    localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
