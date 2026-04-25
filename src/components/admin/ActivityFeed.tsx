@@ -98,10 +98,24 @@ function ActivityFeedInner() {
   const items = useMemo<ActivityItem[]>(() => {
     const all: ActivityItem[] = [];
 
+    // Parse a Shopify ISO timestamp into a millisecond epoch, returning
+    // null on anything we can't trust. Without this guard a malformed
+    // `createdAt` (missing field, future API rename, manual fixture
+    // typo) yields NaN, which then poisons groupLabel/relativeTime —
+    // `new Date(NaN).toLocaleDateString` throws RangeError and crashes
+    // the entire dashboard tile, hiding the rest of the feed too.
+    const parseTs = (raw: unknown): number | null => {
+      if (typeof raw !== 'string' || raw.length === 0) return null;
+      const t = new Date(raw).getTime();
+      return Number.isFinite(t) ? t : null;
+    };
+
     SHOPIFY_ORDERS_SNAPSHOT.forEach(o => {
+      const ts = parseTs(o.createdAt);
+      if (ts === null) return;
       all.push({
         id: `order-${o.id}`,
-        ts: new Date(o.createdAt).getTime(),
+        ts,
         icon: ShoppingBag,
         iconColor: 'text-emerald-700',
         iconBg: 'bg-emerald-50',
@@ -112,9 +126,11 @@ function ActivityFeedInner() {
     });
 
     SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.forEach(c => {
+      const ts = parseTs(c.createdAt);
+      if (ts === null) return;
       all.push({
         id: `abandoned-${c.id}`,
-        ts: new Date(c.createdAt).getTime(),
+        ts,
         icon: ShoppingCart,
         iconColor: 'text-amber-700',
         iconBg: 'bg-amber-50',
@@ -125,9 +141,11 @@ function ActivityFeedInner() {
     });
 
     SHOPIFY_CUSTOMERS_SNAPSHOT.forEach(c => {
+      const ts = parseTs(c.createdAt);
+      if (ts === null) return;
       all.push({
         id: `customer-${c.id}`,
-        ts: new Date(c.createdAt).getTime(),
+        ts,
         icon: UserPlus,
         iconColor: 'text-blue-700',
         iconBg: 'bg-blue-50',
