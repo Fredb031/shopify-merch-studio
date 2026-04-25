@@ -185,25 +185,40 @@ function hashColorName(name: string): string {
 }
 
 export function colorNameToHex(name: string): string {
-  if (!name || name === '-') return '#888888';
-  // Tier 1: exact match
+  // Guard non-string / whitespace-only / placeholder inputs. The
+  // whitespace check matters because Tier 4's fuzzy match below uses
+  // `key.includes(norm)` — when `norm` is the empty string that's
+  // *always true*, which would silently return whichever map key
+  // happens to be longest (currently 'realtree edge ** brun') for any
+  // blank input. Trimming + an explicit empty guard stops that.
+  if (typeof name !== 'string') return '#888888';
+  const trimmed = name.trim();
+  if (!trimmed || trimmed === '-') return '#888888';
+  // Tier 1: exact match (use the original, since the map keys aren't trimmed)
   if (COLOUR_HEX_MAP[name]) return COLOUR_HEX_MAP[name];
+  if (trimmed !== name && COLOUR_HEX_MAP[trimmed]) return COLOUR_HEX_MAP[trimmed];
   // Tier 2: diacritic-insensitive exact match ("Vert Foncé" → "vert fonce")
-  const norm = normalizeColorName(name);
+  const norm = normalizeColorName(trimmed);
+  if (!norm) return hashColorName(trimmed);
   const normHit = NORMALIZED_COLOUR_MAP.get(norm);
   if (normHit) return normHit;
   // Tier 3: compound name like "Noir/Blanc" — try primary part both raw and normalized
-  const primary = name.split('/')[0].trim();
-  if (primary !== name) {
+  const primary = trimmed.split('/')[0].trim();
+  if (primary && primary !== trimmed) {
     if (COLOUR_HEX_MAP[primary]) return COLOUR_HEX_MAP[primary];
     const primaryNorm = normalizeColorName(primary);
-    const primaryHit = NORMALIZED_COLOUR_MAP.get(primaryNorm);
-    if (primaryHit) return primaryHit;
+    if (primaryNorm) {
+      const primaryHit = NORMALIZED_COLOUR_MAP.get(primaryNorm);
+      if (primaryHit) return primaryHit;
+    }
   }
-  // Tier 4: fuzzy (longest overlap wins so 'or' doesn't steal 'orange')
+  // Tier 4: fuzzy (longest overlap wins so 'or' doesn't steal 'orange').
+  // Both `norm` and `key` are guaranteed non-empty here, so `includes`
+  // can't degenerate into a tautological match.
   let best: string | null = null;
   let bestLen = 0;
   for (const [key, hex] of NORMALIZED_COLOUR_MAP.entries()) {
+    if (!key) continue;
     if ((norm.includes(key) || key.includes(norm)) && key.length > bestLen) {
       best = hex;
       bestLen = key.length;
@@ -212,7 +227,7 @@ export function colorNameToHex(name: string): string {
   if (best) return best;
   // Tier 5: deterministic fallback via name hash — better than a constant
   // gray because at least distinct unknowns stay visually distinct.
-  return hashColorName(name);
+  return hashColorName(trimmed);
 }
 
 // ── Storefront API request ─────────────────────────────────────────────────
