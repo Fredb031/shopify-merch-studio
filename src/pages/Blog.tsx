@@ -146,17 +146,17 @@ export default function Blog() {
   }, [lang]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col">
+    <div className="min-h-screen bg-brand-grey-light flex flex-col">
       <Navbar />
       <main id="main-content" className="flex-1 max-w-[1100px] w-full mx-auto px-6 md:px-10 py-12 md:py-16">
         <div className="mb-10 md:mb-12">
-          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
+          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-brand-blue mb-2">
             {lang === 'en' ? 'Content hub' : 'Centre de contenu'}
           </div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-3">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-brand-black tracking-[-0.5px] mb-3">
             {lang === 'en' ? 'Blog' : 'Blogue'}
           </h1>
-          <p className="text-sm text-zinc-600 max-w-[640px]">
+          <p className="text-sm text-brand-grey max-w-[640px]">
             {lang === 'en'
               ? 'Merch tips, fabric guides, and production playbooks — written by the Vision Affichage team.'
               : 'Conseils merch, guides de tissu et playbooks de production — écrits par l\u2019équipe Vision Affichage.'}
@@ -176,7 +176,7 @@ export default function Blog() {
             <Search
               size={16}
               aria-hidden="true"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-grey"
             />
             <input
               id="blog-search"
@@ -188,7 +188,7 @@ export default function Blog() {
                   ? 'Search articles…'
                   : 'Rechercher un article…'
               }
-              className="w-full rounded-full border border-zinc-200 bg-white pl-9 pr-4 py-2.5 text-sm text-[#0F2341] placeholder:text-zinc-400 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:border-[#0052CC]/40 transition-colors"
+              className="w-full rounded-full border border-brand-grey-border bg-brand-white pl-9 pr-4 py-2.5 text-sm text-brand-black placeholder:text-brand-grey shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2 focus-visible:border-brand-blue/40 transition-colors"
             />
           </div>
         </div>
@@ -200,12 +200,12 @@ export default function Blog() {
         {visiblePosts.length === 0 ? (
           <div
             role="status"
-            className="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 md:p-10 text-center"
+            className="rounded-2xl border border-dashed border-brand-grey-border bg-brand-white p-8 md:p-10 text-center"
           >
-            <p className="text-base font-bold text-[#0F2341] mb-1">
+            <p className="text-base font-bold text-brand-black mb-1">
               {lang === 'en' ? 'No posts' : 'Aucun article'}
             </p>
-            <p className="text-sm text-zinc-600">
+            <p className="text-sm text-brand-grey">
               {lang === 'en'
                 ? 'No article matches your search. Try a different keyword.'
                 : 'Aucun article ne correspond à ta recherche. Essaie un autre mot-clé.'}
@@ -217,21 +217,21 @@ export default function Blog() {
               <li key={post.slug}>
                 <Link
                   to={`/blog/${post.slug}`}
-                  className="group block h-full bg-white rounded-2xl border border-zinc-200 p-5 md:p-6 shadow-sm hover:shadow-md hover:border-[#E8A838]/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+                  className="group block h-full bg-brand-white rounded-2xl border border-brand-grey-border p-5 md:p-6 shadow-sm hover:shadow-md hover:border-brand-blue/40 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2"
                 >
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-500 mb-3">
-                    <Calendar size={12} aria-hidden="true" className="text-[#E8A838]" />
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-brand-grey mb-3">
+                    <Calendar size={12} aria-hidden="true" className="text-brand-blue" />
                     <time dateTime={post.publishDate}>
                       {formatDate(post.publishDate, lang)}
                     </time>
                   </div>
-                  <h2 className="text-lg md:text-xl font-extrabold text-[#0F2341] tracking-[-0.3px] mb-2 group-hover:text-[#0052CC] transition-colors">
+                  <h2 className="text-lg md:text-xl font-extrabold text-brand-black tracking-[-0.3px] mb-2 group-hover:text-brand-blue transition-colors">
                     {lang === 'en' ? post.titleEn : post.titleFr}
                   </h2>
-                  <p className="text-sm text-zinc-600 leading-relaxed mb-4">
+                  <p className="text-sm text-brand-grey leading-relaxed mb-4">
                     {lang === 'en' ? post.excerptEn : post.excerptFr}
                   </p>
-                  <span className="inline-flex items-center gap-1 text-sm font-bold text-[#0052CC] group-hover:gap-2 transition-all">
+                  <span className="inline-flex items-center gap-1 text-sm font-bold text-brand-blue group-hover:gap-2 transition-all">
                     {lang === 'en' ? 'Read' : 'Lire'}
                     <ArrowRight size={14} aria-hidden="true" />
                   </span>
