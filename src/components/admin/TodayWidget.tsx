@@ -131,7 +131,7 @@ function TodayWidgetInner() {
 
   return (
     <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
-      <div className="px-5 py-3 border-b border-zinc-100 bg-gradient-to-r from-[#0F2341] to-[#1B3A6B]">
+      <div className="px-5 py-3 border-b border-zinc-100 bg-gradient-to-r from-brand-black to-brand-black">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wider text-white/60">À faire aujourd'hui</div>
@@ -139,7 +139,7 @@ function TodayWidgetInner() {
           </div>
           <Link
             to="/admin/orders"
-            className="text-[11px] font-semibold text-white/80 hover:text-white underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded px-1 flex-shrink-0"
+            className="text-[11px] font-semibold text-white/80 hover:text-white underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black rounded px-1 flex-shrink-0"
             aria-label="Voir toutes les actions dans la liste des commandes"
           >
             Voir tout
