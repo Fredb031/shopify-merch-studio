@@ -624,7 +624,7 @@ export default function AdminDashboard() {
           </div>
 
           {lowStockCount > 0 && (
-            <div className="bg-gradient-to-br from-[#0F2341] to-[#1B3A6B] text-white rounded-2xl p-5">
+            <div className="bg-gradient-to-br from-brand-black to-brand-black text-brand-white rounded-2xl p-5">
               <div className="flex items-start gap-3">
                 <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                   <AlertCircle size={18} aria-hidden="true" />
@@ -636,7 +636,7 @@ export default function AdminDashboard() {
                   </div>
                   <Link
                     to="/admin/products"
-                    className="text-[11px] font-bold text-[#E8A838] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+                    className="text-[11px] font-bold text-brand-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-brand-black rounded"
                   >
                     Voir les produits →
                   </Link>
