@@ -358,6 +358,13 @@ export function ProductCanvas({
     import('fabric').then(({ fabric }) => {
       if (disposed || !fc.current) return;
       const canvas = fc.current;
+      // Re-pin the white canvas background on every photo swap. Some
+      // fabric versions reset background colour during loadFromJSON or
+      // when the container is hot-reloaded; re-asserting it here means
+      // the user never sees a cream/grey flash between colour swaps.
+      // (Bug 3 in the Section 5 brief — set white in EVERY init call.)
+      canvas.backgroundColor = '#FFFFFF';
+      canvas.renderAll();
       const W = canvas.width as number;
       const H = canvas.height as number;
       const photoUrl = activeView === 'front' ? imageDevant : imageDos;
@@ -532,12 +539,21 @@ export function ProductCanvas({
 
       const canvas = new fabric.Canvas(canvasElRef.current!, {
         width: W, height: H,
-        backgroundColor: '#F4F3EF',
+        // Plain white canvas — guarantees a clean, neutral surface behind
+        // every garment photo regardless of any tint logic that runs after
+        // (Bug 3 in the Section 5 brief). The container div carries the
+        // gradient/shadow flourish; the canvas itself stays white so the
+        // garment edge never blends into a cream halo.
+        backgroundColor: '#FFFFFF',
         selection: false,
         preserveObjectStacking: true,
         // Crisp rendering on high-DPI displays
         enableRetinaScaling: true,
       });
+      // Pin the white background and force a render so the very first
+      // paint shows white, not whatever fabric defaults to.
+      canvas.backgroundColor = '#FFFFFF';
+      canvas.renderAll();
       fc.current = canvas;
       maskRef.current = null;
       logoObj.current = null;
@@ -1626,9 +1642,23 @@ export function ProductCanvas({
           </div>
         )}
 
-        {/* Front / Back toggle — sits on the canvas, top-right */}
+        {/* Confidence badge — anchored top-right of the canvas, above the
+            Front/Back toggle. Reassures the customer that the preview is
+            print-true so they don't lose trust in the mockup. Section 5.4
+            of the redesign brief; using the same white-pill+border styling
+            as the other on-canvas chips so it sits inside the visual
+            language we already established. Hidden on tiny phone widths
+            because the toggle takes priority for thumb reach. */}
+        <div className="hidden sm:flex absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-xs font-medium text-foreground px-3 py-1.5 rounded-full border border-border shadow-sm pointer-events-none z-10 max-w-[260px] whitespace-nowrap">
+          {lang === 'en'
+            ? 'Realistic preview — what you see is what you get'
+            : 'Aperçu réaliste — ce que tu vois = ce que tu reçois'}
+        </div>
+
+        {/* Front / Back toggle — sits on the canvas, top-right (or
+            below the confidence badge on >=sm screens). */}
         <div
-          className="absolute top-3 right-3 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full p-0.5 border border-border shadow-sm"
+          className="absolute top-3 right-3 sm:top-12 flex items-center gap-1 bg-white/95 backdrop-blur-sm rounded-full p-0.5 border border-border shadow-sm"
           role="tablist"
           aria-label={lang === 'en' ? 'Garment view' : 'Vue du vêtement'}
         >

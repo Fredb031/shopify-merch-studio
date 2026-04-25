@@ -330,22 +330,22 @@ export function LogoUploader({
             role="button"
             tabIndex={0}
             aria-label={t('glisserLogo')}
-            className={`border-2 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+            className={`border-2 rounded-xl p-6 text-center cursor-pointer transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 ${
               isDragOver
-                ? 'border-solid border-[#E8A838] bg-[#E8A838]/5 scale-[1.01]'
-                : 'border-dashed border-border hover:border-primary/40 hover:bg-secondary'
+                ? 'border-solid border-[#0052CC] bg-[#0052CC]/5 scale-[1.01] shadow-[0_4px_16px_rgba(0,82,204,0.18)]'
+                : 'border-dashed border-border hover:border-[#0052CC]/50 hover:bg-[#0052CC]/[0.03]'
             }`}
           >
             <Upload
               className={`mx-auto mb-3 transition-all duration-200 ${
                 isDragOver
-                  ? 'text-[#E8A838] scale-110 motion-safe:animate-pulse motion-reduce:animate-none motion-reduce:scale-100'
+                  ? 'text-[#0052CC] scale-110 motion-safe:animate-pulse motion-reduce:animate-none motion-reduce:scale-100'
                   : 'text-muted-foreground'
               }`}
               size={28}
               aria-hidden="true"
             />
-            <p className={`text-sm font-semibold transition-colors duration-200 ${isDragOver ? 'text-[#E8A838]' : 'text-foreground'}`}>
+            <p className={`text-sm font-semibold transition-colors duration-200 ${isDragOver ? 'text-[#0052CC]' : 'text-foreground'}`}>
               {isDragOver
                 ? (lang === 'en' ? 'Drop to upload' : 'Relâche pour téléverser')
                 : t('glisserLogo')}

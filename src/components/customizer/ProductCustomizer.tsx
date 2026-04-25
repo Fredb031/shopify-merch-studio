@@ -1028,19 +1028,24 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     onClick={() => isClickable && store.setStep(s.id)}
                     disabled={!isClickable && !isActive}
                     aria-label={`${s.id}. ${s.label} — ${stateSr}`}
-                    className={`group flex items-center gap-1.5 text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded px-1 ${
+                    className={`group flex items-center gap-1.5 text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded px-1 ${
                       isActive
                         ? 'text-[#1B3A6B]'
                       : isDone
-                        ? 'text-primary cursor-pointer hover:text-primary/80'
+                        ? 'text-[#0052CC] cursor-pointer hover:text-[#0052CC]/80'
                       : 'text-muted-foreground cursor-default'
                     }`}
                   >
+                    {/* Step pill — Section 5.1 redesign brief.
+                        Done   = blue bg, white text + check.
+                        Active = dark bg, white text, blue ring w/ offset.
+                        Future = muted bg, muted text. The ring is what
+                        makes the active step pop on the progress bar. */}
                     <span
                       aria-hidden="true"
-                      className={`inline-flex items-center justify-center w-4 h-4 rounded-full flex-shrink-0 text-[9px] font-black ${
-                        isActive ? 'bg-[#1B3A6B] text-white'
-                        : isDone ? 'bg-primary text-primary-foreground'
+                      className={`inline-flex items-center justify-center w-4 h-4 rounded-full flex-shrink-0 text-[9px] font-black transition-all ${
+                        isActive ? 'bg-[#1B3A6B] text-white ring-2 ring-[#0052CC] ring-offset-1 ring-offset-background'
+                        : isDone ? 'bg-[#0052CC] text-white'
                         : 'bg-border text-muted-foreground'
                       }`}
                     >
@@ -1078,9 +1083,9 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     aria-hidden="true"
                     className={`h-1 rounded-full transition-all ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#1B3A6B] to-[#E8A838] shadow-[0_1px_4px_rgba(232,168,56,0.45)]'
+                        ? 'bg-gradient-to-r from-[#1B3A6B] via-[#0052CC] to-[#E8A838] shadow-[0_1px_4px_rgba(0,82,204,0.45)]'
                       : isDone
-                        ? 'bg-[#1B3A6B]'
+                        ? 'bg-[#0052CC]'
                       : 'bg-border/60'
                     }`}
                   />
@@ -1843,14 +1848,45 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           </div>
         </div>
 
-        {/* ── Footer ── */}
-        {/* Task 16.10 — the customizer becomes a full-bleed sheet on
-            mobile (items-end on the overlay). env(safe-area-inset-bottom)
-            pushes the Back / Export / CTA row above the iPhone
-            home-indicator so primary actions are always tappable.
+        {/* ── Footer / sticky summary bar (Section 5.5) ──
+            sticky bottom-0 keeps the Back / Export / CTA row pinned to the
+            viewport even while the panel above scrolls on long Step 2 size
+            matrices. env(safe-area-inset-bottom) pushes content above the
+            iPhone home-indicator so primary actions are always tappable.
             No-op on desktop/non-notched mobile (inset = 0px). */}
+        {/* Free-shipping pill — only meaningful once the user is past Design;
+            kicks in at >= 300 CAD per the brief. Tucked above the action row
+            so the CTA stays uncluttered. */}
+        {totalQty > 0 && store.step >= 2 && (
+          <div className="px-5 pt-2 pb-1 border-t border-border bg-background flex items-center justify-end gap-2 text-[10px] font-semibold">
+            {totalPrice >= 300 ? (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                {lang === 'en' ? 'Free shipping unlocked' : 'Livraison gratuite débloquée'}
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
+                {lang === 'en'
+                  ? `Free shipping at ${fmtMoney(300, lang)} (${fmtMoney(Math.max(0, 300 - totalPrice), lang)} to go)`
+                  : `Livraison gratuite dès ${fmtMoney(300, lang)} (encore ${fmtMoney(Math.max(0, 300 - totalPrice), lang)})`}
+              </span>
+            )}
+            {(() => {
+              const colorCount = multiVariants.length > 0
+                ? new Set(multiVariants.map(v => v.colorId ?? v.colorName)).size
+                : (shopifyColor || activeColor ? 1 : 0);
+              if (colorCount === 0) return null;
+              return (
+                <span className="px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
+                  {colorCount} {colorCount === 1
+                    ? (lang === 'en' ? 'color' : 'couleur')
+                    : (lang === 'en' ? 'colors' : 'couleurs')}
+                </span>
+              );
+            })()}
+          </div>
+        )}
         <div
-          className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background gap-2"
+          className="px-5 py-3.5 border-t border-border flex items-center justify-between bg-background gap-2 sticky bottom-0 z-20"
           style={{ paddingBottom: 'calc(0.875rem + env(safe-area-inset-bottom, 0px))' }}
         >
           <button
