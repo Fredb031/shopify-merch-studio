@@ -87,9 +87,16 @@ export function setConfiguredWebhook(url: string | null): void {
 }
 
 function isHttpsUrl(raw: string): boolean {
+  // HTTPS-only by design — the request body carries the rendered email
+  // (recipient, subject, full HTML), so allowing http:// would let a
+  // misconfigured or hijacked endpoint receive admin email content over
+  // plaintext. Zapier "Catch Hook" URLs are always https://hooks.zapier
+  // .com/..., and every other realistic webhook host (Make, n8n cloud,
+  // self-hosted behind a proxy) terminates TLS, so this is a strict
+  // tightening with no legitimate caller affected.
   try {
     const u = new URL(raw);
-    return u.protocol === 'https:' || u.protocol === 'http:';
+    return u.protocol === 'https:';
   } catch {
     return false;
   }
