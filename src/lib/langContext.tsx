@@ -48,7 +48,21 @@ export function LangProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== 'vision-lang' || !e.newValue) return;
+      // localStorage.clear() in another tab fires a storage event with
+      // key === null. Reset to the French default so this tab matches
+      // the post-clear state instead of holding a stale preference.
+      if (e.key === null) {
+        setLang('fr');
+        return;
+      }
+      if (e.key !== 'vision-lang') return;
+      // Explicit removal (removeItem) — newValue is null. Treat the
+      // same as clear: revert to the default rather than ignoring the
+      // event and leaving the tabs out of sync.
+      if (e.newValue === null) {
+        setLang('fr');
+        return;
+      }
       if (e.newValue !== 'fr' && e.newValue !== 'en') return;
       setLang(e.newValue as Lang);
     };
