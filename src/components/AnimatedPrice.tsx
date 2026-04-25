@@ -58,14 +58,26 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
   // Snapshot of the outgoing formatted label, shown briefly above the new one.
   const [outgoing, setOutgoing] = useState<string | null>(null);
 
-  // Reduced-motion: resolved once on mount. Matches the pattern used in
-  // CountUp.tsx so behaviour stays consistent across the site.
+  // Reduced-motion: subscribe to the media query so a mid-session toggle
+  // (System Preferences → Accessibility → Reduce Motion, or per-tab
+  // emulation in DevTools) takes effect without a reload. Reading once
+  // on mount left motion-sensitive users with bouncing prices for the
+  // rest of the session if they enabled the preference after landing.
   const prefersReducedRef = useRef<boolean>(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
-    prefersReducedRef.current = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    prefersReducedRef.current = mql.matches;
+    const onChange = (e: MediaQueryListEvent) => {
+      prefersReducedRef.current = e.matches;
+    };
+    // Older Safari (<14) only exposes addListener/removeListener.
+    if (typeof mql.addEventListener === 'function') {
+      mql.addEventListener('change', onChange);
+      return () => mql.removeEventListener('change', onChange);
+    }
+    mql.addListener(onChange);
+    return () => mql.removeListener(onChange);
   }, []);
 
   useEffect(() => {
