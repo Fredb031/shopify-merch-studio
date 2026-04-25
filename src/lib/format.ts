@@ -15,8 +15,11 @@
  * totals, quote pages.
  */
 
-type Lang = 'fr' | 'en';
+// Reuse the canonical Lang union from i18n so the two never drift; if a third
+// locale is ever added there, fmtMoney's contract picks it up automatically.
+import type { Lang } from './i18n';
 
+/** Map our Lang union to the BCP-47 tag Intl.NumberFormat expects. */
 const localeFor = (lang?: Lang): string =>
   lang === 'en' ? 'en-CA' : 'fr-CA';
 
