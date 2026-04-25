@@ -220,7 +220,7 @@ export function AIChatPanel() {
           ? (lang === 'en' ? 'Close chat' : 'Fermer la conversation')
           : (lang === 'en' ? 'Open chat' : 'Ouvrir la conversation')}
         aria-expanded={open}
-        className="fixed right-4 z-[450] w-14 h-14 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/30"
+        className="fixed right-4 z-[450] w-14 h-14 rounded-full bg-brand-blue text-brand-white shadow-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/30"
         // Float above the bottom nav (60 px) + iOS safe area + a bit
         // of breathing room. Replaces the old hardcoded bottom-24 px
         // that clashed with tall safe-area bezels on newer phones.
@@ -246,13 +246,13 @@ export function AIChatPanel() {
           style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 92px)' }}
         >
           {/* Header */}
-          <div className="bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white p-4 flex items-center gap-3">
+          <div className="bg-brand-blue text-brand-white p-4 flex items-center gap-3">
             {view !== 'menu' && (
               <button
                 type="button"
                 onClick={() => { setView('menu'); setActiveTopic(null); }}
                 aria-label={lang === 'en' ? 'Back to topics' : 'Retour aux sujets'}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0052CC]"
+                className="w-8 h-8 rounded-full bg-brand-white/10 hover:bg-brand-white/20 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-brand-blue"
               >
                 <ChevronLeft size={16} aria-hidden="true" />
               </button>
@@ -299,7 +299,7 @@ export function AIChatPanel() {
                 }}
                 aria-label={lang === 'en' ? 'Clear conversation' : 'Effacer la conversation'}
                 title={lang === 'en' ? 'Clear conversation' : 'Effacer la conversation'}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0052CC]"
+                className="w-8 h-8 rounded-full bg-brand-white/10 hover:bg-brand-white/20 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-white/50 focus-visible:ring-offset-1 focus-visible:ring-offset-brand-blue"
               >
                 <Trash2 size={14} aria-hidden="true" />
               </button>
@@ -326,10 +326,10 @@ export function AIChatPanel() {
                         key={topic.id}
                         type="button"
                         onClick={() => openTopic(topic)}
-                        className="group flex items-center gap-2 bg-white border border-border rounded-xl px-3 py-2.5 text-left hover:border-[#0052CC] hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                        className="group flex items-center gap-2 bg-white border border-border rounded-xl px-3 py-2.5 text-left hover:border-brand-blue hover:shadow-sm transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
                       >
                         <span className="text-lg flex-shrink-0" aria-hidden="true">{topic.icon}</span>
-                        <span className="text-[12px] font-bold text-foreground leading-tight group-hover:text-[#0052CC]">
+                        <span className="text-[12px] font-bold text-foreground leading-tight group-hover:text-brand-blue">
                           {lang === 'fr' ? topic.titleFr : topic.titleEn}
                         </span>
                       </button>
@@ -357,7 +357,7 @@ export function AIChatPanel() {
                     key={entry.id}
                     type="button"
                     onClick={() => pickFromTopic(entry.qFr, entry.qEn, entry.aFr, entry.aEn)}
-                    className="w-full text-left bg-white border border-border rounded-xl px-3 py-2.5 hover:border-[#0052CC] hover:shadow-sm transition-all text-[13px] font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                    className="w-full text-left bg-white border border-border rounded-xl px-3 py-2.5 hover:border-brand-blue hover:shadow-sm transition-all text-[13px] font-semibold text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
                   >
                     {lang === 'fr' ? entry.qFr : entry.qEn}
                   </button>
@@ -392,7 +392,7 @@ export function AIChatPanel() {
                       <div
                         className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed whitespace-pre-line ${
                           isUser
-                            ? 'bg-[#0052CC] text-white rounded-br-md'
+                            ? 'bg-brand-blue text-brand-white rounded-br-md'
                             : 'bg-white text-foreground border border-border rounded-bl-md shadow-sm'
                         }`}
                       >
@@ -433,7 +433,7 @@ export function AIChatPanel() {
                     <button
                       type="button"
                       onClick={backToMenu}
-                      className="text-[11px] font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                      className="text-[11px] font-bold text-brand-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 rounded"
                     >
                       ← {lang === 'en' ? 'Browse topics' : 'Parcourir les sujets'}
                     </button>
@@ -454,13 +454,13 @@ export function AIChatPanel() {
               aria-label={lang === 'en' ? 'Your question' : 'Ta question'}
               autoCapitalize="sentences"
               autoComplete="off"
-              className="flex-1 bg-secondary border border-border rounded-full px-4 py-2 text-sm outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow"
+              className="flex-1 bg-secondary border border-border rounded-full px-4 py-2 text-sm outline-none focus:border-brand-blue focus-visible:ring-2 focus-visible:ring-brand-blue/25 transition-shadow"
               disabled={thinking}
             />
             <button
               type="submit"
               disabled={!input.trim() || thinking}
-              className="w-11 h-11 rounded-full bg-[#0052CC] text-white flex items-center justify-center disabled:opacity-30 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-1"
+              className="w-11 h-11 rounded-full bg-brand-blue text-brand-white flex items-center justify-center disabled:opacity-30 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/40 focus-visible:ring-offset-1"
               aria-label={lang === 'en' ? 'Send' : 'Envoyer'}
             >
               <Send size={14} aria-hidden="true" />
