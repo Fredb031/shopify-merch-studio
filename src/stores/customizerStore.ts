@@ -89,8 +89,14 @@ export const useCustomizerStore = create<CustomizerStore>()(
       /** Jump the wizard to a specific step (1..3). */
       setStep: (step) => set({ step }),
 
-      /** Sum of quantities across all size rows. */
-      getTotalQuantity: () => get().sizeQuantities.reduce((sum, s) => sum + s.quantity, 0),
+      /** Sum of quantities across all size rows. NaN-guarded so a malformed
+       * row (devtools edit, cross-version state imported via setState before
+       * onRehydrateStorage runs) can't poison downstream pricing math. */
+      getTotalQuantity: () =>
+        get().sizeQuantities.reduce(
+          (sum, s) => sum + (Number.isFinite(s?.quantity) ? s.quantity : 0),
+          0,
+        ),
 
       /** Running price estimate including print fee + bulk discount. */
       getEstimatedPrice: () => {
@@ -98,7 +104,13 @@ export const useCustomizerStore = create<CustomizerStore>()(
         if (!productId) return 0;
         const product = PRODUCTS.find((p) => p.id === productId);
         if (!product) return 0;
-        const total = sizeQuantities.reduce((sum, s) => sum + s.quantity, 0);
+        // Same NaN guard as getTotalQuantity — an unfinite quantity here
+        // cascades to total*unitBase*discount and the estimate renders as
+        // "$NaN" on the customizer summary instead of a real number.
+        const total = sizeQuantities.reduce(
+          (sum, s) => sum + (Number.isFinite(s?.quantity) ? s.quantity : 0),
+          0,
+        );
         const unitBase = product.basePrice + PRINT_PRICE;
         const discount = total >= BULK_DISCOUNT_THRESHOLD ? 1 - BULK_DISCOUNT_RATE : 1;
         return parseFloat((total * unitBase * discount).toFixed(2));
