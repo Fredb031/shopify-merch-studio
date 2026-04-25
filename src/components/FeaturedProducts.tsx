@@ -10,6 +10,16 @@ export function FeaturedProducts() {
     .map(sku => PRODUCTS.find(p => p.sku === sku))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
+  // Data drift guard: if every FEATURED_SKU has been renamed/retired in
+  // PRODUCTS (e.g. catalogue refresh removes a hero SKU before this
+  // constant is updated), the section would otherwise render its
+  // bilingual heading and 'See all N products' CTA above an empty grid
+  // — a layout that looks broken on the homepage. Hide the whole
+  // section instead so the page flows straight from the previous
+  // block to the next, matching how Index.tsx already conditionally
+  // composes other promo sections.
+  if (featured.length === 0) return null;
+
   return (
     <section className="py-20 px-6 md:px-10 bg-background" aria-label={lang === 'en' ? 'Featured products' : 'Produits populaires'}>
       <div className="max-w-[1200px] mx-auto">
