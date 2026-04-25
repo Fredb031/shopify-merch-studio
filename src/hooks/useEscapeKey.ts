@@ -1,6 +1,12 @@
 import { useEffect } from 'react';
 
-interface Options {
+/**
+ * Options accepted by {@link useEscapeKey}. Exported so wrapper hooks
+ * and HOCs that forward these flags can type their own props without
+ * re-declaring the shape inline (or reaching for `Parameters<typeof
+ * useEscapeKey>[2]`, which is brittle when the signature evolves).
+ */
+export interface UseEscapeKeyOptions {
   /** Skip Escape when focus is in a text input / textarea — e.g. so
    *  Esc clears a field instead of killing the whole overlay. */
   skipInTextInputs?: boolean;
@@ -28,7 +34,7 @@ const dispatchEscape = (e: KeyboardEvent) => {
 export function useEscapeKey(
   active: boolean,
   onEscape: () => void,
-  { skipInTextInputs = false }: Options = {},
+  { skipInTextInputs = false }: UseEscapeKeyOptions = {},
 ): void {
   useEffect(() => {
     if (!active) return;
