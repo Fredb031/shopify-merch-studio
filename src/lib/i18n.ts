@@ -253,6 +253,14 @@ function getPluralRules(lang: Lang): Intl.PluralRules {
  * than `one` falls through to `forms.other`, so callers never need to enumerate
  * `zero` / `two` / `few` / `many` themselves.
  *
+ * Defensive guard: a non-finite count (NaN / ±Infinity — e.g. from a divide-
+ * by-zero in a derived metric, or an `array.length` read on a value that
+ * coerced to a malformed number) would otherwise be handed straight to
+ * `Intl.PluralRules.select`, which engines disagree about (some throw, others
+ * bucket NaN under `other` silently). Coerce to 0 so the `other` form fires
+ * deterministically and the UI never surfaces an engine-specific anomaly.
+ * Mirrors the matching guard in {@link "@/lib/plural"}'s helper.
+ *
  * @param lang   Active UI language.
  * @param count  Integer-ish count being described.
  * @param forms  Singular / plural copy. See {@link PluralForms}.
@@ -261,7 +269,8 @@ function getPluralRules(lang: Lang): Intl.PluralRules {
  * plural('en', items.length, { one: 'item', other: 'items' });
  */
 export function plural(lang: Lang, count: number, forms: PluralForms): string {
-  const category = getPluralRules(lang).select(count);
+  const safeCount = Number.isFinite(count) ? count : 0;
+  const category = getPluralRules(lang).select(safeCount);
   // FR/EN only emit `one` or `other` for integers, but guard defensively for
   // `zero`/`two`/`few`/`many` by falling back to `other`.
   return category === 'one' ? forms.one : forms.other;
