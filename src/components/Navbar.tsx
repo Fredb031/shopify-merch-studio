@@ -19,7 +19,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   const itemCount = useCartStore((s) => s.getItemCount());
   const { lang, t } = useLang();
 
-  // Cart-badge pulse on increase. We replay a 400ms scale+gold-flash
+  // Cart-badge pulse on increase. We replay a 400ms scale+blue-flash
   // keyframe whenever a new item lands in the cart — silent numeric
   // bumps used to fly under the eye and leave shoppers unsure whether
   // their click registered. Rules:
@@ -93,7 +93,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
     ? '/admin'
     : user?.role === 'vendor' ? '/vendor' : null;
 
-  // Transparent at the very top, then blur + subtle navy-tinted border once
+  // Transparent at the very top, then blur + subtle brand-black-tinted border once
   // the user scrolls past 100px. Gives the hero room to breathe while keeping
   // the navbar legible over photography/content lower on the page. 100px
   // threshold matches the typical hero "logo lockup" fade-out point so the
@@ -111,7 +111,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
     <nav
       className={`fixed top-0 left-0 right-0 z-[400] h-[58px] flex items-center justify-between px-6 md:px-10 transition-[background-color,backdrop-filter,border-color] duration-300 ease-out border-b ${
         scrolled
-          ? 'bg-background/[0.93] backdrop-blur-xl border-[hsl(var(--navy))]/10'
+          ? 'bg-background/[0.93] backdrop-blur-xl border-brand-black/10'
           : 'bg-transparent backdrop-blur-0 border-transparent'
       }`}
       // Task 16.10 — env(safe-area-inset-top) keeps the logo + right-side
@@ -125,7 +125,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
       <Link
         to="/"
         aria-label="Vision Affichage — Home"
-        className="flex items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+        className="flex items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
       >
         <img
           src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
@@ -155,14 +155,14 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             <button
               ref={menuTriggerRef}
               onClick={() => setMenuOpen(o => !o)}
-              className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+              className="flex items-center gap-2 text-[12px] font-bold border border-border pl-3 pr-2 py-[5px] rounded-full transition-all hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1"
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               aria-controls="navbar-user-menu"
               aria-label={lang === 'en' ? `Account menu for ${user.name}` : `Menu compte de ${user.name}`}
             >
               <span className="hidden sm:inline text-muted-foreground" aria-hidden="true">{user.name.split(' ')[0]}</span>
-              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
+              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-brand-blue to-brand-black text-brand-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
                 {user.initials}
               </span>
             </button>
@@ -182,7 +182,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
                   <div className="p-3 border-b border-border">
                     <div className="text-sm font-bold truncate">{user.name}</div>
                     <div className="text-[11px] text-muted-foreground truncate">{user.email}</div>
-                    <div className="text-[10px] text-[#0052CC] font-bold uppercase tracking-wider mt-1">
+                    <div className="text-[10px] text-brand-blue font-bold uppercase tracking-wider mt-1">
                       {user.role}
                     </div>
                   </div>
@@ -235,7 +235,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         ) : (
           <button
             onClick={openLogin}
-            className="flex items-center gap-1.5 text-[12px] font-bold text-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+            className="flex items-center gap-1.5 text-[12px] font-bold text-foreground border border-border px-3 sm:px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
           >
             <svg
               className="w-[13px] h-[13px]"
@@ -257,7 +257,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           aria-label={`${t('panier')}${itemCount > 0 ? ` (${itemCount})` : ''}`}
           aria-keyshortcuts="Meta+Shift+C Control+Shift+C"
           title={`${t('panier')} (⇧⌘C)`}
-          className="flex items-center gap-[7px] text-[13px] text-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+          className="flex items-center gap-[7px] text-[13px] text-foreground border border-border px-4 py-[7px] rounded-full transition-all hover:border-foreground hover:text-foreground relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2"
         >
           <svg
             width="15"
@@ -274,7 +274,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           <span className="hidden sm:inline">{t('panier')}</span>
           {itemCount > 0 && (
             // key={pulseId} remounts the span each time the count INCREASES
-            // (not on every change) so the scale+gold-flash keyframe replays
+            // (not on every change) so the scale+blue-flash keyframe replays
             // from frame 0. pulseId stays at 0 on first mount, which keeps
             // the initial render of a persisted cart quiet. prefers-reduced-
             // motion collapses the keyframe to ~0ms via the global rule in
@@ -284,9 +284,9 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             <>
               <style>{`
                 @keyframes cartAddPulse {
-                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 hsla(35, 91%, 55%, 0.0); }
-                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px hsla(35, 91%, 55%, 0.55); background-color: hsl(35, 91%, 55%); }
-                  100% { transform: scale(1);    box-shadow: 0 0 0 0 hsla(35, 91%, 55%, 0.0); }
+                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(0, 82, 204, 0.0); }
+                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(0, 82, 204, 0.55); background-color: #0052CC; }
+                  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(0, 82, 204, 0.0); }
                 }
               `}</style>
               <span
@@ -306,8 +306,8 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
 
         <Link
           to="/products"
-          className="hidden sm:inline-block text-[13px] font-bold text-primary-foreground gradient-navy-dark border-none px-[22px] py-[9px] rounded-full transition-all hover:opacity-85 hover:-translate-y-px"
-          style={{ boxShadow: '0 4px 16px hsla(var(--navy), 0.3)' }}
+          className="hidden sm:inline-block text-[13px] font-bold text-brand-white bg-brand-black border-none px-[22px] py-[9px] rounded-full transition-all hover:bg-brand-blue-hover hover:-translate-y-px"
+          style={{ boxShadow: '0 4px 16px rgba(10, 10, 10, 0.3)' }}
         >
           {t('voirProduits')}
         </Link>
