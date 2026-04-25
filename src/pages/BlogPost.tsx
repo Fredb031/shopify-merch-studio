@@ -173,16 +173,16 @@ export default function BlogPost() {
       <main id="main-content" className="flex-1 max-w-[760px] w-full mx-auto px-6 md:px-10 py-12 md:py-16">
         <Link
           to="/blog"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:text-[#0041A6] mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 rounded"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-brand-blue hover:text-brand-blue-hover mb-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 rounded"
         >
           <ArrowLeft size={14} aria-hidden="true" />
           {lang === 'en' ? 'Back to blog' : 'Retour au blogue'}
         </Link>
 
-        <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
+        <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-brand-blue mb-2">
           {lang === 'en' ? 'Article' : 'Article'}
         </div>
-        <h1 className="text-3xl md:text-4xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-4">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-brand-black tracking-[-0.5px] mb-4">
           {prettyTitle}
         </h1>
 
@@ -214,7 +214,7 @@ export default function BlogPost() {
             onClick={handleShare}
             disabled={sharing}
             aria-live="polite"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0052CC] hover:text-[#0041A6] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 rounded-full border border-[#0052CC]/20 hover:border-[#0052CC]/40 bg-white px-3 py-1.5 shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-blue hover:text-brand-blue-hover disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:ring-offset-2 rounded-full border border-brand-blue/20 hover:border-brand-blue/40 bg-brand-white px-3 py-1.5 shadow-sm transition-colors"
           >
             {copied ? (
               <>
@@ -235,7 +235,7 @@ export default function BlogPost() {
             notice tells the visitor they're in the right place and
             invites the back-link instead of dead-ending on empty state. */}
         <div className="prose prose-zinc max-w-none text-[15px] leading-relaxed text-zinc-700">
-          <p className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-7 shadow-sm text-zinc-600">
+          <p className="bg-brand-white rounded-2xl border border-zinc-200 p-6 md:p-7 shadow-sm text-zinc-600">
             {bodyCopy}
           </p>
         </div>
