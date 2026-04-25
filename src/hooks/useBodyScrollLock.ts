@@ -74,8 +74,23 @@ export function useBodyScrollLock(active: boolean): void {
       if (scrollbarWidth > 0) {
         // Add to any existing padding-right rather than overwriting,
         // so layouts that already reserve space on body keep theirs.
-        const existing = parseFloat(priorPaddingRight) || 0;
-        body.style.paddingRight = `${existing + scrollbarWidth}px`;
+        // Only fold the prior value into a flat px sum when it's
+        // unit-less, empty, or already in px — otherwise parseFloat
+        // would silently strip the unit (16em → 16) and our `${n}px`
+        // template would then write 16+scrollbar as px, collapsing
+        // the original em/rem/%/vw layout reservation. For non-px
+        // units we hand off to `calc()` so the original value
+        // survives unit-intact and the scrollbar compensation just
+        // stacks on top.
+        const trimmedPrior = (priorPaddingRight ?? '').trim();
+        const isPxOrEmpty =
+          trimmedPrior === '' || /^-?\d*\.?\d+(px)?$/i.test(trimmedPrior);
+        if (isPxOrEmpty) {
+          const existing = parseFloat(trimmedPrior) || 0;
+          body.style.paddingRight = `${existing + scrollbarWidth}px`;
+        } else {
+          body.style.paddingRight = `calc(${trimmedPrior} + ${scrollbarWidth}px)`;
+        }
       }
       // position:fixed + negative top preserves the visual viewport
       // offset; width:100% keeps the body from collapsing to content
