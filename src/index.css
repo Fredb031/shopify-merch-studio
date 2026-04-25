@@ -81,7 +81,7 @@
      `:where()` keeps specificity at 0 so any component-level
      focus-visible:* override wins via Tailwind's higher specificity. */
   :where(button, a, [role="button"], [role="link"], [tabindex]:not([tabindex="-1"]), input, select, textarea):focus-visible {
-    outline: 2px solid #E8A838;
+    outline: 2px solid var(--brand-blue);
     outline-offset: 2px;
     border-radius: 4px;
   }
@@ -95,10 +95,10 @@
 
 @layer utilities {
   .text-gradient { @apply bg-clip-text text-transparent; background-image: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--muted-foreground))); }
-  .gradient-navy { background: linear-gradient(135deg, hsl(var(--navy)), hsl(var(--navy2))); }
-  .gradient-navy-dark { background: linear-gradient(140deg, hsl(var(--navy)), hsl(var(--navydark))); }
-  .shadow-navy { box-shadow: 0 8px 28px hsla(var(--navy), 0.35); }
-  .shadow-navy-lg { box-shadow: 0 14px 36px hsla(var(--navy), 0.45); }
+  .gradient-navy { background: var(--brand-black); }
+  .gradient-navy-dark { background: var(--brand-black); }
+  .shadow-navy { box-shadow: 0 8px 28px rgb(10 10 10 / 0.35); }
+  .shadow-navy-lg { box-shadow: 0 14px 36px rgb(10 10 10 / 0.45); }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }
