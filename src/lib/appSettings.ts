@@ -189,7 +189,12 @@ export function useAppSettings(): AppSettings {
   useEffect(() => {
     const onChange = () => setSettings(getSettings());
     const onStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setSettings(getSettings());
+      // `e.key === null` signals a cross-tab `localStorage.clear()` —
+      // every key was wiped, including ours, so re-read to fall back to
+      // defaults instead of leaving this tab rendering stale settings
+      // until the next manual reload. Same pattern as useRecentlyViewed
+      // / useWishlist (commit 0eac287).
+      if (e.key === null || e.key === STORAGE_KEY) setSettings(getSettings());
     };
     window.addEventListener(EVENT_NAME, onChange as EventListener);
     window.addEventListener('storage', onStorage);
