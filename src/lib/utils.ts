@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+/** Compose Tailwind class names with conflict resolution (clsx + tailwind-merge). */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -14,7 +15,9 @@ export function cn(...inputs: ClassValue[]) {
 // eslint-disable-next-line no-control-regex
 const INVISIBLE_CHARS = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u2028-\u202F\u2060-\u206F\uFEFF]/g;
 
+/** Strip zero-width / control / bidi chars that sneak in via copy-paste. Coerces non-strings to ''. */
 export function normalizeInvisible(value: string): string {
+  if (typeof value !== 'string') return '';
   return value.replace(INVISIBLE_CHARS, '');
 }
 
@@ -28,7 +31,9 @@ export function normalizeInvisible(value: string): string {
 // ends with a dot or hyphen. Without these, "user@example..com",
 // ".user@example.com", "user.@example.com", and "user@-ex.com" all
 // slip through and surface later as bounced confirmations.
+/** Validate an email address with stricter shape rules than a bare regex; rejects consecutive dots, leading/trailing dots in local part, and hyphen-bounded domain labels. */
 export function isValidEmail(value: string): boolean {
+  if (typeof value !== 'string') return false;
   const v = normalizeInvisible(value).trim();
   if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(v)) return false;
   if (v.includes('..')) return false;
@@ -51,13 +56,16 @@ export function isValidEmail(value: string): boolean {
 // learned at Shopify's checkout that the address was invalid.
 const CANADIAN_POSTAL_RE = /^[A-CEGHJ-NPR-TVXY]\d[A-CEGHJ-NPR-TV-Z]\s?\d[A-CEGHJ-NPR-TV-Z]\d$/;
 
+/** Validate a Canadian postal code (e.g. "H2X 1Y2"); accepts with or without space, and tolerates copy-pasted invisible chars. */
 export function isValidCanadianPostal(value: string): boolean {
+  if (typeof value !== 'string') return false;
   const v = normalizeInvisible(value).trim().toUpperCase();
   return CANADIAN_POSTAL_RE.test(v);
 }
 
-/** Format a number as CAD currency in fr-CA (default) or en-CA. */
+/** Format a number as CAD currency in fr-CA (default) or en-CA. Non-finite input renders as an em-dash so a missing/NaN price never surfaces as the literal "NaN $" in the UI. */
 export function formatCurrency(amount: number, lang: 'fr' | 'en' = 'fr'): string {
+  if (typeof amount !== 'number' || !Number.isFinite(amount)) return '—';
   const locale = lang === 'en' ? 'en-CA' : 'fr-CA';
   return new Intl.NumberFormat(locale, { style: 'currency', currency: 'CAD' }).format(amount);
 }
