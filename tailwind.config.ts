@@ -11,15 +11,27 @@ export default {
       screens: { "2xl": "1400px" },
     },
     extend: {
+      // Section 1.3 — Inter for body, DM Sans for display, JetBrains Mono
+      // for code. The legacy `lora` family was retired alongside the
+      // navy/gold token sweep — no `font-lora` consumers remain.
       fontFamily: {
-        // Existing `sans` kept (Plus Jakarta Sans) so components that
-        // rely on the default `font-sans` utility don't reflow before
-        // the migration phase. New `display`/`mono` utilities are
-        // additive — see Freud × Bernays redesign PROMPT 1.
-        sans: ['Plus Jakarta Sans', 'sans-serif'],
-        lora: ['Lora', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['DM Sans', 'Inter', 'sans-serif'],
         mono: ['JetBrains Mono', 'Courier New', 'monospace'],
+      },
+      // Section 1.2 — exact type scale from the redesign brief.
+      // Tuple is [size, line-height]; both in rem-equivalent px values.
+      fontSize: {
+        xs: ['11px', '16px'],
+        sm: ['13px', '18px'],
+        base: ['15px', '22px'],
+        lg: ['17px', '24px'],
+        xl: ['20px', '28px'],
+        '2xl': ['24px', '32px'],
+        '3xl': ['30px', '38px'],
+        '4xl': ['38px', '46px'],
+        '5xl': ['48px', '56px'],
+        '6xl': ['60px', '68px'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -34,20 +46,10 @@ export default {
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
         card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
-        navy: {
-          DEFAULT: "hsl(var(--navy))",
-          light: "hsl(var(--navy2))",
-          dark: "hsl(var(--navydark))",
-        },
-        gold: {
-          DEFAULT: "hsl(var(--gold))",
-          light: "hsl(var(--gold2))",
-        },
         green: "hsl(var(--green))",
-        // Freud × Bernays redesign — PROMPT 1 brand palette.
-        // Components migrate onto these in subsequent commits;
-        // existing navy/gold tokens above are intentionally preserved
-        // so live renders don't break during the transition.
+        // Freud × Bernays redesign — Section 1.1 brand palette. The
+        // legacy navy/gold/charcoal/cream Tailwind tokens have been
+        // retired now that every component has migrated onto brand.*.
         brand: {
           black: '#0A0A0A',
           white: '#FFFFFF',

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -26,20 +26,17 @@
     --input: 40 12% 87%;
     --ring: 216 59% 26%;
     --radius: 1rem;
-    --navy: 216 59% 26%;
-    --navy2: 216 55% 22%;
-    --navydark: 218 62% 16%;
+    /* --gold retained: still consumed by src/pages/Index.tsx eyebrow +
+       CTA chip via hsl(var(--gold))/hsla(var(--gold), …) inline styles.
+       The other legacy navy/gold tokens (--navy, --navy2, --navydark,
+       --gold2, --goldb) had zero remaining var() consumers post-
+       migration sweep and have been removed. */
     --gold: 40 82% 40%;
-    --gold2: 35 91% 55%;
-    --goldb: 40 82% 40%;
     --green: 152 62% 29%;
 
-    /* Freud × Bernays redesign — PROMPT 1 brand tokens.
-       Hex (not HSL) on purpose — these are concrete brand colors
-       sourced directly from the redesign brief and consumed via
-       Tailwind's brand.* utilities. Existing --navy/--gold/etc.
-       above are intentionally preserved so the migration can land
-       component-by-component in subsequent commits. */
+    /* Freud × Bernays redesign — Section 1 brand tokens. Hex (not HSL)
+       on purpose — concrete brand colors sourced from the redesign
+       brief and consumed via Tailwind's brand.* utilities. */
     --brand-black: #0A0A0A;
     --brand-white: #FFFFFF;
     --brand-blue: #0052CC;
@@ -49,6 +46,21 @@
     --brand-grey: #6B7280;
     --brand-grey-light: #F9FAFB;
     --brand-grey-border: #E5E7EB;
+
+    /* Section 1.4 — radius / shadow / transition tokens. */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.12);
+    --transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Section 1.3 — font stacks exposed as CSS vars for non-Tailwind
+       consumers (raw inline styles, third-party widgets). */
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-display: 'DM Sans', 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
   }
   .dark {
     --background: 222 30% 5%;
@@ -74,8 +86,14 @@
 }
 
 @layer base {
-  * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; font-family: 'Inter', 'Plus Jakarta Sans', sans-serif; }
+  * { @apply border-border; font-family: var(--font-sans); }
+  h1, h2, h3, h4, h5 { font-family: var(--font-display); }
+  code, pre, .mono { font-family: var(--font-mono); }
+  body { @apply bg-background antialiased; color: var(--brand-dark); background: #FFFFFF; }
+  /* iOS Safari: 16px input font-size prevents auto-zoom on focus. */
+  input, select, textarea { font-size: 16px !important; }
+  /* WCAG 2.5.5 — minimum 44×44 CSS px tap target on all interactive controls. */
+  button, a, [role="button"] { min-height: 44px; }
 
   /* Global default focus-visible ring (Task 6.1).
      `:where()` keeps specificity at 0 so any component-level
@@ -91,6 +109,15 @@
   .sr-only:focus-visible {
     outline: none;
   }
+}
+
+@layer utilities {
+  /* Hide scrollbar (cross-browser) — used by horizontal product /
+     vendor carousels where the scrollbar would visually clutter. */
+  .scroll-no-bar { -ms-overflow-style: none; scrollbar-width: none; }
+  .scroll-no-bar::-webkit-scrollbar { display: none; }
+  /* Reserves the iOS home-indicator safe area on bottom-fixed bars. */
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 }
 
 @layer utilities {
