@@ -1861,8 +1861,8 @@ export function ProductCanvas({
                 {([
                   { hex: '#FFFFFF', nameFr: 'Blanc',      nameEn: 'White' },
                   { hex: '#000000', nameFr: 'Noir',       nameEn: 'Black' },
-                  { hex: '#1B3A6B', nameFr: 'Marine',     nameEn: 'Navy' },
-                  { hex: '#E8A838', nameFr: 'Or',         nameEn: 'Gold' },
+                  { hex: '#0A0A0A', nameFr: 'Marine',     nameEn: 'Navy' },
+                  { hex: '#0052CC', nameFr: 'Or',         nameEn: 'Gold' },
                   { hex: '#B91C1C', nameFr: 'Rouge',      nameEn: 'Red' },
                 ]).map(c => {
                   const label = lang === 'en' ? c.nameEn : c.nameFr;
