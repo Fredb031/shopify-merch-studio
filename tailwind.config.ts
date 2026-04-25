@@ -14,6 +14,13 @@ export default {
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
         lora: ['Lora', 'serif'],
+        // Section 02 redesign — additive display/mono utilities so the
+        // homepage rebuild can use `font-display` / `font-mono` per the
+        // Section 02 brief. Mirrors what redesign/p1-foundation will
+        // ship; replicated here so the p2-homepage PR is self-contained
+        // off main per the master prompt's "independent PRs" rule.
+        display: ['DM Sans', 'Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -38,6 +45,23 @@ export default {
           light: "hsl(var(--gold2))",
         },
         green: "hsl(var(--green))",
+        // Section 02 redesign — Freud × Bernays brand palette. Mirrors
+        // the additive tokens scheduled in redesign/p1-foundation;
+        // replicated here so this branch (off main) can build on its
+        // own per the master prompt rule that sections ship as
+        // independent PRs. Existing navy/gold/cream tokens above are
+        // preserved untouched.
+        brand: {
+          black: '#0A0A0A',
+          white: '#FFFFFF',
+          blue: '#0052CC',
+          'blue-hover': '#003D99',
+          'blue-light': '#EBF2FF',
+          dark: '#111827',
+          grey: '#6B7280',
+          'grey-light': '#F9FAFB',
+          'grey-border': '#E5E7EB',
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
