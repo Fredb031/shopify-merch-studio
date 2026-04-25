@@ -186,12 +186,22 @@ export function useDocumentTitle(
 
     let metaEl: HTMLMetaElement | null = null;
     let prevDescription: string | null = null;
+    let metaDescriptionCreated = false;
     if (description !== undefined) {
       metaEl = document.querySelector<HTMLMetaElement>('meta[name="description"]');
-      if (metaEl) {
+      if (!metaEl) {
+        // Mirror the OG/Twitter handling below: if the page lacks a
+        // meta-description tag entirely (some templates omit it), create
+        // one so the per-page description still ships to crawlers. Tag
+        // is removed on unmount so SPA nav doesn't leak.
+        metaEl = document.createElement('meta');
+        metaEl.setAttribute('name', 'description');
+        document.head.appendChild(metaEl);
+        metaDescriptionCreated = true;
+      } else {
         prevDescription = metaEl.getAttribute('content');
-        metaEl.setAttribute('content', description);
       }
+      metaEl.setAttribute('content', description);
     }
 
     // OG + Twitter bookkeeping — for each managed tag, record whether it
@@ -271,8 +281,12 @@ export function useDocumentTitle(
 
     return () => {
       document.title = prevTitle;
-      if (metaEl && prevDescription !== null) {
-        metaEl.setAttribute('content', prevDescription);
+      if (metaEl) {
+        if (metaDescriptionCreated) {
+          if (metaEl.parentNode) metaEl.parentNode.removeChild(metaEl);
+        } else if (prevDescription !== null) {
+          metaEl.setAttribute('content', prevDescription);
+        }
       }
       if (canonicalEl) {
         if (canonicalCreated) {
