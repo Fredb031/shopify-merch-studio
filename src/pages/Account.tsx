@@ -198,7 +198,7 @@ export default function Account() {
             <div className="flex gap-3 justify-center">
               <Link
                 to="/admin/login"
-                className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-2 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-blue px-6 py-3 rounded-full shadow-lg transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Sign in' : 'Se connecter'}
               </Link>
@@ -333,10 +333,10 @@ export default function Account() {
 
         {/* Header card */}
         <div className="bg-white border border-border rounded-2xl p-5 md:p-6 mb-5 flex items-center gap-4">
-          <div className={`w-16 h-16 rounded-full text-white flex items-center justify-center text-xl font-extrabold flex-shrink-0 ${
+          <div className={`w-16 h-16 rounded-full text-brand-white flex items-center justify-center text-xl font-extrabold flex-shrink-0 ${
             user.role === 'president'
-              ? 'bg-gradient-to-br from-[#E8A838] to-[#B37D10] ring-2 ring-[#E8A838]/30'
-              : 'bg-gradient-to-br from-[#0052CC] to-[#1B3A6B]'
+              ? 'bg-brand-blue ring-2 ring-brand-blue/30'
+              : 'bg-brand-black'
           }`}>
             {user.initials}
           </div>
@@ -346,7 +346,7 @@ export default function Account() {
               <h1 className="text-xl md:text-2xl font-extrabold truncate">{user.name}</h1>
             </div>
             <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-[#0052CC] mt-1">
+            <div className="text-[10px] uppercase tracking-wider font-bold text-brand-blue mt-1">
               {user.title ?? user.role}
             </div>
           </div>
@@ -376,7 +376,7 @@ export default function Account() {
               {totalSpent.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 0 })} $
             </div>
           </div>
-          <Link to="/products" className="bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-2xl p-4 hover:shadow-lg transition-shadow focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2">
+          <Link to="/products" className="bg-brand-black hover:bg-brand-blue text-brand-white rounded-2xl p-4 hover:shadow-lg transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2">
             <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
               {lang === 'en' ? 'Reorder' : 'Recommander'}
             </div>
@@ -396,14 +396,14 @@ export default function Account() {
               <Package size={16} className="text-primary" aria-hidden="true" />
               {lang === 'en' ? 'My orders' : 'Mes commandes'}
             </h2>
-            <Link to="/track" className="text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded">
+            <Link to="/track" className="text-xs font-bold text-brand-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded">
               {lang === 'en' ? 'Track an order →' : 'Suivre une commande →'}
             </Link>
           </div>
 
           {myOrders.length === 0 ? (
             <div className="p-10 md:p-12 text-center">
-              <ShoppingBag size={36} className="text-[#0052CC]/30 mx-auto mb-3" aria-hidden="true" />
+              <ShoppingBag size={36} className="text-brand-blue/30 mx-auto mb-3" aria-hidden="true" />
               <h3 className="text-base font-extrabold text-foreground mb-1">
                 {lang === 'en' ? 'No orders yet' : 'Pas encore de commande'}
               </h3>
@@ -414,7 +414,7 @@ export default function Account() {
               </p>
               <Link
                 to="/products"
-                className="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-1.5 text-sm font-extrabold text-brand-white bg-brand-black hover:bg-brand-blue px-6 py-3 rounded-full hover:-translate-y-0.5 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Start your first order →' : 'Commencer ma première commande →'}
               </Link>
@@ -460,7 +460,7 @@ export default function Account() {
                     </div>
                     <div className="text-right">
                       <div className="font-extrabold">{o.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { minimumFractionDigits: 2 })} $</div>
-                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-[#0052CC] group-focus-visible:text-[#0052CC] inline-block" aria-hidden="true" />
+                      <ExternalLink size={11} className="text-zinc-300 group-hover:text-brand-blue group-focus-visible:text-brand-blue inline-block" aria-hidden="true" />
                     </div>
                   </Link>
                 );
@@ -488,7 +488,7 @@ export default function Account() {
           </div>
           <Link
             to="/admin/reset-password"
-            className="inline-block mt-3 text-xs font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+            className="inline-block mt-3 text-xs font-bold text-brand-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-1 rounded"
           >
             {lang === 'en' ? 'Change password →' : 'Changer mon mot de passe →'}
           </Link>
@@ -607,7 +607,7 @@ export default function Account() {
           className="mt-8 bg-white border border-border rounded-2xl p-5 md:p-6"
         >
           <div className="flex items-start gap-3">
-            <Download size={18} className="text-[#0052CC] flex-shrink-0 mt-0.5" aria-hidden="true" />
+            <Download size={18} className="text-brand-blue flex-shrink-0 mt-0.5" aria-hidden="true" />
             <div className="flex-1">
               <h2 id="my-data-heading" className="font-bold text-foreground">
                 {lang === 'en' ? 'My data' : 'Mes données'}
@@ -622,7 +622,7 @@ export default function Account() {
                 onClick={handleExportData}
                 disabled={exporting}
                 aria-busy={exporting || undefined}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-brand-white bg-brand-black hover:bg-brand-blue hover:-translate-y-0.5 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 <Download size={14} aria-hidden="true" />
                 {lang === 'en' ? 'Download my data (JSON)' : 'Télécharger mes données (JSON)'}
