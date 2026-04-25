@@ -46,7 +46,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-black via-brand-black to-brand-black px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img
@@ -137,7 +137,7 @@ export default function ForgotPassword() {
             <button
               type="submit"
               disabled={submitting || !email}
-              className="w-full py-3.5 bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-xl text-sm font-extrabold disabled:opacity-60 hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="w-full py-3.5 bg-gradient-to-br from-brand-blue to-brand-black text-brand-white rounded-xl text-sm font-extrabold disabled:opacity-60 hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               {submitting ? 'Envoi…' : 'Envoyer le lien de réinitialisation'}
             </button>
