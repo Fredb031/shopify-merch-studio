@@ -979,8 +979,8 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             }
             .customizer-step-tick {
               display: inline-flex;
-              /* Tick inherits the pill's foreground (white on navy
-                 primary) so contrast stays high. The reward signal is
+              /* Tick inherits the pill's foreground (white on
+                 brand-black primary) so contrast stays high. The reward signal is
                  carried by the scale+fade; a hue flip would fight the
                  brand progress-bar gradient beneath. A subtle emerald
                  drop-shadow gives the transition a brand-matching beat
@@ -1030,7 +1030,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     aria-label={`${s.id}. ${s.label} — ${stateSr}`}
                     className={`group flex items-center gap-1.5 text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded px-1 ${
                       isActive
-                        ? 'text-[#1B3A6B]'
+                        ? 'text-brand-black'
                       : isDone
                         ? 'text-primary cursor-pointer hover:text-primary/80'
                       : 'text-muted-foreground cursor-default'
@@ -1039,7 +1039,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     <span
                       aria-hidden="true"
                       className={`inline-flex items-center justify-center w-4 h-4 rounded-full flex-shrink-0 text-[9px] font-black ${
-                        isActive ? 'bg-[#1B3A6B] text-white'
+                        isActive ? 'bg-brand-black text-brand-white'
                         : isDone ? 'bg-primary text-primary-foreground'
                         : 'bg-border text-muted-foreground'
                       }`}
@@ -1072,15 +1072,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                     </span>
                   </button>
                   {/* Segment fill — the load-bearing "what step am I on"
-                      signal. Active = gold accent (matches the primary
-                      CTA). Done = solid navy. Pending = faint border. */}
+                      signal. Active = brand-blue accent (matches the primary
+                      CTA). Done = solid brand-black. Pending = faint border. */}
                   <span
                     aria-hidden="true"
                     className={`h-1 rounded-full transition-all ${
                       isActive
-                        ? 'bg-gradient-to-r from-[#1B3A6B] to-[#E8A838] shadow-[0_1px_4px_rgba(232,168,56,0.45)]'
+                        ? 'bg-brand-blue'
                       : isDone
-                        ? 'bg-[#1B3A6B]'
+                        ? 'bg-brand-black'
                       : 'bg-border/60'
                     }`}
                   />
@@ -1238,18 +1238,18 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                             }}
                             className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                               active
-                                ? 'border-[#1B3A6B] bg-primary/5 shadow-sm'
+                                ? 'border-brand-black bg-primary/5 shadow-sm'
                                 : 'border-border text-muted-foreground hover:border-primary/40 hover:bg-secondary/40'
                             }`}
                           >
                             <PlacementTile kind={opt.id} active={active} />
-                            <span className={`text-[10px] font-black leading-tight ${active ? 'text-[#1B3A6B]' : 'text-muted-foreground'}`}>
+                            <span className={`text-[10px] font-black leading-tight ${active ? 'text-brand-black' : 'text-muted-foreground'}`}>
                               {opt.label}
                             </span>
                             <span
                               className={`text-[9px] font-bold leading-none px-1.5 py-0.5 rounded-full ${
                                 active
-                                  ? 'bg-[#E8A838]/15 text-[#E8A838]'
+                                  ? 'bg-brand-blue/10 text-brand-blue'
                                   : 'bg-secondary text-muted-foreground'
                               }`}
                             >
@@ -1389,7 +1389,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                         onMouseLeave={() => setPreviewCenter(false)}
                         onFocus={() => setPreviewCenter(true)}
                         onBlur={() => setPreviewCenter(false)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white text-sm font-extrabold shadow-md hover:shadow-lg hover:-translate-y-px transition-all"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-blue text-brand-white text-sm font-extrabold shadow-md hover:bg-brand-blue-hover hover:shadow-lg hover:-translate-y-px transition-all"
                       >
                         <span aria-hidden="true">⊕</span>
                         {lang === 'en' ? 'Auto-center on garment' : 'Auto-centrer sur le vêtement'}
@@ -1902,7 +1902,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               onClick={handleAddToCart}
               disabled={totalQty === 0 || adding}
               aria-busy={adding}
-              className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="flex items-center gap-2 bg-primary text-primary-foreground text-sm font-black px-5 py-2.5 rounded-full disabled:opacity-30 hover:opacity-90 transition-all shadow-md focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue/60 focus-visible:ring-offset-2"
             >
               <ShoppingBag size={14} aria-hidden="true" />
               {adding ? (lang === 'en' ? 'Adding…' : 'Ajout…') : t('ajouterPanier')}
@@ -1917,14 +1917,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
 /** Visual placement tile — inline SVG silhouette with a logo dot drawn
  * at the relevant position. Picked over raster thumbnails so it stays
  * crisp at any DPI and we don't ship four extra PNGs just for the picker.
- * Palette mirrors the brand (#1B3A6B navy + #E8A838 gold) when active,
+ * Palette mirrors the brand (brand-black + brand-blue accent) when active,
  * muted neutral otherwise. Kept fully presentational — no state, no
  * props beyond the two visual inputs, so it plays nice with the
  * button wrapper's click/aria behaviour. */
 function PlacementTile({ kind, active }: { kind: 'front' | 'back' | 'both' | 'none'; active: boolean }) {
-  const stroke = active ? '#1B3A6B' : '#9CA3AF';   // navy / muted
-  const fill = active ? '#EEF2F7' : 'transparent'; // faint navy tint when active
-  const dotColor = active ? '#E8A838' : '#9CA3AF'; // brand gold / muted
+  const stroke = active ? '#0A0A0A' : '#9CA3AF';   // brand-black / muted
+  const fill = active ? '#F9FAFB' : 'transparent'; // faint brand-grey-light when active
+  const dotColor = active ? '#0052CC' : '#9CA3AF'; // brand-blue / muted
   const dotOpacity = kind === 'none' ? 0 : 1;
   return (
     <svg viewBox="0 0 40 44" width="34" height="38" aria-hidden="true" role="presentation">
