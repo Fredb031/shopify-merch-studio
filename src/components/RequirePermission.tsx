@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -32,13 +33,29 @@ export function RequirePermission({ permission, children }: RequirePermissionPro
   // No user → nothing to check. AuthGuard handles the unauthenticated
   // case already, but render nothing rather than crashing on
   // user.role if someone drops RequirePermission outside an AuthGuard.
+  const userId = user?.id;
+  const userRole = user?.role;
+
+  // Memoise the role coercion + overrides lookup. getUserOverrides()
+  // calls loadOverrides() which hits localStorage and JSON.parses the
+  // stored map every invocation — fine once per route mount, but this
+  // component re-renders on every authStore / langContext change (tab
+  // switch, language toggle, parent re-renders). Without the memo each
+  // render did a fresh localStorage read + Object.entries scan +
+  // permission validation pass purely to recompute the same boolean.
+  // Only invalidate when the identity bits or the requested permission
+  // change.
+  const allowed = useMemo(() => {
+    if (!userId) return false;
+    const role = coerceToPermissionRole(userRole);
+    const overrides = getUserOverrides(userId);
+    return hasPermission(role, permission, overrides);
+  }, [userId, userRole, permission]);
+
   if (!user) return null;
+  if (allowed) return <>{children}</>;
 
   const role = coerceToPermissionRole(user.role);
-  const overrides = getUserOverrides(user.id);
-  if (hasPermission(role, permission, overrides)) {
-    return <>{children}</>;
-  }
 
   const isEn = lang === 'en';
   return (
