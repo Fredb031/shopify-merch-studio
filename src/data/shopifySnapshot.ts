@@ -176,14 +176,26 @@ export const SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT: ShopifyAbandonedCheckoutSnaps
 
 // ───────────── Aggregated stats ─────────────
 
-const NOW = new Date('2026-04-18');
-const sevenDaysAgo = new Date(NOW.getTime() - 7 * 24 * 60 * 60 * 1000);
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+const RECENT_WINDOW_DAYS = 7;
+const CENTS_PER_DOLLAR = 100;
 
-const recent = SHOPIFY_ORDERS_SNAPSHOT.filter(o => new Date(o.createdAt) >= sevenDaysAgo);
+const NOW = new Date(SHOPIFY_SNAPSHOT_META.syncedAt);
+const recentWindowStart = new Date(NOW.getTime() - RECENT_WINDOW_DAYS * MS_PER_DAY);
+
+const roundToCents = (value: number): number =>
+  Number.isFinite(value) ? Math.round(value * CENTS_PER_DOLLAR) / CENTS_PER_DOLLAR : 0;
+
+const safeAmount = (value: number): number => (Number.isFinite(value) ? value : 0);
+
+const recent = SHOPIFY_ORDERS_SNAPSHOT.filter(o => {
+  const ts = Date.parse(o.createdAt);
+  return Number.isFinite(ts) && ts >= recentWindowStart.getTime();
+});
 
 export const SHOPIFY_STATS = {
   ordersLast7Days: recent.length,
-  revenueLast7Days: Math.round(recent.reduce((s, o) => s + o.total, 0) * 100) / 100,
+  revenueLast7Days: roundToCents(recent.reduce((s, o) => s + safeAmount(o.total), 0)),
   pendingPayments: SHOPIFY_ORDERS_SNAPSHOT.filter(o => o.financialStatus === 'pending').length,
   awaitingFulfillment: SHOPIFY_ORDERS_SNAPSHOT.filter(
     o => o.financialStatus === 'paid' && !o.fulfillmentStatus,
@@ -191,11 +203,11 @@ export const SHOPIFY_STATS = {
   totalActiveProducts: SHOPIFY_PRODUCTS_SNAPSHOT.length,
   totalCustomers: SHOPIFY_CUSTOMERS_SNAPSHOT.length,
   payingCustomers: SHOPIFY_CUSTOMERS_SNAPSHOT.filter(c => c.ordersCount > 0).length,
-  totalLifetimeRevenue: Math.round(
-    SHOPIFY_CUSTOMERS_SNAPSHOT.reduce((s, c) => s + c.totalSpent, 0) * 100,
-  ) / 100,
+  totalLifetimeRevenue: roundToCents(
+    SHOPIFY_CUSTOMERS_SNAPSHOT.reduce((s, c) => s + safeAmount(c.totalSpent), 0),
+  ),
   abandonedCheckoutsCount: SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.length,
-  abandonedCheckoutsValue: Math.round(
-    SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.reduce((s, c) => s + c.total, 0) * 100,
-  ) / 100,
+  abandonedCheckoutsValue: roundToCents(
+    SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.reduce((s, c) => s + safeAmount(c.total), 0),
+  ),
 };
