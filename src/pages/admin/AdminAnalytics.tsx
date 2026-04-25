@@ -452,7 +452,7 @@ export default function AdminAnalytics() {
                       {revenue.toFixed(0)} $
                     </div>
                     <div
-                      className="w-full bg-gradient-to-t from-[#0052CC] to-[#1B3A6B] rounded-md min-h-[4px] hover:from-[#E8A838] hover:to-[#B37D10] transition-all"
+                      className="w-full bg-gradient-to-t from-brand-blue to-brand-black rounded-md min-h-[4px] hover:from-brand-blue-hover hover:to-brand-blue transition-all"
                       style={{ height: `${Math.max(heightPct, 2)}%` }}
                       aria-hidden="true"
                     />
@@ -578,7 +578,7 @@ export default function AdminAnalytics() {
         </ul>
       </section>
 
-      <section className="bg-gradient-to-br from-[#1B3A6B] to-[#0F2341] text-white rounded-2xl p-5">
+      <section className="bg-gradient-to-br from-brand-black to-brand-dark text-white rounded-2xl p-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
             <Package size={18} aria-hidden="true" />
