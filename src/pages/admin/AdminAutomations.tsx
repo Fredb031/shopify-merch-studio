@@ -72,7 +72,9 @@ export default function AdminAutomations() {
   // two admin tabs consistent without a manual reload.
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key !== AUTOMATION_FLAGS_KEY) return;
+      // e.key === null fires when a peer tab calls localStorage.clear();
+      // re-read so this tab doesn't render stale flags until reload.
+      if (e.key !== null && e.key !== AUTOMATION_FLAGS_KEY) return;
       setAutomations(getAutomationsWithFlags());
     };
     window.addEventListener('storage', onStorage);
