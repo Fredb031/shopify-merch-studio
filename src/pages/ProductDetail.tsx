@@ -37,6 +37,7 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductViewersNudge } from '@/components/ProductViewersNudge';
 import { WA_MESSAGES, waLink } from '@/lib/whatsapp';
+import { StickyProductCTA } from '@/components/StickyProductCTA';
 
 // Task 3.19 — per-handle last-viewed variant cache. A returning visitor
 // who previously picked "Bleu marine / L" should land back on that exact
@@ -335,30 +336,13 @@ export default function ProductDetail() {
   // the share/clipboard async so the second click is swallowed.
   const [sharing, setSharing] = useState(false);
 
-  // Hunt 133 — sticky mobile CTA visibility. We only want the pinned
-  // Personnaliser button to appear once the user has scrolled the
-  // in-flow CTA off-screen; otherwise we'd stack two identical
-  // buttons on top of each other on small phones. IntersectionObserver
-  // on the inline CTA's ref toggles the sticky variant's hidden state.
-  // The observer is cheap (1 target, default threshold) and cleans up
-  // on unmount; falls back to "always show" if IO is unavailable
-  // (old Safari < 12.2) rather than silently hiding the button.
+  // Volume II Section 01 — anchor ref for the inline primary
+  // "Personnaliser ce produit" CTA. The StickyProductCTA component
+  // owns its own visibility detection (getBoundingClientRect on this
+  // ref's bottom edge), so we no longer need a parallel
+  // IntersectionObserver here — the previous Hunt 133 implementation
+  // kept inlineCtaInView state, which is now redundant.
   const inlineCtaRef = useRef<HTMLButtonElement | null>(null);
-  const [inlineCtaInView, setInlineCtaInView] = useState(true);
-  useEffect(() => {
-    const el = inlineCtaRef.current;
-    if (!el) return;
-    if (typeof IntersectionObserver === 'undefined') {
-      setInlineCtaInView(false); // force sticky visible as a fallback
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => setInlineCtaInView(!!entry?.isIntersecting),
-      { threshold: 0, rootMargin: '0px 0px -60px 0px' },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [product]);
   const handleWishlistClick = () => {
     if (!handle) return;
     const wasAdding = !saved;
@@ -1772,42 +1756,32 @@ export default function ProductDetail() {
         )}
       </div>
 
-      {/* Hunt 133 — mobile sticky Personnaliser CTA.
-          On narrow viewports the inline "Personnaliser ce produit"
-          button scrolls out of view as soon as the user starts reading
-          the description / features / similar products. Pinning a
-          mirror of that CTA to the bottom of the viewport keeps the
-          purchase path one tap away at all times. Desktop (>=md) is
-          unaffected — the inline CTA is already within reach on a
-          wide layout. Bottom offset of 60px clears the BottomNav so
-          we don't cover its icons; the fade-in gate driven by the
-          IntersectionObserver above makes sure the pinned button
-          only appears once the inline CTA is off-screen. Safe-area
-          inset keeps it clear of iOS home-indicator territory. */}
-      {!inlineCtaInView && !customizerOpen && (
-        <div
-          className="md:hidden fixed left-0 right-0 bottom-[60px] bg-white/95 backdrop-blur border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.08)] p-3 z-30"
-          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
-        >
-          <button
-            type="button"
-            onClick={() => setCustomizerOpen(true)}
-            disabled={isVariantSoldOut}
-            aria-disabled={isVariantSoldOut || undefined}
-            aria-label={isVariantSoldOut
-              ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
-              : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
-            className="w-full py-3.5 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
-          >
-            <Shirt size={18} aria-hidden="true" />
-            {isVariantSoldOut
-              ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
-              : (lang === 'en' ? 'Customize' : 'Personnaliser')}
-            <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
-          </button>
-        </div>
-      )}
+      {/* Volume II Section 01 — sticky add-to-cart bar.
+          Replaces the simpler Hunt 133 sticky CTA with a richer bar
+          (thumbnail + product name + selected color + per-unit
+          price + Personnaliser →) per the V2 brief. Baymard's
+          mobile-PDP studies flag this format as an 18-32% conversion
+          lift over a bare button because it carries the visual
+          context the visitor was reading down the page — they don't
+          have to scroll back to reconfirm "yes, this is the product
+          I want at the price I expect." The component itself owns
+          the visibility gate (getBoundingClientRect on the inline
+          CTA's bottom edge) so the legacy IntersectionObserver
+          above only feeds the older `inlineCtaInView` state if any
+          other code grows a need for it. We pass the *with-print*
+          per-unit price (parseFloat(price) + PRINT_PRICE) so the
+          sticky bar matches the BulkCalculator tier 1 number, not
+          the bare Shopify amount that's shown beside "/unité, avant
+          impression". */}
+      <StickyProductCTA
+        product={product}
+        localProduct={localProduct ?? null}
+        selectedColor={selectedColor}
+        pricePerUnit={parseFloat(price) + PRINT_PRICE}
+        anchorRef={inlineCtaRef}
+        disabled={isVariantSoldOut}
+        hidden={customizerOpen}
+      />
 
       <AnimatePresence>
         {customizerOpen && (
