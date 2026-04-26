@@ -21,7 +21,7 @@ export default function Municipalites() {
         'Conforme aux exigences d\u2019appels d\u2019offres municipaux (factures détaillées, soumissions formelles)',
         'Logo officiel de la ville reproduit fidèlement en broderie ou impression',
       ]}
-      ctaLabel="Obtenir une soumission pour mon équipe municipalités"
+      ctaLabel="Personnaliser pour mon équipe municipalités"
       productsHeading="Vêtements recommandés pour les municipalités"
       productsSubcopy="Notre sélection pour les villes et MRC — du polo représentatif pour l'hôtel de ville au t-shirt durable pour les travaux publics."
       productSkus={['S445', 'ATC1000', 'ATCF2500', 'ATC6606']}

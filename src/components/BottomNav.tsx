@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
-import { Home, Store, ShoppingCart } from 'lucide-react';
+import { Home, Store, ShoppingCart, Sparkles } from 'lucide-react';
 
 // Visual + animation constants kept out of JSX so they're easy to tune
 // without diff noise inside the render tree.
@@ -56,9 +56,14 @@ export function BottomNav() {
   // small win, but it also keeps Link prop identity stable for any
   // downstream memoised children that compare by reference.
   const items = useMemo(() => ([
-    { id: 'home', label: t('accueil'),  path: '/',         icon: Home },
-    { id: 'shop', label: t('boutique'), path: '/products', icon: Store },
-    { id: 'cart', label: t('panier'),   path: '/cart',     icon: ShoppingCart },
+    { id: 'home',   label: t('accueil'),  path: '/',                      icon: Home },
+    { id: 'shop',   label: t('boutique'), path: '/products',              icon: Store },
+    // Phase 8 — "Créer" tab. Routes to /products with a query flag the
+    // catalog can react to ("?customize=1"); ProductCard already wires
+    // its primary CTA to open the customizer, so the user lands one
+    // tap away from a customizable product.
+    { id: 'create', label: t('creer'),    path: '/products?customize=1', icon: Sparkles },
+    { id: 'cart',   label: t('panier'),   path: '/cart',                  icon: ShoppingCart },
   ] as const), [t]);
 
   return (
@@ -80,14 +85,23 @@ export function BottomNav() {
           // Use boundary checks (exact, or trailing "/") so a future
           // route like "/products-export" wouldn't accidentally light
           // up the Shop tab.
+          //
+          // "Create" and "Shop" both target /products. Disambiguate via
+          // the ?customize=1 search flag — Create wins when the flag is
+          // present, Shop wins otherwise. This keeps the tabs from both
+          // lighting up on the same route.
           const path = location.pathname;
+          const search = location.search;
+          const hasCustomizeFlag = /[?&]customize=1\b/.test(search);
           const startsWithBoundary = (prefix: string) =>
             path === prefix || path.startsWith(`${prefix}/`);
-          const active = item.path === '/'
+          const active = item.id === 'home'
             ? path === '/'
-            : item.path === '/products'
-              ? startsWithBoundary('/products') || startsWithBoundary('/product')
-              : startsWithBoundary(item.path);
+            : item.id === 'create'
+              ? hasCustomizeFlag
+              : item.id === 'shop'
+                ? (startsWithBoundary('/products') || startsWithBoundary('/product')) && !hasCustomizeFlag
+                : startsWithBoundary('/cart');
           const ariaLabel = item.id === 'cart' && itemCount > 0
             ? lang === 'en'
               ? `${item.label}, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`

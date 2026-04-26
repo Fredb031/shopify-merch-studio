@@ -163,15 +163,21 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Mega Blueprint Section 02 — desktop-only ghost link to the
-            /devis quote-request flow. Sits before the LangToggle so it
-            reads as a discovery surface for bulk shoppers without
-            crowding the mobile bar (BottomNav handles mobile CTAs). */}
+        {/* Phase 8 — desktop-only nav cluster. The logo handles
+            "Accueil"; we expose Boutique + Créer as inline ghost links
+            so the master-prompt nav set (Accueil / Boutique / Créer /
+            Panier) is reachable in one tap. Mobile uses BottomNav. */}
         <Link
-          to="/devis"
+          to="/products"
           className="hidden md:inline-flex items-center text-[12px] font-bold text-foreground/80 hover:text-foreground px-3 py-[7px] rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
         >
-          {lang === 'en' ? 'Quote' : 'Devis'}
+          {t('boutique')}
+        </Link>
+        <Link
+          to="/products?customize=1"
+          className="hidden md:inline-flex items-center text-[12px] font-bold text-foreground/80 hover:text-foreground px-3 py-[7px] rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+        >
+          {t('creer')}
         </Link>
 
         <LangToggle />

@@ -20,7 +20,7 @@ export default function PlomberieElectricite() {
         'Logos en broderie — résiste à plus de 50 lavages industriels',
         'Numéro de RBQ ou licence affiché en plus du logo si désiré',
       ]}
-      ctaLabel="Obtenir une soumission pour mon équipe plomberie-électricité"
+      ctaLabel="Personnaliser pour mon équipe plomberie-électricité"
       productsHeading="Vêtements recommandés pour les métiers spécialisés"
       productsSubcopy="Notre sélection pour les plombiers, électriciens et techniciens — durables, faciles à entretenir, et professionnels en visite client."
       productSkus={['ATC1000', 'S445', 'ATCF2500', 'ATC1015']}

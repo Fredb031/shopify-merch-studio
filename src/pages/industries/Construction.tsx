@@ -23,7 +23,7 @@ export default function Construction() {
         'Tailles de S à 4XL disponibles pour la plupart des modèles',
         'Soumissions par équipe avec rabais volume dès 24 unités',
       ]}
-      ctaLabel="Obtenir une soumission pour mon équipe construction"
+      ctaLabel="Personnaliser pour mon équipe construction"
       productsHeading="Vêtements recommandés pour le chantier"
       productsSubcopy="Notre sélection pour les entrepreneurs québécois — modèles éprouvés en chantier, faciles à broder ou imprimer en grande quantité."
       productSkus={['ATC1000', 'ATCF2500', 'ATCF2400', 'ATC6606']}

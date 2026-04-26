@@ -20,7 +20,7 @@ export default function Corporate() {
         'Broderie haute densité pour un rendu impeccable sur les couleurs sombres',
         'Livraison emballée par taille / par employé — prêt à distribuer',
       ]}
-      ctaLabel="Obtenir une soumission pour mon équipe corporate"
+      ctaLabel="Personnaliser pour mon équipe corporate"
       productsHeading="Vêtements recommandés pour le corporate"
       productsSubcopy="Notre sélection pour les entreprises — coupes ajustées, tissus haut de gamme, finition broderie qui projette le bon niveau d'image de marque."
       productSkus={['S445', 'WERK250', 'ATCF2500', 'L445']}

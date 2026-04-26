@@ -21,7 +21,7 @@ export default function Paysagement() {
         'Saison printemps-été couverte avec couleurs vives résistantes aux UV',
         'Renouvellement annuel facile — historique de commande sauvegardé',
       ]}
-      ctaLabel="Obtenir une soumission pour mon équipe paysagement"
+      ctaLabel="Personnaliser pour mon équipe paysagement"
       productsHeading="Vêtements recommandés pour le paysagement"
       productsSubcopy="Notre sélection pour les paysagistes — léger, respirant, et conçu pour résister aux taches de gazon et de terre."
       productSkus={['S350', 'ATC1000', 'S445', 'ATC6606']}

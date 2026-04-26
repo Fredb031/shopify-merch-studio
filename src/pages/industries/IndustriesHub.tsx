@@ -98,7 +98,7 @@ export default function IndustriesHub() {
           <p className="text-base md:text-lg text-zinc-700 max-w-[720px] leading-relaxed">
             {lang === 'en'
               ? 'Five industry-specific surfaces, each with garments and FAQs tuned to that line of work. Pick yours below or request a quote directly.'
-              : "Cinq surfaces dédiées par industrie, chacune avec vêtements et FAQ adaptés. Choisissez la vôtre ci-dessous ou demandez directement une soumission."}
+              : "Cinq surfaces dédiées par industrie, chacune avec vêtements et FAQ adaptés. Choisissez la vôtre ci-dessous ou personnalisez directement votre commande."}
           </p>
         </section>
 
