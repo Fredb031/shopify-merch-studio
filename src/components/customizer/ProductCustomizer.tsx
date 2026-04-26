@@ -50,6 +50,7 @@ import { fmtMoney } from '@/lib/format';
 import { AnimatedPrice } from '@/components/AnimatedPrice';
 import { getSettings } from '@/lib/appSettings';
 import { setCustomizerAttributes } from '@/lib/shopifyCartAttributes';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 export function ProductCustomizer({ productId, onClose }: { productId: string; onClose: () => void }) {
   const { t, lang } = useLang();
@@ -59,6 +60,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const shopifyCartStore = useShopifyCartStore();
 
   const product = PRODUCTS.find(p => p.id === productId);
+
+  // Phase 7.2 — page-specific document title while the customizer modal
+  // is mounted. Restores the previous (PDP) title automatically on close
+  // via useDocumentTitle's unmount cleanup, so SPA nav can't leak.
+  useDocumentTitle(
+    lang === 'en'
+      ? 'Customize my product | Vision Affichage'
+      : 'Personnaliser mon produit | Vision Affichage',
+  );
 
   // ─── ALL HOOKS MUST STAY ABOVE ANY EARLY RETURN ───────────────────
   // Rules of Hooks: React tracks hooks by call order. Returning null

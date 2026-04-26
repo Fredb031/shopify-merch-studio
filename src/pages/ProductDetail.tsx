@@ -460,7 +460,12 @@ export default function ProductDetail() {
   // logo. Livré en 5 jours au Québec."). Falls back to the product
   // title when the local catalog doesn't know this handle yet.
   const pdpTitle = product
-    ? `${localProduct ? categoryLabel(localProduct.category, lang) : product.title} ${localProduct?.sku ?? ''} — Vision Affichage`.trim()
+    ? (() => {
+        const typeName = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
+        return lang === 'en'
+          ? `${typeName} Customized with Your Logo | Vision Affichage`
+          : `${typeName} Personnalisé avec Votre Logo | Vision Affichage`;
+      })()
     : lang === 'en' ? 'Product — Vision Affichage' : 'Produit — Vision Affichage';
   const pdpDescription = product
     ? (() => {

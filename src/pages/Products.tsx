@@ -239,10 +239,12 @@ export default function Products() {
 
   // Catalog-specific meta description. Bilingual swap on EN toggle.
   useDocumentTitle(
-    lang === 'en' ? 'Products — Vision Affichage' : 'Produits — Vision Affichage',
     lang === 'en'
-      ? 'Full catalog of customizable merch — t-shirts, hoodies, polos, caps. Secure checkout, printed in Québec.'
-      : 'Catalogue complet de merchs personnalisables — t-shirts, hoodies, polos, casquettes. Paiement sécurisé, imprimé au Québec.',
+      ? 'Shop — T-shirts, Polos, Hoodies, Jackets | Vision Affichage'
+      : 'Boutique — T-shirts, Polos, Hoodies, Vestes | Vision Affichage',
+    lang === 'en'
+      ? 'Choose your product and customize it with your logo online.'
+      : 'Choisissez votre produit et personnalisez-le avec votre logo en ligne.',
     {},
   );
 

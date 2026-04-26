@@ -131,10 +131,12 @@ function FadeIn({ children, className = '' }: { children: React.ReactNode; class
 export default function Index() {
   const { lang } = useLang();
   useDocumentTitle(
-    lang === 'en' ? 'Vision Affichage — Custom merch' : 'Vision Affichage — Merch d\u2019entreprise personnalisé',
     lang === 'en'
-      ? 'Vision Affichage — Custom merch for Québec businesses. Free quote, 5-day turnaround, 100% local.'
-      : 'Vision Affichage — Merch personnalisée pour entreprises du Québec. Soumission gratuite, 5 jours ouvrables, 100 % local.',
+      ? 'Vision Affichage — Custom corporate apparel printed in 5 days | Quebec'
+      : 'Vision Affichage — Vêtements d\u2019entreprise imprimés en 5 jours | Québec',
+    lang === 'en'
+      ? 'Print your logo on t-shirts, polos, hoodies and caps. Guaranteed 5 business day delivery across Quebec. Starting from one piece.'
+      : 'Imprimez votre logo sur t-shirts, polos, hoodies et casquettes. Livraison garantie en 5 jours ouvrables partout au Québec. À partir d\u2019une pièce.',
     {},
   );
   const cart = useCartStore();
