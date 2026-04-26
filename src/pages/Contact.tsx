@@ -89,6 +89,26 @@ export default function Contact() {
     setEmailErr(false);
     setSubmitState('loading');
 
+    // Build the row up-front so we can log it to console.error in BOTH
+    // the localStorage-success and localStorage-failure paths. Until
+    // forms get wired to a Zapier webhook → Outlook delivery, an
+    // operator with devtools open is the only direct visibility we
+    // have on what was just submitted; a dropped localStorage write
+    // (private mode, quota, disabled storage) shouldn't also drop
+    // that observability.
+    const payload: ContactMessageRow = {
+      name: sanitizeText(name, { maxLength: 120 }),
+      email: normalizedEmail,
+      subject: sanitizeText(subject, { maxLength: 200 }),
+      message: sanitizeText(message, { maxLength: 2000 }),
+      at: Date.now(),
+      lang,
+    };
+    // console.error (not .log) so the payload survives any production
+    // log filter that drops verbose levels — operator-grade fallback
+    // observability while the form submits to a no-op endpoint.
+    console.error('[Contact] form submission (no backend wired):', payload);
+
     try {
       const raw = JSON.parse(localStorage.getItem(CONTACT_KEY) ?? '[]');
       const arr: unknown[] = Array.isArray(raw) ? raw : [];
@@ -107,32 +127,33 @@ export default function Contact() {
       // Task 14.4 — run the three free-text fields through sanitizeText
       // before persisting so angle brackets / oversized pastes can't
       // poison a downstream consumer (CSV export, email template, log).
-      // Message gets the widest cap (2000) since that's the textarea's
-      // natural ceiling; name/subject get tighter caps matching their
-      // single-line input contract.
-      clean.push({
-        name: sanitizeText(name, { maxLength: 120 }),
-        email: normalizedEmail,
-        subject: sanitizeText(subject, { maxLength: 200 }),
-        message: sanitizeText(message, { maxLength: 2000 }),
-        at: Date.now(),
-        lang,
-      });
+      clean.push(payload);
       // Cap AFTER push so the freshest submission is always retained
       // even at the boundary. slice(-CAP) keeps the most recent N.
       const capped = clean.slice(-CONTACT_CAP);
       localStorage.setItem(CONTACT_KEY, JSON.stringify(capped));
-    } catch { /* noop — toast still fires so the user isn't left in limbo */ }
+    } catch (err) {
+      // Local persistence failed (private mode, quota, storage disabled).
+      // Don't throw — the toast still fires below so the user isn't
+      // left in limbo, and the payload above already hit console.error.
+      console.error('[Contact] localStorage write failed:', err);
+    }
 
     // Brief loading dwell so the spinner registers before the tick —
     // without this delay the synchronous write flips straight from idle
     // to success and the user misses the "sending" beat entirely.
     const dwellId = window.setTimeout(() => {
+      // Bilingual receipt toast with a phone fallback. Until the form
+      // gets wired to a Zapier webhook → Outlook delivery path, the
+      // 367-380-4808 number gives the user a guaranteed channel if our
+      // 24h reply doesn't land — better than leaving them assuming
+      // they were heard when the submission only made it to the local
+      // queue.
       toast.success(
         lang === 'en'
-          ? 'Message received! We reply within 24h.'
-          : 'Message reçu\u00a0! On vous répond sous 24h.',
-        { duration: 6000 },
+          ? 'Message sent. We\u2019ll reply within 24h. Otherwise call us at 367-380-4808.'
+          : 'Message envoyé. On te répond dans les 24h. Sinon appelle-nous au 367-380-4808.',
+        { duration: 8000 },
       );
       setSubmitState('success');
       setName('');

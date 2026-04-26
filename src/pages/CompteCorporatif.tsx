@@ -144,6 +144,26 @@ export default function CompteCorporatif() {
 
     setSubmitState('loading');
 
+    // Build the row up-front so console.error has a payload to surface
+    // even if the localStorage write below fails (private mode, quota).
+    // Until corporate apps get wired to a Zapier webhook → Outlook
+    // delivery, devtools is the only direct visibility an operator has
+    // on what was just submitted — and a Net 30 application is the
+    // single highest-impact form on the site to lose silently.
+    const payload: CorpAppRow = {
+      company: sanitizeText(cleanCompany, { maxLength: 160 }),
+      neq: sanitizeText(neq.trim(), { maxLength: 32 }),
+      contactName: sanitizeText(cleanContactName, { maxLength: 120 }),
+      contactEmail: normalizedEmail,
+      contactPhone: sanitizeText(cleanPhone, { maxLength: 32 }),
+      annualVolume: annualVolume as AnnualVolume,
+      industry: industry as Industry,
+      paymentReference: sanitizeText(paymentReference.trim(), { maxLength: 200 }),
+      at: Date.now(),
+      lang,
+    };
+    console.error('[CompteCorporatif] form submission (no backend wired):', payload);
+
     try {
       const raw = JSON.parse(localStorage.getItem(CORP_KEY) ?? '[]');
       const arr: unknown[] = Array.isArray(raw) ? raw : [];
@@ -157,35 +177,32 @@ export default function CompteCorporatif() {
           && typeof (v as { contactEmail?: unknown }).contactEmail === 'string'
           && typeof (v as { at?: unknown }).at === 'number',
       );
-      // sanitizeText scrubs angle brackets / oversized pastes before
-      // persisting so the eventual CSV export / email template / log
-      // line stays safe regardless of what the user typed.
-      clean.push({
-        company: sanitizeText(cleanCompany, { maxLength: 160 }),
-        neq: sanitizeText(neq.trim(), { maxLength: 32 }),
-        contactName: sanitizeText(cleanContactName, { maxLength: 120 }),
-        contactEmail: normalizedEmail,
-        contactPhone: sanitizeText(cleanPhone, { maxLength: 32 }),
-        annualVolume: annualVolume as AnnualVolume,
-        industry: industry as Industry,
-        paymentReference: sanitizeText(paymentReference.trim(), { maxLength: 200 }),
-        at: Date.now(),
-        lang,
-      });
+      clean.push(payload);
       // FIFO cap of 10 — the freshest application is always retained.
       const capped = clean.slice(-CORP_CAP);
       localStorage.setItem(CORP_KEY, JSON.stringify(capped));
-    } catch { /* noop — toast still fires so the user isn't left in limbo */ }
+    } catch (err) {
+      // Local persistence failed; toast still fires below so the user
+      // isn't left in limbo, and the payload already hit console.error.
+      console.error('[CompteCorporatif] localStorage write failed:', err);
+    }
 
     // Brief loading dwell so the spinner registers before the tick —
     // matches the Contact form so the two surfaces feel coherent.
     window.setTimeout(() => {
       setSubmittedEmail(normalizedEmail);
+      // Bilingual receipt toast with a phone fallback. Until the corp
+      // application form is wired to a Zapier webhook → Outlook
+      // delivery, the 367-380-4808 number gives a Net 30 applicant a
+      // guaranteed channel to escalate if our 24h reply doesn't land.
+      // Keep the 48h promise out of the toast and unify on the 24h-or-
+      // call line — the longer SLA is still advertised on the page
+      // body, but the toast is the operator-grade fallback.
       toast.success(
         lang === 'en'
-          ? 'Application received! We reply within 48 hours.'
-          : 'Demande reçue\u00a0! Réponse en 48 heures.',
-        { duration: 6000 },
+          ? 'Message sent. We\u2019ll reply within 24h. Otherwise call us at 367-380-4808.'
+          : 'Message envoyé. On te répond dans les 24h. Sinon appelle-nous au 367-380-4808.',
+        { duration: 8000 },
       );
       setSubmitState('success');
       // Clear inputs even though we'll mount the success card next —

@@ -192,6 +192,17 @@ export default function QuoteRequest() {
       lang,
     };
 
+    // Operator-grade fallback observability — log the payload to
+    // console.error BEFORE attempting localStorage so a quota / private-
+    // mode failure can't also drop visibility on what was submitted.
+    // The logo data URL is intentionally trimmed in the log preview to
+    // keep the devtools row readable; the full base64 still lives on
+    // the queued row when localStorage succeeds.
+    console.error('[QuoteRequest] form submission (no backend wired):', {
+      ...row,
+      logoDataUrl: row.logoDataUrl ? `[base64 ${row.logoDataUrl.length} chars]` : null,
+    });
+
     try {
       const raw = JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]');
       const arr: unknown[] = Array.isArray(raw) ? raw : [];
@@ -208,15 +219,25 @@ export default function QuoteRequest() {
       // ago can't squat on the budget. slice(-CAP) keeps the most recent.
       const capped = clean.slice(-QUEUE_CAP);
       localStorage.setItem(QUEUE_KEY, JSON.stringify(capped));
-    } catch { /* noop — toast still fires so the user isn't left in limbo */ }
+    } catch (err) {
+      // Local persistence failed; toast still fires so the user isn't
+      // left in limbo, and the payload already hit console.error.
+      console.error('[QuoteRequest] localStorage write failed:', err);
+    }
 
     // Brief loading dwell so the spinner registers before the tick.
     window.setTimeout(() => {
+      // Bilingual receipt toast with a phone fallback. Until quote
+      // submissions are wired to a Zapier webhook → Outlook delivery,
+      // the 367-380-4808 number gives the user a guaranteed channel
+      // if our 24h reply doesn't land. The page body still advertises
+      // the more aggressive 2h-business SLA — the toast is the
+      // operator-grade safety net.
       toast.success(
         lang === 'en'
-          ? 'Submission received — reply within 2 hours.'
-          : 'Soumission envoyée — réponse dans 2 heures.',
-        { duration: 6000 },
+          ? 'Message sent. We\u2019ll reply within 24h. Otherwise call us at 367-380-4808.'
+          : 'Message envoyé. On te répond dans les 24h. Sinon appelle-nous au 367-380-4808.',
+        { duration: 8000 },
       );
       setSubmitState('success');
       setSubmitted(true);
