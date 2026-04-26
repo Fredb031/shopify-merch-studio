@@ -44,6 +44,14 @@ function firstName(full: string | undefined | null): string {
   return esc((full ?? '').split(' ')[0] ?? '');
 }
 
+// Plain-text first name (no HTML escaping) for `text` fallback bodies.
+// The text bodies were calling `ctx.clientName.split(' ')[0]` directly,
+// which threw on undefined/null clientName — surfaced when an order
+// confirmation fired for a guest checkout with only an email on file.
+function firstNameText(full: string | undefined | null): string {
+  return (full ?? '').split(' ')[0] ?? '';
+}
+
 // Currency formatting was duplicated in three places (quote, payment,
 // order-confirmation) each spelling out the locale tuple and the CAD
 // options object. Lifted here so the locale + currency code are tuned
@@ -124,7 +132,7 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
         <p style="margin:0 0 22px;">${button(ctx.quoteUrl, 'Review & accept quote')}</p>
         <p style="font-size:13px;color:#666;">Delivered in 5 business days · Made in Québec</p>
       `),
-      text: `Hi ${ctx.clientName.split(' ')[0]},\n\n${ctx.vendorName} has prepared quote ${ctx.quoteNumber} for you (${totalFmt}).\n\nReview: ${ctx.quoteUrl}\n\nValid until ${ctx.expiresAt}.\nDelivered in 5 business days.`,
+      text: `Hi ${firstNameText(ctx.clientName)},\n\n${ctx.vendorName} has prepared quote ${ctx.quoteNumber} for you (${totalFmt}).\n\nReview: ${ctx.quoteUrl}\n\nValid until ${ctx.expiresAt}.\nDelivered in 5 business days.`,
     };
   }
 
@@ -144,7 +152,7 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
       <p style="margin:0 0 22px;">${button(ctx.quoteUrl, 'Réviser et accepter')}</p>
       <p style="font-size:13px;color:#666;">Livré en 5 jours ouvrables · Fabriqué au Québec</p>
     `),
-    text: `Bonjour ${ctx.clientName.split(' ')[0]},\n\n${ctx.vendorName} a préparé la soumission ${ctx.quoteNumber} pour toi (${totalFmt}).\n\nRéviser : ${ctx.quoteUrl}\n\nValide jusqu'au ${ctx.expiresAt}.\nLivré en 5 jours ouvrables.`,
+    text: `Bonjour ${firstNameText(ctx.clientName)},\n\n${ctx.vendorName} a préparé la soumission ${ctx.quoteNumber} pour toi (${totalFmt}).\n\nRéviser : ${ctx.quoteUrl}\n\nValide jusqu'au ${ctx.expiresAt}.\nLivré en 5 jours ouvrables.`,
   };
 }
 
@@ -179,7 +187,7 @@ export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutp
         ${ctx.trackingUrl ? `<p style="margin:0 0 22px;">${button(ctx.trackingUrl, 'Track my order')}</p>` : ''}
         <p style="font-size:13px;color:#666;">Questions? Reply to this email or call us at ${BRAND.phone}.</p>
       `),
-      text: `Thanks ${ctx.clientName.split(' ')[0]}! Payment of ${totalFmt} for order ${ctx.orderNumber} received. Estimated delivery: ${ctx.etaDate}.`,
+      text: `Thanks ${firstNameText(ctx.clientName)}! Payment of ${totalFmt} for order ${ctx.orderNumber} received. Estimated delivery: ${ctx.etaDate}.`,
     };
   }
 
@@ -198,7 +206,7 @@ export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutp
       ${ctx.trackingUrl ? `<p style="margin:0 0 22px;">${button(ctx.trackingUrl, 'Suivre ma commande')}</p>` : ''}
       <p style="font-size:13px;color:#666;">Des questions ? Réponds à ce courriel ou appelle-nous au ${BRAND.phone}.</p>
     `),
-    text: `Merci ${ctx.clientName.split(' ')[0]}! Paiement de ${totalFmt} reçu pour la commande ${ctx.orderNumber}. Livraison estimée: ${ctx.etaDate}.`,
+    text: `Merci ${firstNameText(ctx.clientName)}! Paiement de ${totalFmt} reçu pour la commande ${ctx.orderNumber}. Livraison estimée: ${ctx.etaDate}.`,
   };
 }
 
@@ -232,7 +240,7 @@ export function orderShippedEmail(ctx: OrderShippedCtx): EmailOutput {
         </div>
         <p style="margin:0 0 22px;text-align:center;">${button(ctx.trackingUrl, 'Track package')}</p>
       `),
-      text: `Hi ${ctx.clientName.split(' ')[0]}, order ${ctx.orderNumber} shipped via ${ctx.carrier}. Tracking: ${ctx.trackingNumber}. ETA: ${ctx.etaDate}. ${ctx.trackingUrl}`,
+      text: `Hi ${firstNameText(ctx.clientName)}, order ${ctx.orderNumber} shipped via ${ctx.carrier}. Tracking: ${ctx.trackingNumber}. ETA: ${ctx.etaDate}. ${ctx.trackingUrl}`,
     };
   }
 
@@ -250,7 +258,7 @@ export function orderShippedEmail(ctx: OrderShippedCtx): EmailOutput {
       </div>
       <p style="margin:0 0 22px;text-align:center;">${button(ctx.trackingUrl, 'Suivre le colis')}</p>
     `),
-    text: `Bonjour ${ctx.clientName.split(' ')[0]}, commande ${ctx.orderNumber} expédiée via ${ctx.carrier}. Suivi: ${ctx.trackingNumber}. Arrivée: ${ctx.etaDate}. ${ctx.trackingUrl}`,
+    text: `Bonjour ${firstNameText(ctx.clientName)}, commande ${ctx.orderNumber} expédiée via ${ctx.carrier}. Suivi: ${ctx.trackingNumber}. Arrivée: ${ctx.etaDate}. ${ctx.trackingUrl}`,
   };
 }
 
@@ -330,7 +338,7 @@ export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
         </div>
         <p style="font-size:13px;color:#666;">Questions? Email <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a> or call ${BRAND.phone}.</p>
       `),
-      text: `Hi ${ctx.clientName.split(' ')[0]},\n\nOrder #${ctx.orderNumber} confirmed — total ${totalFmt}.\nEstimated delivery: ${ctx.etaDate}.\n\nQuestions? ${BRAND.email}`,
+      text: `Hi ${firstNameText(ctx.clientName)},\n\nOrder #${ctx.orderNumber} confirmed — total ${totalFmt}.\nEstimated delivery: ${ctx.etaDate}.\n\nQuestions? ${BRAND.email}`,
     };
   }
 
@@ -349,7 +357,7 @@ export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
       </div>
       <p style="font-size:13px;color:#666;">Des questions ? Écris à <a href="mailto:${BRAND.email}" style="color:${BRAND.blue};text-decoration:none;">${BRAND.email}</a> ou appelle au ${BRAND.phone}.</p>
     `),
-    text: `Bonjour ${ctx.clientName.split(' ')[0]},\n\nCommande #${ctx.orderNumber} confirmée — total ${totalFmt}.\nLivraison estimée : ${ctx.etaDate}.\n\nDes questions ? ${BRAND.email}`,
+    text: `Bonjour ${firstNameText(ctx.clientName)},\n\nCommande #${ctx.orderNumber} confirmée — total ${totalFmt}.\nLivraison estimée : ${ctx.etaDate}.\n\nDes questions ? ${BRAND.email}`,
   };
 }
 
