@@ -5,37 +5,26 @@ import { ProductCard } from '@/components/ProductCard';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { useProducts } from '@/hooks/useProducts';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
-import { findProductByHandle, matchProductByTitle, PRODUCTS } from '@/data/products';
-import { filterRealColors } from '@/lib/colorFilter';
+import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { plural } from '@/lib/plural';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useLang } from '@/lib/langContext';
-import { Search, SearchX, X, Sparkles, Shirt, Shell, Snowflake, type LucideIcon } from 'lucide-react';
+import { Search, SearchX, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-// Task 2.1 — each category now carries a lucide icon so the tab row
-// reads as a visual shortcut rather than a wall of text. Icons picked
-// for quickest recognition:
-//   overview  -> Sparkles  (generic "see everything / featured")
-//   chandails -> Shirt     (hoodies/crewnecks — same silhouette family)
-//   tshirts   -> Shirt     (the canonical tee)
-//   polos     -> Shirt     (same silhouette; active-state accent disambiguates)
-//   headwear  -> Shell     (rounded cap-like silhouette; lucide has no dedicated cap)
-// Snowflake kept in the import for later toques-only split if headwear
-// is ever broken into caps vs toques.
-const CATEGORIES: Array<{ id: string; fr: string; en: string; icon: LucideIcon }> = [
-  { id: 'overview',  fr: 'Tout',                 en: 'All',            icon: Sparkles },
-  { id: 'chandails', fr: 'Chandails',            en: 'Sweaters',       icon: Shirt },
-  { id: 'tshirts',   fr: 'T-Shirts',             en: 'T-Shirts',       icon: Shirt },
-  { id: 'polos',     fr: 'Polos',                en: 'Polos',          icon: Shirt },
-  { id: 'headwear',  fr: 'Casquettes & Tuques',  en: 'Caps & Beanies', icon: Shell },
+// Categories. Icons removed in the brand-black/blue redesign — the
+// label alone is the affordance now, matching the homepage's clean
+// typography-driven treatment.
+const CATEGORIES: Array<{ id: string; fr: string; en: string }> = [
+  { id: 'overview',  fr: 'Tout',                 en: 'All' },
+  { id: 'chandails', fr: 'Chandails',            en: 'Sweaters' },
+  { id: 'tshirts',   fr: 'T-Shirts',             en: 'T-Shirts' },
+  { id: 'polos',     fr: 'Polos',                en: 'Polos' },
+  { id: 'headwear',  fr: 'Casquettes & Tuques',  en: 'Caps & Beanies' },
 ];
-// Suppress unused-warning for Snowflake — kept intentionally for the
-// future toques-only split (see CATEGORIES comment above).
-void Snowflake;
 
 function matchesCategory(
   product: { node: { handle: string; productType: string; title: string } },
@@ -74,21 +63,14 @@ export default function Products() {
   const KNOWN_CATS = new Set(['overview', 'chandails', 'tshirts', 'polos', 'headwear']);
   const rawCat = searchParams.get('cat');
   const initialCat = rawCat && KNOWN_CATS.has(rawCat) ? rawCat : 'overview';
-  // Task 2.2 — URL-backed sort. 'popularity' is the default and maps to
-  // the natural Shopify catalog order (no client-side reordering). The
-  // 'newest' option that the spec mentions is gated on a createdAt /
-  // publishedAt field which the current PRODUCTS_QUERY doesn't request
-  // and ShopifyProduct doesn't expose — intentionally omitted here per
-  // task instructions ("otherwise skip this option") so we don't ship a
-  // dropdown entry that silently behaves like the default.
+  // URL-backed sort. 'popularity' is the default and maps to the
+  // natural Shopify catalog order (no client-side reordering).
   const SORT_VALUES = ['popularity', 'price-asc', 'price-desc'] as const;
   type SortMode = typeof SORT_VALUES[number];
   // Sort resolution order on mount:
   //   1. ?sort=... in the URL (shareable deep-link wins)
   //   2. localStorage['va:products-sort'] (returning visitor's last pick)
   //   3. 'popularity' default
-  // localStorage is wrapped because SSR / strict private-mode Safari can
-  // throw on access; we silently swallow and fall through to the default.
   const SORT_STORAGE_KEY = 'va:products-sort';
   const initialSort: SortMode = (() => {
     const raw = searchParams.get('sort');
@@ -105,35 +87,19 @@ export default function Products() {
   // Hydrate the search field from ?q= so shareable URLs like
   // /products?q=hoodie round-trip back into the same filtered view.
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') ?? '');
-  // Task 7.11 — debounce the search query so the filter AND the URL
-  // sync don't re-fire on every keystroke. The controlled input value
-  // (`searchQuery`) updates instantly so typing never feels laggy,
-  // while `debouncedQuery` lags 300ms and is what actually drives the
-  // expensive filter pipeline and the history.replaceState in the URL
-  // sync effect below.
+  // Debounce so the filter pipeline + URL sync don't re-fire on every
+  // keystroke. Controlled input updates instantly; debounced lags 300ms.
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const [sortMode, setSortMode] = useState<SortMode>(initialSort);
-  // Task 2.17 — client-side pagination. Sub-30 catalogs render the
-  // whole set (page size equals 30, so the first page already covers
-  // today's 22-product baseline). Once the filtered count crosses 30
-  // we reveal 30 more per "Charger plus" click instead of paying for
-  // the full grid's initial paint cost. Counter resets to PAGE_SIZE
-  // on any filter/sort/search change (see effect below).
+  // Client-side pagination. Sub-30 catalogs render the whole set.
   const PAGE_SIZE = 30;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Task 2.16 — surface a RecentlyViewed row above the catalog grid so
-  // returning visitors see their last-browsed items one click away.
-  // Gated at >=2 items: a fresh visitor (0) or a single-view visitor
-  // (1) would otherwise see a near-empty strip that reads as clutter.
+  // Surface RecentlyViewed only with >=2 items so a fresh visitor
+  // doesn't see a near-empty strip.
   const { handles: recentlyViewedHandles } = useRecentlyViewed();
   const showRecentlyViewed = recentlyViewedHandles.length >= 2;
 
-  // Keep the URL in sync with category + sort + debounced search —
-  // replace history so Back still returns to the previous page. All
-  // three params are combined in a single pass so we don't fire
-  // consecutive history replaces, and the search param is keyed off
-  // `debouncedQuery` (not `searchQuery`) so we don't push a new URL
-  // on every keystroke while the user is still typing.
+  // Keep the URL in sync with category + sort + debounced search.
   useEffect(() => {
     const curCat = searchParams.get('cat') ?? 'overview';
     const curSort = searchParams.get('sort') ?? 'popularity';
@@ -143,21 +109,14 @@ export default function Products() {
     const next = new URLSearchParams(searchParams);
     if (activeCategory === 'overview') next.delete('cat');
     else next.set('cat', activeCategory);
-    // popularity is the default — omit from the URL so a fresh /products
-    // link stays clean and shareable ?sort=... URLs stay meaningful.
     if (sortMode === 'popularity') next.delete('sort');
     else next.set('sort', sortMode);
-    // Empty search is the default — omit ?q= entirely instead of
-    // leaving ?q= dangling in the URL bar.
     if (trimmedQ === '') next.delete('q');
     else next.set('q', trimmedQ);
     setSearchParams(next, { replace: true });
   }, [activeCategory, sortMode, debouncedQuery, searchParams, setSearchParams]);
 
-  // Also sync URL → state so browser Back/Forward actually updates the
-  // visible filter. Without this, the state → URL effect above would
-  // notice the mismatch and shove the URL back to the previous filter,
-  // silently cancelling the user's nav intent.
+  // URL → state so browser Back/Forward updates the visible filter.
   useEffect(() => {
     const urlCatRaw = searchParams.get('cat') ?? 'overview';
     const urlCat = KNOWN_CATS.has(urlCatRaw) ? urlCatRaw : 'overview';
@@ -168,33 +127,23 @@ export default function Products() {
     const urlQ = searchParams.get('q') ?? '';
     if (urlCat !== activeCategory) setActiveCategory(urlCat);
     if (urlSort !== sortMode) setSortMode(urlSort);
-    // Only push back into searchQuery when the URL's q differs from
-    // the already-debounced copy. Comparing against debouncedQuery
-    // (not searchQuery) avoids a feedback loop where mid-typing the
-    // URL-sync effect hasn't yet written the new q, and we'd clobber
-    // the live input with the stale URL value on every re-render.
     if (urlQ !== debouncedQuery.trim()) setSearchQuery(urlQ);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
-  // Persist the sort mode to localStorage so a returning visitor lands
-  // on their last pick even without a ?sort=... URL. The URL still wins
-  // on mount (see initialSort) — this just captures the quiet default
-  // case where the shopper lands on bare /products.
+
+  // Persist sort to localStorage so a returning visitor lands on
+  // their last pick even without ?sort=...
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
       window.localStorage.setItem(SORT_STORAGE_KEY, sortMode);
     } catch {
-      /* localStorage blocked (private mode, quota, etc.) — ignore */
+      /* localStorage blocked — ignore */
     }
   }, [sortMode]);
 
   // Active-filter surface: a filter is "active" whenever it's not at
-  // its default. Category default is 'overview' and search default is
-  // the empty string. Sort is intentionally excluded from the chip row
-  // and the Réinitialiser-les-filtres action — it always has a value
-  // and a dedicated dropdown already, so wiping it on "clear filters"
-  // would surprise more than help.
+  // its default. Sort is intentionally excluded from the chip row.
   const trimmedDebouncedQuery = debouncedQuery.trim();
   const hasActiveFilters = activeCategory !== 'overview' || trimmedDebouncedQuery !== '';
 
@@ -209,24 +158,29 @@ export default function Products() {
     return lang === 'en' ? cat.en : cat.fr;
   })();
 
-  const searchDesktopRef = useRef<HTMLInputElement>(null);
-  const searchMobileRef  = useRef<HTMLInputElement>(null);
-  // Task 2.19 — ref to the main ProductCard grid. Arrow-key navigation
-  // walks the role="link" children of this node, so we don't need to
-  // wire per-card refs (the card list is already keyed and stable).
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  // Ref to the main ProductCard grid for arrow-key navigation.
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Task 2.19 — arrow-key navigation across the product grid.
+  // Sticky filter bar — sentinel sits where the hero ends. Once it
+  // leaves the viewport (user scrolls past hero) the filter strip
+  // pins itself under the navbar.
+  const filterSentinelRef = useRef<HTMLDivElement>(null);
+  const [filterSticky, setFilterSticky] = useState(false);
+  useEffect(() => {
+    const el = filterSentinelRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setFilterSticky(!entry.isIntersecting),
+      { threshold: 0 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  // Arrow-key navigation across the product grid.
   //   ←/→ : previous / next card in DOM order
-  //   ↑/↓ : jump one row up / down, preserving the column when possible
-  //   Enter : already handled by ProductCard's own onKeyDown, so we
-  //           leave it alone here (no synthetic click needed).
-  // The column count is read from the grid's computed
-  // grid-template-columns — that way we stay honest to whatever
-  // Tailwind breakpoint is active (2/3/4/5 cols) without hard-coding
-  // breakpoints in JS. Keys are ignored when focus is inside an
-  // input/textarea/select (or a contentEditable) so the search bar's
-  // native caret movement still works.
+  //   ↑/↓ : jump one row up / down, preserving column when possible
   const handleGridKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const key = e.key;
     if (
@@ -244,18 +198,11 @@ export default function Products() {
     const grid = gridRef.current;
     if (!grid) return;
 
-    // Only the immediate card children carry role="link" — nested
-    // buttons (wishlist, customize) are <button> so this selector
-    // can't accidentally pick them up.
     const cards = Array.from(
       grid.querySelectorAll<HTMLElement>(':scope > [role="link"]'),
     );
     if (cards.length === 0) return;
 
-    // Resolve which card currently holds (or contains) focus. When
-    // a nested control like the wishlist heart is focused, we still
-    // want arrow keys to move to the neighbouring card, so we walk
-    // up to the nearest role=link ancestor inside the grid.
     let currentIndex = -1;
     if (active) {
       const ownerCard = active.closest('[role="link"]') as HTMLElement | null;
@@ -263,13 +210,8 @@ export default function Products() {
         currentIndex = cards.indexOf(ownerCard);
       }
     }
-    if (currentIndex === -1) return; // arrow key fired outside the grid
+    if (currentIndex === -1) return;
 
-    // Column count from the computed grid-template-columns — a space-
-    // separated list of track sizes ("200px 200px 200px"). Length of
-    // the split gives us the live column count regardless of the
-    // Tailwind breakpoint that produced it. Fallback of 1 keeps the
-    // math safe if the style isn't computed yet (SSR/first paint).
     const tpl = window.getComputedStyle(grid).gridTemplateColumns;
     const cols = Math.max(1, tpl ? tpl.split(' ').filter(Boolean).length : 1);
 
@@ -282,9 +224,6 @@ export default function Products() {
         nextIndex = Math.max(0, currentIndex - 1);
         break;
       case 'ArrowDown': {
-        // Jump one row. If the target row has fewer cards than the
-        // current column (last row partial), clamp to the last card
-        // so we don't fall off the grid.
         const candidate = currentIndex + cols;
         nextIndex = candidate < cards.length ? candidate : cards.length - 1;
         break;
@@ -301,40 +240,24 @@ export default function Products() {
     cards[nextIndex]?.focus();
   };
 
-  // Task 8.12 — catalog-specific meta description. Google SERP for
-  // "/products" previously inherited the homepage default, so the
-  // snippet pitched "personnalise tes vêtements" instead of the catalog
-  // itself. Bilingual copy swaps when the user toggles EN.
+  // Catalog-specific meta description. Bilingual swap on EN toggle.
   useDocumentTitle(
     lang === 'en' ? 'Products — Vision Affichage' : 'Produits — Vision Affichage',
     lang === 'en'
       ? 'Full catalog of customizable merch — t-shirts, hoodies, polos, caps. Secure checkout, printed in Québec.'
       : 'Catalogue complet de merchs personnalisables — t-shirts, hoodies, polos, casquettes. Paiement sécurisé, imprimé au Québec.',
-    // Task 8.5 — /products shares the same default og-image as / since
-    // the catalog page is a generic entry point rather than a specific
-    // product. og:type stays 'website' (product type is reserved for
-    // the PDP so Facebook / LinkedIn can surface price widgets).
     {},
   );
 
-  // Cmd+K (macOS) / Ctrl+K (Windows/Linux) focuses the search input —
-  // standard power-user shortcut on commerce sites (Linear, Vercel, etc.)
+  // Cmd+K (macOS) / Ctrl+K focuses the search input.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        // Focus whichever input is visible (CSS hides one or the other)
-        const desktop = searchDesktopRef.current;
-        const mobile  = searchMobileRef.current;
-        const desktopVisible = desktop && desktop.offsetParent !== null;
-        (desktopVisible ? desktop : mobile)?.focus();
-      } else if (e.key === 'Escape' && document.activeElement === searchDesktopRef.current) {
-        // Esc clears search when input is focused
+        searchInputRef.current?.focus();
+      } else if (e.key === 'Escape' && document.activeElement === searchInputRef.current) {
         setSearchQuery('');
-        searchDesktopRef.current?.blur();
-      } else if (e.key === 'Escape' && document.activeElement === searchMobileRef.current) {
-        setSearchQuery('');
-        searchMobileRef.current?.blur();
+        searchInputRef.current?.blur();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -347,27 +270,16 @@ export default function Products() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Popular product suggestions shown when a search yields nothing.
-  // Task 2.4: surface a curated 3-SKU fallback (ATC1000 cotton tee,
-  // ATCF2500 hoodie, ATC6606 cap) so the user always has a one-click
-  // path to a real product page even if their query was a typo.
-  // We map those SKUs onto the live Shopify list (which may not include
-  // every local SKU) and keep first 3 matches.
+  // Curated 3-SKU fallback for empty search states.
   const EMPTY_STATE_POPULAR_SKUS = ['ATC1000', 'ATCF2500', 'ATC6606'] as const;
   const popularSuggestions = useMemo(() => {
     try {
-      // Defensive: products can be null/undefined while loading, or if
-      // Shopify returned a malformed payload that React Query still
-      // accepted. Guarding with Array.isArray covers both nullish and
-      // "it was an object, not a list" cases.
       if (!products || !Array.isArray(products)) return [];
       const matched = EMPTY_STATE_POPULAR_SKUS
         .map(sku => {
           const local = PRODUCTS.find(p => p.sku === sku);
           if (!local) return undefined;
           return products.find(p => {
-            // A NEW product could come back without a handle/title —
-            // don't blow up .toLowerCase() on undefined.
             const handle = p?.node?.handle ?? '';
             const title = p?.node?.title ?? '';
             return (
@@ -378,7 +290,6 @@ export default function Products() {
           });
         })
         .filter((p): p is NonNullable<typeof p> => Boolean(p?.node?.handle));
-      // Dedupe by handle in case two SKUs map to the same Shopify product.
       const seen = new Set<string>();
       return matched.filter(p => {
         const handle = p.node.handle;
@@ -391,10 +302,7 @@ export default function Products() {
       return [];
     }
   }, [products]);
-  // Nearest category matches for an empty search. A category is
-  // "near" if its label (FR or EN) contains any token from the query,
-  // or vice-versa — e.g. searching "tshrt" surfaces T-Shirts because
-  // "tsh" is a shared substring after the typo.
+  // Nearest category matches for an empty search.
   const nearestCategories = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return [];
@@ -411,12 +319,7 @@ export default function Products() {
 
   const filteredProducts = useMemo(() => {
     try {
-      // Defensive: Shopify (or a buggy intermediate cache) could hand
-      // back null/undefined/non-array. Coerce to [] so the grid simply
-      // renders the empty state instead of throwing on .filter().
       if (!products || !Array.isArray(products)) return [];
-      // Filter out entries missing the critical `node` sub-tree up
-      // front — every downstream read assumes it exists.
       const safeProducts = products.filter(p => p && p.node && typeof p.node === 'object');
       let result = activeCategory === 'overview'
         ? safeProducts
@@ -437,16 +340,7 @@ export default function Products() {
         });
       }
       if (sortMode !== 'popularity') {
-        // Copy before sort — useMemo would otherwise mutate the upstream
-        // products array and invalidate React Query's cached reference.
-        // Array.prototype.sort in modern V8/JSC is stable (ECMA-262
-        // since ES2019), so equal prices keep their natural-catalog
-        // relative order as the task requires.
         const sorted = [...result];
-        // Defensive: a NEW product or partial response may be missing
-        // priceRange.minVariantPrice.amount entirely. Optional chain +
-        // NaN-safe fallback keeps sort stable instead of flinging items
-        // to the front/back unpredictably.
         const priceOf = (p: typeof result[number]) => {
           const raw = p?.node?.priceRange?.minVariantPrice?.amount;
           const n = raw != null ? parseFloat(raw) : NaN;
@@ -469,10 +363,7 @@ export default function Products() {
     }
   }, [products, activeCategory, debouncedQuery, sortMode]);
 
-  // Task 2.17 — reset pagination whenever the filter surface changes
-  // (category, debounced search, or sort). Scroll back to top so the
-  // shopper doesn't land mid-page on a newly narrowed result set.
-  // Guarded on the client (typeof window) so SSR/tests don't blow up.
+  // Reset pagination whenever the filter surface changes.
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
     if (typeof window !== 'undefined') {
@@ -480,45 +371,13 @@ export default function Products() {
     }
   }, [activeCategory, debouncedQuery, sortMode]);
 
-  // Task 2.17 — slice applied just before render. Using min() keeps us
-  // safe when the filter tightens mid-page (e.g. 60 -> 12) before the
-  // reset effect above has a chance to run.
   const visibleProducts = useMemo(
     () => filteredProducts.slice(0, Math.min(visibleCount, filteredProducts.length)),
     [filteredProducts, visibleCount],
   );
   const hasMore = visibleProducts.length < filteredProducts.length;
 
-  // Task 2.15 — total real-color count across the currently filtered
-  // products. We resolve each Shopify product back to its local entry
-  // (same handle→then→title fallback ProductCard uses) and sum
-  // `filterRealColors` so the headline number matches exactly what the
-  // cards below advertise — no ghost variants padding the total.
-  const totalRealColors = useMemo(() => {
-    let sum = 0;
-    for (const p of filteredProducts) {
-      const handle = p?.node?.handle ?? '';
-      const title = p?.node?.title ?? '';
-      const local = (handle && findProductByHandle(handle))
-        || (title && matchProductByTitle(title))
-        || null;
-      if (!local) continue;
-      try {
-        sum += filterRealColors(local.sku, local.colors).length;
-      } catch (err) {
-        console.warn('[Products] filterRealColors threw for', local.sku, err);
-      }
-    }
-    return sum;
-  }, [filteredProducts]);
-
-  // Task 6.10 — screen-reader announcement for the filtered product
-  // count. Keyed off `debouncedQuery` (not `searchQuery`) via
-  // filteredProducts so AT users hear the SETTLED result once per
-  // 300ms debounce, not a torrent of "1 product… 0 products… 3
-  // products…" as they type each letter. `aria-live=polite` yields to
-  // the user's typing; `aria-atomic` forces the whole message to
-  // re-announce even when only the numeric prefix changed.
+  // Screen-reader announcement for filtered count, debounced.
   const liveRegionMessage = useMemo(() => {
     if (isLoading) {
       return lang === 'en' ? 'Loading products\u2026' : 'Chargement des produits\u2026';
@@ -536,189 +395,175 @@ export default function Products() {
       : plural(count, { one: '{count} produit affich\u00e9s', other: '{count} produits affich\u00e9s' }, 'fr');
   }, [isLoading, filteredProducts, debouncedQuery, lang]);
 
+  // ----- Render helpers ---------------------------------------------------
+  // The filter strip (categories + sort) appears in two places: inside
+  // the hero AND in the sticky drop-in bar that snaps under the navbar
+  // once the user scrolls past the hero. Both share this single source.
+  const renderFilterStrip = (variant: 'hero' | 'sticky') => {
+    const onLight = variant === 'sticky';
+    return (
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div
+          className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:flex-1 md:min-w-0 md:flex-wrap md:overflow-visible snap-x snap-mandatory md:snap-none"
+          role="tablist"
+          aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}
+        >
+          {CATEGORIES.map((cat) => {
+            const isActive = activeCategory === cat.id && !searchQuery;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => selectCategory(cat.id)}
+                role="tab"
+                aria-selected={isActive}
+                aria-current={isActive ? 'page' : undefined}
+                className={`text-[13px] font-bold px-4 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full border snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 ${
+                  isActive
+                    ? 'bg-[#0052CC] text-white border-[#0052CC]'
+                    : onLight
+                      ? 'bg-white text-[#374151] border-[#E5E7EB] hover:border-[#0052CC] hover:text-[#0A0A0A]'
+                      : 'bg-white text-[#374151] border-[#E5E7EB] hover:border-white hover:text-[#0A0A0A]'
+                }`}
+              >
+                {lang === 'en' ? cat.en : cat.fr}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Sort dropdown */}
+        <div className="flex items-center gap-2 pb-1 md:pb-0 md:shrink-0">
+          <label
+            htmlFor={variant === 'hero' ? 'sort-mode' : 'sort-mode-sticky'}
+            className={`text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap ${onLight ? 'text-[#6B7280]' : 'text-white/60'}`}
+          >
+            {lang === 'en' ? 'Sort' : 'Trier'}
+          </label>
+          <select
+            id={variant === 'hero' ? 'sort-mode' : 'sort-mode-sticky'}
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as SortMode)}
+            aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
+            className={`text-[12px] font-bold rounded-full px-3 py-1.5 outline-none focus:ring-2 focus:ring-[#0052CC] focus:ring-offset-2 cursor-pointer transition-colors border ${
+              onLight
+                ? 'bg-white text-[#0A0A0A] border-[#E5E7EB] hover:border-[#0052CC]'
+                : 'bg-white/10 text-white border-white/20 hover:bg-white/15'
+            }`}
+          >
+            <option value="popularity" className="text-[#0A0A0A]">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
+            <option value="price-asc" className="text-[#0A0A0A]">{lang === 'en' ? 'Price ↑' : 'Prix ↑'}</option>
+            <option value="price-desc" className="text-[#0A0A0A]">{lang === 'en' ? 'Price ↓' : 'Prix ↓'}</option>
+          </select>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background focus:outline-none">
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      {/* Task 6.10 — visually-hidden live region announcing the filtered
-          product count to screen readers. Kept OUTSIDE the main content
-          branches (loading / error / grid) so the same node persists
-          across renders — React swapping a role=status node in and out
-          can cause AT to miss the announcement on some engines. */}
+      {/* Visually-hidden live region announcing the filtered product
+          count to screen readers. Persists across renders. */}
       <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
         {liveRegionMessage}
       </div>
 
-      {/* Banner — premium hero */}
-      <div className="pt-[58px]">
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] px-6 md:px-10 pt-[44px] pb-2">
-          {/* Subtle radial accent */}
-          <div
-            className="absolute top-0 right-0 w-[500px] h-[500px] pointer-events-none opacity-40"
-            style={{ background: 'radial-gradient(circle at 70% 0%, hsla(40, 82%, 55%, 0.18) 0%, transparent 60%)' }}
-            aria-hidden="true"
-          />
-          <div className="relative max-w-[1200px] mx-auto">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-3">
-                  <span>⚡</span>
-                  {lang === 'en' ? 'Made in Québec · 5 business days' : 'Fabriqué au Québec · 5 jours ouvrables'}
-                </div>
-                <h1 className="text-3xl md:text-5xl font-extrabold tracking-[-1px] text-primary-foreground mb-2 leading-[1.05]">
-                  {lang === 'en' ? (
-                    <>Dress your team<br /><span className="text-[#E8A838]">to your image.</span></>
-                  ) : (
-                    <>Habille ton équipe<br /><span className="text-[#E8A838]">à ton image.</span></>
-                  )}
-                </h1>
-                <p className="text-[13px] text-primary-foreground/60 mb-4">
-                  {lang === 'en'
-                    ? `${PRODUCTS.length} customizable products · No minimum order`
-                    : `${PRODUCTS.length} produits personnalisables · Aucun minimum`}
-                </p>
-              </div>
-
-              {/* Desktop search */}
-              <div className="relative hidden md:flex items-center mt-2">
-                <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
-                <input
-                  ref={searchDesktopRef}
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={lang === 'en' ? 'Search products… (⌘K)' : 'Rechercher… (⌘K)'}
-                  aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
-                  aria-keyshortcuts="Meta+K"
-                  className="pl-9 pr-8 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all w-56"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
-                    className="absolute right-2.5 text-primary-foreground/60 hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded"
-                  >
-                    <X className="w-3.5 h-3.5" aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Mobile search */}
-            <div className="relative flex md:hidden items-center mb-4">
-              <Search aria-hidden="true" className="absolute left-3 w-[15px] h-[15px] text-primary-foreground/50 pointer-events-none" />
-              <input
-                ref={searchMobileRef}
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={lang === 'en' ? 'Search products…' : 'Rechercher…'}
-                aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
-                className="w-full pl-9 pr-11 py-[9px] text-[13px] rounded-xl bg-white/10 text-primary-foreground placeholder:text-primary-foreground/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/25 transition-all"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
-                  className="absolute right-0 inset-y-0 w-11 flex items-center justify-center text-primary-foreground/60 hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-r-xl"
-                >
-                  <X className="w-4 h-4" aria-hidden="true" />
-                </button>
-              )}
-            </div>
-
-            {/* Category tabs row — pill tabs on the left, sort dropdown on the right (desktop). Stacks on mobile. */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-4">
-              {/* Task 2.1 — snap-x horizontal scroll on mobile, centered
-                  wrap on desktop. snap-mandatory keeps a tab fully
-                  flush with the viewport edge after a flick so half-
-                  visible pills never linger. md:flex-wrap unlocks the
-                  wrap behavior once the row is no longer the cramped
-                  mobile strip; md:justify-start keeps the tabs left-
-                  aligned next to the sort dropdown on the right. */}
-              <div
-                className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 md:flex-1 md:min-w-0 md:flex-wrap md:overflow-visible snap-x snap-mandatory md:snap-none"
-                role="tablist"
-                aria-label={lang === 'en' ? 'Product categories' : 'Catégories de produits'}
-              >
-                {CATEGORIES.map((cat) => {
-                  const isActive = activeCategory === cat.id && !searchQuery;
-                  const Icon = cat.icon;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => selectCategory(cat.id)}
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-current={isActive ? 'page' : undefined}
-                      className={`group inline-flex items-center gap-1.5 text-[12px] font-bold px-3.5 py-2 whitespace-nowrap cursor-pointer transition-all rounded-full border snap-start focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B] ${
-                        isActive
-                          // Active: white fill + dark text + stronger
-                          // border + gold-tinted shadow so the selection
-                          // reads even at a glance on mobile.
-                          ? 'bg-white text-[#1B3A6B] border-[#E8A838]/70 shadow-[0_2px_12px_-2px_rgba(232,168,56,0.55)]'
-                          // Inactive: same translucent chip as before
-                          // but with an explicit transparent border so
-                          // the active/inactive swap doesn't jump 1px.
-                          : 'bg-white/10 text-white/70 border-white/10 hover:bg-white/15 hover:text-white hover:border-white/25'
-                      }`}
-                    >
-                      <Icon
-                        aria-hidden="true"
-                        className={`w-3.5 h-3.5 shrink-0 transition-colors ${
-                          // Gold accent on the active icon — matches the
-                          // existing brand accent used on hero CTAs and
-                          // the sale/quebec badge. Inactive icon inherits
-                          // the muted white so the row reads calm.
-                          isActive ? 'text-[#E8A838]' : 'text-white/60 group-hover:text-white/90'
-                        }`}
-                      />
-                      <span>{lang === 'en' ? cat.en : cat.fr}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Sort dropdown — stacks under tabs on mobile, sits top-right on desktop */}
-              <div className="flex items-center gap-2 pb-1 md:pb-0 md:shrink-0">
-                <label htmlFor="sort-mode" className="text-[11px] font-semibold tracking-wide uppercase text-white/60 whitespace-nowrap">
-                  {lang === 'en' ? 'Sort' : 'Trier'}
-                </label>
-                <select
-                  id="sort-mode"
-                  value={sortMode}
-                  onChange={(e) => setSortMode(e.target.value as SortMode)}
-                  aria-label={lang === 'en' ? 'Sort products' : 'Trier les produits'}
-                  className="text-[12px] font-bold bg-white/10 text-white border border-white/20 rounded-full px-3 py-1.5 outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-[#1B3A6B] cursor-pointer hover:bg-white/15 transition-colors"
-                >
-                  <option value="popularity" className="text-foreground">{lang === 'en' ? 'Popular' : 'Populaire'}</option>
-                  <option value="price-asc" className="text-foreground">{lang === 'en' ? 'Price ↑' : 'Prix ↑'}</option>
-                  <option value="price-desc" className="text-foreground">{lang === 'en' ? 'Price ↓' : 'Prix ↓'}</option>
-                </select>
-              </div>
-            </div>
+      {/* ============================================================
+          1. HERO — brand-black, tight, loss-aversion-adjacent copy.
+          Mirrors the homepage redesign at c08e02e: bg-[#0A0A0A],
+          brand-blue accent, brand-blue CTA, single trust strip.
+          ============================================================ */}
+      <section className="relative bg-[#0A0A0A] px-6 md:px-10 pt-[88px] pb-14 md:pb-16">
+        <div className="relative max-w-[1200px] mx-auto">
+          <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-[#0052CC] mb-3">
+            {lang === 'en'
+              ? 'Made in Québec · 5 business days'
+              : 'Fabriqué au Québec · 5 jours ouvrables'}
           </div>
+          <h1
+            className="font-bold text-white tracking-[-1.5px] leading-[1.02] text-[clamp(32px,5.2vw,64px)] max-w-[920px]"
+            style={{ fontFamily: '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800 }}
+          >
+            {lang === 'en' ? (
+              <>Your professional uniforms — <span className="text-[#0052CC]">delivered in 5 days.</span></>
+            ) : (
+              <>Tes uniformes professionnels — <span className="text-[#0052CC]">livrés en 5 jours.</span></>
+            )}
+          </h1>
+          <p className="mt-5 text-[15px] md:text-[17px] text-white/75 max-w-[640px] leading-relaxed">
+            {lang === 'en'
+              ? 'T-shirts, polos, hoodies, jackets, caps. Personalized with your logo. Starting at one piece.'
+              : 'T-shirts, polos, hoodies, vestes, casquettes. Personnalisés avec ton logo. À partir d\u2019une seule pièce.'}
+          </p>
+
+          {/* Single trust strip */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-white/70">
+            <span className="font-bold">
+              {lang === 'en' ? `${PRODUCTS.length} customizable products` : `${PRODUCTS.length} produits personnalisables`}
+            </span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? 'No minimum order' : 'Aucun minimum'}</span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? 'Free shipping $300+' : 'Livraison gratuite 300$+'}</span>
+          </div>
+
+          {/* Search */}
+          <div className="relative mt-7 max-w-[520px]">
+            <Search aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={lang === 'en' ? 'Search products… (\u2318K)' : 'Rechercher… (\u2318K)'}
+              aria-label={lang === 'en' ? 'Search products' : 'Rechercher des produits'}
+              aria-keyshortcuts="Meta+K"
+              className="w-full pl-11 pr-10 h-12 text-[14px] rounded-full bg-white/10 text-white placeholder:text-white/40 border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#0052CC] focus:border-transparent transition-all"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                aria-label={lang === 'en' ? 'Clear search' : 'Effacer la recherche'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 inline-flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
+              >
+                <X className="w-4 h-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter strip — categories + sort */}
+          <div className="mt-7">
+            {renderFilterStrip('hero')}
+          </div>
+        </div>
+
+        {/* Sentinel: when this leaves the viewport (user scrolls past
+            the hero), the sticky filter bar above the grid drops in. */}
+        <div ref={filterSentinelRef} aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full pointer-events-none" />
+      </section>
+
+      {/* Sticky filter bar — appears under the navbar once the user
+          scrolls past the hero. Clean white background with the same
+          pill controls so the filter never feels lost. */}
+      <div
+        className={`sticky top-[58px] z-30 bg-white/95 backdrop-blur-md border-b border-[#E5E7EB] transition-opacity duration-200 ${
+          filterSticky ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        aria-hidden={!filterSticky}
+      >
+        <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-3">
+          {renderFilterStrip('sticky')}
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-9 pb-32">
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-10 pb-32">
         {isLoading ? (
-          // Task 2.5 — skeleton mirrors ProductCard's real DOM so the
-          // catalog doesn't visually jump when the fetch resolves.
-          // Matching knobs (kept in sync with ProductCard.tsx):
-          //   - Outer: border-border rounded-[18px] bg-card
-          //   - Image container: aspectRatio 1 + bg-secondary
-          //   - Info: p-3.5 pb-4, three stacked placeholder lines
-          //     (title w-3/4, meta w-1/2, price w-1/3)
-          //   - Grid columns: 2 / md:3 / lg:4 — identical to the real
-          //     grid below so first-paint column count is stable
-          // prefers-reduced-motion disables the shimmer keyframe —
-          // static placeholder is still semantically the same loading
-          // state, it just doesn't animate.
+          // Skeleton mirrors ProductCard's real DOM so the catalog
+          // doesn't visually jump when the fetch resolves.
           <div
             className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
             role="status"
@@ -767,15 +612,12 @@ export default function Products() {
             `}</style>
           </div>
         ) : isError ? (
-          // Shopify Storefront returned an error (network, auth, 5xx).
-          // Before this, we just showed "no products" with no way to
-          // recover — the customer had to reload the whole tab to
-          // retry. Give them a scoped retry button.
+          // Storefront error — scoped retry button.
           <div className="text-center py-20" role="alert">
-            <p className="text-foreground text-lg font-bold mb-2">
+            <p className="text-[#0A0A0A] text-lg font-bold mb-2">
               {lang === 'en' ? 'Couldn\u2019t load the catalog' : 'Impossible de charger le catalogue'}
             </p>
-            <p className="text-sm text-muted-foreground mb-5">
+            <p className="text-sm text-[#6B7280] mb-5">
               {lang === 'en'
                 ? 'Check your connection and try again.'
                 : 'Vérifie ta connexion et réessaie.'}
@@ -783,39 +625,26 @@ export default function Products() {
             <button
               type="button"
               onClick={() => refetch()}
-              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] px-6 py-3 rounded-full shadow-[0_10px_30px_rgba(0,82,204,0.4)] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Retry' : 'Réessayer'}
             </button>
           </div>
         ) : !products || products.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-lg">
+            <p className="text-[#6B7280] text-lg">
               {lang === 'en' ? 'No products found' : 'Aucun produit trouvé'}
             </p>
           </div>
         ) : (
           <>
-            {searchQuery && (
-              <div className="flex items-center gap-3 mb-5 flex-wrap">
-                <span className="text-[13px] text-muted-foreground">
-                  {lang === 'en'
-                    ? `Results for "${searchQuery}"`
-                    : `Résultats pour \u00ab ${searchQuery} \u00bb`}
-                </span>
-              </div>
-            )}
-
             {/* Active-filter chip row + global Reset. Only rendered
-                when at least one filter is non-default so the chrome
-                stays out of the way on a clean /products view. Each
-                chip's × peels off exactly one filter; the trailing
-                "Réinitialiser les filtres" button nukes them all. */}
+                when at least one filter is non-default. */}
             {hasActiveFilters && (
-              <div className="flex flex-wrap items-center gap-2 mb-5">
+              <div className="flex flex-wrap items-center gap-2 mb-6">
                 {activeCategory !== 'overview' && (
                   <span
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-secondary text-foreground pl-3 pr-1 py-1"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-[#F3F4F6] text-[#0A0A0A] pl-3 pr-1 py-1"
                     aria-label={lang === 'en' ? `Category: ${activeCategoryLabel}` : `Catégorie : ${activeCategoryLabel}`}
                   >
                     <span>
@@ -826,7 +655,7 @@ export default function Products() {
                       type="button"
                       onClick={() => setActiveCategory('overview')}
                       aria-label={lang === 'en' ? `Remove category filter ${activeCategoryLabel}` : `Retirer la catégorie ${activeCategoryLabel}`}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-[#0A0A0A]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
                     >
                       <X className="w-3 h-3" aria-hidden="true" />
                     </button>
@@ -834,7 +663,7 @@ export default function Products() {
                 )}
                 {trimmedDebouncedQuery !== '' && (
                   <span
-                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-secondary text-foreground pl-3 pr-1 py-1"
+                    className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full bg-[#F3F4F6] text-[#0A0A0A] pl-3 pr-1 py-1"
                     aria-label={lang === 'en' ? `Search: ${trimmedDebouncedQuery}` : `Recherche : ${trimmedDebouncedQuery}`}
                   >
                     <span>
@@ -845,7 +674,7 @@ export default function Products() {
                       type="button"
                       onClick={() => setSearchQuery('')}
                       aria-label={lang === 'en' ? 'Clear search filter' : 'Effacer la recherche'}
-                      className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full hover:bg-[#0A0A0A]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
                     >
                       <X className="w-3 h-3" aria-hidden="true" />
                     </button>
@@ -854,7 +683,7 @@ export default function Products() {
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-full px-2 py-1"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded-full px-2 py-1"
                 >
                   <X className="w-3.5 h-3.5" aria-hidden="true" />
                   {lang === 'en' ? 'Clear filters' : 'Réinitialiser les filtres'}
@@ -862,62 +691,34 @@ export default function Products() {
               </div>
             )}
 
-            {activeCategory !== 'overview' && !searchQuery && (
-              <h2 className="text-xl font-extrabold text-foreground mb-[18px]">
-                {lang === 'en'
-                  ? CATEGORIES.find(c => c.id === activeCategory)?.en
-                  : CATEGORIES.find(c => c.id === activeCategory)?.fr}
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  {lang === 'en'
-                    ? plural(filteredProducts.length, { one: '{count} product', other: '{count} products' }, 'en')
-                    : plural(filteredProducts.length, { one: '{count} produit', other: '{count} produits' }, 'fr')}
-                </span>
-              </h2>
-            )}
-
-            {/* Task 2.15 — breadth-of-catalog meta line. Product count +
-                real-color total (via filterRealColors so ghosts don't
-                inflate) give shoppers a one-glance read on what's
-                filtered. Shown whenever there are results, regardless
-                of category/search, so the answer to "how much is
-                here?" is always visible above the grid. */}
+            {/* Single result count line — replaces the redundant h2 +
+                breadth meta paragraph from the previous design. */}
             {filteredProducts.length > 0 && (
-              <p className="text-[12px] text-muted-foreground mb-4">
+              <p className="text-[12px] text-[#6B7280] mb-5">
                 {lang === 'en'
                   ? plural(filteredProducts.length, { one: '{count} product', other: '{count} products' }, 'en')
                   : plural(filteredProducts.length, { one: '{count} produit', other: '{count} produits' }, 'fr')}
-                {totalRealColors > 0 && (
-                  <>
-                    {' \u00b7 '}
-                    {lang === 'en'
-                      ? plural(totalRealColors, { one: '{count} color available', other: '{count} colors available' }, 'en')
-                      : plural(totalRealColors, { one: '{count} couleur disponible', other: '{count} couleurs disponibles' }, 'fr')}
-                  </>
-                )}
               </p>
             )}
 
             {filteredProducts.length === 0 ? (
               <div className="py-12">
                 {searchQuery ? (
-                  // Search-driven empty state: big muted Search icon,
-                  // friendly heading echoing the query, helper subtext,
-                  // a Clear-search button, nearest-category chips, and
-                  // a 3-card Populaires row of curated best-sellers.
+                  // Search-driven empty state.
                   <>
                     <div className="mx-auto max-w-[480px] text-center flex flex-col items-center">
-                      <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5" aria-hidden="true">
-                        <SearchX className="w-7 h-7 text-muted-foreground" />
+                      <div className="w-16 h-16 rounded-full bg-[#F3F4F6] flex items-center justify-center mb-5" aria-hidden="true">
+                        <SearchX className="w-7 h-7 text-[#6B7280]" />
                       </div>
-                      <h2 className="text-xl md:text-2xl font-extrabold text-foreground mb-2">
+                      <h2 className="text-xl md:text-2xl font-extrabold text-[#0A0A0A] mb-2">
                         {lang === 'en' ? 'No results' : 'Aucun r\u00e9sultat'}
                       </h2>
-                      <p className="text-sm text-muted-foreground mb-1">
+                      <p className="text-sm text-[#6B7280] mb-1">
                         {lang === 'en'
                           ? `for \u00ab ${searchQuery} \u00bb`
                           : `pour \u00ab ${searchQuery} \u00bb`}
                       </p>
-                      <p className="text-sm text-muted-foreground mb-5">
+                      <p className="text-sm text-[#6B7280] mb-5">
                         {lang === 'en'
                           ? 'Try adjusting your filters or explore our best-sellers below.'
                           : 'Ajuste tes filtres ou explore nos best-sellers ci-dessous.'}
@@ -925,7 +726,7 @@ export default function Products() {
                       <button
                         type="button"
                         onClick={clearAllFilters}
-                        className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                        className="inline-flex items-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] px-6 py-2.5 rounded-full shadow-[0_10px_30px_rgba(0,82,204,0.4)] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
                       >
                         <X className="w-4 h-4" aria-hidden="true" />
                         {lang === 'en' ? 'Clear filters' : 'R\u00e9initialiser les filtres'}
@@ -934,7 +735,7 @@ export default function Products() {
 
                     {nearestCategories.length > 0 && (
                       <div className="mt-6 flex items-center justify-center gap-2 flex-wrap">
-                        <span className="text-[12px] text-muted-foreground">
+                        <span className="text-[12px] text-[#6B7280]">
                           {lang === 'en' ? 'Try a category:' : 'Essaie une cat\u00e9gorie :'}
                         </span>
                         {nearestCategories.map(cat => (
@@ -942,7 +743,7 @@ export default function Products() {
                             key={cat.id}
                             type="button"
                             onClick={() => selectCategory(cat.id)}
-                            className="text-[12px] font-bold px-3 py-1.5 rounded-full bg-secondary text-foreground hover:bg-primary hover:text-primary-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                            className="text-[12px] font-bold px-3 py-1.5 rounded-full bg-white text-[#374151] border border-[#E5E7EB] hover:bg-[#0052CC] hover:text-white hover:border-[#0052CC] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
                           >
                             {lang === 'en' ? cat.en : cat.fr}
                           </button>
@@ -953,7 +754,7 @@ export default function Products() {
                     {popularSuggestions.length > 0 && (
                       <div className="mt-10">
                         <div className="flex items-baseline justify-between gap-3 mb-4 flex-wrap">
-                          <h3 className="text-lg font-extrabold text-foreground">
+                          <h3 className="text-lg font-extrabold text-[#0A0A0A]">
                             {lang === 'en' ? 'Popular' : 'Populaires'}
                           </h3>
                           <button
@@ -962,7 +763,7 @@ export default function Products() {
                               setSearchQuery('');
                               setActiveCategory('overview');
                             }}
-                            className="text-[12px] font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                            className="text-[12px] font-bold text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
                           >
                             {lang === 'en' ? 'See all \u2192' : 'Voir tous \u2192'}
                           </button>
@@ -982,17 +783,15 @@ export default function Products() {
                     )}
                   </>
                 ) : (
-                  // Truly empty catalog slice: a category filter matched
-                  // nothing. No search to clear — instead, a "Voir tout"
-                  // button resets the category filter back to overview.
+                  // Truly empty catalog slice — no search to clear.
                   <div className="mx-auto max-w-[480px] text-center flex flex-col items-center">
-                    <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-5" aria-hidden="true">
-                      <SearchX className="w-7 h-7 text-muted-foreground" />
+                    <div className="w-16 h-16 rounded-full bg-[#F3F4F6] flex items-center justify-center mb-5" aria-hidden="true">
+                      <SearchX className="w-7 h-7 text-[#6B7280]" />
                     </div>
-                    <h2 className="text-xl md:text-2xl font-extrabold text-foreground mb-2">
+                    <h2 className="text-xl md:text-2xl font-extrabold text-[#0A0A0A] mb-2">
                       {lang === 'en' ? 'No results' : 'Aucun r\u00e9sultat'}
                     </h2>
-                    <p className="text-sm text-muted-foreground mb-5">
+                    <p className="text-sm text-[#6B7280] mb-5">
                       {lang === 'en'
                         ? 'Try adjusting your filters or browse the full catalog.'
                         : 'Ajuste tes filtres ou parcours le catalogue complet.'}
@@ -1000,7 +799,7 @@ export default function Products() {
                     <button
                       type="button"
                       onClick={clearAllFilters}
-                      className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                      className="inline-flex items-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] px-6 py-2.5 rounded-full shadow-[0_10px_30px_rgba(0,82,204,0.4)] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
                     >
                       <X className="w-4 h-4" aria-hidden="true" />
                       {lang === 'en' ? 'Clear filters' : 'R\u00e9initialiser les filtres'}
@@ -1011,12 +810,6 @@ export default function Products() {
             ) : (
               <>
                 {showRecentlyViewed && (
-                  // Task 2.16 — rendered inside the same max-w-[1200px] container
-                  // as the grid so its edges align with the product cards below.
-                  // RecentlyViewed internally renders a 2-col mobile / 4-col
-                  // desktop grid which reads as a horizontal strip on narrow
-                  // viewports and a tidy row on wide ones. Capped at 6 via the
-                  // `limit` prop so it never outruns the grid width.
                   <div className="mb-8">
                     <RecentlyViewed limit={6} />
                   </div>
@@ -1024,18 +817,11 @@ export default function Products() {
                 <div
                   ref={gridRef}
                   onKeyDown={handleGridKeyDown}
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
                 >
                 {visibleProducts.map((product, i) => {
-                  // Defensive key fallback: an id might be missing on a
-                  // brand-new product. Fall back to handle, then to
-                  // index — React just needs uniqueness within the list.
                   const key = product?.node?.id ?? product?.node?.handle ?? `idx-${i}`;
                   try {
-                    // First row is above the fold (2-col mobile, 4-col desktop)
-                    // — mark those eager so the LCP image isn't lazy-loaded.
-                    // Task 2.18 — pass the debounced search query so the
-                    // card's title highlights the matching substring.
                     return <ProductCard key={key} product={product} eager={i < 4} highlight={debouncedQuery} />;
                   } catch (err) {
                     console.warn('[Products] ProductCard threw, skipping', key, err);
@@ -1044,16 +830,10 @@ export default function Products() {
                 })}
                 </div>
 
-                {/* Task 2.17 — pagination footer. Only renders when the
-                    filtered set crosses PAGE_SIZE (30). The count line
-                    ("Affichage de 1-30 sur 42") sits above a load-more
-                    pill that reveals PAGE_SIZE more per click. Full-
-                    width on mobile so it reads as a primary action;
-                    auto width / centered on desktop so it doesn't feel
-                    like a form field stretched edge-to-edge. */}
+                {/* Pagination footer — only when filtered set > PAGE_SIZE. */}
                 {filteredProducts.length > PAGE_SIZE && (
                   <div className="mt-10 flex flex-col items-center gap-4">
-                    <p className="text-[12px] text-muted-foreground" aria-live="polite">
+                    <p className="text-[12px] text-[#6B7280]" aria-live="polite">
                       {lang === 'en'
                         ? `Showing 1-${visibleProducts.length} of ${filteredProducts.length}`
                         : `Affichage de 1-${visibleProducts.length} sur ${filteredProducts.length}`}
@@ -1062,7 +842,7 @@ export default function Products() {
                       <button
                         type="button"
                         onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                        className="w-full md:w-auto inline-flex items-center justify-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3 rounded-full shadow-navy hover:opacity-95 transition-opacity focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                        className="w-full md:w-auto inline-flex items-center justify-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] px-9 h-[52px] rounded-full shadow-[0_10px_30px_rgba(0,82,204,0.4)] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
                       >
                         {lang === 'en' ? 'Load more' : 'Charger plus'}
                       </button>
@@ -1080,4 +860,3 @@ export default function Products() {
     </div>
   );
 }
-
