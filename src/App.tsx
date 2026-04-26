@@ -12,6 +12,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { CookieConsent } from "@/components/CookieConsent";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
+import { SocialProofNotification } from "@/components/SocialProofNotification";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 // Cart, ProductDetail, NotFound used to be eager — there's no reason
@@ -327,6 +328,7 @@ const App = () => (
                 sessionStorage timer + pathname-based suppression on
                 /checkout + /admin). */}
             <WhatsAppButton />
+            <SocialProofNotification />
             <Suspense fallback={<LazyFallback />}>
               <AnimatedRoutes />
             </Suspense>
