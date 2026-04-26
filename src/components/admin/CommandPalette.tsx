@@ -140,9 +140,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
   // Clamp the active index whenever the sequence shrinks — otherwise the
   // highlight would point past the end of the list and Enter would be a
-  // no-op.
+  // no-op. Clamp to the last valid index instead of jumping to 0 so the
+  // user keeps their place when filter results narrow down.
   useEffect(() => {
-    if (active >= sequence.length) setActive(0);
+    if (active >= sequence.length) {
+      setActive(sequence.length === 0 ? 0 : sequence.length - 1);
+    }
   }, [sequence.length, active]);
 
   const go = useCallback((to: string) => {
