@@ -68,23 +68,15 @@ type QuoteRow = {
   age: string;
   // ISO string when present — kept separate from the relative `age`
   // label so CSV export can format a stable fr-CA date and the expiry
-  // badge can compare against `now`. Optional because MOCK rows don't
-  // carry it and older localStorage rows predate the field.
+  // badge can compare against `now`. Optional because older localStorage
+  // rows predate the field.
   createdAt?: string;
   expiresAt?: string;
   // Rich payload carried forward from localStorage so the convert-to-
   // order dialog can show the real line items + rebuild the manual
-  // order record without re-reading storage. Undefined for MOCK rows.
+  // order record without re-reading storage.
   lineItems?: QuoteLineItem[];
 };
-
-const MOCK: QuoteRow[] = [
-  { id: 'q1', number: 'Q-2026-0042', vendor: 'Sophie Tremblay',      client: 'Sous Pression', items: 3, total: 1840, discount: 10, discountKind: 'percent', status: 'viewed',  age: 'il y a 2h' },
-  { id: 'q2', number: 'Q-2026-0041', vendor: 'Marc-André Pelletier', client: 'Perfocazes',    items: 2, total: 620,  discount: 0,  discountKind: 'percent', status: 'paid',    age: 'il y a 5h' },
-  { id: 'q3', number: 'Q-2026-0040', vendor: 'Sophie Tremblay',      client: 'Lacasse',       items: 5, total: 3450, discount: 15, discountKind: 'percent', status: 'sent',    age: 'il y a 1j' },
-  { id: 'q4', number: 'Q-2026-0039', vendor: 'Julie Gagnon',         client: 'CFP Québec',    items: 4, total: 2100, discount: 8,  discountKind: 'percent', status: 'viewed',  age: 'il y a 2j' },
-  { id: 'q5', number: 'Q-2026-0038', vendor: 'Marc-André Pelletier', client: 'Extreme Fab',   items: 6, total: 4250, discount: 12, discountKind: 'percent', status: 'paid',    age: 'il y a 3j' },
-];
 
 const STATUS_LABEL: Record<Status, string> = {
   draft: 'Brouillon', sent: 'Envoyé', viewed: 'Vu',
@@ -230,7 +222,7 @@ export default function AdminQuotes() {
   const [filter, setFilter] = useState<Status | 'all'>(initialFilter);
   const [savedQuotes, setSavedQuotes] = useState<QuoteRow[]>([]);
   const [page, setPage] = useState(0);
-  // null = no active sort (keep source order — mixed savedQuotes + MOCK).
+  // null = no active sort (keep source order from savedQuotes).
   // 'asc'/'desc' = click-to-sort on the Total header. Single column is
   // enough here; the admin already filters by status and searches by
   // client, so a full multi-column sort would be over-engineered.
@@ -322,7 +314,7 @@ export default function AdminQuotes() {
     }
   }, []);
 
-  const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
+  const all = useMemo(() => [...savedQuotes], [savedQuotes]);
 
   // Task 9.14 — flip the source quote's status to 'converted' in both
   // the in-memory list (so the table re-renders without the button)
@@ -375,7 +367,7 @@ export default function AdminQuotes() {
     // Prefer the quote's authoritative total when available — it already
     // includes the live Shopify variant price + print fee — and fall
     // back to the recomputed matrix total for legacy rows without a
-    // persisted `total` (older shape, or the MOCK fixtures).
+    // persisted `total` (older shape).
     const totalFromMatrix = computeLineItemsTotal(lineItems);
     const total = Number.isFinite(quote.total) && quote.total > 0 ? quote.total : totalFromMatrix;
     const orderNumber = nextManualOrderNumber(now);

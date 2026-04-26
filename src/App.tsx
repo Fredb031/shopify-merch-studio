@@ -123,13 +123,6 @@ const Compare = lazy(() => import("./pages/Compare"));
 // race with the first card render.
 import { CompareBar } from "@/components/CompareBar";
 
-// Blog / content hub (Task 11.6) — /blog index + /blog/:slug stub. Lazy
-// because merch-tips content is reached from a footer link, not the
-// home hot path; keeping it out of the Index chunk matches how legal
-// stubs and Contact are split.
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
-
 // Mega Blueprint §08.3 — industry-specific SEO landing pages. Each
 // targets a Quebec keyword cluster (uniformes construction Québec,
 // vêtements paysagement Québec, etc.) and reuses a shared
@@ -147,8 +140,7 @@ const IndustryMunicipalites = lazy(() => import("./pages/industries/Municipalite
 
 // Volume II §14 — /histoires-de-succes hub + /:slug detail. Lazy
 // because they're reached from the homepage mini-card row and the
-// nav, not the home hot path; matches how /industries and /blog
-// are split.
+// nav, not the home hot path; matches how /industries is split.
 const CaseStudies = lazy(() => import("./pages/CaseStudies"));
 const CaseStudyDetail = lazy(() => import("./pages/CaseStudyDetail"));
 
@@ -357,8 +349,6 @@ const AnimatedRoutes = () => {
           <Route path="/merci" element={<ThankYou />} />
           <Route path="/comparer" element={<Compare />} />
           <Route path="/about" element={<About />} />
-          <Route path="/blog" element={<Blog />} />
-          <Route path="/blog/:slug" element={<BlogPost />} />
 
           {/* Mega Blueprint §08.3 — industry SEO landing pages. */}
           <Route path="/industries" element={<IndustriesHub />} />

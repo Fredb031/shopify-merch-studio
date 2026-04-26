@@ -19,23 +19,13 @@ interface MockQuote {
   discountKind: DiscountKind;
   status: Status;
   age: string;
-  // ISO strings when present — kept optional because MOCK fixtures and
-  // older localStorage rows predate the fields. Used by the CSV export
-  // to emit stable fr-CA dates (Créé / Expire) instead of the relative
-  // `age` label, which isn't reload-stable.
+  // ISO strings when present — kept optional because older localStorage
+  // rows predate the fields. Used by the CSV export to emit stable fr-CA
+  // dates (Créé / Expire) instead of the relative `age` label, which
+  // isn't reload-stable.
   createdAt?: string;
   expiresAt?: string;
 }
-
-const MOCK: MockQuote[] = [
-  { id: 'q1', number: 'Q-2026-0042', client: 'Sous Pression', email: 'anthony@sp.ca', items: 3, total: 1840, discount: 10, discountKind: 'percent', status: 'viewed', age: 'il y a 2h' },
-  { id: 'q2', number: 'Q-2026-0041', client: 'Perfocazes',    email: 'hubert@p.com', items: 2, total: 620,  discount: 0,  discountKind: 'percent', status: 'paid',   age: 'il y a 5h' },
-  { id: 'q3', number: 'Q-2026-0040', client: 'Lacasse',       email: 'marie@l.com',  items: 5, total: 3450, discount: 15, discountKind: 'percent', status: 'sent',   age: 'il y a 1j' },
-  { id: 'q4', number: 'Q-2026-0039', client: 'CFP Québec',    email: 'info@cfp.qc', items: 4, total: 2100, discount: 8,  discountKind: 'percent', status: 'viewed', age: 'il y a 2j' },
-  { id: 'q5', number: 'Q-2026-0038', client: 'Extreme Fab',   email: 'info@ef.ca',   items: 6, total: 4250, discount: 12, discountKind: 'percent', status: 'paid',   age: 'il y a 3j' },
-  { id: 'q6', number: 'Q-2026-0037', client: 'Draft test',    email: '',             items: 1, total: 240,  discount: 0,  discountKind: 'percent', status: 'draft',  age: 'il y a 5j' },
-  { id: 'q7', number: 'Q-2026-0036', client: 'Uni',           email: 'uni@u.ca',     items: 3, total: 1260, discount: 5,  discountKind: 'percent', status: 'expired', age: 'il y a 20j' },
-];
 
 const STATUS_LABEL: Record<Status, string> = {
   draft: 'Brouillon',
@@ -208,7 +198,7 @@ export default function QuoteList() {
     }
   }, []);
 
-  const all = useMemo(() => [...savedQuotes, ...MOCK], [savedQuotes]);
+  const all = useMemo(() => [...savedQuotes], [savedQuotes]);
 
   const filtered = useMemo(() => {
     // ZWSP-safe search — same pattern as AdminQuotes / AdminOrders.
