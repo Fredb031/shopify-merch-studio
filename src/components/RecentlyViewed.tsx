@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { History } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
@@ -19,7 +20,28 @@ import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
  */
 export function RecentlyViewed({ limit = 8 }: { limit?: number }) {
   const { lang } = useLang();
-  const { handles, clear } = useRecentlyViewed();
+  const { handles, clear, remove } = useRecentlyViewed();
+
+  // Resolve each stored handle against the product catalogue. A handle
+  // that no longer matches (catalogue churn, a renamed product, a
+  // devtools-injected typo) is silently dropped from `items` below, but
+  // it stays in storage and keeps inflating `handles.length`. That
+  // matters because Products.tsx gates this strip on
+  // `handles.length >= 2` — three stored handles where two are stale
+  // would pass the gate and then render a lone single-item strip,
+  // exactly the "near-empty clutter" the gate was meant to prevent.
+  // Prune unresolved handles in an effect so the in-memory handles
+  // list (and persisted storage) stays in sync with the live catalogue.
+  const stale = handles.filter(h => !PRODUCTS.some(p => p.shopifyHandle === h));
+  useEffect(() => {
+    if (stale.length === 0) return;
+    for (const h of stale) remove(h);
+    // `stale` is recomputed each render from `handles`; depending on
+    // its joined identity keeps the effect quiet when nothing is stale
+    // and re-fires only when the set of unresolved handles changes
+    // (e.g. after a product is removed from the catalogue between
+    // navigations). `remove` is stable per useCallback([]) in the hook.
+  }, [stale.join('|'), remove]);
 
   const items = handles
     .map(h => PRODUCTS.find(p => p.shopifyHandle === h))
