@@ -30,16 +30,25 @@ export function CartRecommendations() {
   const { lang, t } = useLang();
   const items = useCartStore(s => s.items);
 
+  // Stable key over just the product-id membership of the cart so the rec
+  // memo below doesn't re-run on every qty bump / option toggle (which mutate
+  // `items` but leave the set of product IDs unchanged). Sorted+joined so
+  // reordering items in the cart also doesn't invalidate the memo.
+  const productIdsKey = useMemo(
+    () => Array.from(new Set(items.map(it => it.productId))).sort().join('|'),
+    [items],
+  );
+
   // Memoise the rec computation: PRODUCTS is a static array of ~dozens of
   // entries, but recomputing the filter+sort on every cart store update (qty
   // bumps, option toggles in the drawer) wastes work. Re-runs only when the
   // cart's product membership actually changes.
   const recs = useMemo(() => {
-    if (items.length === 0) return [];
-    const inCartIds = new Set(items.map(it => it.productId));
+    if (productIdsKey === '') return [];
+    const inCartIds = new Set(productIdsKey.split('|'));
     const categoriesInCart = new Set(
-      items
-        .map(it => PRODUCTS.find(p => p.id === it.productId)?.category)
+      Array.from(inCartIds)
+        .map(id => PRODUCTS.find(p => p.id === id)?.category)
         .filter(Boolean),
     );
     return PRODUCTS
@@ -51,7 +60,7 @@ export function CartRecommendations() {
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_RECS)
       .map(x => x.p);
-  }, [items]);
+  }, [productIdsKey]);
 
   if (items.length === 0) return null;
   if (recs.length === 0) return null;
