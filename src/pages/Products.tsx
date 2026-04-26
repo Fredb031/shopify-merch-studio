@@ -435,7 +435,7 @@ export default function Products() {
         <div className="flex items-center gap-2 pb-1 md:pb-0 md:shrink-0">
           <label
             htmlFor={variant === 'hero' ? 'sort-mode' : 'sort-mode-sticky'}
-            className={`text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap ${onLight ? 'text-[#6B7280]' : 'text-white/60'}`}
+            className={`text-[11px] font-semibold tracking-wide uppercase whitespace-nowrap ${onLight ? 'text-[#374151]' : 'text-white/60'}`}
           >
             {lang === 'en' ? 'Sort' : 'Trier'}
           </label>
@@ -617,7 +617,7 @@ export default function Products() {
             <p className="text-[#0A0A0A] text-lg font-bold mb-2">
               {lang === 'en' ? 'Couldn\u2019t load the catalog' : 'Impossible de charger le catalogue'}
             </p>
-            <p className="text-sm text-[#6B7280] mb-5">
+            <p className="text-sm text-[#374151] mb-5">
               {lang === 'en'
                 ? 'Check your connection and try again.'
                 : 'Vérifie ta connexion et réessaie.'}
@@ -632,7 +632,7 @@ export default function Products() {
           </div>
         ) : !products || products.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-[#6B7280] text-lg">
+            <p className="text-[#374151] text-lg">
               {lang === 'en' ? 'No products found' : 'Aucun produit trouvé'}
             </p>
           </div>
@@ -694,7 +694,7 @@ export default function Products() {
             {/* Single result count line — replaces the redundant h2 +
                 breadth meta paragraph from the previous design. */}
             {filteredProducts.length > 0 && (
-              <p className="text-[12px] text-[#6B7280] mb-5">
+              <p className="text-[12px] text-[#374151] mb-5">
                 {lang === 'en'
                   ? plural(filteredProducts.length, { one: '{count} product', other: '{count} products' }, 'en')
                   : plural(filteredProducts.length, { one: '{count} produit', other: '{count} produits' }, 'fr')}
@@ -713,12 +713,12 @@ export default function Products() {
                       <h2 className="text-xl md:text-2xl font-extrabold text-[#0A0A0A] mb-2">
                         {lang === 'en' ? 'No results' : 'Aucun r\u00e9sultat'}
                       </h2>
-                      <p className="text-sm text-[#6B7280] mb-1">
+                      <p className="text-sm text-[#374151] mb-1">
                         {lang === 'en'
                           ? `for \u00ab ${searchQuery} \u00bb`
                           : `pour \u00ab ${searchQuery} \u00bb`}
                       </p>
-                      <p className="text-sm text-[#6B7280] mb-5">
+                      <p className="text-sm text-[#374151] mb-5">
                         {lang === 'en'
                           ? 'Try adjusting your filters or explore our best-sellers below.'
                           : 'Ajuste tes filtres ou explore nos best-sellers ci-dessous.'}
@@ -791,7 +791,7 @@ export default function Products() {
                     <h2 className="text-xl md:text-2xl font-extrabold text-[#0A0A0A] mb-2">
                       {lang === 'en' ? 'No results' : 'Aucun r\u00e9sultat'}
                     </h2>
-                    <p className="text-sm text-[#6B7280] mb-5">
+                    <p className="text-sm text-[#374151] mb-5">
                       {lang === 'en'
                         ? 'Try adjusting your filters or browse the full catalog.'
                         : 'Ajuste tes filtres ou parcours le catalogue complet.'}
@@ -833,7 +833,7 @@ export default function Products() {
                 {/* Pagination footer — only when filtered set > PAGE_SIZE. */}
                 {filteredProducts.length > PAGE_SIZE && (
                   <div className="mt-10 flex flex-col items-center gap-4">
-                    <p className="text-[12px] text-[#6B7280]" aria-live="polite">
+                    <p className="text-[12px] text-[#374151]" aria-live="polite">
                       {lang === 'en'
                         ? `Showing 1-${visibleProducts.length} of ${filteredProducts.length}`
                         : `Affichage de 1-${visibleProducts.length} sur ${filteredProducts.length}`}

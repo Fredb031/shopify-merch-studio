@@ -475,7 +475,7 @@ export default function Index() {
                 <div className="mt-3 text-[13px] font-bold uppercase tracking-[2px] text-foreground/70">
                   {stat.label}
                 </div>
-                <div className="mt-2 text-[13px] text-muted-foreground max-w-[260px]">
+                <div className="mt-2 text-[13px] text-[#374151] max-w-[260px]">
                   {stat.sub}
                 </div>
               </div>
@@ -556,7 +556,7 @@ export default function Index() {
                       <div className="text-[19px] md:text-[21px] font-extrabold text-foreground tracking-[-0.4px] mb-2">
                         {step.title}
                       </div>
-                      <p className="text-[14px] text-muted-foreground leading-relaxed">
+                      <p className="text-[14px] text-[#374151] leading-relaxed">
                         {step.body}
                       </p>
                     </div>
@@ -610,7 +610,7 @@ export default function Index() {
                     </div>
                     <GoogleIcon />
                   </div>
-                  <p className="text-[13.5px] text-muted-foreground leading-relaxed">{r.txt}</p>
+                  <p className="text-[13.5px] text-[#374151] leading-relaxed">{r.txt}</p>
                 </div>
               ))}
             </div>
@@ -705,7 +705,7 @@ export default function Index() {
                       className="faq-chevron flex-shrink-0 text-[#0A0A0A] transition-transform duration-200"
                     />
                   </summary>
-                  <div className="px-5 pb-4 pt-0 text-[14px] text-muted-foreground leading-[1.7]">
+                  <div className="px-5 pb-4 pt-0 text-[14px] text-[#374151] leading-[1.7]">
                     {item.a}
                   </div>
                 </details>
@@ -721,7 +721,7 @@ export default function Index() {
           <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
             {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}
           </h2>
-          <p className="text-[15px] text-muted-foreground mb-[34px]">
+          <p className="text-[15px] text-[#374151] mb-[34px]">
             {lang === 'en' ? 'No minimum · 1-year quality guarantee · 5 business days' : 'Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables'}
           </p>
           <Link
