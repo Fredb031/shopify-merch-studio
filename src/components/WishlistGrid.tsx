@@ -130,7 +130,7 @@ export function WishlistGrid({ limit = 6 }: { limit?: number }) {
       // AbortError fires when the user dismisses the share sheet —
       // not a failure, just a no-op from the user's perspective.
       if ((err as Error)?.name === 'AbortError') return;
-      console.warn('[WishlistGrid] share failed:', err);
+      // silent
     }
     setShareState(nextState);
     if (shareTimerRef.current) clearTimeout(shareTimerRef.current);

@@ -2029,8 +2029,8 @@ export default function ProductDetail() {
                       <ProductCard product={p} />
                     </div>
                   );
-                } catch (err) {
-                  console.warn('[ProductDetail] similar ProductCard threw, skipping', key, err);
+                } catch {
+                  // silent
                   return null;
                 }
               })}

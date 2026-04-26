@@ -273,7 +273,6 @@ export const useCartStore = create<CartStore>()(
               // drop the orphan so the cart doesn't show the variant
               // twice. Previously this path silently `return`ed, which
               // made the add button feel broken on affected sessions.
-              console.warn('[cartStore] Existing local line missing lineId — re-adding fresh and dropping orphan');
               set({ items: get().items.filter(i => i.variantId !== item.variantId) });
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
@@ -320,8 +319,6 @@ export const useCartStore = create<CartStore>()(
               delegatedToRecursion = true;
               await get().addItem(item, signal);
               return;
-            } else if (result.success && !result.lineId) {
-              console.warn('[cartStore] Shopify addLine succeeded but returned no lineId — refusing to add orphan item.');
             }
           }
         } catch (error) {

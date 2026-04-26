@@ -196,7 +196,6 @@ async function fetchProfile(userId: string) {
       .maybeSingle();
     if (!error) return (data as { id: string; email: string; full_name: string | null; role: UserRole; title: string | null } | null) ?? null;
     if (attempt === delays.length - 1) {
-      console.warn('[authStore] fetchProfile gave up after retries:', error.message);
       return null;
     }
   }
@@ -273,10 +272,9 @@ async function syncOwnerProfile(authUser: { id: string; email?: string }, fullNa
       row.title = 'Président';
     }
     await supabase.from('profiles').upsert(row, { onConflict: 'id' });
-  } catch (e) {
+  } catch {
     // Non-fatal: the user can still sign in; the email fallback in
     // buildUser covers the owner case.
-    console.warn('[authStore] Could not upsert profile row on sign-in:', e);
   }
 }
 
@@ -409,8 +407,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     // links on the navbar even though they just clicked 'Sign out'.
     try {
       await supabase.auth.signOut();
-    } catch (e) {
-      console.warn('[authStore] supabase.auth.signOut failed; clearing local state anyway:', e);
+    } catch {
+      // silent — local state cleared below regardless
     }
     // Also reset `error` so a stale "invalid credentials" banner from a
     // prior failed attempt doesn't persist past an explicit sign-out,
@@ -433,16 +431,16 @@ export const useAuthStore = create<AuthState>((set) => ({
         'vision-admin-settings',
       ];
       keys.forEach(k => localStorage.removeItem(k));
-    } catch (e) {
-      console.warn('[authStore] Could not clear persisted stores on signOut:', e);
+    } catch {
+      // silent
     }
     // Also wipe sessionStorage entries so the AIChat transcript and any
     // future session-scoped admin caches don't leak across sign-out
     // boundaries on a shared browser.
     try {
       sessionStorage.removeItem('vision-aichat-transcript');
-    } catch (e) {
-      console.warn('[authStore] Could not clear sessionStorage on signOut:', e);
+    } catch {
+      // silent
     }
     // Reset the stores' IN-MEMORY state too. localStorage.removeItem
     // clears the persisted payload but Zustand keeps its current
@@ -460,8 +458,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       useLocalCart.getState().clear();
       useShopifyCart.getState().clearCart();
       useCustomizerStore.getState().reset();
-    } catch (e) {
-      console.warn('[authStore] Could not reset in-memory stores on signOut:', e);
+    } catch {
+      // silent
     }
   },
 

@@ -57,11 +57,10 @@ export function SaveDesignButton({ current, className }: Props) {
 
       saveDesign({ ...current, name });
       toast.success('Design sauvegardé');
-    } catch (err) {
+    } catch {
       // saveDesign() itself shouldn't throw — readLS/writeLS swallow
       // storage errors — but a future Supabase swap might surface a
       // network error here, so guard the whole path.
-      console.warn('[SaveDesignButton] save failed', err);
       toast.error('Impossible de sauvegarder le design');
     } finally {
       setBusy(false);

@@ -9,15 +9,14 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 // Task 10.4 — public vendor profile. A vendor needs a shareable URL to
 // hand to prospects on LinkedIn / email signatures / business cards.
 // This page is intentionally lightweight: chrome (Navbar/Footer), a
-// hero card, a bio block, three stat tiles, and a CTA to /contact with
-// the vendor id prefilled. No auth — the whole point is that cold
-// prospects can open it.
+// hero card, three stat tiles, and a CTA to /contact with the vendor
+// id prefilled. No auth — the whole point is that cold prospects can
+// open it.
 //
 // TODO(vendor-profiles): move VENDOR_PROFILES out of this file once the
 // backend exposes a vendor_profiles table. The keys here MUST stay in
 // sync with SEED_VENDORS in AdminVendors.tsx and the email→id map in
-// lib/commissions.ts (resolveVendorIdForUser). The bio copy below is a
-// placeholder — the owning vendor supplies the real paragraph.
+// lib/commissions.ts (resolveVendorIdForUser).
 
 interface VendorProfile {
   id: string;

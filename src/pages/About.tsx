@@ -110,9 +110,6 @@ export default function About() {
           </p>
         </section>
 
-        {/* Block 1 — Founded in Québec. TODO: real founder story.
-            Keep the shape (H2 + 2-3 short paragraphs) when swapping
-            in the real narrative so the page rhythm doesn't break. */}
         {/* TODO(about): replace placeholder narrative with real founder
             story + founding year once the shop owner provides copy.
             Keep bilingual pairing and the 2-3 paragraph rhythm. */}

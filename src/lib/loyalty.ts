@@ -51,8 +51,8 @@ function readAccount(): LoyaltyAccount {
     const lifetime = typeof parsed.lifetime === 'number' && parsed.lifetime >= 0 ? parsed.lifetime : 0;
     // Tier is derived from lifetime; never trust a stale value on disk.
     return { points, lifetime, tier: tierOf(lifetime) };
-  } catch (e) {
-    console.warn('[loyalty] Could not read account:', e);
+  } catch {
+    // silent
     return { ...DEFAULT };
   }
 }
@@ -60,8 +60,8 @@ function readAccount(): LoyaltyAccount {
 function writeAccount(account: LoyaltyAccount): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(account));
-  } catch (e) {
-    console.warn('[loyalty] Could not persist account:', e);
+  } catch {
+    // silent
   }
 }
 
@@ -74,8 +74,8 @@ function pushTransaction(tx: LoyaltyTransaction): void {
     // long-tenured visitor doesn't blow past the localStorage quota.
     const next = [tx, ...list].slice(0, TX_MAX);
     localStorage.setItem(TX_KEY, JSON.stringify(next));
-  } catch (e) {
-    console.warn('[loyalty] Could not persist transaction:', e);
+  } catch {
+    // silent
   }
 }
 

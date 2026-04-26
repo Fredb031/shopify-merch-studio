@@ -206,12 +206,11 @@ export function LogoUploader({
               ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
               : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
           }
-        } catch (uploadErr) {
+        } catch {
           // Supabase upload failed but BG-removal worked — surface a soft
           // warning and keep using the local blob so the user can still
           // preview + order. The edge function will get a re-upload on
           // checkout.
-          console.warn('[LogoUploader] Supabase upload failed:', uploadErr);
           if (!isMountedRef.current) return;
           safeSetStatus('done');
           markHandedOff(noBgUrl);
@@ -220,12 +219,11 @@ export function LogoUploader({
             ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
             : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
         }
-      } catch (bgErr) {
+      } catch {
         // BG-removal failed. Common causes: SVG without rasterization,
         // network blip, model timeout. Keep the original image (trimmed
         // if it has transparent padding) so user can still proceed, and
         // tell them WHY.
-        console.warn('[LogoUploader] BG removal failed:', bgErr);
         if (!isMountedRef.current) return;
         let fallbackBlob: Blob = file;
         try { fallbackBlob = await trimTransparentPadding(file); } catch { /* ignore */ }
@@ -264,8 +262,7 @@ export function LogoUploader({
       noBgUrl = trackBlobUrl(URL.createObjectURL(trimmedBlob));
       safeSetPreview(noBgUrl);
       safeSetBgRemoved(true);
-    } catch (bgErr) {
-      console.warn('[LogoUploader] Manual BG removal failed:', bgErr);
+    } catch {
       if (!isMountedRef.current) return;
       safeSetStatus('done');
       safeSetErrorMsg(lang === 'en'
@@ -291,10 +288,9 @@ export function LogoUploader({
           ? 'Logo saved on this device only — we\u2019ll retry the upload when you place the order.'
           : 'Logo enregistré sur cet appareil seulement — on réessaiera le téléversement à la commande.');
       }
-    } catch (uploadErr) {
+    } catch {
       // Upload failed but BG-removal worked — commit the BG-removed URL
       // to the store anyway so the printed logo matches the preview.
-      console.warn('[LogoUploader] Supabase upload (manual BG) failed:', uploadErr);
       if (!isMountedRef.current) return;
       safeSetStatus('done');
       markHandedOff(noBgUrl);

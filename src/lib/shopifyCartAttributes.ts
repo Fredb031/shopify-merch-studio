@@ -67,7 +67,6 @@ export async function setCustomizerAttributes(
   payload: CustomizerAttributesPayload,
 ): Promise<void> {
   if (!cartId) {
-    console.warn('[shopifyCartAttributes] No cartId — skipping attributes update');
     return;
   }
 
@@ -111,12 +110,7 @@ export async function setCustomizerAttributes(
     if (!data?.data?.cartAttributesUpdate) {
       // 402 (store plan lapsed) returns undefined from
       // storefrontApiRequest; nothing actionable in the render path.
-      console.warn('[shopifyCartAttributes] cartAttributesUpdate returned no data');
       return;
-    }
-    const userErrors = data.data.cartAttributesUpdate.userErrors || [];
-    if (userErrors.length > 0) {
-      console.warn('[shopifyCartAttributes] userErrors:', userErrors);
     }
   } catch (err) {
     console.error('[shopifyCartAttributes] Failed to set attributes:', err);

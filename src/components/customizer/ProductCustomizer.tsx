@@ -31,9 +31,6 @@ import { TemplatesSection, type CustomizerTemplate } from './TemplatesSection';
 import { PlacementButtons } from './PlacementButtons';
 import { OrderSummary } from './OrderSummary';
 import { PLACEMENTS, SKU_TO_PLACEMENT_TYPE, type PlacementPreset } from '@/data/productPlacements';
-// TemplateGallery (themed-placement starter templates) intentionally
-// removed per operator request — users now start with a blank canvas.
-// Keeping the file on disk in case the feature returns.
 import { Confetti } from '@/components/Confetti';
 import { useCustomizerStore } from '@/stores/customizerStore';
 import { useCartStore } from '@/stores/localCartStore';
@@ -808,7 +805,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       const unmatched: VariantQty[] = [];
       for (const v of multiVariants) {
         if (!v.shopifyVariantId) {
-          console.warn('Skipping Shopify sync — no variantId for', v.colorName, v.size);
           unmatched.push(v);
           continue;
         }
@@ -818,7 +814,6 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         // silently userErrors on it but addItem doesn't throw, so the
         // post-call state check below wouldn't fire either. Skip here.
         if (!v.shopifyVariantId.startsWith('gid://shopify/')) {
-          console.warn('Skipping Shopify sync — variantId is not a Shopify gid:', v.shopifyVariantId);
           unmatched.push(v);
           continue;
         }
@@ -849,8 +844,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           } else {
             shopifyFailures.push(v);
           }
-        } catch (e) {
-          console.warn('[customizer] Shopify addItem failed for', v.colorName, v.size, e);
+        } catch {
           shopifyFailures.push(v);
         }
       }

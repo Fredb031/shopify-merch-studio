@@ -127,8 +127,8 @@ export function AIChatPanel() {
     if (!open) return;
     loadKb()
       .then(mod => setTopics(mod.KB_TOPICS))
-      .catch(err => {
-        console.warn('[AIChat] Failed to load knowledge base:', err);
+      .catch(() => {
+        // silent
       });
   }, [open]);
 
@@ -195,11 +195,10 @@ export function AIChatPanel() {
         const next = [...m, { role: 'assistant' as const, text: answer, ts: Date.now() }];
         return next.length > TRANSCRIPT_MAX ? next.slice(-TRANSCRIPT_MAX) : next;
       });
-    } catch (err) {
+    } catch {
       // If the KB import fails (chunk 404, offline), the user was
       // stuck on an eternal "typing…" spinner with no reply. Surface
       // a graceful fallback so they can still call us.
-      console.warn('[AIChat] Failed to answer:', err);
       const fallback = lang === 'fr'
         ? 'Désolé, je n\u2019arrive pas à charger mes réponses pour l\u2019instant. Appelle-nous au 367-380-4808 ou écris à info@visionaffichage.com.'
         : 'Sorry, I can\u2019t load my answers right now. Call us at 367-380-4808 or email info@visionaffichage.com.';

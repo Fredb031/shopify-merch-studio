@@ -315,8 +315,7 @@ export default function Cart() {
         setLinkCopied(false);
         copyTimerRef.current = null;
       }, 2000);
-    } catch (e) {
-      console.warn('Cart link copy failed', e);
+    } catch {
       toast.error(
         lang === 'en' ? 'Couldn\u2019t copy link' : 'Impossible de copier le lien',
         { duration: 2500 },
@@ -413,7 +412,7 @@ export default function Cart() {
     }
     for (const variantId of vids) {
       if (stillReferenced.has(variantId)) continue;
-      try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
+      try { await shopifyCart.removeItem(variantId); } catch { /* silent */ }
     }
   };
 
@@ -477,8 +476,7 @@ export default function Cart() {
           const nextQty = Math.max(1, Math.round(before * ratio));
           try {
             await shopifyCart.updateQuantity(vid, nextQty);
-          } catch (e) {
-            console.warn('Shopify updateQuantity failed', vid, e);
+          } catch {
             failures.push(vid);
           }
         }
@@ -1023,7 +1021,7 @@ export default function Cart() {
                   clear();
                   for (const variantId of vids) {
                     try { await shopifyCart.removeItem(variantId); }
-                    catch (e) { console.warn('Shopify cart removeItem failed during clear', e); }
+                    catch { /* silent */ }
                   }
                 }}
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6B7280] hover:text-[#0A0A0A] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-1 rounded px-2 py-1"

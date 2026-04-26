@@ -175,7 +175,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
     }
     for (const variantId of vids) {
       if (stillReferenced.has(variantId)) continue;
-      try { await shopifyCart.removeItem(variantId); } catch (e) { console.warn('Shopify cart removeItem failed', e); }
+      try { await shopifyCart.removeItem(variantId); } catch { /* silent */ }
     }
   };
   const [codeInput, setCodeInput] = useState('');
@@ -731,7 +731,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                 cart.clear();
                 for (const variantId of vids) {
                   try { await shopifyCart.removeItem(variantId); }
-                  catch (e) { console.warn('Shopify cart removeItem failed during clear', e); }
+                  catch { /* silent */ }
                 }
               }}
               className="w-full text-[11px] text-muted-foreground hover:text-destructive underline underline-offset-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 rounded"

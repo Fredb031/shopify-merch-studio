@@ -166,7 +166,6 @@ export async function removeBackground(
         report('api-success');
         return await res.blob();
       }
-      console.warn(`remove.bg returned ${res.status} — falling back to canvas`);
       report('api-fallback', `http-${res.status}`);
     } catch (err) {
       clearTimeout(timer);
@@ -178,10 +177,8 @@ export async function removeBackground(
         if (signal?.aborted) {
           throw new RemoveBgError('removeBackground aborted by caller', { code: 'aborted', cause: err });
         }
-        console.warn(`remove.bg timed out after ${REMOTE_BG_TIMEOUT_MS}ms — falling back to canvas`);
         report('api-fallback', 'timeout');
       } else {
-        console.warn('remove.bg request failed — falling back to canvas:', err);
         report('api-fallback', 'network');
       }
     }
@@ -193,20 +190,15 @@ export async function removeBackground(
   }
 
   // ── Strategy 2: in-browser canvas fallback ───────────────────────────────
-  // Surface the retry with clear timing so dev tools make it obvious when
-  // a slow device is stuck in the canvas pass (the for-loop over pixels
-  // can take a second or two on a 4000×4000 image on low-end mobiles).
-  console.info(`[removeBg] canvas fallback starting at +${elapsed()}ms`);
   report('canvas-start');
   try {
     const blob = await removeWhiteBackground(file, (fraction) => {
       report('canvas-progress', undefined, fraction);
     });
-    console.info(`[removeBg] canvas fallback finished in ${elapsed()}ms total`);
     report('canvas-success');
     return blob;
-  } catch (err) {
-    console.warn('Canvas background removal failed — returning original:', err);
+  } catch {
+    // silent — caller falls back to original
     report('canvas-failure');
     return file;
   }

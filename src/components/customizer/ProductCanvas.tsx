@@ -1336,8 +1336,6 @@ export function ProductCanvas({
         fc.current.renderAll();
         textObjects.current.delete(id);
       }
-      // eslint-disable-next-line no-console
-      console.warn(`[ProductCanvas] removeTextAsset: id "${id}" not in live asset list — ignoring.`);
       return;
     }
     const obj = textObjects.current.get(id);

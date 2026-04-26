@@ -32,9 +32,6 @@ const PNG_CONTENT_TYPE = 'image/png';
 
 export async function uploadLogo(blob: Blob, filename: string): Promise<string | null> {
   if (!supabase) {
-    console.error(
-      'Supabase not configured — add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to .env',
-    );
     return null;
   }
   // Defensive validation: callers pass `file.name` from a File object,
@@ -49,7 +46,6 @@ export async function uploadLogo(blob: Blob, filename: string): Promise<string |
   // caller's "upload failed" UI path runs instead of writing a 0-byte
   // file to the bucket.
   if (!blob || blob.size === 0) {
-    console.warn('uploadLogo called with empty blob — refusing upload');
     return null;
   }
   // Strip the original extension before we append .png — otherwise
@@ -75,7 +71,6 @@ export async function uploadLogo(blob: Blob, filename: string): Promise<string |
       .upload(path, blob, { contentType: PNG_CONTENT_TYPE, upsert: false });
 
     if (error) {
-      console.error('Logo upload failed:', error.message);
       return null;
     }
 

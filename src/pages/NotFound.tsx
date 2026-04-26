@@ -31,10 +31,6 @@ const NotFound = () => {
   const { lang } = useLang();
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    console.error('404 Error: User attempted to access non-existent route:', location.pathname);
-  }, [location.pathname]);
-
   // Tell crawlers not to index the 404 page itself. Without it, Google
   // can end up storing random non-existent URLs as 'soft 404s' tied to
   // our domain, which dilutes trust. robots meta takes precedence over

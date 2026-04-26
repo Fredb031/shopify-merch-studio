@@ -40,7 +40,6 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
   // data, or a partial response) can hand us `product` without a
   // `node`. Bail out with null rather than crash the whole grid.
   if (!product || !product.node) {
-    console.warn('[ProductCard] missing product.node, rendering null', product);
     return null;
   }
   const { node } = product;

@@ -296,8 +296,8 @@ export default function Products() {
         seen.add(handle);
         return true;
       }).slice(0, 3);
-    } catch (err) {
-      console.warn('[Products] popularSuggestions failed, returning []', err);
+    } catch {
+      // silent
       return [];
     }
   }, [products]);
@@ -325,8 +325,8 @@ export default function Products() {
         : safeProducts.filter(p => {
             try {
               return matchesCategory(p, activeCategory);
-            } catch (err) {
-              console.warn('[Products] matchesCategory threw, skipping product', p?.node?.handle, err);
+            } catch {
+              // silent
               return false;
             }
           });
@@ -356,8 +356,8 @@ export default function Products() {
         result = sorted;
       }
       return result;
-    } catch (err) {
-      console.warn('[Products] filteredProducts failed, falling back to []', err);
+    } catch {
+      // silent
       return [];
     }
   }, [products, activeCategory, debouncedQuery, sortMode]);
@@ -772,8 +772,8 @@ export default function Products() {
                             const key = product?.node?.id ?? product?.node?.handle ?? `pop-${i}`;
                             try {
                               return <ProductCard key={key} product={product} />;
-                            } catch (err) {
-                              console.warn('[Products] popular ProductCard threw, skipping', key, err);
+                            } catch {
+                              // silent
                               return null;
                             }
                           })}
@@ -817,8 +817,8 @@ export default function Products() {
                   const key = product?.node?.id ?? product?.node?.handle ?? `idx-${i}`;
                   try {
                     return <ProductCard key={key} product={product} eager={i < 4} highlight={debouncedQuery} />;
-                  } catch (err) {
-                    console.warn('[Products] ProductCard threw, skipping', key, err);
+                  } catch {
+                    // silent
                     return null;
                   }
                 })}

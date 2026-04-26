@@ -36,8 +36,8 @@ function enqueueDeletionRequest(req: DeletionRequest) {
     const list = Array.isArray(existing) ? existing : [];
     const next = [req, ...list].slice(0, DELETION_QUEUE_MAX);
     localStorage.setItem(DELETION_QUEUE_KEY, JSON.stringify(next));
-  } catch (e) {
-    console.warn('[Account] Could not persist deletion request:', e);
+  } catch {
+    // silent
   }
 }
 
@@ -99,8 +99,8 @@ function readEmailPrefs(): EmailPrefs {
 function writeEmailPrefs(prefs: EmailPrefs): void {
   try {
     localStorage.setItem(EMAIL_PREFS_KEY, JSON.stringify(prefs));
-  } catch (e) {
-    console.warn('[Account] Could not persist email prefs:', e);
+  } catch {
+    // silent
   }
 }
 
@@ -291,8 +291,7 @@ export default function Account() {
           ? 'Your data export has been downloaded.'
           : 'Votre export de données a été téléchargé.'
       );
-    } catch (e) {
-      console.warn('[Account] Data export failed:', e);
+    } catch {
       toast.error(
         lang === 'en'
           ? 'Could not generate your data export. Please try again.'

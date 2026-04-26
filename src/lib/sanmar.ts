@@ -107,7 +107,6 @@ async function call<T>(
   options: SanmarRequestOptions = {},
 ): Promise<T | null> {
   if (!EDGE_URL || !SUPABASE_KEY) {
-    console.warn('[sanmar] Supabase not configured — skipping', action);
     return null;
   }
   const controller = new AbortController();
@@ -141,27 +140,15 @@ async function call<T>(
     // real setup step (`supabase functions deploy sanmar-product`) from
     // anyone debugging a fresh checkout.
     if (res.status === 404) {
-      console.warn('[sanmar]', action, 'edge function not deployed (404) — run `supabase functions deploy sanmar-product`');
       return null;
     }
     const json = await res.json();
     if (!res.ok || !json.ok) {
-      console.warn('[sanmar]', action, `failed (${res.status}):`, json.error || json.hint);
       return null;
     }
     return json.data as T;
-  } catch (err) {
-    if ((err as Error)?.name === 'AbortError') {
-      // Distinguish caller-initiated cancel from our timeout — callers
-      // shouldn't log a timeout when they aborted on their own.
-      if (external?.aborted) {
-        // Quiet — this was a deliberate cancel.
-      } else {
-        console.warn('[sanmar]', action, `timed out after ${SANMAR_TIMEOUT_MS}ms`);
-      }
-    } else {
-      console.warn('[sanmar]', action, 'error:', err);
-    }
+  } catch {
+    // silent — caller handles null
     return null;
   } finally {
     cleanup();

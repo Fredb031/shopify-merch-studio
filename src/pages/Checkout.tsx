@@ -299,8 +299,8 @@ export default function Checkout() {
         firstName: f.firstName || parsed.firstName || '',
         lastName: f.lastName || parsed.lastName || '',
       }));
-    } catch (e) {
-      console.warn('[Checkout] Could not rehydrate pending checkout payload:', e);
+    } catch {
+      // silent
     }
   }, [step]);
 
@@ -765,8 +765,8 @@ export default function Checkout() {
             taxExemptOrg: orgClean,
             ts: Date.now(),
           }));
-        } catch (e) {
-          console.warn('[Checkout] Could not persist pending checkout to localStorage:', e);
+        } catch {
+          // silent
         }
         window.location.href = checkoutUrl;
         // If the navigation doesn't actually happen (popup blocker,
