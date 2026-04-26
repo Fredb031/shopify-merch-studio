@@ -31,7 +31,7 @@ export default function AdminPortals() {
 
   return (
     <div>
-      <div className="mb-6 rounded-xl border border-[#D97706]/30 bg-[#FFFBEB] p-4 flex items-start gap-3">
+      <div role="note" aria-label="Statut de la fonctionnalité" className="mb-6 rounded-xl border border-[#D97706]/30 bg-[#FFFBEB] p-4 flex items-start gap-3">
         <span className="text-[#D97706] text-lg flex-shrink-0 mt-0.5" aria-hidden>⚠</span>
         <div className="flex-1">
           <p className="font-semibold text-[#0A0A0A] text-sm">Fonctionnalité en développement</p>
