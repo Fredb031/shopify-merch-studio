@@ -111,11 +111,21 @@ export function triggerBlobDownload(blob: Blob, filename: string): void {
  * Order names from Shopify arrive as `#1570`; the leading `#` strip
  * has to run BEFORE the alphanumeric filter, otherwise the filter
  * removes the `#` first and the `^#` regex never matches anything
- * (the original ordering made the second replace dead code). */
+ * (the original ordering made the second replace dead code).
+ *
+ * The extension is sourced from user-uploaded `logo.sourceExt`, so
+ * strip everything that isn't alphanumeric — a hostile ext like
+ * `svg/../../etc` would otherwise survive the lowercase pass and
+ * inject path separators into the saved filename. The browser's
+ * download attribute already rejects most of these, but normalising
+ * here keeps the filename predictable across the codebase. */
 export function buildLogoFilename(orderName: string, ext: string): string {
   const safeOrder = orderName
     .replace(/^#/, '')
     .replace(/[^a-z0-9_-]/gi, '') || 'order';
-  const safeExt = ext.replace(/^\./, '').toLowerCase() || 'bin';
+  const safeExt = ext
+    .replace(/^\./, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '') || 'bin';
   return `vision-logo-${safeOrder}.${safeExt}`;
 }
