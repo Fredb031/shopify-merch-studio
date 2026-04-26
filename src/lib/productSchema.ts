@@ -1,0 +1,103 @@
+// Mega Blueprint Section 08.1 — per-product JSON-LD builder.
+//
+// Builds a Product schema that Google's rich-result crawler turns into
+// the price/image/availability card on SERPs. Pulled out of
+// ProductDetail.tsx into its own module so the schema shape can be
+// unit-tested and reused by any future SSR/prerender path without
+// dragging the whole page component along. The shape follows
+// schema.org/Product:
+//   - sku (catalogue lookup)
+//   - brand (Organization)
+//   - offers.priceCurrency = CAD (Shopify Canada storefront)
+//   - offers.shippingDetails — 5-day businessDays, $0 shipping, matches
+//     the "livré en 5 jours" promise on the homepage so Merchant Center
+//     doesn't flag a price/shipping mismatch when the feed gets imported
+//   - offers.availability InStock — POD model means we never go OOS at
+//     the product level; per-variant availability is handled separately
+//     via the variant selector.
+//
+// Returns a plain object so callers can JSON.stringify it into the
+// <script type="application/ld+json"> body. Returns null when the input
+// product is missing required fields (no priceRange, NaN price); the
+// caller skips injection in that case rather than emitting an invalid
+// schema that Google would warn about in Search Console.
+
+import type { ShopifyProduct } from '@/lib/shopify';
+import type { Product as LocalProduct } from '@/data/products';
+
+export interface BuildProductSchemaInput {
+  product: ShopifyProduct['node'];
+  localProduct?: LocalProduct;
+  /** PDP image URL — falls back to the first Shopify image when omitted. */
+  image?: string;
+  /** Canonical URL of the PDP, fed into offers.url. */
+  url?: string;
+}
+
+export type ProductSchema = {
+  '@context': 'https://schema.org';
+  '@type': 'Product';
+  name: string;
+  sku?: string;
+  image?: string[];
+  description?: string;
+  brand: { '@type': 'Brand'; name: string };
+  offers: {
+    '@type': 'Offer';
+    priceCurrency: string;
+    price: string;
+    availability: 'https://schema.org/InStock';
+    url?: string;
+    shippingDetails: {
+      '@type': 'OfferShippingDetails';
+      shippingRate: { '@type': 'MonetaryAmount'; value: '0'; currency: 'CAD' };
+      shippingDestination: { '@type': 'DefinedRegion'; addressCountry: 'CA' };
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime';
+        handlingTime: { '@type': 'QuantitativeValue'; minValue: 0; maxValue: 1; unitCode: 'DAY' };
+        transitTime: { '@type': 'QuantitativeValue'; minValue: 1; maxValue: 5; unitCode: 'DAY' };
+        businessDays: { '@type': 'OpeningHoursSpecification'; dayOfWeek: string[] };
+      };
+    };
+  };
+};
+
+export function buildProductSchema(input: BuildProductSchemaInput): ProductSchema | null {
+  const { product, localProduct, image, url } = input;
+  const amount = product.priceRange?.minVariantPrice?.amount;
+  const currency = product.priceRange?.minVariantPrice?.currencyCode;
+  if (amount === undefined || currency === undefined) return null;
+  const price = parseFloat(amount);
+  if (!Number.isFinite(price)) return null;
+  const resolvedImage = image ?? product.images?.edges?.[0]?.node?.url;
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.title,
+    sku: localProduct?.sku,
+    image: resolvedImage ? [resolvedImage] : undefined,
+    description: product.description ?? undefined,
+    brand: { '@type': 'Brand', name: 'Vision Affichage' },
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: currency,
+      price: price.toFixed(2),
+      availability: 'https://schema.org/InStock',
+      url,
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: { '@type': 'MonetaryAmount', value: '0', currency: 'CAD' },
+        shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'CA' },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+          transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 5, unitCode: 'DAY' },
+          businessDays: {
+            '@type': 'OpeningHoursSpecification',
+            dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+          },
+        },
+      },
+    },
+  };
+}

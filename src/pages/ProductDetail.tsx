@@ -30,6 +30,7 @@ import { useProductColors } from '@/hooks/useProductColors';
 import { useProducts } from '@/hooks/useProducts';
 import { readLS, writeLS } from '@/lib/storage';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { buildProductSchema } from '@/lib/productSchema';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ProductCard } from '@/components/ProductCard';
@@ -480,22 +481,19 @@ export default function ProductDetail() {
     const price = parseFloat(amount);
     if (!Number.isFinite(price)) return;
     const image = localProduct?.imageDevant ?? product.images?.edges?.[0]?.node?.url;
-    const schema = {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: product.title,
-      sku: localProduct?.sku,
-      image: image ? [image] : undefined,
-      description: product.description ?? undefined,
-      brand: { '@type': 'Brand', name: 'Vision Affichage' },
-      offers: {
-        '@type': 'Offer',
-        priceCurrency: currency,
-        price: price.toFixed(2),
-        availability: 'https://schema.org/InStock',
-        url: typeof window !== 'undefined' ? window.location.href : undefined,
-      },
-    };
+    // Per-product JSON-LD comes from src/lib/productSchema.ts so the
+    // shape (sku, brand, shippingDetails, businessDays) stays in lockstep
+    // with the Mega Blueprint Section 8.1 contract and is unit-testable
+    // without mounting the whole PDP. buildProductSchema returns null
+    // on the same partial-priceRange edge case the early-return above
+    // already covers, so we cast through after the guard.
+    const schema = buildProductSchema({
+      product,
+      localProduct,
+      image,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+    if (!schema) return;
     // Breadcrumbs give Google the 'Home › Products › <Category> › <Product>'
     // chain to render under the URL in SERP. Mirrors the visible nav so
     // SERP preview matches on-page UI (Google rejects schemas that drift
