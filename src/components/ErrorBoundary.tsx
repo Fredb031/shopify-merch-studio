@@ -151,7 +151,7 @@ export class ErrorBoundary extends Component<Props, State> {
               height={30}
               decoding="async"
               className="block h-7 w-auto mx-auto mb-6"
-              onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
             />
 
             <div
