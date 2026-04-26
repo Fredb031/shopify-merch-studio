@@ -211,10 +211,13 @@ export default function About() {
             phone, map, hours and a form fallback so whatever mode
             the buyer prefers, it's one click from here. */}
         <section
-          aria-label={lang === 'en' ? 'Work with us' : 'Travailler avec nous'}
+          aria-labelledby="about-cta"
           className="bg-[#FFF8E7] border border-[#E8A838]/30 rounded-2xl p-8 md:p-10 text-center"
         >
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2">
+          <h2
+            id="about-cta"
+            className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2"
+          >
             {lang === 'en' ? 'Work with us' : 'Travailler avec nous'}
           </h2>
           <p className="text-sm md:text-base text-zinc-700 mb-6 max-w-[540px] mx-auto">
