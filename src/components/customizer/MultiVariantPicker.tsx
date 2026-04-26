@@ -5,6 +5,11 @@ import { BULK_DISCOUNT_THRESHOLD, BULK_DISCOUNT_RATE } from '@/data/products';
 import { useLang } from '@/lib/langContext';
 import type { ShopifyVariantColor } from '@/lib/shopify';
 
+/** Upper clamp on per-size quantity. Prevents a stuck-key / typo from
+ * exploding the price math downstream — 1000 per size is already well
+ * past any realistic bulk order. */
+const MAX_QTY_PER_SIZE = 1000;
+
 export interface VariantQty {
   colorId: string;
   colorName: string;
@@ -174,10 +179,7 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
     // over qty=N and each producing qty=N+1.
     onChange(prev => {
       const current = prev.find(v => v.colorId === color.variantId && v.size === size)?.qty ?? 0;
-      // Clamp to [0, 1000] — upper bound prevents a stuck-key / typo from
-      // exploding the price math downstream (1000 per size is already well
-      // past any realistic bulk order).
-      const nextQty = Math.max(0, Math.min(1000, nextQtyFn(current)));
+      const nextQty = Math.max(0, Math.min(MAX_QTY_PER_SIZE, nextQtyFn(current)));
       const filtered = prev.filter(v => !(v.colorId === color.variantId && v.size === size));
       if (nextQty <= 0) return filtered;
       const sizeOpt = color.sizeOptions?.find(s => s.size === size);
