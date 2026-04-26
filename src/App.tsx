@@ -95,6 +95,18 @@ const ThankYou = lazy(() => import("./pages/ThankYou"));
 // the home hot path, so it shouldn't bloat the Index chunk.
 const About = lazy(() => import("./pages/About"));
 
+// Volume II §15 — product comparison page. Lazy because it's only
+// reached after the user has flagged 2+ products via the sticky
+// CompareBar; no point shipping the table chunk to first-time
+// visitors who haven't checked anything yet.
+const Compare = lazy(() => import("./pages/Compare"));
+
+// Volume II §15.1 — sticky compare bar. Mounts at the App root so the
+// selection persists across route changes. Eager (small footprint)
+// because subscribing to the compareStore from a lazy chunk would
+// race with the first card render.
+import { CompareBar } from "@/components/CompareBar";
+
 // Blog / content hub (Task 11.6) — /blog index + /blog/:slug stub. Lazy
 // because merch-tips content is reached from a footer link, not the
 // home hot path; keeping it out of the Index chunk matches how legal
@@ -306,6 +318,7 @@ const AnimatedRoutes = () => {
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/merci" element={<ThankYou />} />
+          <Route path="/comparer" element={<Compare />} />
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
@@ -350,6 +363,7 @@ const App = () => (
             <Suspense fallback={<LazyFallback />}>
               <AnimatedRoutes />
             </Suspense>
+            <CompareBar />
           </BrowserRouter>
         </ErrorBoundary>
     </LangProvider>

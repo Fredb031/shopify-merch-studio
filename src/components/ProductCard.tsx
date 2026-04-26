@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { ShopifyProduct } from '@/lib/shopify';
 import { useWishlist } from '@/hooks/useWishlist';
 import { Highlight } from '@/components/Highlight';
+import { CompareToggleButton } from '@/components/CompareToggleButton';
 // Customizer pulls in fabric.js (~310kB) and its own siblings — lazy-
 // load so just rendering the grid doesn't eagerly fetch it. The
 // customizer only opens when the user clicks the inline 'Personnaliser'.
@@ -289,6 +290,13 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
               }
             `}</style>
           </button>
+
+          {/* Volume II §15 — compare toggle. Sits left of the wishlist
+              heart in the same absolute-positioned overlay band. Only
+              renders when we have a local SKU to key the compare store
+              by — Shopify-only products without a data/products.ts
+              mapping are excluded. */}
+          <CompareToggleButton sku={local?.sku} productName={local?.shortName ?? title} />
 
           {/* Customize CTA — visible on mobile, fade-in on desktop hover */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/40 via-foreground/10 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 transition-opacity duration-300 flex items-end justify-center pb-3 pt-12 z-[3]">
