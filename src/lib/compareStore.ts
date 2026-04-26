@@ -72,9 +72,13 @@ export const useCompareStore = create<CompareStore>()(
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (Array.isArray(state.items)) {
-          const clean = state.items
-            .filter((s): s is string => typeof s === 'string' && s.length > 0)
-            .slice(0, COMPARE_MAX);
+          const clean = Array.from(
+            new Set(
+              state.items.filter(
+                (s): s is string => typeof s === 'string' && s.length > 0
+              )
+            )
+          ).slice(0, COMPARE_MAX);
           state.items = clean;
         } else {
           state.items = [];
