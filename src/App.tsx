@@ -89,6 +89,21 @@ const About = lazy(() => import("./pages/About"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 
+// Mega Blueprint §08.3 — industry-specific SEO landing pages. Each
+// targets a Quebec keyword cluster (uniformes construction Québec,
+// vêtements paysagement Québec, etc.) and reuses a shared
+// IndustryPageShell that handles hero, recommended-product grid,
+// FAQ accordion + FAQPage JSON-LD, and Service schema. Lazy because
+// each surface is reached from search/external link, not the home
+// hot path; keeping them out of the Index chunk matches how legal
+// stubs and Contact are split.
+const IndustriesHub = lazy(() => import("./pages/industries/IndustriesHub"));
+const IndustryConstruction = lazy(() => import("./pages/industries/Construction"));
+const IndustryPaysagement = lazy(() => import("./pages/industries/Paysagement"));
+const IndustryPlomberieElectricite = lazy(() => import("./pages/industries/PlomberieElectricite"));
+const IndustryCorporate = lazy(() => import("./pages/industries/Corporate"));
+const IndustryMunicipalites = lazy(() => import("./pages/industries/Municipalites"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -272,6 +287,14 @@ const AnimatedRoutes = () => {
           <Route path="/about" element={<About />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+
+          {/* Mega Blueprint §08.3 — industry SEO landing pages. */}
+          <Route path="/industries" element={<IndustriesHub />} />
+          <Route path="/industries/construction" element={<IndustryConstruction />} />
+          <Route path="/industries/paysagement" element={<IndustryPaysagement />} />
+          <Route path="/industries/plomberie-electricite" element={<IndustryPlomberieElectricite />} />
+          <Route path="/industries/corporate" element={<IndustryCorporate />} />
+          <Route path="/industries/municipalites" element={<IndustryMunicipalites />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>
