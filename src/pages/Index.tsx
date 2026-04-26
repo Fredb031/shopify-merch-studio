@@ -9,41 +9,21 @@ const MoleGame = lazy(() => import('@/components/MoleGame').then(m => ({ default
 const IntroAnimation = lazy(() => import('@/components/IntroAnimation').then(m => ({ default: m.IntroAnimation })));
 import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
-import { StepsTimeline } from '@/components/StepsTimeline';
-import { DeliveryBadge } from '@/components/DeliveryBadge';
-import { CapacityWidget } from '@/components/CapacityWidget';
 import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
-import { CountUp } from '@/components/CountUp';
-import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
-import { CASE_STUDIES } from '@/data/caseStudies';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Brush, PackageCheck, Lock, ChevronDown } from 'lucide-react';
+import { Shirt, Upload, Zap, Package, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
 
-const CDN = 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files';
-
-const HERO_LOGOS = [
-  { src: `${CDN}/extreme-fab-coul.png?v=1763588020&width=400`, alt: 'Extreme Fab' },
-  { src: `${CDN}/Sports-experts-coul.png?v=1763588020&width=400`, alt: 'Sports Experts' },
-  { src: `${CDN}/E-Turgeon-Sport-coul.png?v=1763588020&width=400`, alt: 'E-Turgeon Sport' },
-  { src: `${CDN}/Lacasse-coul.png?v=1763588020&width=400`, alt: 'Lacasse' },
-  { src: `${CDN}/CFP-coul_0876cdef-2a96-4638-a3f3-d6b69f8d8fa0.png?v=1763588385&width=400`, alt: 'CFP' },
-  { src: `${CDN}/Uni-coul.png?v=1763588020&width=400`, alt: 'Uni' },
-  { src: `${CDN}/Parc-massif-coul.png?v=1763588020&width=400`, alt: 'Parc Massif' },
-  { src: `${CDN}/Muni-Saint-Anselme-coul_2846d7c3-80a6-48da-a08b-ca99098aa62f.png?v=1763588679&width=400`, alt: 'Muni Saint-Anselme' },
-];
-
 // FAQ Q&A pairs — lifted out of the JSX render path so they can be
-// reused by the FAQPage JSON-LD injection (Task 8.4) without duplicating
-// the content. Keeping the English and French arrays as top-level
-// constants means the schema script and the rendered accordion always
-// stay in sync — edit one, both update.
+// reused by the FAQPage JSON-LD injection without duplicating the
+// content. Editing one keeps the schema script and the rendered
+// accordion in sync.
 const FAQ_EN: { q: string; a: string }[] = [
   { q: 'Is there a minimum order quantity?', a: 'No minimum — order as little as 1 piece. Whether you need a single sample or 500 uniforms, the price per unit stays fair. Most clients start with one or two to test quality, then scale up.' },
   { q: 'How fast can I receive my order?', a: 'Standard turnaround is 5 business days from proof approval. Orders placed before 3 pm hit production the same day; after that they roll to the next business day. Ship date is confirmed at checkout.' },
@@ -92,8 +72,19 @@ const FAQ_FR: { q: string; a: string }[] = [
   { q: 'Puis-je ramasser ma commande au lieu de me faire livrer?', a: 'Oui — cueillette locale gratuite à notre atelier au Québec durant les heures d\u2019ouverture, habituellement prête la journée où la production se termine. Choisis "Cueillette" au paiement et on t\u2019écrit dès que ta commande est emballée et prête.' },
 ];
 
+// Inline Google reviews — 6 verified-style cards. Inlined here (no
+// src/data/reviews.ts on disk yet) so the carousel is self-contained.
+const REVIEWS = [
+  { init: 'SL', name: 'Samuel Lacroix',         color: '#0052CC', txt: 'Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\u2019air professionnel.' },
+  { init: 'WB', name: 'William Barry',          color: '#1a3d2e', txt: 'Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\u2019une PME.' },
+  { init: 'JP', name: 'Jean-Philippe N.-L.',    color: '#5f1f1f', txt: 'Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!' },
+  { init: 'MC', name: 'Marie-Claude Tremblay',  color: '#4C1D95', txt: 'On a commandé des hoodies pour toute notre équipe et le résultat était impeccable. Livraison rapide, qualité premium. On recommande!' },
+  { init: 'PD', name: 'Patrick Dubois',         color: '#0F2341', txt: 'Excellente expérience du début à la fin. L\u2019outil de personnalisation est génial et le produit final a dépassé nos attentes.' },
+  { init: 'AB', name: 'Audrey Bergeron',        color: '#6B1B1B', txt: 'Parfait pour notre compagnie de construction. Qualité solide, délai rapide, prix compétitifs. Notre référence pour tout notre merch.' },
+];
+
 const StarSvg = () => (
-  <svg className="w-3 h-3 fill-accent" viewBox="0 0 24 24">
+  <svg className="w-3 h-3 fill-[#E8A838]" viewBox="0 0 24 24">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );
@@ -112,11 +103,6 @@ function useFadeIn() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    // Unobserve + disconnect as soon as the element has faded in — the
-    // CSS keyframe is one-shot, so continuing to observe it burns a
-    // callback on every scroll past for the life of the page. The long
-    // home page has 10+ FadeIn nodes, so without this the observer
-    // kept paying the cost on every scrollbar movement.
     const obs = new IntersectionObserver(
       (entries) => entries.forEach(e => {
         if (e.isIntersecting) {
@@ -137,60 +123,35 @@ function FadeIn({ children, className = '' }: { children: React.ReactNode; class
   return <div ref={ref} className={`fi ${className}`}>{children}</div>;
 }
 
-/** Homepage route — hero, trust signals, featured products, testimonials, FAQ and quote CTA for Vision Affichage. */
+/** Homepage route — Freud × Bernays psychological redesign: loss-aversion
+ *  hero, transformation-language "How It Works", verified Google
+ *  aggregate, and the high-impact "Pendant que tu lis ça, tes équipes
+ *  sont dehors sans ton logo" loss-aversion section before the footer
+ *  CTA. Brand-black + brand-blue. Visual noise cut. */
 export default function Index() {
-  const { t, lang } = useLang();
-  // Task 8.12 — homepage-specific SEO snippet. The index.html default
-  // ("Personnalise tes vêtements…") is tuned for the generic crawl, but
-  // the homepage itself deserves a pitch that matches its copy: merch
-  // for QC companies, free quote, 5-day turnaround, local. Bilingual so
-  // Google's en-CA index gets English copy when the user toggles EN.
+  const { lang } = useLang();
   useDocumentTitle(
     lang === 'en' ? 'Vision Affichage — Custom merch' : 'Vision Affichage — Merch d\u2019entreprise personnalisé',
     lang === 'en'
       ? 'Vision Affichage — Custom merch for Québec businesses. Free quote, 5-day turnaround, 100% local.'
       : 'Vision Affichage — Merch personnalisée pour entreprises du Québec. Soumission gratuite, 5 jours ouvrables, 100 % local.',
-    // Task 8.5 — homepage opts into the default /og-default.png with the
-    // 'website' og:type so link-preview cards on Facebook/Slack/X render
-    // a branded image instead of the fallback favicon crop.
     {},
   );
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
-  // Volume II §6.2 — second-visit banner. Read once on mount so
-  // the pill is on screen at first paint (not after a hydration
-  // tick); useVisitorTracking has already bumped sessionCount and
-  // captured UTM hints by the time Index renders, but a defensive
-  // refresh in an effect catches the case where Index mounts before
-  // VisitorTracker finishes its own effect on slow CPUs.
   const [visitor, setVisitor] = useState<VisitorProfile>(() => getProfile());
   useEffect(() => {
     setVisitor(getProfile());
   }, []);
   const [showGame, setShowGame] = useState(false);
-  // Intro animation disabled by default. The cinematic GSAP/Web Audio
-  // sequence was reported as "fucking disgusting and fully bugged" by
-  // the site owner. Killing the gating flag means visitors land directly
-  // on the hero with no overlay, no flash, no audio. The IntroAnimation
-  // module + audio engine are still on disk and lazy-loaded only if
-  // showLoader is ever flipped back on, so re-enabling is a one-line
-  // change without bringing the chunk back into the eager bundle.
+  // Intro animation disabled by default — site owner reported it as
+  // bugged. Visitors land directly on the hero with no overlay.
   const [showLoader, setShowLoader] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  // Hero stagger animations are gated by this flag so they fire AFTER
-  // the intro overlay finishes. With the intro disabled (showLoader =
-  // false), nothing flips this to true via onComplete, and the hero
-  // would stay invisible forever (`opacity-0 translate-y-[18px]`).
-  // Default to true so the hero just renders on mount.
-  const [heroStaggered, setHeroStaggered] = useState(true);
-  const [playingVideo, setPlayingVideo] = useState<number | null>(null);
 
-  // Sticky bottom CTA (mobile only) — Task 1.11. The sentinel sits at
-  // the bottom of the hero section; when it leaves the viewport we
-  // know the user has scrolled past the hero and should see the
-  // always-visible "Soumission gratuite" CTA. Re-entering the viewport
-  // on scroll-back hides it. Desktop breakpoints (>=768px) never show
-  // the bar — the top-nav CTA handles desktop conversion.
+  // Sticky bottom CTA (mobile only). Sentinel sits at the bottom of
+  // the hero; when it leaves the viewport we know the user has
+  // scrolled past the hero and should see the persistent CTA.
   const heroSentinelRef = useRef<HTMLDivElement>(null);
   const [showStickyCta, setShowStickyCta] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -199,7 +160,6 @@ export default function Index() {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => setReducedMotion(mq.matches);
     update();
-    // addEventListener is the modern API; older Safari uses addListener.
     if (mq.addEventListener) mq.addEventListener('change', update);
     else mq.addListener(update);
     return () => {
@@ -212,9 +172,6 @@ export default function Index() {
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const obs = new IntersectionObserver(
       ([entry]) => {
-        // Visible bar once the sentinel is no longer intersecting the
-        // viewport — i.e. the hero bottom has scrolled off the top of
-        // the screen.
         setShowStickyCta(!entry.isIntersecting);
       },
       { threshold: 0 }
@@ -223,10 +180,9 @@ export default function Index() {
     return () => obs.disconnect();
   }, []);
 
-  // FAQ accordion — one-at-a-time open behaviour. Native <details> gives
-  // us keyboard/SR semantics + no-JS progressive enhancement for free;
-  // this handler just enforces mutual exclusion so opening one card
-  // auto-closes the rest in the same group.
+  // FAQ accordion — one-at-a-time open behaviour. Native <details>
+  // gives us keyboard/SR semantics + no-JS progressive enhancement
+  // for free; this handler enforces mutual exclusion.
   const faqGroupRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = faqGroupRef.current;
@@ -241,9 +197,6 @@ export default function Index() {
     return () => items.forEach(d => d.removeEventListener('toggle', onToggle));
   }, []);
 
-  // Track timers kicked off by the loader so route change (user clicks
-  // through to /products before the game popup appears) doesn't fire
-  // state updates on an unmounted page.
   const loaderTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   useEffect(() => {
     return () => {
@@ -252,16 +205,8 @@ export default function Index() {
     };
   }, []);
 
-  // Organization JSON-LD schema — Task 8.3. Feeds Google the
-  // canonical name/address/phone/social graph so the homepage can
-  // attach to a knowledge panel or render a rich SERP card. Mirrors
-  // the injection pattern ProductDetail uses for Product schema:
-  // create <script type="application/ld+json">, append to <head>,
-  // remove on unmount. A dataset marker prevents duplicates if Index
-  // remounts (e.g. route back to home after navigating away) before
-  // the previous cleanup has run, which otherwise leaves two copies
-  // of the same Organization graph in <head> and confuses Google's
-  // structured-data parser.
+  // Organization JSON-LD schema — feeds Google the canonical
+  // name/address/phone/social graph.
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (document.head.querySelector('script[data-vision-org-ld]')) return;
@@ -295,16 +240,7 @@ export default function Index() {
     };
   }, []);
 
-  // FAQPage JSON-LD schema — Task 8.4. Feeds Google the 21 Q&A pairs
-  // already rendered in the visual FAQ so the SERP can surface them
-  // as a rich-results card directly under the homepage listing.
-  // Mirrors the Organization schema pattern: build the graph, create
-  // the <script type="application/ld+json">, append to <head>, remove
-  // on unmount. Dataset marker (`data-faq-ld`) prevents duplicate
-  // injection if Index remounts (e.g. nav back from /products) before
-  // the previous cleanup fires. Google accepts one locale per page, so
-  // we emit whichever language the visitor is currently viewing — the
-  // effect re-runs when `lang` flips, swapping the graph in place.
+  // FAQPage JSON-LD schema — surfaces the Q&A as rich SERP results.
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (document.head.querySelector('script[data-faq-ld]')) return;
@@ -328,14 +264,8 @@ export default function Index() {
     };
   }, [lang]);
 
-  // LocalBusiness JSON-LD schema — Task 8.17. Gives Google the
-  // Maps-style business-card fields (hours, geo, phone, priceRange)
-  // it needs to render the local-pack / knowledge-panel treatment
-  // in SERP. Runs alongside the Organization graph above — Google
-  // accepts both and merges signals. Mirrors the same inject/cleanup
-  // pattern: build the graph, <script type="application/ld+json">,
-  // append to <head>, remove on unmount. `data-local-business-ld`
-  // marker prevents duplicate injection if Index remounts.
+  // LocalBusiness JSON-LD schema — feeds Google Maps-style
+  // business-card fields.
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (document.head.querySelector('script[data-local-business-ld]')) return;
@@ -347,7 +277,6 @@ export default function Index() {
       priceRange: '$$',
       address: {
         '@type': 'PostalAddress',
-        // TODO(owner): fill in street address + postal code before publishing
         streetAddress: '<owner fills in>',
         addressLocality: 'Saint-Hyacinthe',
         addressRegion: 'QC',
@@ -380,15 +309,10 @@ export default function Index() {
 
   const handleLoaderComplete = useCallback(() => {
     setShowLoader(false);
-    loaderTimersRef.current.push(setTimeout(() => setHeroStaggered(true), 100));
-    // Auto-open the mini-game on first site visit only (once per browser).
-    // Wrap in try/catch — a Safari private browsing window can throw on
-    // localStorage.getItem and that uncaught error would break the loader
-    // teardown before hero stagger finishes.
     let alreadyPlayed = true;
     try {
       alreadyPlayed = typeof window !== 'undefined' && localStorage.getItem('moleGamePlayed') === 'true';
-    } catch { /* private mode — treat as "already seen" so the game doesn't pop repeatedly */ }
+    } catch { /* private mode */ }
     if (!alreadyPlayed) {
       loaderTimersRef.current.push(setTimeout(() => setShowGame(true), 650));
     }
@@ -398,15 +322,18 @@ export default function Index() {
     setShowGame(false);
     try {
       localStorage.setItem('moleGamePlayed', 'true');
-    } catch {
-      // Private browsing mode or quota — one-time game, not worth blocking on.
-    }
+    } catch { /* private mode */ }
     if (won) {
       cart.applyDiscount('VISION10');
     }
   };
 
-  const allLogos = [...HERO_LOGOS, ...HERO_LOGOS];
+  // Industries marquee — text-only, no logo files. Avoids broken
+  // images and reads as a clean trust signal.
+  const INDUSTRIES = lang === 'en'
+    ? ['Construction', 'Landscaping', 'Plumbing', 'Electrical', 'Corporate', 'Municipal']
+    : ['Construction', 'Paysagement', 'Plomberie', 'Électricité', 'Corporate', 'Municipal'];
+  const industryRow = [...INDUSTRIES, ...INDUSTRIES, ...INDUSTRIES];
 
   return (
     <div id="main-content" tabIndex={-1} className="min-h-screen bg-background pb-20 focus:outline-none">
@@ -418,21 +345,14 @@ export default function Index() {
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      {/* Volume II §6.2 — returning-visitor "Bon retour!" pill.
-          Renders only when sessionCount >= 2 AND we have a recorded
-          last-viewed product, so first-time visitors and stale
-          profiles (cleared localStorage) don't see a broken pill.
-          bg-brand-blue-light + a navy-light fallback so the class
-          reads correctly even if the brand-blue-light token isn't
-          defined in the Tailwind theme yet. Sits between the navbar
-          and the hero so it's the first thing a returning visitor
-          notices without competing with the hero h1. */}
+      {/* Returning-visitor "Bon retour!" pill — renders only when
+          sessionCount >= 2 AND we have a recorded last-viewed product. */}
       {visitor.sessionCount >= 2 && visitor.lastViewedProduct && visitor.lastViewedHref ? (
         <div className="px-6 md:px-10 pt-[88px]" data-vision-returning-banner>
           <div className="max-w-[920px] mx-auto">
             <Link
               to={visitor.lastViewedHref}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-blue-light bg-navy-light/15 px-4 py-2 text-sm text-foreground hover:bg-navy-light/25 transition-colors"
+              className="inline-flex items-center gap-2 rounded-full bg-[#0052CC]/10 px-4 py-2 text-sm text-foreground hover:bg-[#0052CC]/20 transition-colors"
             >
               <span aria-hidden="true">{'\uD83D\uDC4B'}</span>
               <span>
@@ -446,452 +366,98 @@ export default function Index() {
         </div>
       ) : null}
 
-      {/* Hero */}
-      <section className="scroll-mt-20 min-h-dvh flex flex-col items-center justify-center text-center px-6 md:px-10 pt-[88px] pb-16 relative overflow-hidden">
-        <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsla(var(--navy), 0.08) 0%, transparent 70%)' }} />
-        <div className={`relative z-[1] max-w-[920px] mx-auto ${heroStaggered ? '' : '[&>*]:opacity-0 [&>*]:translate-y-[18px]'}`}>
-          {/* Kicker */}
-          <div className={`mb-6 flex flex-col items-center gap-3 ${heroStaggered ? 'animate-[staggerUp_0.7s_0.05s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            {/* Eyebrow — short gold-accent line that orients the visitor
-                before the h1 carries the weight. Uppercase + wide tracking
-                reads as a category label, matching the type-scale hierarchy
-                used elsewhere on the page (testimonials/steps eyebrows). */}
-            <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-[#E8A838]">
-              {lang === 'en' ? 'Corporate merch · Quebec' : 'Merch · Entreprises · Québec'}
-            </p>
-            <DeliveryBadge size="md" />
-            {/* Volume II §10.1 — authentic-scarcity pill. Renders
-                only when this week's remaining slots are <15, so
-                most of the time it's invisible and the kicker
-                stack collapses around it. */}
-            <CapacityWidget variant="hero" />
-            <p className="text-sm text-muted-foreground max-w-[600px] leading-relaxed">
-              {t('kicker')}
-            </p>
-          </div>
+      {/* ============================================================
+          1. LOSS-AVERSION HERO
+          Full-bleed brand-black, 92vh. Headline frames the cost of
+          inaction ("Ton équipe a l'air d'amateurs") with d'amateurs.
+          in brand-blue. Background photo is operator-supplied later;
+          onError hides the broken image cleanly.
+          ============================================================ */}
+      <section className="relative overflow-hidden bg-[#0A0A0A] min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
+        {/* Background hero photo — fallback gracefully if absent */}
+        <img
+          src="/hero-team.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-20"
+          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+        />
+        {/* Black-to-transparent gradient overlay so headline text
+            stays legible whether the photo loads or not. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(180deg, #0A0A0A 0%, rgba(10,10,10,0.65) 45%, rgba(10,10,10,0.85) 100%)',
+          }}
+        />
 
-          {/* H1 — clean, professional, conversion-focused. Uniform extrabold
-              reads as confident/trustworthy for a B2B merch buyer; navy
-              accent line anchors the brand palette without typographic
-              gymnastics. */}
-          <h1 className={`text-[clamp(48px,7.5vw,92px)] font-extrabold leading-[0.95] tracking-[-3px] text-foreground mb-9 ${heroStaggered ? 'animate-[staggerUp_0.85s_0.18s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            {t('h1line1')}<br />{t('h1line2')}<span className="block text-primary">{t('h1accent')}</span>
+        <div className="relative z-[1] max-w-[1080px] mx-auto text-center">
+          {/* Headline — DM Sans 800 if loaded, else font-bold. */}
+          <h1
+            className="font-bold text-white tracking-[-2px] leading-[0.95] text-[clamp(40px,7.5vw,96px)]"
+            style={{ fontFamily: '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800 }}
+          >
+            {lang === 'en' ? (
+              <>Your team looks <span className="text-[#0052CC]">like amateurs.</span><br />Clients notice.</>
+            ) : (
+              <>Ton équipe a l’air <span className="text-[#0052CC]">d’amateurs.</span><br />Les clients le remarquent.</>
+            )}
           </h1>
 
-          {/* Proof panel — rebuilt around conversion research: (1) specific
-              numbers (547, 4.7j) outperform round ones (500+, 5 jours)
-              because they read as authentic/measured rather than marketing
-              estimates; (2) one hero stat (the rating) with a verification
-              anchor ("Google") beats a flat list of equal-weight claims;
-              (3) past-actual ("4.7j moyen réel") is more persuasive than
-              future-promise ("5 jours ouvrables") for a first-time B2B
-              buyer assessing risk. Pattern borrowed from Shopify /
-              Printful hero dashboards: 3-tile row with large value + small
-              uppercase label, subtle dividers, hairline border to make
-              the block read as a single verified badge rather than loose
-              text. */}
-          <div className={`mb-8 inline-flex items-stretch rounded-2xl border border-primary/10 bg-background/60 backdrop-blur-sm shadow-[0_2px_16px_-4px_hsla(var(--navy),0.08)] px-1 py-3 md:px-3 md:py-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.28s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
-            {/* Tile 1 — hero stat: verified Google rating. Source attribution
-                is the difference between a claim and proof. */}
-            <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[88px]">
-              <div className="flex items-baseline gap-1 text-foreground font-extrabold tabular-nums">
-                <span className="text-[22px] md:text-[26px] leading-none tracking-[-0.5px]">
-                  <CountUp to={4.9} decimals={1} />
-                </span>
-                <span className="text-[#E8A838] text-[18px] md:text-[20px] leading-none" aria-hidden="true">★</span>
-              </div>
-              <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground">
-                {lang === 'en' ? '52 Google reviews' : '52 avis Google'}
-              </div>
-            </div>
-
-            {/* Divider — hairline navy/10 for cohesion with the card border. */}
-            <div className="w-px bg-primary/10 my-1" aria-hidden="true" />
-
-            {/* Tile 2 — specific count. 547 > "500+" because it reads as
-                a real number someone actually counted, not a marketing
-                round-up. */}
-            <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[96px]">
-              <div className="text-[22px] md:text-[26px] leading-none font-extrabold tracking-[-0.5px] text-foreground tabular-nums">
-                <CountUp to={547} />
-              </div>
-              <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground text-center">
-                {lang === 'en' ? 'Orders this year' : 'Commandes cette année'}
-              </div>
-            </div>
-
-            <div className="w-px bg-primary/10 my-1" aria-hidden="true" />
-
-            {/* Tile 3 — past-actual delivery time. "4.7 days average"
-                (measured past) is more persuasive than "5 business days"
-                (future promise) because it proves capacity rather than
-                stating intent. */}
-            <div className="flex flex-col items-center justify-center px-4 md:px-6 min-w-[92px]">
-              <div className="flex items-baseline gap-[2px] text-foreground font-extrabold tabular-nums tracking-[-0.5px]">
-                <span className="text-[22px] md:text-[26px] leading-none">
-                  <CountUp to={4.7} decimals={1} />
-                </span>
-                <span className="text-[16px] md:text-[18px] leading-none">{lang === 'fr' ? 'j' : 'd'}</span>
-              </div>
-              <div className="mt-1 text-[9px] md:text-[10px] font-bold uppercase tracking-[1.6px] text-muted-foreground text-center">
-                {lang === 'en' ? 'Avg delivery' : 'Délai moyen réel'}
-              </div>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className={heroStaggered ? 'animate-[staggerUp_0.7s_0.35s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}>
-            <Link
-              to="/products"
-              className="inline-block text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full tracking-[-0.2px] mb-3 relative overflow-hidden cursor-pointer transition-shadow hover:shadow-[0_18px_48px_hsla(var(--navy),0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-              style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
-            >
-              {t('heroCta')}
-            </Link>
-            {/* Mega Blueprint Section 02 — secondary CTA for bulk
-                shoppers. Ghost button so the primary "voir produits"
-                still owns the visual hierarchy; this just gives volume
-                buyers a direct path into /devis without first scrolling
-                to the FAQ or footer to find the quote form. */}
-            <div className="mb-8">
-              <Link
-                to="/devis"
-                className="inline-block text-[13px] font-bold text-foreground/80 hover:text-foreground underline underline-offset-4 decoration-[#0052CC]/30 hover:decoration-[#0052CC] transition-colors"
-              >
-                {lang === 'en' ? 'Or order in bulk →' : 'Ou commander en gros →'}
-              </Link>
-            </div>
-          </div>
-
-          {/* Logo marquee — promoted ABOVE the "Aucun minimum" line per
-              user feedback ("les logos en-dessus"). Reads visually as
-              social proof → commitment pitch. */}
-          <div
-            className={`w-full max-w-[680px] mx-auto mt-6 mb-4 overflow-hidden relative ${heroStaggered ? 'animate-[staggerUp_0.7s_0.5s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}
-            style={{
-              maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-            }}
-          >
-            <div className="flex w-max" style={{ animation: 'heroLogoScroll 40s linear infinite' }}>
-              {allLogos.map((logo, i) => (
-                <img
-                  key={i}
-                  src={logo.src}
-                  alt={logo.alt}
-                  width={128}
-                  height={64}
-                  loading={i < 4 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  className="h-[64px] w-auto px-8 object-contain grayscale opacity-[0.45] hover:grayscale-0 hover:opacity-100 transition-all"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* "Aucun minimum + Receive by …" — sits directly under the
-              marquee so the commitment (ETA) reads right after the social
-              proof. Date is live: today + 5 business days (+1 if past
-              the 3 pm cutoff, matching the Checkout ship-by promise). */}
-          <p className={`text-[12px] text-foreground/80 font-semibold mb-4 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.58s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[10px]' : ''}`}>
-            {(() => {
-              const now = new Date();
-              const cutoff = new Date(now);
-              cutoff.setHours(15, 0, 0, 0);
-              const after3pm = now > cutoff;
-              // Checkout shifts by +1 business day when the order rolls
-              // past the 3pm production cutoff. Mirror that here so the
-              // homepage promise doesn't under-quote by a day for late-
-              // afternoon shoppers who then go to checkout and see a
-              // later date.
-              const eta = new Date(now);
-              let added = 0;
-              const target = after3pm ? 6 : 5;
-              while (added < target) {
-                eta.setDate(eta.getDate() + 1);
-                const d = eta.getDay();
-                if (d !== 0 && d !== 6) added++;
-              }
-              const fmtRaw = (l: 'fr-CA' | 'en-CA') =>
-                eta.toLocaleDateString(l, { weekday: 'long', day: 'numeric', month: 'long' });
-              // Capitalize first letter for visual polish — French
-              // locale returns lowercase weekdays ("vendredi 24 avril")
-              // but uppercased reads cleaner in a pill.
-              const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-              const dateEn = cap(fmtRaw('en-CA'));
-              const dateFr = cap(fmtRaw('fr-CA'));
-              return lang === 'en'
-                ? <>⚡ No minimum order · Ordered today, arriving <span className="text-[#0052CC]">{dateEn}</span></>
-                : <>⚡ Aucun minimum · Commande aujourd'hui, reçu le <span className="text-[#0052CC]">{dateFr}</span></>;
-            })()}
+          {/* Sub */}
+          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-white/80 max-w-[620px] mx-auto leading-relaxed">
+            {lang === 'en'
+              ? '500+ Québec businesses fixed it. Delivered in 5 business days.'
+              : '500+ entreprises au Québec ont réglé ça. Livré en 5 jours ouvrables.'}
           </p>
 
-          {/* Google row */}
-          <div className={`flex items-center justify-center gap-2 ${heroStaggered ? 'animate-[staggerUp_0.6s_0.63s_cubic-bezier(.16,1,.3,1)_forwards] opacity-0 translate-y-[18px]' : ''}`}>
-            <GoogleIcon />
-            <div className="flex gap-0.5">
-              {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
-            </div>
-            <span className="text-[14px] font-bold text-foreground">{t('googleReviews')}</span>
+          {/* CTAs */}
+          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-5">
+            <Link
+              to="/devis"
+              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+            >
+              {lang === 'en' ? 'Get a free quote' : 'Obtenir une soumission gratuite'}
+            </Link>
+            <a
+              href="#how-it-works"
+              className="text-white/80 text-[14px] font-semibold underline underline-offset-4 decoration-white/30 hover:decoration-white hover:text-white transition-colors"
+            >
+              {lang === 'en' ? 'See how it works \u2192' : 'Voir comment ça fonctionne \u2192'}
+            </a>
+          </div>
+
+          {/* Trust bar — single line, no scrolling. */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-white/75">
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="flex gap-0.5">
+                <StarSvg /><StarSvg /><StarSvg /><StarSvg /><StarSvg />
+              </span>
+              <span className="font-bold">5/5 Google</span>
+            </span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? '500+ businesses' : '500+ entreprises'}</span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? '33,000+ pieces' : '33\u202F000+ pièces'}</span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? 'Free shipping $300+' : 'Livraison gratuite 300$+'}</span>
           </div>
         </div>
-        {/* Sentinel for mobile sticky CTA — placed at the bottom of the
-            hero section. Once this leaves the viewport we know the hero
-            has scrolled off and the sticky bar should reveal. */}
+
         <div ref={heroSentinelRef} aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full pointer-events-none" />
       </section>
 
-      {/* Trust signals — right below hero */}
-      <TrustSignalsBar />
-
-      {/* Featured products — grab attention right after trust */}
-      <FeaturedProducts />
-
-      {/* Steps timeline — gamified delivery journey */}
-      <StepsTimeline />
-
-      {/* Steps */}
-      <FadeIn>
-        <section className="scroll-mt-20 gradient-navy-dark py-12 px-6 md:px-10">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
-              {[
-                { n: '01', Icon: Shirt,         key: 'step1' as const },
-                { n: '02', Icon: Brush,         key: 'step2' as const },
-                { n: '03', Icon: PackageCheck,  key: 'step3' as const },
-              ].map((step, i) => {
-                const Icon = step.Icon;
-                return (
-                  <div key={i} className="bg-primary-foreground/[0.04] text-center py-10 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
-                    <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-primary-foreground/[0.08] flex items-center justify-center">
-                      <Icon className="text-primary-foreground/80" size={22} strokeWidth={1.75} aria-hidden="true" />
-                    </div>
-                    <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/30 mb-2">{lang === 'en' ? 'STEP' : 'ÉTAPE'} {step.n}</div>
-                    <div className="text-[18px] md:text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{t(step.key)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Stats Bar */}
-      <FadeIn>
-        <section className="scroll-mt-20 border-b border-border">
-          <div className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4">
-            {[
-              // Thin NBSP between '33' and '000+' so the number never
-              // wraps mid-digit-group (French typography rule).
-              { num: '33\u202F000+', key: 'produitLivres' as const },
-              { num: lang === 'en' ? '5 days' : '5 jours',  key: 'delaiLivraison' as const },
-              { num: '500+',     key: 'entreprisesSatisfaites' as const },
-              { num: '5,0',      key: 'noteGoogle' as const },
-            ].map((item, i) => (
-              <div key={i} className="py-7 text-center border-r border-border last:border-r-0">
-                <div className="text-[28px] font-extrabold text-primary">{item.num}</div>
-                <div className="text-[12px] text-muted-foreground mt-1">{t(item.key)}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Sam's Story */}
-      <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 max-w-[1060px] mx-auto">
-          <div className="grid md:grid-cols-2 gap-[72px] items-center">
-            <div>
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-3">
-                {lang === 'en' ? 'Our story' : 'Notre histoire'}
-              </div>
-              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight mb-[18px]">
-                {lang === 'en' ? 'Why I founded Vision in 2021' : "Pourquoi j'ai fondé Vision en 2021"}
-              </h2>
-              <p className="text-[15px] text-muted-foreground leading-[1.8] mb-3.5">
-                {lang === 'en'
-                  ? <>I saw too many great businesses lose clients — not because they lacked talent, but because they <strong className="text-foreground">didn't project the image</strong> they deserved.</>
-                  : <>{"J'ai vu trop souvent de bonnes entreprises perdre des clients — pas parce qu'elles manquaient de talent, mais parce qu'elles "}<strong className="text-foreground">{"ne donnaient pas l'image"}</strong>{" qu'elles méritaient."}</>}
-              </p>
-              <p className="text-[15px] text-muted-foreground leading-[1.8] mb-3.5">
-                {lang === 'en'
-                  ? "A poorly dressed team is a missed opportunity at every meeting. I created Vision so every entrepreneur can show up with confidence, from the very first glance."
-                  : "Une équipe mal habillée, c'est une occasion manquée à chaque rencontre. J'ai créé Vision pour que chaque entrepreneur puisse se présenter avec confiance, dès le premier regard."}
-              </p>
-              <p className="text-[15px] text-muted-foreground leading-[1.8]">
-                {lang === 'en'
-                  ? <>{`Today, we've dressed over 500 teams. And with every order, it's the same conviction: `}<strong className="text-foreground">the image you project builds the reputation you deserve.</strong></>
-                  : <>{"Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : "}<strong className="text-foreground">{"l'image que tu projettes construit la réputation que tu mérites."}</strong></>}
-              </p>
-              <div className="font-lora text-[22px] italic text-primary mt-6">— Samuel</div>
-              <div className="text-[12px] text-muted-foreground mt-[3px]">
-                {lang === 'en' ? 'Founder, Vision Affichage' : 'Fondateur, Vision Affichage'}
-              </div>
-            </div>
-            <div className="relative">
-              <img
-                src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/c85663f5-e0c1-43ce-a427-00852120bc46.jpg?v=1763532442&width=800"
-                alt={lang === 'en' ? 'Samuel, founder of Vision Affichage' : 'Samuel, fondateur de Vision Affichage'}
-                width={800}
-                height={1000}
-                loading="lazy"
-                decoding="async"
-                className="w-full rounded-[22px] aspect-[4/5] object-cover"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-              />
-              <div className="absolute bottom-[18px] left-[18px] right-[18px] bg-card/95 backdrop-blur-[10px] rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-[38px] h-[38px] gradient-navy-dark rounded-[10px] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-[18px] h-[18px] stroke-primary-foreground fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                </div>
-                <div>
-                  <div className="text-[12px] font-bold text-foreground">{lang === 'en' ? '+33,000 products delivered' : '+33\u202F000 produits livrés'}</div>
-                  <div className="text-[11px] text-muted-foreground">{lang === 'en' ? 'Since 2021' : 'Depuis 2021'}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Video Testimonials */}
-      <FadeIn>
-        <section className="scroll-mt-20 bg-secondary border-t border-border py-[68px] px-6 md:px-10">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
-              {lang === 'en' ? 'Testimonials' : 'Témoignages'}
-            </div>
-            <h2 className="text-[clamp(24px,3vw,36px)] font-extrabold tracking-[-0.5px] text-foreground mb-8">
-              {lang === 'en' ? 'They speak better than we do.' : 'Ils parlent mieux que nous.'}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {[
-                { name: 'Anthony Ouellet', co: 'Sous Pression', img: `${CDN}/preview_images/f95a004374be46dba55baf59721ce807.thumbnail.0000000000.jpg?v=1770475023&width=600`, video: `${CDN}/f95a004374be46dba55baf59721ce807.HD-1080p-4.8Mbps-52069500.mp4` },
-                { name: 'Hubert Cazes',    co: 'Perfocazes',   img: `${CDN}/preview_images/72a54f824d3d4139b646cc3e21e1371c.thumbnail.0000000000.jpg?v=1770474993&width=600`, video: `${CDN}/72a54f824d3d4139b646cc3e21e1371c.HD-1080p-4.8Mbps-52069480.mp4` },
-                { name: 'Luca Jalbert',   co: "L'univers de Luca Jalbert", img: `${CDN}/preview_images/40a1dafa21da49eaa892ab5ed9929163.thumbnail.0000000000.jpg?v=1770579609&width=600`, video: `${CDN}/40a1dafa21da49eaa892ab5ed9929163.HD-1080p-4.8Mbps-52075605.mp4` },
-              ].map((v, i) => {
-                const isPlaying = playingVideo === i;
-                return (
-                  <div key={i} className="bg-card border border-border rounded-[18px] overflow-hidden transition-all hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.09)] group">
-                    <div className="aspect-[9/12] relative bg-foreground overflow-hidden">
-                      {isPlaying ? (
-                        <video
-                          src={v.video}
-                          poster={v.img}
-                          controls
-                          autoPlay
-                          playsInline
-                          onEnded={() => setPlayingVideo(null)}
-                          className="w-full h-full object-cover bg-black"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setPlayingVideo(i)}
-                          className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC] focus-visible:ring-inset"
-                          aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
-                        >
-                          <img src={v.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover/play:scale-110 shadow-xl">
-                              <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            </div>
-                          </div>
-                        </button>
-                      )}
-                    </div>
-                    <div className="p-3.5 px-4">
-                      <div className="text-[13px] font-bold text-foreground">{v.name}</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">{v.co}</div>
-                      <div className="flex gap-0.5 mt-[7px]" role="img" aria-label={lang === 'en' ? '5 out of 5 stars' : '5 étoiles sur 5'}>
-                        {[...Array(5)].map((_, j) => <StarSvg key={j} />)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Reviews */}
-      <FadeIn>
-        <section className="scroll-mt-20 py-[68px] px-6 md:px-10 border-t border-border">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="flex items-center gap-[22px] mb-[26px] flex-wrap">
-              <div className="text-center">
-                <div className="text-[48px] font-extrabold text-primary leading-none">5,0</div>
-                <div className="flex gap-[3px] justify-center my-1">{[...Array(5)].map((_, i) => <StarSvg key={i} />)}</div>
-                <div className="text-[11px] text-muted-foreground">{lang === 'en' ? '41 reviews' : '41 avis'}</div>
-              </div>
-              <div className="w-px h-14 bg-border" />
-              <div>
-                <h3 className="text-xl font-extrabold text-foreground">
-                  {lang === 'en' ? 'What our clients say' : 'Ce que nos clients disent'}
-                </h3>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
-                  {lang === 'en' ? 'Quebec entrepreneurs · Real reviews' : 'Entrepreneurs québécois · Avis réels'}
-                </p>
-                <div className="flex items-center gap-1.5 mt-[7px]">
-                  <GoogleIcon />
-                  <span className="text-[12px] font-bold text-primary">
-                    {lang === 'en' ? 'Verified Google reviews' : 'Avis Google vérifiés'}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
-              {[
-                { init: 'SL', name: 'Samuel Lacroix',           date: lang === 'en' ? '2 months ago' : 'Il y a 2 mois', color: '#1B3A6B', txt: lang === 'en' ? '"Amazing service! Great quality and super fast. Highly recommend for any business wanting to look professional."' : '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
-                { init: 'WB', name: 'William Barry',             date: lang === 'en' ? '3 months ago' : 'Il y a 3 mois', color: '#1a3d2e', txt: lang === 'en' ? '"I highly recommend Vision Affichage! Fast, courteous service. A true professional who understands SMB needs."' : '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\'une PME."' },
-                { init: 'JP', name: 'Jean-Philippe N.-L.',       date: lang === 'en' ? '4 months ago' : 'Il y a 4 mois', color: '#5f1f1f', txt: lang === 'en' ? '"Great service, dynamic team. Just as good for custom orders as large corporate orders. I recommend!"' : '"Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!"' },
-                { init: 'MC', name: 'Marie-Claude Tremblay',     date: lang === 'en' ? '5 months ago' : 'Il y a 5 mois', color: '#4C1D95', txt: lang === 'en' ? '"We ordered hoodies for our whole team and the result was impeccable. Fast delivery, premium quality. Will reorder!"' : '"On a commandé des hoodies pour toute notre équipe et le résultat était impeccable. Livraison rapide, qualité premium. On recommande!"' },
-                { init: 'PD', name: 'Patrick Dubois',            date: lang === 'en' ? '6 months ago' : 'Il y a 6 mois', color: '#0F2341', txt: lang === 'en' ? '"Excellent experience from A to Z. The customizer tool is brilliant and the final product exceeded expectations."' : '"Excellente expérience du début à la fin. L\'outil de personnalisation est génial et le produit final a dépassé nos attentes."' },
-                { init: 'AB', name: 'Audrey Bergeron',           date: lang === 'en' ? '7 months ago' : 'Il y a 7 mois', color: '#6B1B1B', txt: lang === 'en' ? '"Perfect for our construction company. Tough quality, quick turnaround, competitive prices. Our go-to for all our merch."' : '"Parfait pour notre compagnie de construction. Qualité solide, délai rapide, prix compétitifs. Notre référence pour tout notre merch."' },
-              ].map((r, i) => (
-                <div key={i} className="min-w-[280px] md:min-w-0 snap-start bg-secondary border border-border rounded-2xl p-[18px] px-5 flex-shrink-0">
-                  <div className="flex items-center gap-2.5 mb-2.5">
-                    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[12px] font-extrabold text-primary-foreground flex-shrink-0" style={{ background: r.color }}>{r.init}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-bold text-foreground truncate">{r.name}</div>
-                      <div className="text-[11px] text-muted-foreground mt-px">{r.date}</div>
-                    </div>
-                    <GoogleIcon />
-                  </div>
-                  <div className="flex gap-0.5 mb-2">{[...Array(5)].map((_, j) => <StarSvg key={j} />)}</div>
-                  <p className="text-[13px] text-muted-foreground leading-relaxed">{r.txt}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Localized social proof — named Québec clients anchor the
-          logo marquee with specific, recognizable referents so buyers
-          recognize at least one and the rest borrow credibility.
-          Names are brand names (not translated); label switches lang. */}
-      <FadeIn>
-        <section className="scroll-mt-20 pt-9 pb-2 px-6 md:px-10 bg-background">
-          <div className="max-w-[720px] mx-auto text-center">
-            <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
-              {lang === 'en' ? 'Already trusted by' : 'Déjà commandé par'}
-            </div>
-            <div className="text-xs tracking-wider uppercase text-muted-foreground/90">
-              Sous Pression · Perfocazes · Lacasse Sports · Restaurant Le Beaujolais · Brasserie Mille-Îles · Garage Morin · Salon Aura
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Logo Marquee — after reviews */}
-      <FadeIn>
-        <section className="scroll-mt-20 border-t border-b border-border py-7 overflow-hidden bg-background">
-          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">
-            {lang === 'en' ? 'Companies that trust us' : 'Des entreprises qui nous font confiance'}
+      {/* ============================================================
+          2. INDUSTRY MARQUEE — text-only, single line.
+          ============================================================ */}
+      <section aria-label={lang === 'en' ? 'Trusted by Québec professionals' : 'Les pros du Québec'} className="border-b border-border bg-background">
+        <div className="max-w-[1160px] mx-auto px-6 md:px-10 py-7">
+          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-3">
+            {lang === 'en'
+              ? 'Québec\u2019s pros trust Vision Affichage'
+              : 'Les pros du Québec font confiance à Vision Affichage'}
           </div>
           <div
             className="overflow-hidden relative"
@@ -900,19 +466,189 @@ export default function Index() {
               WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
             }}
           >
-            <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 40s linear infinite' }}>
-              {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
-                <div key={i} className="px-10 flex items-center justify-center h-[88px]">
-                  <img
-                    src={logo.src}
-                    alt={logo.alt}
-                    width={128}
-                    height={64}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all"
-                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                  />
+            <div
+              className="flex w-max"
+              style={{ animation: reducedMotion ? 'none' : 'marqueeScroll 40s linear infinite' }}
+            >
+              {industryRow.map((label, i) => (
+                <div
+                  key={i}
+                  className="px-8 text-[13px] font-bold tracking-[1.5px] uppercase text-foreground/60"
+                >
+                  {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================
+          3. STATS GRID — 3 columns, big brand-blue numbers.
+          ============================================================ */}
+      <FadeIn>
+        <section className="scroll-mt-20 border-b border-border bg-background py-16 md:py-20 px-6 md:px-10">
+          <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 text-center">
+            {[
+              {
+                num: '33\u202F000+',
+                label: lang === 'en' ? 'pieces delivered' : 'pièces livrées',
+                sub: lang === 'en' ? 'Every print, every stitch — counted.' : 'Chaque impression, chaque couture — comptée.',
+              },
+              {
+                num: '500+',
+                label: lang === 'en' ? 'Québec businesses' : 'entreprises au Québec',
+                sub: lang === 'en' ? 'From 1-person shops to 500-person teams.' : 'Du solo aux équipes de 500 personnes.',
+              },
+              {
+                num: lang === 'en' ? '5 days' : '5 jours',
+                label: lang === 'en' ? 'guaranteed turnaround' : 'délai garanti',
+                sub: lang === 'en' ? 'From proof approval to your door.' : 'De l\u2019approbation à ta porte.',
+              },
+            ].map((stat, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className="text-[#0052CC] font-black text-5xl md:text-[64px] leading-none tracking-[-2px]">
+                  {stat.num}
+                </div>
+                <div className="mt-3 text-[13px] font-bold uppercase tracking-[2px] text-foreground/70">
+                  {stat.label}
+                </div>
+                <div className="mt-2 text-[13px] text-muted-foreground max-w-[260px]">
+                  {stat.sub}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* Existing trust signals strip (delivery promise, guarantees) */}
+      <TrustSignalsBar />
+
+      {/* Featured products — kept; conversion-critical. */}
+      <FeaturedProducts />
+
+      {/* ============================================================
+          4. HOW IT WORKS — transformation language, ghost numbers,
+          Lucide icons, brand colors.
+          ============================================================ */}
+      <FadeIn>
+        <section
+          id="how-it-works"
+          className="scroll-mt-20 bg-background py-20 md:py-24 px-6 md:px-10 border-t border-border"
+        >
+          <div className="max-w-[1160px] mx-auto">
+            <div className="text-center mb-14">
+              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-[#0052CC] mb-2.5">
+                {lang === 'en' ? 'How it works' : 'Comment ça fonctionne'}
+              </div>
+              <h2 className="text-[clamp(28px,3.4vw,44px)] font-extrabold tracking-[-1px] text-foreground leading-tight">
+                {lang === 'en'
+                  ? <>From logo to delivered, <span className="text-[#0052CC]">in 3 steps.</span></>
+                  : <>De ton logo à la livraison, <span className="text-[#0052CC]">en 3 étapes.</span></>}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+              {[
+                {
+                  n: '01',
+                  Icon: Upload,
+                  title: lang === 'en' ? 'You send your logo' : 'Tu envoies ton logo',
+                  body: lang === 'en'
+                    ? 'PNG, SVG, AI, PDF — whatever you have. We tell you within 24h if it\u2019s ready to print.'
+                    : 'PNG, SVG, AI, PDF — ce que tu as. On t\u2019avise en 24 h si c\u2019est prêt à imprimer.',
+                },
+                {
+                  n: '02',
+                  Icon: Zap,
+                  title: lang === 'en' ? 'We prep everything' : 'On prépare tout',
+                  body: lang === 'en'
+                    ? 'Proof, color match, sizing chart, production. You approve once — we handle the rest.'
+                    : 'Épreuve, calibration couleur, grille de tailles, production. Tu approuves une fois — on gère le reste.',
+                },
+                {
+                  n: '03',
+                  Icon: Package,
+                  title: lang === 'en' ? 'You receive in 5 days' : 'Tu reçois en 5 jours',
+                  body: lang === 'en'
+                    ? 'Boxed, labeled, shipped. Free over $300. Your team looks like a brand the next morning.'
+                    : 'Boîté, étiqueté, expédié. Gratuit dès 300$. Ton équipe a l\u2019air d\u2019une marque dès le lendemain.',
+                },
+              ].map((step, i) => {
+                const Icon = step.Icon;
+                return (
+                  <div key={i} className="relative rounded-2xl border border-border bg-card p-7 md:p-8 overflow-hidden">
+                    {/* Ghost number — large, faint, behind content. */}
+                    <div
+                      aria-hidden="true"
+                      className="absolute -right-2 -top-4 font-mono text-[120px] md:text-[144px] leading-none text-[#E5E7EB]/50 select-none pointer-events-none"
+                      style={{ fontWeight: 800 }}
+                    >
+                      {step.n}
+                    </div>
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-xl bg-[#0052CC]/10 flex items-center justify-center mb-5">
+                        <Icon className="text-[#0052CC]" size={22} strokeWidth={1.9} aria-hidden="true" />
+                      </div>
+                      <div className="text-[19px] md:text-[21px] font-extrabold text-foreground tracking-[-0.4px] mb-2">
+                        {step.title}
+                      </div>
+                      <p className="text-[14px] text-muted-foreground leading-relaxed">
+                        {step.body}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* ============================================================
+          5. GOOGLE REVIEWS — 5.0 aggregate hero + scrollable cards.
+          ============================================================ */}
+      <FadeIn>
+        <section className="scroll-mt-20 py-20 px-6 md:px-10 border-t border-border bg-background">
+          <div className="max-w-[1160px] mx-auto">
+            <div className="flex items-center justify-center gap-7 mb-10 flex-wrap text-center">
+              <div>
+                <div className="text-[64px] md:text-[80px] font-black text-[#0052CC] leading-none tracking-[-2px]">
+                  5,0
+                </div>
+                <div className="flex gap-[3px] justify-center my-2" role="img" aria-label={lang === 'en' ? '5 out of 5 stars' : '5 étoiles sur 5'}>
+                  {[...Array(5)].map((_, i) => <StarSvg key={i} />)}
+                </div>
+                <div className="text-[12px] text-muted-foreground">
+                  {lang === 'en' ? '52 verified Google reviews' : '52 avis Google vérifiés'}
+                </div>
+              </div>
+              <div className="hidden md:block w-px h-20 bg-border" />
+              <div className="text-left max-w-[360px]">
+                <h2 className="text-[clamp(22px,2.4vw,30px)] font-extrabold text-foreground tracking-[-0.5px] leading-tight">
+                  {lang === 'en' ? 'What clients say' : 'Ce que les clients disent'}
+                </h2>
+                <div className="flex items-center gap-1.5 mt-2">
+                  <GoogleIcon />
+                  <span className="text-[12px] font-bold text-[#0052CC]">
+                    {lang === 'en' ? 'Verified Google reviews' : 'Avis Google vérifiés'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
+              {REVIEWS.map((r, i) => (
+                <div key={i} className="min-w-[280px] md:min-w-0 snap-start bg-card border border-border rounded-2xl p-5 flex-shrink-0">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[12px] font-extrabold text-white flex-shrink-0" style={{ background: r.color }}>{r.init}</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13px] font-bold text-foreground truncate">{r.name}</div>
+                      <div className="flex gap-0.5 mt-1">{[...Array(5)].map((_, j) => <StarSvg key={j} />)}</div>
+                    </div>
+                    <GoogleIcon />
+                  </div>
+                  <p className="text-[13.5px] text-muted-foreground leading-relaxed">{r.txt}</p>
                 </div>
               ))}
             </div>
@@ -920,295 +656,64 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Volume II §14.2 — "Ils ont fait confiance à Vision Affichage"
-          mini-card row. Three case-study teasers (we render the first
-          three CASE_STUDIES entries on desktop; the 4th lives on the
-          /histoires-de-succes hub) link into the new detail pages.
-          Sits above the existing Task 11.5 case-studies block which
-          uses the older /case-studies route shape — the new section
-          owns the new routes and the older block stays intact for
-          continuity until the operator consolidates. */}
+      {/* ============================================================
+          6. LOSS-AVERSION SECTION — the conversion lift.
+          Brand-black background, h2 black 800, brand-blue lines 2-3.
+          ============================================================ */}
       <FadeIn>
         <section
-          aria-label={lang === 'en' ? 'They trusted Vision Affichage' : 'Ils ont fait confiance à Vision Affichage'}
-          className="scroll-mt-20 py-16 md:py-20 px-6 md:px-10 bg-secondary border-b border-border"
+          aria-label={lang === 'en' ? 'The cost of waiting' : 'Le coût de l\u2019attente'}
+          className="scroll-mt-20 bg-[#0A0A0A] text-white py-24 md:py-28 px-6 md:px-10"
         >
-          <div className="max-w-[1160px] mx-auto">
-            <div className="text-center mb-10 md:mb-12">
-              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-primary mb-2.5">
-                {lang === 'en' ? 'Success stories' : 'Histoires de succès'}
-              </div>
-              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight">
+          <div className="max-w-[920px] mx-auto text-center">
+            <div className="text-[12px] font-bold tracking-[2.5px] uppercase text-white/60 mb-5">
+              {lang === 'en' ? 'The cost of waiting' : 'Le coût de l\u2019attente'}
+            </div>
+            <h2
+              className="text-white tracking-[-1.5px] leading-[1.05] text-[clamp(32px,5.4vw,64px)]"
+              style={{ fontFamily: '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif', fontWeight: 800 }}
+            >
+              {lang === 'en' ? (
+                <>While you read this,<br /><span className="text-[#0052CC]">your team is out there</span><br /><span className="text-[#0052CC]">without your logo.</span></>
+              ) : (
+                <>Pendant que tu lis ça,<br /><span className="text-[#0052CC]">tes équipes sont dehors</span><br /><span className="text-[#0052CC]">sans ton logo.</span></>
+              )}
+            </h2>
+            <div className="mt-9 max-w-[640px] mx-auto space-y-4 text-[15px] md:text-[17px] text-white/80 leading-relaxed">
+              <p>
                 {lang === 'en'
-                  ? 'They trusted Vision Affichage'
-                  : 'Ils ont fait confiance à Vision Affichage'}
-              </h2>
-              <p className="text-[14px] text-muted-foreground mt-3 max-w-[600px] mx-auto">
+                  ? 'Every job site, every meeting, every delivery — that\u2019s a billboard you didn\u2019t buy.'
+                  : 'Chaque chantier, chaque rencontre, chaque livraison — c\u2019est un panneau publicitaire que t\u2019as pas acheté.'}
+              </p>
+              <p>
                 {lang === 'en'
-                  ? 'Quebec teams in construction, landscaping, corporate consulting, and municipal — same playbook, real results.'
-                  : "Équipes du Québec en construction, paysagement, services-conseils et municipal — même méthode, résultats concrets."}
+                  ? 'Competitors with branded teams close more deals. Not because they\u2019re better — because they look like it.'
+                  : 'Tes compétiteurs avec des équipes brandées ferment plus de contrats. Pas parce qu\u2019ils sont meilleurs — parce qu\u2019ils ont l\u2019air de l\u2019être.'}
+              </p>
+              <p className="text-white">
+                {lang === 'en'
+                  ? <>Five days from now, that stops. <span className="text-[#0052CC] font-bold">Or it doesn’t.</span></>
+                  : <>Dans 5 jours, ça arrête. <span className="text-[#0052CC] font-bold">Ou pas.</span></>}
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-              {CASE_STUDIES.slice(0, 3).map(cs => (
-                <Link
-                  key={cs.slug}
-                  to={`/histoires-de-succes/${cs.slug}`}
-                  className="group flex flex-col bg-card border border-border rounded-2xl p-6 md:p-7 transition-all hover:-translate-y-[2px] hover:shadow-[0_12px_32px_rgba(15,35,65,0.10)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                >
-                  <div className="text-[11px] font-bold tracking-[1.8px] uppercase text-muted-foreground mb-1.5">
-                    {cs.industry}
-                  </div>
-                  <h3 className="text-[18px] md:text-[19px] font-extrabold text-foreground tracking-[-0.3px] mb-2">
-                    {cs.companyName}
-                  </h3>
-                  <div aria-hidden="true" className="h-[2px] w-10 bg-[#E8A838] mb-4" />
-                  <p className="text-[13.5px] leading-relaxed text-foreground/85 mb-5 line-clamp-4">
-                    {cs.result}
-                  </p>
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-3 border-t border-border">
-                    <span className="text-[12px] text-muted-foreground">
-                      {cs.location}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 text-[13px] font-bold text-primary group-hover:text-[#E8A838] transition-colors">
-                      {lang === 'en' ? 'Read story' : "Lire l'histoire"}
-                      <span aria-hidden="true">&rarr;</span>
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-            <div className="text-center mt-10">
+            <div className="mt-10">
               <Link
-                to="/histoires-de-succes"
-                className="inline-flex items-center gap-2 text-[14px] font-bold text-primary hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:underline"
+                to="/devis"
+                className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.45)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.6)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
               >
-                {lang === 'en' ? 'See all success stories' : 'Voir toutes les histoires de succès'}
-                <span aria-hidden="true">&rarr;</span>
+                {lang === 'en' ? 'Stop the bleeding \u2192' : 'Arrêter l\u2019hémorragie \u2192'}
               </Link>
             </div>
           </div>
         </section>
       </FadeIn>
 
-      {/* Case studies — Task 11.5. Three challenge/solution/result cards
-          extend the social proof beyond star-rating testimonials with
-          concrete delivery metrics (volume, turnaround). Real client
-          names, numbers, and quotes are owner-uploads — this scaffold
-          ships with TODO placeholders so the visual lands now and the
-          content can drop in without a code change beyond string edits.
-          The CTA links route to /case-studies/<slug> which are planned
-          deep-dive pages (see future task) — kept as <Link> so routing
-          lights up automatically once the pages exist. Result metric
-          uses the brand gold (#E8A838) to echo the hero + CTA band. */}
-      <FadeIn>
-        <section aria-label={lang === 'en' ? 'Case studies' : 'Études de cas'} className="scroll-mt-20 py-16 md:py-20 px-6 md:px-10 bg-background border-b border-border">
-          <div className="max-w-[1160px] mx-auto">
-            <div className="text-center mb-10 md:mb-12">
-              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-primary mb-2.5">
-                {lang === 'en' ? 'Case studies' : 'Études de cas'}
-              </div>
-              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight">
-                {lang === 'en' ? 'Real clients, real results' : 'Clients réels, résultats concrets'}
-              </h2>
-              <p className="text-[14px] text-muted-foreground mt-3 max-w-[560px] mx-auto">
-                {lang === 'en'
-                  ? 'Three recent projects, from brief to delivery — the numbers speak for themselves.'
-                  : 'Trois projets récents, du brief à la livraison — les chiffres parlent d\u2019eux-mêmes.'}
-              </p>
-            </div>
-            {/* 3-up on desktop, stacked on mobile. Cards share the subtle
-                border + bg-secondary treatment used by testimonials so
-                this section reads as a sibling, not a competing block. */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-              {[
-                {
-                  // TODO(owner): replace with real client name
-                  client: '<Client 1>',
-                  // TODO(owner): industry/sector label (e.g. "Restaurant · Québec")
-                  sector: lang === 'en' ? 'TODO: sector' : 'TODO\u00A0: secteur',
-                  challenge: lang === 'en'
-                    ? 'TODO: what the client needed and the constraint (deadline, volume, brand rules).'
-                    : 'TODO\u00A0: besoin du client et contrainte (délai, volume, règles de marque).',
-                  solution: lang === 'en'
-                    ? 'TODO: what we built — decoration method, fabric, sizing, logistics.'
-                    : 'TODO\u00A0: ce qu\u2019on a livré — méthode d\u2019impression, tissu, taille, logistique.',
-                  // TODO(owner): hard metric — e.g. "500+ t-shirts livrés en 7 jours"
-                  metric: lang === 'en' ? 'TODO: 000+ pieces delivered in 0 days' : 'TODO\u00A0: 000+ pièces livrées en 0 jours',
-                  // TODO(owner): optional client quote (set to null to hide)
-                  quote: lang === 'en' ? 'TODO: optional client quote.' : 'TODO\u00A0: citation client optionnelle.',
-                  // TODO(owner): slug for /case-studies/<slug> — page doesn't exist yet
-                  slug: 'client-1',
-                },
-                {
-                  client: '<Client 2>',
-                  sector: lang === 'en' ? 'TODO: sector' : 'TODO\u00A0: secteur',
-                  challenge: lang === 'en'
-                    ? 'TODO: what the client needed and the constraint (deadline, volume, brand rules).'
-                    : 'TODO\u00A0: besoin du client et contrainte (délai, volume, règles de marque).',
-                  solution: lang === 'en'
-                    ? 'TODO: what we built — decoration method, fabric, sizing, logistics.'
-                    : 'TODO\u00A0: ce qu\u2019on a livré — méthode d\u2019impression, tissu, taille, logistique.',
-                  metric: lang === 'en' ? 'TODO: 000+ pieces delivered in 0 days' : 'TODO\u00A0: 000+ pièces livrées en 0 jours',
-                  quote: lang === 'en' ? 'TODO: optional client quote.' : 'TODO\u00A0: citation client optionnelle.',
-                  slug: 'client-2',
-                },
-                {
-                  client: '<Client 3>',
-                  sector: lang === 'en' ? 'TODO: sector' : 'TODO\u00A0: secteur',
-                  challenge: lang === 'en'
-                    ? 'TODO: what the client needed and the constraint (deadline, volume, brand rules).'
-                    : 'TODO\u00A0: besoin du client et contrainte (délai, volume, règles de marque).',
-                  solution: lang === 'en'
-                    ? 'TODO: what we built — decoration method, fabric, sizing, logistics.'
-                    : 'TODO\u00A0: ce qu\u2019on a livré — méthode d\u2019impression, tissu, taille, logistique.',
-                  metric: lang === 'en' ? 'TODO: 000+ pieces delivered in 0 days' : 'TODO\u00A0: 000+ pièces livrées en 0 jours',
-                  quote: lang === 'en' ? 'TODO: optional client quote.' : 'TODO\u00A0: citation client optionnelle.',
-                  slug: 'client-3',
-                },
-              ].map((cs, i) => (
-                <article
-                  key={i}
-                  className="flex flex-col bg-secondary border border-border rounded-2xl p-6 md:p-7 transition-shadow hover:shadow-[0_8px_28px_rgba(15,35,65,0.08)]"
-                >
-                  {/* Header — client name + sector. Gold 2px rule below
-                      the header ties the card to the brand palette. */}
-                  <header className="mb-4">
-                    <div className="text-[11px] font-bold tracking-[1.8px] uppercase text-muted-foreground mb-1">
-                      {cs.sector}
-                    </div>
-                    <h3 className="text-[18px] md:text-[19px] font-extrabold text-foreground tracking-[-0.3px]">
-                      {cs.client}
-                    </h3>
-                    <div aria-hidden="true" className="mt-3 h-[2px] w-10 bg-[#E8A838]" />
-                  </header>
-
-                  {/* Challenge / Solution / Result columns. Stacked
-                      within each card (not across cards) so the story
-                      reads top-to-bottom and the result anchors the
-                      bottom with the gold accent. */}
-                  <dl className="flex flex-col gap-4 mb-4">
-                    <div>
-                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-muted-foreground mb-1">
-                        {lang === 'en' ? 'Challenge' : 'Défi'}
-                      </dt>
-                      <dd className="text-[13.5px] leading-relaxed text-foreground/90">
-                        {cs.challenge}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-muted-foreground mb-1">
-                        {lang === 'en' ? 'Solution' : 'Solution'}
-                      </dt>
-                      <dd className="text-[13.5px] leading-relaxed text-foreground/90">
-                        {cs.solution}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[10.5px] font-bold tracking-[1.6px] uppercase text-[#E8A838] mb-1">
-                        {lang === 'en' ? 'Result' : 'Résultat'}
-                      </dt>
-                      {/* Gold-accented metric — the keystone number that
-                          earns the card its place. Uses the same
-                          #E8A838 as the CTA band and hero gold. */}
-                      <dd className="text-[17px] font-extrabold tracking-[-0.2px] text-foreground leading-tight">
-                        {cs.metric}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  {/* Optional client quote. Kept conditional so cards
-                      with no quote collapse cleanly to just the
-                      challenge/solution/result story. */}
-                  {cs.quote && (
-                    <blockquote className="mb-5 pl-3 border-l-2 border-[#E8A838]/60 text-[13px] italic text-muted-foreground leading-relaxed">
-                      {cs.quote}
-                    </blockquote>
-                  )}
-
-                  {/* CTA → /case-studies/<slug>. Routes are future
-                      deep-dive pages (not yet implemented) — using
-                      <Link> now means the moment the pages land the
-                      navigation lights up with zero code change here.
-                      mt-auto pins the CTA to the bottom so cards of
-                      varying body length still align their buttons. */}
-                  <Link
-                    to={`/case-studies/${cs.slug}`}
-                    className="mt-auto inline-flex items-center gap-1.5 text-[13px] font-bold text-primary hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:underline"
-                  >
-                    {lang === 'en' ? 'Read the full case study' : 'Lire l\u2019étude complète'}
-                    <span aria-hidden="true">&rarr;</span>
-                  </Link>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Mid-page CTA band — Task 1.10. A slim navy strip punctuating
-          the shift from social-proof (testimonials + logos) to FAQ.
-          Sits at ~120px desktop height so it reads as a breath-break
-          rather than a competing section. Gold eyebrow + gold CTA keep
-          the brand palette consistent with the hero and footer CTAs.
-          Abstract diagonal gold stripe (SVG) adds movement without
-          clutter — inherits opacity from the pattern itself so it
-          doesn't need a second wrapper to tone down. Stacks on mobile,
-          side-by-side from md: up. */}
-      <FadeIn>
-        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="scroll-mt-20 relative overflow-hidden bg-[#1B3A6B] text-primary-foreground">
-          {/* Top hairline gold accent — 2px band reads as a brand-strip
-              without pulling focus from the CTA. */}
-          <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[2px] bg-[#E8A838]" />
-          {/* Diagonal stripe accent — faint gold pattern angled across
-              the band. pointer-events-none so it never intercepts the
-              button. Low opacity so the navy stays dominant. */}
-          <svg
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.08]"
-            preserveAspectRatio="none"
-            viewBox="0 0 1200 120"
-          >
-            <defs>
-              <pattern id="ctabandStripes" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
-                <rect width="60" height="60" fill="transparent" />
-                <rect x="0" y="0" width="2" height="60" fill="#E8A838" />
-              </pattern>
-            </defs>
-            <rect width="1200" height="120" fill="url(#ctabandStripes)" />
-          </svg>
-          <div className="relative max-w-[1060px] mx-auto px-6 md:px-10 py-7 md:py-0 md:h-[120px] flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 text-center md:text-left">
-            <div>
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-1.5">
-                {lang === 'en' ? '24h guaranteed response' : '24h réponse garantie'}
-              </div>
-              <h2 className="text-[clamp(20px,2.4vw,26px)] font-extrabold tracking-[-0.3px] leading-tight text-primary-foreground">
-                {lang === 'en' ? 'Need a quote?' : "Besoin d'une soumission\u00A0?"}
-              </h2>
-            </div>
-            <Link
-              to="/contact"
-              className="self-center md:self-auto flex-shrink-0 inline-flex items-center justify-center px-8 h-[46px] rounded-full bg-[#E8A838] text-[#1B3A6B] text-[14px] font-extrabold tracking-[-0.2px] shadow-[0_6px_18px_rgba(232,168,56,0.35)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(232,168,56,0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B]"
-            >
-              {lang === 'en' ? 'Request now' : 'Demander maintenant'}
-            </Link>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* FAQ — native <details><summary> accordion. One-at-a-time open
-          behaviour is enforced by the toggle listener in the component
-          body; everything else (keyboard nav, aria-expanded, SR
-          disclosure semantics) comes free with the native element.
-          Chevron rotation is CSS-only via [open] attribute selector —
-          no state, no re-render, no JS animation frame. Inline <style>
-          handles the two rules that can't be expressed as Tailwind
-          utilities (::-webkit-details-marker, details[open] selector). */}
+      {/* FAQ */}
       <FadeIn>
         <section className="scroll-mt-20 py-20 px-6 md:px-10 border-t border-border">
           <div className="max-w-[780px] mx-auto">
             <div className="text-center mb-10">
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
+              <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2.5">
                 {lang === 'en' ? 'FAQ' : 'Questions fréquentes'}
               </div>
               <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight">
@@ -1221,10 +726,6 @@ export default function Index() {
               .faq-group details[open] .faq-chevron { transform: rotate(180deg); }
             `}</style>
             <div ref={faqGroupRef} className="faq-group flex flex-col gap-2">
-              {/* FAQ_EN / FAQ_FR are hoisted to module scope so the FAQPage
-                  JSON-LD injection (see useEffect above) and the rendered
-                  accordion share one source of truth — edit one, both
-                  update. */}
               {(lang === 'en' ? FAQ_EN : FAQ_FR).map((item, i) => (
                 <details
                   key={i}
@@ -1232,14 +733,14 @@ export default function Index() {
                   className="group rounded-lg bg-background border border-border transition-colors hover:bg-muted/20"
                 >
                   <summary
-                    className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-[#1B3A6B] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1"
+                    className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-[#0A0A0A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
                   >
                     <span>{item.q}</span>
                     <ChevronDown
                       size={18}
                       strokeWidth={2}
                       aria-hidden="true"
-                      className="faq-chevron flex-shrink-0 text-[#1B3A6B] transition-transform duration-200"
+                      className="faq-chevron flex-shrink-0 text-[#0A0A0A] transition-transform duration-200"
                     />
                   </summary>
                   <div className="px-5 pb-4 pt-0 text-[14px] text-muted-foreground leading-[1.7]">
@@ -1254,11 +755,7 @@ export default function Index() {
 
       {/* Footer CTA */}
       <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 text-center">
-          <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
-            <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>
-            {lang === 'en' ? 'Delivered in 5 business days' : 'Livré en 5 jours ouvrables'}
-          </div>
+        <section className="scroll-mt-20 py-20 px-6 md:px-10 text-center bg-background">
           <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
             {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}
           </h2>
@@ -1266,109 +763,41 @@ export default function Index() {
             {lang === 'en' ? 'No minimum · 1-year quality guarantee · 5 business days' : 'Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables'}
           </p>
           <Link
-            to="/products"
-            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-            style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
+            to="/devis"
+            className="inline-flex items-center justify-center px-12 h-[56px] rounded-full bg-[#0052CC] text-white text-[17px] font-extrabold tracking-[-0.2px] shadow-[0_10px_32px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_38px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
           >
-            {t('heroCta')}
+            {lang === 'en' ? 'Get a free quote' : 'Obtenir une soumission gratuite'}
           </Link>
-        </section>
-      </FadeIn>
-
-      {/* Trust badges row — sits just above the footer so the final
-          pre-footer impression is the payment-safety promise. Pure
-          text/SVG treatment per pill (no external brand marks) so we
-          avoid trademark-license complexity while still giving each
-          rail a distinguishable look. Muted greys keep the row calm
-          so it reads as reassurance, not a sales element. Task 1.24. */}
-      <FadeIn>
-        <section className="scroll-mt-20 border-t border-border py-8 px-6 md:px-10 bg-background">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="flex items-center justify-center gap-2 mb-3 text-muted-foreground">
-              <Lock size={12} strokeWidth={2} aria-hidden="true" />
-              <span className="text-[11px] font-bold tracking-[2px] uppercase">
-                {lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}
-              </span>
-            </div>
-            <ul className="flex flex-wrap items-center justify-center gap-3">
-              {/* Visa — italic wordmark in a rounded border. */}
-              <li className="inline-flex items-center h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-black italic tracking-[1px] text-muted-foreground">
-                VISA
-              </li>
-              {/* Mastercard — two overlapping circles idiomatic of the mark,
-                  rendered in muted grey so we don't reproduce the brand colours. */}
-              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[10px] font-semibold tracking-[0.3px] text-muted-foreground">
-                <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true">
-                  <circle cx="8" cy="7" r="6" fill="currentColor" opacity="0.45" />
-                  <circle cx="14" cy="7" r="6" fill="currentColor" opacity="0.25" />
-                </svg>
-                <span>Mastercard</span>
-              </li>
-              {/* AMEX — compact text pill. */}
-              <li className="inline-flex items-center h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-black tracking-[1px] text-muted-foreground">
-                AMEX
-              </li>
-              {/* Apple Pay — "Pay" wordmark prefixed by a neutral rounded-square
-                  glyph (no Apple logo, no fruit silhouette — just a placeholder
-                  mark so the pill has visual weight). */}
-              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.2px] text-muted-foreground">
-                <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden="true">
-                  <rect x="1" y="1" width="8" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.3" />
-                </svg>
-                <span>Apple&nbsp;Pay</span>
-              </li>
-              {/* Google Pay — "G Pay" style with a plain circled G letter. */}
-              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.2px] text-muted-foreground">
-                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                  <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                  <text x="6" y="8.2" textAnchor="middle" fontSize="6.4" fontWeight="700" fill="currentColor" fontFamily="system-ui, sans-serif">G</text>
-                </svg>
-                <span>Google&nbsp;Pay</span>
-              </li>
-              {/* Shopify — bag glyph + text, consistent with the commerce vibe. */}
-              <li className="inline-flex items-center gap-1.5 h-[28px] px-3 rounded-md border border-border bg-secondary/60 text-[11px] font-semibold tracking-[0.2px] text-muted-foreground">
-                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
-                  <path d="M3 4 V3.2 A2.8 2.8 0 0 1 8.6 3.2 V4 H10 L9.2 10.5 H2.8 L2 4 Z" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
-                </svg>
-                <span>Shopify</span>
-              </li>
-            </ul>
-          </div>
         </section>
       </FadeIn>
 
       <SiteFooter />
 
-      {/* Sticky mobile CTA bar — Task 1.11. Appears once the hero
-          sentinel exits the viewport. `md:hidden` keeps it off desktop
-          where the top-nav CTA does the job. `z-40` sits below the
-          toast/modal stack (z-50+) so dialogs can still cover it.
-          safe-area-inset-bottom padding protects against the iOS
-          home indicator. Respects prefers-reduced-motion by skipping
-          the slide transform. */}
+      {/* Sticky mobile CTA bar — appears once the hero sentinel exits
+          the viewport. Hidden on desktop. */}
       <div
         aria-hidden={!showStickyCta}
-        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-primary text-primary-foreground shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${reducedMotion ? '' : 'transition-transform duration-300 ease-out'} ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0A0A0A] text-white shadow-[0_-6px_24px_rgba(0,0,0,0.3)] ${reducedMotion ? '' : 'transition-transform duration-300 ease-out'} ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-center justify-between gap-3 h-16 px-4">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-lg bg-primary-foreground/10 flex items-center justify-center flex-shrink-0">
-              <Shirt className="text-primary-foreground" size={20} strokeWidth={1.75} aria-hidden="true" />
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+              <Shirt className="text-white" size={20} strokeWidth={1.75} aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <div className="text-[12px] font-bold leading-tight text-primary-foreground truncate">
-                {lang === 'en' ? 'Need quality merch?' : 'Du merch de qualité?'}
+              <div className="text-[12px] font-bold leading-tight truncate">
+                {lang === 'en' ? 'Quote in 24h' : 'Soumission en 24h'}
               </div>
-              <div className="text-[10px] text-primary-foreground/70 leading-tight truncate">
-                {lang === 'en' ? 'No minimum · 5-day delivery' : 'Aucun minimum · 5 jours'}
+              <div className="text-[10px] text-white/70 leading-tight truncate">
+                {lang === 'en' ? '5-day delivery · No minimum' : '5 jours · Aucun minimum'}
               </div>
             </div>
           </div>
           <Link
-            to="/contact"
+            to="/devis"
             tabIndex={showStickyCta ? 0 : -1}
-            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-accent text-accent-foreground text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_hsla(var(--gold),0.4)] transition-shadow hover:shadow-[0_6px_18px_hsla(var(--gold),0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-[#0052CC] text-white text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_rgba(0,82,204,0.5)] transition-shadow hover:shadow-[0_6px_18px_rgba(0,82,204,0.65)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
           >
             {lang === 'en' ? 'Free quote' : 'Soumission gratuite'}
           </Link>
