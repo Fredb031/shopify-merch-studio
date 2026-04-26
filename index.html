@@ -79,6 +79,14 @@
          because the font fetches are CORS-attributed. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Vision Affichage blueprint typography stack: Outfit (display
+         headlines, 300-900), Inter (body, 400-700), JetBrains Mono
+         (prices/SKUs, 400-600). One consolidated stylesheet with
+         display=swap so text paints in fallback fonts immediately and
+         swaps in once the web font arrives, eliminating FOIT. Tailwind's
+         font-display / font-sans / font-mono utilities pick up these
+         families via theme.extend.fontFamily in tailwind.config.ts. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
 
     <!-- Security headers (CSP) — Task 14.1.
          NOTE: this is a meta-level Content-Security-Policy. It's weaker
