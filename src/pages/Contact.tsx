@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Phone, Mail, MapPin, Clock, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
@@ -62,6 +62,18 @@ export default function Contact() {
   // alone barely signals. "Send another" rewinds the state in-place.
   const [sent, setSent] = useState(false);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  // Track every pending window.setTimeout id so an unmount mid-flight
+  // (route change between the 350ms loading dwell and the 2s success hold)
+  // can cancel the timers before they fire setState on a dead component.
+  // Without this, React logs "state update on unmounted component" and we
+  // leak two callbacks per submission attempt.
+  const timeoutsRef = useRef<number[]>([]);
+  useEffect(() => {
+    return () => {
+      for (const id of timeoutsRef.current) window.clearTimeout(id);
+      timeoutsRef.current = [];
+    };
+  }, []);
   // Task 173 — cap the message textarea at the same 500-char budget we
   // advertise via the counter. Kept below the sanitize 2000-char ceiling
   // so the visible counter is the binding constraint (not a silent truncate).
@@ -115,7 +127,7 @@ export default function Contact() {
     // Brief loading dwell so the spinner registers before the tick —
     // without this delay the synchronous write flips straight from idle
     // to success and the user misses the "sending" beat entirely.
-    window.setTimeout(() => {
+    const dwellId = window.setTimeout(() => {
       toast.success(
         lang === 'en'
           ? 'Message received! We reply within 24h.'
@@ -130,12 +142,14 @@ export default function Contact() {
       // Hold the check mark for 2 seconds, then revert. The user gets
       // enough dwell time to read the "Envoyé" / "Sent" label before
       // the button goes back to its default call-to-action state.
-      window.setTimeout(() => setSubmitState('idle'), 2000);
+      const revertId = window.setTimeout(() => setSubmitState('idle'), 2000);
+      timeoutsRef.current.push(revertId);
       // Swap the form for the confirmation card on the next tick so the
       // success tint on the button still registers visually before the
       // section morphs out from under it.
       setSent(true);
     }, 350);
+    timeoutsRef.current.push(dwellId);
   };
 
   // Rewind the confirmation card back to a fresh form. Used by the
@@ -146,7 +160,8 @@ export default function Contact() {
     setSubmitState('idle');
     setEmailErr(false);
     // Defer focus so the form has a chance to mount before we grab it.
-    window.setTimeout(() => nameInputRef.current?.focus(), 0);
+    const focusId = window.setTimeout(() => nameInputRef.current?.focus(), 0);
+    timeoutsRef.current.push(focusId);
   };
 
   // Generic Google Maps embed URL for Saint-Hyacinthe, QC — the `pb=`
