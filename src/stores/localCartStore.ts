@@ -224,7 +224,13 @@ export const useCartStore = create<CartStore>()(
         return parseFloat(subtotal.toFixed(2));
       },
 
-      getItemCount: () => get().items.reduce((sum, i) => sum + (Number.isFinite(i.totalQuantity) ? i.totalQuantity : 0), 0),
+      getItemCount: () => get().items.reduce((sum, i) => {
+        // Clamp to >=0: a negative totalQuantity from corrupted localStorage
+        // (older build, devtools tweak) would silently subtract from the
+        // header cart badge and could even render as a negative count.
+        const q = Number.isFinite(i.totalQuantity) ? i.totalQuantity : 0;
+        return sum + (q > 0 ? q : 0);
+      }, 0),
 
       hasItem: (productId) => {
         if (!productId) return false;
