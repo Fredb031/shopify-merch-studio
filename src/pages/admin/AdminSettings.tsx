@@ -509,6 +509,11 @@ export default function AdminSettings() {
 
 const BACKUP_SCHEMA_VERSION = 1;
 const VISION_KEY_PREFIX = 'vision-';
+// localStorage's typical per-origin quota sits at ~5-10 MB. A legit
+// backup of vision-* keys is well under 1 MB. Reject anything beyond
+// this ceiling so a misdirected click on a huge unrelated file doesn't
+// freeze the tab inside FileReader / JSON.parse.
+const BACKUP_MAX_BYTES = 10 * 1024 * 1024;
 
 interface BackupFile {
   schemaVersion: number;
@@ -622,6 +627,11 @@ function BackupRestoreSection() {
     if (!/\.json$/i.test(file.name) && file.type !== 'application/json') {
       setImportError('Fichier .json requis · .json file required');
       toast.error('Fichier .json requis · .json file required');
+      return;
+    }
+    if (file.size > BACKUP_MAX_BYTES) {
+      setImportError('Fichier trop volumineux · File too large (max 10 MB)');
+      toast.error('Fichier trop volumineux · File too large (max 10 MB)');
       return;
     }
     const reader = new FileReader();
