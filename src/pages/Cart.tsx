@@ -330,7 +330,18 @@ export default function Cart() {
   const [savedItems, setSavedItems] = useState<CartItemCustomization[]>(
     () => {
       const raw = readLS<CartItemCustomization[]>(SAVED_FOR_LATER_KEY, []);
-      return Array.isArray(raw) ? raw.filter(it => it && typeof it.cartId === 'string' && it.cartId) : [];
+      if (!Array.isArray(raw)) return [];
+      const cleaned = raw.filter(it => it && typeof it.cartId === 'string' && it.cartId);
+      // Enforce the cap at hydration too — if a previous build wrote
+      // more entries than today's cap allows (or the cap was lowered),
+      // trim the OLDEST so the in-memory list never exceeds the bound
+      // the rest of the code assumes. Without this, the "{n}/{cap}"
+      // counter renders "23/20" and the FIFO eviction in
+      // handleSaveForLater only kicks in after the next save.
+      if (cleaned.length > SAVED_FOR_LATER_CAP) {
+        return cleaned.slice(cleaned.length - SAVED_FOR_LATER_CAP);
+      }
+      return cleaned;
     },
   );
   useEffect(() => {
