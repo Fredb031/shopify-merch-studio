@@ -233,7 +233,7 @@ export default function ThankYou() {
         <div className="flex justify-center mb-10">
           <Link
             to={trackHref}
-            className="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm sm:text-base font-bold text-white shadow-sm transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm sm:text-base font-bold text-white shadow-sm transition hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             style={{ backgroundColor: BRAND }}
           >
             Suivre ma commande
