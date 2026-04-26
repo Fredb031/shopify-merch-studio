@@ -11,6 +11,7 @@ import { useChatTriggers } from "@/lib/chatTriggers";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
 import { CookieConsent } from "@/components/CookieConsent";
+import { WhatsAppButton } from "@/components/WhatsAppButton";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 // Cart, ProductDetail, NotFound used to be eager — there's no reason
@@ -320,6 +321,12 @@ const App = () => (
             <SkipLink />
             <ScrollToTop />
             <ChatTriggers />
+            {/* Volume II §09 — floating WhatsApp Business CTA. Sits
+                outside <AnimatedRoutes> so route transitions don't
+                fade the button in/out (it self-gates via a 10s
+                sessionStorage timer + pathname-based suppression on
+                /checkout + /admin). */}
+            <WhatsAppButton />
             <Suspense fallback={<LazyFallback />}>
               <AnimatedRoutes />
             </Suspense>

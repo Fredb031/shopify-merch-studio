@@ -36,6 +36,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductViewersNudge } from '@/components/ProductViewersNudge';
+import { WA_MESSAGES, waLink } from '@/lib/whatsapp';
 
 // Task 3.19 — per-handle last-viewed variant cache. A returning visitor
 // who previously picked "Bleu marine / L" should land back on that exact
@@ -1498,6 +1499,32 @@ export default function ProductDetail() {
                 : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
               <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
             </button>
+
+            {/* Volume II §09 — inline WhatsApp CTA right under the
+                primary "Personnaliser" button. Same product context
+                (uses categoryLabel for the localized garment name —
+                "polos", "casquettes", etc.) gets pre-filled into the
+                wa.me message so the operator opens a thread already
+                knowing which SKU the buyer is looking at. Kept as a
+                small text link rather than a second big button so we
+                don't compete with the primary CTA for the click. */}
+            <p className="text-center text-xs mt-2">
+              <a
+                href={waLink(
+                  WA_MESSAGES.product(
+                    localProduct ? categoryLabel(localProduct.category, lang) : product.title,
+                  ),
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[#25D366] hover:text-[#1FB855] underline hover:no-underline font-bold"
+              >
+                <svg viewBox="0 0 32 32" width="14" height="14" fill="currentColor" aria-hidden="true" focusable="false">
+                  <path d="M16 .5C7.435.5.5 7.435.5 16c0 2.95.85 5.708 2.293 8.045L.785 31.5l7.616-2.476C10.65 30.32 13.252 31 16 31c8.565 0 15.5-6.935 15.5-15.5S24.565.5 16 .5zm0 28c-2.535 0-4.892-.756-6.87-2.06L4.4 28.085l1.65-4.66C4.7 21.42 3.93 18.79 3.93 16 3.93 9.318 9.318 3.93 16 3.93S28.07 9.318 28.07 16 22.682 28.5 16 28.5z" />
+                </svg>
+                {lang === 'en' ? 'Order via WhatsApp' : 'Commander par WhatsApp'}
+              </a>
+            </p>
 
             {/* Section 09 — sample-order pivot. Reduces sizing risk for
                 large team orders by offering a single piece at cost
