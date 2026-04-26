@@ -1,6 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { storefrontApiRequest, PRODUCTS_QUERY, ShopifyError, ShopifyProduct } from '@/lib/shopify';
 
+// Max retry attempts for transient Shopify failures before surfacing an
+// error. Two retries (i.e. up to three total round-trips) is the sweet
+// spot: enough to ride out a single 429/5xx blip without dragging the UI
+// loading state out for users sitting on a genuinely broken connection.
+const MAX_RETRY_ATTEMPTS = 2;
+
 /**
  * React Query hook that fetches the Shopify storefront product catalog.
  * Returns TanStack's `UseQueryResult` with `data` typed as `ShopifyProduct[]`;
@@ -40,7 +46,7 @@ export function useProducts(first = 50) {
     // logs that the lib/shopify.ts comments explicitly call out.
     retry: (failureCount, error) => {
       if (error instanceof ShopifyError && error.retryable === false) return false;
-      return failureCount < 2;
+      return failureCount < MAX_RETRY_ATTEMPTS;
     },
     retryDelay: attempt => Math.min(1000 * 2 ** attempt, 5000) + Math.random() * 300,
   });
