@@ -4,7 +4,7 @@ import { CartDrawer } from '@/components/CartDrawer';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
 import { useLang } from '@/lib/langContext';
-import { Trash2, ShoppingCart, ArrowLeft, Lock, Tag, XCircle, ShieldCheck, MapPin, Minus, Plus, BookmarkPlus, Link2, Check } from 'lucide-react';
+import { Trash2, ShoppingCart, ArrowLeft, Tag, XCircle, Minus, Plus, BookmarkPlus, Link2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSettings } from '@/lib/appSettings';
 import { AIChat } from '@/components/AIChat';
@@ -569,17 +569,17 @@ export default function Cart() {
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      <div className="max-w-3xl mx-auto px-6 pt-20 pb-32">
+      <div className="max-w-6xl mx-auto px-6 pt-20 pb-32 lg:pb-20">
         <Link
           to="/products"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+          className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#0A0A0A] mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {lang === 'en' ? 'Continue shopping' : 'Continuer tes achats'}
         </Link>
 
         <div className="flex items-baseline gap-3 mb-8 flex-wrap">
-          <h1 className="text-3xl font-extrabold tracking-tight">
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#0A0A0A]">
             {lang === 'en' ? 'Your cart' : 'Ton panier'}
           </h1>
           {totalQty > 0 && (
@@ -618,44 +618,39 @@ export default function Cart() {
         </div>
 
         {items.length === 0 ? (
-          <div className="text-center py-16 px-6 max-w-md mx-auto">
-            <div className="relative w-32 h-32 mx-auto mb-7" aria-hidden="true">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-2xl" />
-              <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-secondary to-background border-2 border-border flex items-center justify-center">
-                <ShoppingCart className="h-12 w-12 text-[#0052CC]" strokeWidth={1.5} />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-[#E8A838] text-[#1B3A6B] rounded-full text-sm font-extrabold flex items-center justify-center shadow-lg">
-                0
-              </div>
+          <div className="text-center py-20 px-6 max-w-md mx-auto">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#F9FAFB] border border-[#E5E7EB] flex items-center justify-center" aria-hidden="true">
+              <ShoppingCart className="h-9 w-9 text-[#0A0A0A]" strokeWidth={1.5} />
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground mb-2">
-              {lang === 'en' ? 'Your cart is empty' : 'Ton panier est vide'}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0A0A0A] mb-3">
               {lang === 'en'
-                ? 'Pick a product, drop in your logo, and we ship in 5 business days. No minimum order.'
-                : "Choisis un produit, ajoute ton logo, et on livre en 5 jours ouvrables. Aucun minimum."}
+                ? 'Your cart is empty for now'
+                : "Ton panier est vide pour l'instant"}
+            </h2>
+            <p className="text-sm text-[#6B7280] mb-7 leading-relaxed">
+              {lang === 'en'
+                ? 'Your team deserves better than logo-less t-shirts.'
+                : "Ton équipe mérite mieux que des t-shirts sans logo."}
             </p>
             <Link
               to="/products"
-              className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-8 py-3.5 rounded-full shadow-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] hover:bg-[#003D99] px-8 py-3.5 rounded-xl transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
             >
-              {lang === 'en' ? 'Browse products →' : 'Voir les produits →'}
+              {lang === 'en' ? 'Browse products' : 'Parcourir les produits'} →
             </Link>
-            <p className="text-[11px] text-muted-foreground/70 mt-4">
-              {lang === 'en' ? 'Made in Québec · Free standard shipping' : 'Fabriqué au Québec · Livraison standard gratuite'}
-            </p>
 
             <RecentlyViewed limit={4} />
           </div>
         ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8 items-start">
+          <div>
           <ul className="space-y-3 list-none p-0" aria-label={lang === 'en' ? 'Cart items' : 'Articles au panier'}>
             {items.map((item) => {
               const pending = !!pendingRows[item.cartId];
               return (
               <li
                 key={item.cartId}
-                className={`flex gap-4 p-4 rounded-2xl border border-border bg-card transition-opacity ${pending ? 'opacity-80' : ''}`}
+                className={`flex gap-4 p-4 rounded-xl border border-[#E5E7EB] bg-white transition-opacity ${pending ? 'opacity-80' : ''}`}
               >
                 {/* Preview image — logo preview or product photo */}
                 <div className="w-20 h-20 bg-secondary rounded-xl overflow-hidden flex-shrink-0">
@@ -674,15 +669,15 @@ export default function Cart() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold truncate text-foreground">{item.productName}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  <h3 className="font-bold truncate text-[#0A0A0A]">{item.productName}</h3>
+                  <p className="text-sm text-[#6B7280] mt-0.5">
                     {item.totalQuantity} {lang === 'en'
                       ? `unit${item.totalQuantity !== 1 ? 's' : ''}`
                       : `unité${item.totalQuantity !== 1 ? 's' : ''}`}
                   </p>
-                  <p className="font-extrabold text-primary mt-1.5">
+                  <p className="font-extrabold text-[#0A0A0A] mt-1.5 font-mono tabular-nums">
                     {fmtMoney(item.totalPrice)} $
-                    <span className="text-xs font-normal text-muted-foreground ml-1">
+                    <span className="text-xs font-normal text-[#6B7280] ml-1 font-sans">
                       ({fmtMoney(item.unitPrice)} $ / {lang === 'en' ? 'unit' : 'unité'})
                     </span>
                   </p>
@@ -782,7 +777,6 @@ export default function Cart() {
               );
             })}
           </ul>
-        )}
 
         {/* Task 5.2 — "Complète ta commande" match-style upsell row.
             Lives BELOW the cart items so buyers see category-coherent
@@ -1005,8 +999,6 @@ export default function Cart() {
           </section>
         )}
 
-        {items.length > 0 && (
-          <div className="space-y-3">
             {/* Clear-cart link — needs to live here (not in the remove
                 button per-line) so users can wipe a big cart in one
                 click without clicking Trash N times. Confirm first
@@ -1034,81 +1026,28 @@ export default function Cart() {
                     catch (e) { console.warn('Shopify cart removeItem failed during clear', e); }
                   }
                 }}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-destructive transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 focus-visible:ring-offset-1 rounded px-2 py-1"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#6B7280] hover:text-[#0A0A0A] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-1 rounded px-2 py-1"
               >
                 <XCircle size={13} aria-hidden="true" />
                 {lang === 'en' ? 'Empty cart' : 'Vider le panier'}
               </button>
             </div>
-            {/* Cross-sell — placed between cart lines and totals so it
-                catches the eye right before the customer commits to pay. */}
+
+            {/* Cross-sell — keep CartRecommendations mounted so we don't
+                break the existing module-style upsell row. */}
             <div className="mt-6">
               <CartRecommendations />
             </div>
+          </div>
 
-            {/* Trust bar — three reassurance pills placed right before the
-                order summary so the buyer sees refund, security, and
-                local-print story at the point of committing to pay.
-                Stacks on mobile, 3-col grid from sm+ up. */}
-            <div
-              className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3"
-              role="list"
-              aria-label={lang === 'en' ? 'Shop with confidence' : 'Achète en confiance'}
-            >
-              <div
-                className="rounded-lg bg-muted/30 border border-border p-3 flex items-start gap-2.5"
-                role="listitem"
-              >
-                <ShieldCheck className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground text-sm leading-tight">
-                    {lang === 'en' ? '30-day guarantee' : 'Garantie 30 jours'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                    {lang === 'en' ? 'Full refund if not satisfied' : 'Remboursé si pas satisfait'}
-                  </p>
-                </div>
-              </div>
-              <div
-                className="rounded-lg bg-muted/30 border border-border p-3 flex items-start gap-2.5"
-                role="listitem"
-              >
-                <Lock className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground text-sm leading-tight">
-                    {lang === 'en' ? 'Secure checkout' : 'Paiement sécurisé'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                    SSL + Stripe + Shopify Pay
-                  </p>
-                </div>
-              </div>
-              <div
-                className="rounded-lg bg-muted/30 border border-border p-3 flex items-start gap-2.5"
-                role="listitem"
-              >
-                <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="min-w-0">
-                  <p className="font-medium text-foreground text-sm leading-tight">
-                    {lang === 'en' ? 'Printed in Québec' : 'Imprimé au Québec'}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                    {lang === 'en' ? 'Local business, 100% Made in Canada' : 'Entreprise locale, 100% Made in Canada'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Order summary */}
-            <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
-              <h2 className="font-extrabold text-sm uppercase tracking-wider text-muted-foreground">
-                {lang === 'en' ? 'Order Summary' : 'Résumé de la commande'}
-              </h2>
-
+          {/* --- Right column: compact summary card. Sticks on lg+ so
+              it stays in view as the buyer scrolls past long carts.
+              On mobile it stacks under the items naturally. --- */}
+          <aside className="lg:sticky lg:top-24">
               {(() => {
                 // Task 5.8 — compute the pre-discount subtotal and the dollars
                 // saved locally so we can render a strike-through original total
-                // + a gold "Rabais VISION10 (-10%)" line. The store's getTotal()
+                // + a "Rabais VISION10 (-10%)" line. The store's getTotal()
                 // already factors the discount in, so `totalPrice` == discounted
                 // total; we back-derive the gross from the item list.
                 const grossSubtotal = items.reduce(
@@ -1128,44 +1067,40 @@ export default function Cart() {
                 const deliverySurcharge = getDeliverySurcharge(deliverySpeed, totalPrice);
                 const finalTotal = totalPrice + deliverySurcharge;
                 return (
-                  <>
-                    <div className="space-y-1.5 text-sm">
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
-                        <span className="font-semibold text-foreground">
+                  <div className="rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] p-5 space-y-4">
+                    <h2 className="font-extrabold text-sm uppercase tracking-wider text-[#6B7280]">
+                      {lang === 'en' ? 'Order summary' : 'Résumé'}
+                    </h2>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#6B7280]">{lang === 'en' ? 'Subtotal' : 'Sous-total'}</span>
+                        <span className="font-mono tabular-nums text-[#0A0A0A] font-semibold">
                           {fmtMoney(grossSubtotal)} $
                         </span>
                       </div>
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>{lang === 'en' ? 'Print & personalization' : 'Impression & personnalisation'}</span>
-                        <span className="font-semibold text-green-600">
-                          {lang === 'en' ? 'Included' : 'Incluse'}
-                        </span>
-                      </div>
                       {discountApplied && discountCode ? (
-                        <div className="flex justify-between items-center -mx-2 px-2 py-1.5 rounded-lg bg-[#E8A838]/10 border border-[#E8A838]/30">
-                          <span className="font-semibold text-foreground flex items-baseline gap-1.5">
-                            <Tag size={12} className="text-[#E8A838] self-center" aria-hidden="true" />
+                        <div className="flex justify-between items-center">
+                          <span className="text-[#0A0A0A] flex items-baseline gap-1.5">
+                            <Tag size={12} className="text-[#0052CC] self-center" aria-hidden="true" />
                             {lang === 'en' ? 'Discount' : 'Rabais'}{' '}
-                            <code className="font-mono text-[11px] text-foreground">{discountCode}</code>
+                            <code className="font-mono text-[11px] text-[#0A0A0A]">{discountCode}</code>
                             {ratePct > 0 && (
-                              <span className="text-[11px] text-muted-foreground">
+                              <span className="text-[11px] text-[#6B7280]">
                                 {lang === 'en' ? `(−${ratePct}%)` : `(−${ratePct} %)`}
                               </span>
                             )}
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <span className="font-extrabold text-[#E8A838] tabular-nums">
-                              −{fmtMoney(savings)} $
-                            </span>
                             <button
                               type="button"
                               onClick={clearDiscount}
                               aria-label={lang === 'en' ? `Remove promo code ${discountCode}` : `Retirer le code promo ${discountCode}`}
-                              className="text-[11px] font-bold text-muted-foreground underline hover:no-underline hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 rounded"
+                              className="text-[10px] font-bold text-[#6B7280] underline hover:no-underline hover:text-[#0A0A0A] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded ml-1"
                             >
                               {lang === 'en' ? 'Remove' : 'Retirer'}
                             </button>
+                          </span>
+                          <span className="font-mono tabular-nums font-extrabold text-[#0052CC]">
+                            −{fmtMoney(savings)} $
                           </span>
                         </div>
                       ) : (
@@ -1176,17 +1111,24 @@ export default function Cart() {
                           invalidLabel={lang === 'en' ? 'Invalid code' : 'Code invalide'}
                         />
                       )}
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>{lang === 'en' ? 'Taxes' : 'Taxes'}</span>
-                        <span>{lang === 'en' ? 'Calculated at checkout' : 'Calculées au paiement'}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#6B7280]">{lang === 'en' ? 'Tax estimate' : 'Taxes estimées'}</span>
+                        <span className="text-[#6B7280] text-xs">
+                          {lang === 'en' ? 'Calc. at checkout' : 'Au paiement'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#6B7280]">{lang === 'en' ? 'Shipping' : 'Livraison'}</span>
+                        <span className="font-mono tabular-nums text-[#0A0A0A] font-semibold">
+                          {deliverySurcharge > 0
+                            ? `+${fmtMoney(deliverySurcharge)} $`
+                            : (lang === 'en' ? 'Free' : 'Gratuite')}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Section 5.1 — delivery-speed picker. Sits below the
-                        subtotal block so the buyer sees the surcharge
-                        commitment before the estimated total. UI-only;
-                        Shopify variant for the upcharge is operator
-                        follow-up. */}
+                    {/* Delivery-speed picker stays — buyer sees the
+                        surcharge commitment in context with shipping. */}
                     <DeliverySpeedPicker
                       subtotal={totalPrice}
                       value={deliverySpeed}
@@ -1197,60 +1139,85 @@ export default function Cart() {
                         the user removes a line, applies a discount, or clears
                         one — without it, the visual total update was silent. */}
                     <div
-                      className="border-t border-border pt-3 flex justify-between items-center gap-3"
+                      className="border-t border-[#E5E7EB] pt-3 flex justify-between items-center gap-3"
                       role="status"
                       aria-live="polite"
                       aria-atomic="true"
                     >
-                      <span className="text-base font-extrabold">
-                        {lang === 'en' ? 'Estimated total' : 'Total estimé'}
+                      <span className="text-base font-extrabold text-[#0A0A0A]">
+                        {lang === 'en' ? 'Total' : 'Total'}
                       </span>
                       {discountApplied && savings > 0 ? (
                         <span className="flex items-baseline gap-2">
                           <s
-                            className="text-sm font-semibold text-muted-foreground line-through opacity-50 tabular-nums"
+                            className="text-sm font-semibold text-[#6B7280] line-through opacity-60 tabular-nums font-mono"
                             aria-label={lang === 'en' ? 'Original total' : 'Total original'}
                           >
                             {fmtMoney(grossSubtotal + deliverySurcharge)} $
                           </s>
-                          <span className="text-2xl font-extrabold text-primary tabular-nums">
+                          <span className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums font-mono">
                             {fmtMoney(finalTotal)} $
                           </span>
                         </span>
                       ) : (
-                        <span className="text-2xl font-extrabold text-primary tabular-nums">
+                        <span className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums font-mono">
                           {fmtMoney(finalTotal)} $
                         </span>
                       )}
                     </div>
-                  </>
+
+                    {/* Concrete ETA above the CTA — urgency + commitment. */}
+                    <div className="flex justify-center">
+                      <DeliveryBadge size="sm" showDate />
+                    </div>
+
+                    {/* Primary CTA — brand blue. Hidden on small screens
+                        because the sticky-bottom version takes over there
+                        (full-width, fixed-bottom). lg+ keeps it inline so
+                        the desktop card is self-contained. */}
+                    <button
+                      onClick={handleCheckout}
+                      className="hidden lg:flex w-full py-3.5 bg-[#0052CC] hover:bg-[#003D99] text-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-colors disabled:opacity-50 items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
+                      disabled={checkingOut}
+                    >
+                      {lang === 'en' ? 'Checkout' : 'Passer à la caisse'} →
+                    </button>
+
+                    {/* Single-line trust strip — replaces the old 3-pill
+                        stacked block. Tight, low-visual-noise, clean. */}
+                    <p className="text-center text-[11px] text-[#6B7280] leading-relaxed">
+                      {lang === 'en'
+                        ? '🔒 Secure payment · 📦 Delivered in 5 days · ✅ Satisfied or refunded'
+                        : '🔒 Paiement sécurisé · 📦 Livré en 5 jours · ✅ Satisfait ou remboursé'}
+                    </p>
+                  </div>
                 );
               })()}
-
-              {/* Concrete ETA above the CTA — urgency + commitment. */}
-              <div className="flex justify-center pt-1">
-                <DeliveryBadge size="sm" showDate />
-              </div>
-
-              <button
-                onClick={handleCheckout}
-                className="w-full py-4 gradient-navy text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-opacity hover:opacity-85 disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-                style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
-                disabled={checkingOut}
-              >
-                {lang === 'en' ? 'Place order' : 'Passer la commande'} →
-              </button>
-
-              <p className="text-center text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
-                <Lock className="w-3 h-3" aria-hidden="true" />
-                {lang === 'en'
-                  ? 'Secure Shopify checkout · Delivered in 5 business days'
-                  : 'Paiement sécurisé Shopify · Livré en 5 jours ouvrables'}
-              </p>
-            </div>
+          </aside>
           </div>
         )}
       </div>
+
+      {/* Sticky-bottom CTA on small screens — appears whenever the cart
+          has items so the buyer never has to scroll back up to checkout.
+          Hidden on lg+ because the inline brand-blue button in the summary
+          card takes over. The pb-32 on the page wrapper prevents content
+          overlap with this fixed bar. */}
+      {items.length > 0 && (
+        <div
+          className="fixed bottom-0 inset-x-0 lg:hidden z-30 bg-white border-t border-[#E5E7EB] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+          role="region"
+          aria-label={lang === 'en' ? 'Checkout' : 'Passer à la caisse'}
+        >
+          <button
+            onClick={handleCheckout}
+            className="w-full py-3.5 bg-[#0052CC] hover:bg-[#003D99] text-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
+            disabled={checkingOut}
+          >
+            {lang === 'en' ? 'Checkout' : 'Passer à la caisse'} →
+          </button>
+        </div>
+      )}
 
       <AIChat />
       <BottomNav />
