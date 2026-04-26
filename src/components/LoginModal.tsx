@@ -60,6 +60,10 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   // also keeps a plaintext password sitting in React state longer than
   // necessary. emailTouched is reset too so the inline red hint
   // doesn't flash on the next open before the user types anything.
+  // accountType is reset so reopening always starts at the type-picker
+  // step instead of jumping straight back into the previous user's
+  // login form (e.g. "Équipe" still selected after a Client closes
+  // the modal mid-flow).
   useEffect(() => {
     if (!isOpen) {
       if (error) clearError();
@@ -69,6 +73,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setShowConfirm(false);
       setCapsOn(false);
       setEmailTouched(false);
+      setAccountType(null);
+      setMode('login');
     }
   }, [isOpen, error, clearError]);
 
