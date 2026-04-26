@@ -91,7 +91,13 @@
          img beacons pointing at unexpected origins; it allow-lists all
          our real external origins (Shopify storefront + CDN, Supabase,
          Google Fonts, Google Maps embed, Zapier webhook, GitHub API). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https://cdn.shopify.com https://*.shopify.com https://*.supabase.co https://www.google.com https://maps.gstatic.com https://www.facebook.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net; connect-src 'self' https://*.shopify.com https://*.supabase.co https://hooks.zapier.com https://api.github.com https://www.facebook.com; frame-src 'self' https://www.google.com https://www.google.com/maps/; object-src 'none'; base-uri 'self';" />
+    <!-- IMPORTANT: `*.shopify.com` does NOT match `*.myshopify.com` — `myshopify.com`
+         is a separate apex domain that hosts every Shopify storefront's permanent
+         API origin (e.g. visionaffichage-com.myshopify.com). Both must be allow-listed
+         explicitly in connect-src/img-src/form-action or the Storefront API call from
+         every PDP and product grid is blocked by CSP and the page renders a blank
+         "Couldn't load this product" state on direct URL access. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https://cdn.shopify.com https://*.shopify.com https://*.myshopify.com https://*.supabase.co https://www.google.com https://maps.gstatic.com https://www.facebook.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net; connect-src 'self' https://*.shopify.com https://*.myshopify.com https://*.supabase.co https://hooks.zapier.com https://api.github.com https://www.facebook.com; form-action 'self' https://*.shopify.com https://*.myshopify.com; frame-src 'self' https://www.google.com https://www.google.com/maps/; object-src 'none'; base-uri 'self';" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
