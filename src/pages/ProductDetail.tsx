@@ -22,6 +22,7 @@ import { fmtMoney } from '@/lib/format';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
+import { CapacityWidget } from '@/components/CapacityWidget';
 import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
 import { useSanmarInventory } from '@/hooks/useSanmarInventory';
@@ -1662,6 +1663,11 @@ export default function ProductDetail() {
                       </span>
                       <DeliveryBadge size="sm" variant="inline" />
                     </div>
+                    {/* Volume II §10.1 — scarcity pill on the PDP
+                        right column, just above the tagline. Only
+                        renders when remaining < 15, so most of the
+                        time the layout is unchanged. */}
+                    <CapacityWidget variant="inline" className="mb-3" />
                     <p className="text-base font-bold text-foreground leading-snug mb-3">
                       {desc.tagline}
                     </p>

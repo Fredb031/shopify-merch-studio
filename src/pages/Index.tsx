@@ -11,6 +11,7 @@ import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
 import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
+import { CapacityWidget } from '@/components/CapacityWidget';
 import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -420,6 +421,11 @@ export default function Index() {
               {lang === 'en' ? 'Corporate merch · Quebec' : 'Merch · Entreprises · Québec'}
             </p>
             <DeliveryBadge size="md" />
+            {/* Volume II §10.1 — authentic-scarcity pill. Renders
+                only when this week's remaining slots are <15, so
+                most of the time it's invisible and the kicker
+                stack collapses around it. */}
+            <CapacityWidget variant="hero" />
             <p className="text-sm text-muted-foreground max-w-[600px] leading-relaxed">
               {t('kicker')}
             </p>

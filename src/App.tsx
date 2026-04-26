@@ -46,6 +46,12 @@ const ForgotPassword = lazy(() => import("./pages/admin/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/admin/ResetPassword"));
 const AcceptInvite = lazy(() => import("./pages/admin/AcceptInvite"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+// Volume II §10.1 — manual editor for the weekly_capacity surrogate
+// that drives the public CapacityWidget. Lazy because it's an
+// operator-only surface reached from the admin nav, not the hot
+// path. localStorage today; Supabase weekly_capacity table is the
+// follow-up wiring.
+const AdminCapacity = lazy(() => import("./pages/admin/AdminCapacity"));
 
 // Vendor (lazy)
 const VendorLayout = lazy(() => import("@/components/vendor/VendorLayout").then(m => ({ default: m.VendorLayout })));
@@ -217,6 +223,7 @@ const AnimatedRoutes = () => {
                 </RequirePermission>
               }
             />
+            <Route path="capacity" element={<AdminCapacity />} />
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="customers/:customerId" element={<AdminCustomerDetail />} />
             <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
