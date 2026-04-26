@@ -31,6 +31,11 @@ const TOAST_OPTIONS: ToasterProps["toastOptions"] = {
 // is sonner's default but we set it explicitly so the behaviour is
 // discoverable in source. Pause-on-hover is also on by default in
 // sonner and needs no prop. closeButton lets users dismiss early.
+// richColors applies semantic backgrounds to toast.success/error/
+// warning/info (green/red/yellow/blue) — the codebase calls those
+// 140+ times across cart, checkout, admin and vendor flows, so users
+// now get an instant visual signal of outcome rather than a neutral
+// card they have to read.
 const Toaster = (props: ToasterProps) => (
   <Sonner
     theme="system"
@@ -38,6 +43,7 @@ const Toaster = (props: ToasterProps) => (
     position="top-right"
     duration={DEFAULT_TOAST_DURATION_MS}
     closeButton
+    richColors
     pauseWhenPageIsHidden
     toastOptions={TOAST_OPTIONS}
     {...props}
