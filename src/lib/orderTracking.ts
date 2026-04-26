@@ -80,6 +80,10 @@ export function getOrderStatus(orderNumber: string): TrackedOrder | null {
           if (!it || typeof it !== 'object') return [];
           const i = it as Record<string, unknown>;
           if (typeof i.name !== 'string' || typeof i.qty !== 'number') return [];
+          // Reject NaN / Infinity / negatives / non-integer qty — a corrupted
+          // localStorage blob (devtools edit, half-written tab) shouldn't render
+          // "NaN items" or a negative count in the order summary card.
+          if (!Number.isFinite(i.qty) || i.qty < 0 || !Number.isInteger(i.qty)) return [];
           return [{
             name: i.name,
             qty: i.qty,
