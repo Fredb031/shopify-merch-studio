@@ -82,6 +82,13 @@ export function useSearchHotkey(opts?: { onClear?: () => void }) {
         ref.current?.focus();
         ref.current?.select();
       } else if (e.key === 'Escape' && document.activeElement === ref.current) {
+        // Mark the event as handled so outer overlay dismiss-on-Escape
+        // listeners (see useEscapeKey, which respects defaultPrevented)
+        // don't *also* close the surrounding modal/drawer when the user
+        // just meant to clear the search field. Without this, hitting
+        // Esc inside a search input nested in a modal would clear the
+        // query AND collapse the entire modal in one keystroke.
+        e.preventDefault();
         if (onClearRef.current) onClearRef.current();
         ref.current?.blur();
       }
