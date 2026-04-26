@@ -17,6 +17,14 @@ type AnimatedPriceProps = {
   currency?: string;
 };
 
+// Animation timing constants. Kept in one place so the inline keyframes
+// and the cleanup timeout can't drift apart silently. The cleanup is
+// intentionally a touch longer than the keyframe so any sub-frame jitter
+// at the end of the transition still finishes painting before we yank
+// the outgoing clone out of the DOM.
+const ANIMATED_PRICE_DURATION_MS = 220;
+const ANIMATED_PRICE_CLEANUP_MS = 260;
+
 /**
  * AnimatedPrice — renders a formatted money amount that "flips" whenever
  * the numeric value changes. The old value slides up and fades out while
@@ -90,6 +98,14 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
       return;
     }
 
+    // NaN/Infinity guard: upstream price math can briefly emit NaN while a
+    // qty input is being edited (empty string parsed as NaN, division by
+    // zero on tier breakpoints, etc.). NaN !== NaN would otherwise trigger
+    // a flip every keystroke, and screen-reader users would hear the
+    // aria-live region announce "NaN" each time. Treat any non-finite
+    // value as "no change" — keep the last good label on screen.
+    if (!Number.isFinite(value)) return;
+
     if (value === prevValueRef.current) return;
 
     if (prefersReducedRef.current) {
@@ -106,7 +122,7 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
     // Clear the outgoing clone once the transition ends. 220 ms gives the
     // enter/exit motion enough time with a small buffer; any later value
     // change will re-seed outgoing before this fires.
-    const timer = window.setTimeout(() => setOutgoing(null), 260);
+    const timer = window.setTimeout(() => setOutgoing(null), ANIMATED_PRICE_CLEANUP_MS);
 
     prevValueRef.current = value;
     prevFormattedRef.current = formatted;
@@ -137,7 +153,7 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
           aria-hidden="true"
           className="absolute inset-0 flex items-baseline justify-end"
           style={{
-            animation: 'animated-price-out 220ms cubic-bezier(.4,0,.2,1) forwards',
+            animation: `animated-price-out ${ANIMATED_PRICE_DURATION_MS}ms cubic-bezier(.4,0,.2,1) forwards`,
           }}
         >
           {outgoing}
@@ -152,7 +168,7 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
         style={
           flipKey === 0 || prefersReducedRef.current
             ? undefined
-            : { animation: 'animated-price-in 220ms cubic-bezier(.4,0,.2,1) forwards' }
+            : { animation: `animated-price-in ${ANIMATED_PRICE_DURATION_MS}ms cubic-bezier(.4,0,.2,1) forwards` }
         }
       >
         {formatted}
