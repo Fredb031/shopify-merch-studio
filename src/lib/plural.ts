@@ -78,16 +78,16 @@ export function plural(
 
   const category = getPluralRules(lang).select(safeCount);
   // Prefer the named category if the caller supplied it; otherwise fall
-  // back through `other` (always defined). This keeps FR `many` (large
-  // numbers in some locales) routable without forcing every call site to
-  // define it.
-  const template =
-    (category === 'zero' && forms.zero) ||
-    (category === 'one' && forms.one) ||
-    (category === 'two' && forms.other) ||
-    (category === 'few' && forms.few) ||
-    (category === 'many' && forms.many) ||
-    forms.other;
+  // back to `other` (always defined). Use nullish lookup rather than
+  // `&&`-truthy so an intentionally empty template ("") for a category
+  // is honored instead of silently sliding to `other`.
+  const categoryTemplate =
+    category === 'zero' ? forms.zero
+    : category === 'one' ? forms.one
+    : category === 'few' ? forms.few
+    : category === 'many' ? forms.many
+    : undefined;
+  const template = categoryTemplate ?? forms.other;
 
   return template.replace(COUNT_PLACEHOLDER, countStr);
 }
