@@ -47,7 +47,9 @@ export interface Automation {
 
 // Anchor mock timestamps off a single "now" so the relative times stay
 // sensible across SSR/hydration and so the test snapshot is stable.
-const NOW = new Date('2026-04-20T14:00:00-04:00').getTime();
+// Bumped 2026-04-25 to keep the admin recent-runs column from showing
+// week-old "minutes ago" entries while we wait on the real run-log.
+const NOW = new Date('2026-04-25T14:00:00-04:00').getTime();
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
