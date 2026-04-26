@@ -14,12 +14,24 @@ import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Upload, Zap, Package, ChevronDown, ArrowRight } from 'lucide-react';
+import { Shirt, Upload, Zap, Package, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
-import { QuickPriceCalculator } from '@/components/QuickPriceCalculator';
+
+// Client placeholder names — swap each entry to { name, logoSrc } and switch
+// the render to <img> once /public/logos/clients/*.svg files land.
+const VA_CLIENT_LOGOS = [
+  { name: 'Construction Rivard' },
+  { name: 'Paysagement Pro' },
+  { name: 'Parc Massif' },
+  { name: 'Municipalité St-Anselme' },
+  { name: 'Sports Experts' },
+  { name: 'Polyvalente Nicolas-Gatineau' },
+  { name: 'Ville de Blainville' },
+  { name: 'Ferme Boréalis' },
+];
 
 // FAQ Q&A pairs — lifted out of the JSX render path so they can be
 // reused by the FAQPage JSON-LD injection without duplicating the
@@ -332,112 +344,80 @@ export default function Index() {
       ) : null}
 
       {/* ============================================================
-          1. HERO — Phase 1.2 rebuild.
-          Full-bleed brand-black, min-h-screen. Two-column on desktop:
-          left = headline + CTAs, right = QuickPriceCalculator. Hero
-          background photo is graceful-fallback (asset may be missing).
+          1. HERO — restored centered single-CTA layout.
+          Full-bleed brand-black. Headline + sub centered, single
+          primary CTA pill, ghost "see how it works" link, single-line
+          trust bar. Background photo is graceful-fallback.
           ============================================================ */}
-      <section className="relative overflow-hidden bg-[#0A0A0A] min-h-screen flex items-center px-6 md:px-10 pt-[88px] pb-20">
-        {/* Background hero photo — opacity-25 + onError fallback so the
+      <section className="relative overflow-hidden bg-[#0A0A0A] min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
+        {/* Background hero photo — opacity-20 + onError fallback so the
             section reads as intentional even when the asset is absent. */}
         <img
           src="/hero-team.webp"
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover opacity-25"
+          className="absolute inset-0 w-full h-full object-cover opacity-20"
           onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
         />
-        {/* Left-to-right brand-black gradient — keeps left column
-            readable while letting any photo breathe on the right. */}
+        {/* Black-to-transparent gradient overlay so headline text
+            stays legible whether the photo loads or not. */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#0A0A0A] via-[#0A0A0A]/90 to-[#0A0A0A]/40"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'linear-gradient(180deg, #0A0A0A 0%, rgba(10,10,10,0.65) 45%, rgba(10,10,10,0.85) 100%)',
+          }}
         />
-        {/* Bottom fade — softens the boundary into the next section. */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-x-0 bottom-0 h-32 pointer-events-none bg-gradient-to-b from-transparent to-[#0A0A0A]"
-        />
 
-        <div className="relative z-[1] max-w-[1280px] mx-auto w-full grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
-          {/* LEFT — pitch */}
-          <div className="text-left">
-            {/* Trust pill */}
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 text-[12px] md:text-[13px] text-white font-medium mb-6">
-              <span aria-hidden="true" className="text-[#E8A838]">★★★★★</span>
-              <span>
-                {lang === 'en'
-                  ? '5/5 \u00B7 500+ businesses \u00B7 Delivery guaranteed in 5 days'
-                  : '5/5 \u00B7 500+ entreprises \u00B7 Livraison garantie en 5 jours'}
-              </span>
-            </div>
+        <div className="relative z-[1] max-w-[1080px] mx-auto text-center">
+          {/* H1 */}
+          <h1 className="font-display font-black text-white text-5xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight">
+            {lang === 'en' ? (
+              <>Your team is working.<br /><span className="text-[#0052CC]">Who knows who they are?</span></>
+            ) : (
+              <>Ton équipe travaille.<br /><span className="text-[#0052CC]">Qui sait c'est qui?</span></>
+            )}
+          </h1>
 
-            {/* H1 */}
-            <h1 className="font-display font-black text-white text-5xl md:text-6xl xl:text-7xl leading-[1.05] tracking-tight">
-              {lang === 'en' ? (
-                <>Your team is working.<br /><span className="text-[#0052CC]">Who knows who they are?</span></>
-              ) : (
-                <>Ton équipe travaille.<br /><span className="text-[#0052CC]">Qui sait c'est qui?</span></>
-              )}
-            </h1>
+          {/* Sub */}
+          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-white/80 max-w-[620px] mx-auto leading-relaxed">
+            {lang === 'en'
+              ? 'Print your logo on t-shirts, hoodies, polos and caps. Delivered in 5 business days — from one piece up.'
+              : "Imprime ton logo sur tes t-shirts, hoodies, polos et casquettes. Livré en 5 jours ouvrables \u2014 à partir d'une pièce."}
+          </p>
 
-            {/* Sub */}
-            <p className="mt-6 text-white/70 text-lg md:text-xl max-w-[600px] leading-relaxed">
-              {lang === 'en'
-                ? 'Print your logo on t-shirts, hoodies, polos and caps. Delivered in 5 business days — from one piece up.'
-                : "Imprime ton logo sur tes t-shirts, hoodies, polos et casquettes. Livré en 5 jours ouvrables \u2014 à partir d'une pièce."}
-            </p>
-
-            {/* TWO CTAs */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-4">
-              <Link
-                to="/products"
-                className="inline-flex items-center justify-center gap-2 bg-[#0052CC] text-white font-bold px-8 py-4 rounded-xl text-lg hover:bg-[#003D99] hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-[#0052CC]/30 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-              >
-                <span>{lang === 'en' ? 'Order now' : 'Commander maintenant'}</span>
-                <ArrowRight size={20} aria-hidden="true" />
-              </Link>
-              <Link
-                to="/product/atc1000?customize=1"
-                className="inline-flex items-center justify-center bg-transparent text-white font-semibold px-8 py-4 rounded-xl text-lg border-2 border-white/40 hover:bg-white/10 hover:border-white/70 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-white/30 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
-              >
-                {lang === 'en' ? 'Customize my product' : 'Personnaliser mon produit'}
-              </Link>
-            </div>
-
-            {/* Trust bar below CTAs */}
-            <div className="mt-6 text-white/50 text-sm flex flex-wrap gap-x-4 gap-y-1">
-              <span>
-                {lang === 'en' ? '\u2713 From 1 piece' : '\u2713 \u00C0 partir d\u20191 pièce'}
-              </span>
-              <span>
-                {lang === 'en' ? '\u2713 Free shipping $300+' : '\u2713 Livraison gratuite dès 300$'}
-              </span>
-              <span>
-                {lang === 'en' ? '\u2713 1-year guarantee' : '\u2713 Garanti 1 an'}
-              </span>
-              <span>
-                {lang === 'en' ? '\u2713 No minimum' : '\u2713 Aucun minimum'}
-              </span>
-            </div>
+          {/* Single primary CTA + ghost link */}
+          <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-5">
+            <Link
+              to="/products"
+              className="inline-flex items-center justify-center px-9 h-[56px] rounded-full bg-[#0052CC] text-white text-[16px] font-extrabold tracking-[-0.2px] shadow-[0_10px_30px_rgba(0,82,204,0.4)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(0,82,204,0.55)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
+            >
+              {lang === 'en' ? 'Order now' : 'Commander maintenant'}
+            </Link>
+            <a
+              href="#how-it-works"
+              className="text-white/80 text-[14px] font-semibold underline underline-offset-4 decoration-white/30 hover:decoration-white hover:text-white transition-colors"
+            >
+              {lang === 'en' ? 'See how it works \u2192' : 'Voir comment ça fonctionne \u2192'}
+            </a>
           </div>
 
-          {/* RIGHT — calculator */}
-          <div className="w-full max-w-md mx-auto lg:mx-0 lg:ml-auto">
-            <QuickPriceCalculator />
+          {/* Trust bar — single line, wraps gracefully on mobile. */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-white/75">
+            <span className="inline-flex items-center gap-1.5">
+              <span aria-hidden="true" className="flex gap-0.5">
+                <StarSvg /><StarSvg /><StarSvg /><StarSvg /><StarSvg />
+              </span>
+              <span className="font-bold">5/5 Google</span>
+            </span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? '500+ businesses' : '500+ entreprises'}</span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? '33,000+ pieces' : '33\u202F000+ pièces'}</span>
+            <span aria-hidden="true" className="text-white/30">·</span>
+            <span>{lang === 'en' ? 'Free shipping $300+' : 'Livraison gratuite 300$+'}</span>
           </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div
-          aria-hidden="true"
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-none"
-        >
-          <ChevronDown
-            size={28}
-            className="text-white/30 animate-bounce"
-            strokeWidth={2}
-          />
         </div>
 
         <div ref={heroSentinelRef} aria-hidden="true" className="absolute bottom-0 left-0 h-px w-full pointer-events-none" />
@@ -473,6 +453,19 @@ export default function Index() {
                 </div>
               ))}
             </div>
+          </div>
+          {/* Client logo placeholder strip — operator can swap each entry to
+              <img src={c.logoSrc} alt={c.name} /> once /public/logos/clients/*.svg
+              files land. */}
+          <div className="mt-6 flex flex-wrap justify-center items-center gap-x-8 gap-y-3">
+            {VA_CLIENT_LOGOS.map(c => (
+              <div
+                key={c.name}
+                className="px-4 py-2 bg-[#F9FAFB] border border-[#E5E7EB] rounded-lg flex items-center justify-center min-w-[120px]"
+              >
+                <span className="text-[#374151] text-xs font-bold whitespace-nowrap tracking-wide">{c.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
