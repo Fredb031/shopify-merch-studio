@@ -46,6 +46,11 @@ function thumbInitials(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// TEMPLATES is a module-level constant — derive once at import time
+// rather than re-scanning the array on every render.
+const HAS_VARIANTS = TEMPLATES.some(t => t.zone !== 'front');
+const FRONT_TEMPLATES = TEMPLATES.filter(t => t.zone === 'front');
+
 export function TemplateGallery({
   onApply,
   lang = 'fr',
@@ -60,13 +65,13 @@ export function TemplateGallery({
   const [missingThumbs, setMissingThumbs] = useState<Set<string>>(() => new Set());
 
   const visible = useMemo(() => {
-    return showAll ? TEMPLATES : TEMPLATES.filter(t => t.zone === 'front');
+    return showAll ? TEMPLATES : FRONT_TEMPLATES;
   }, [showAll]);
 
   // The toggle is only useful when there ARE non-front templates to
   // surface — keep the future-proofing in case the catalogue becomes
   // all-front for a particular product surface.
-  const hasVariants = TEMPLATES.some(t => t.zone !== 'front');
+  const hasVariants = HAS_VARIANTS;
 
   return (
     <section
