@@ -5,7 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 interface StatCardProps {
   label: string;
   value: string;
-  delta?: number;
+  delta?: number | null;
   deltaLabel?: string;
   icon?: LucideIcon;
   accent?: 'blue' | 'gold' | 'green' | 'red';
@@ -13,22 +13,37 @@ interface StatCardProps {
   compact?: boolean;
 }
 
+// Hoisted out of the component body so the same object literal isn't
+// re-allocated on every render — the colour map is render-pure and
+// dependency-free, so there's no reason to pay the GC cost per call.
+// Tailwind's JIT still sees the static class strings statically here
+// because they're string literals at module top level.
+const ACCENT_CLASSES: Record<NonNullable<StatCardProps['accent']>, string> = {
+  blue: 'from-[#0052CC]/10 to-[#0052CC]/5 text-[#0052CC]',
+  gold: 'from-[#E8A838]/15 to-[#E8A838]/5 text-[#B37D10]',
+  green: 'from-emerald-500/10 to-emerald-500/5 text-emerald-700',
+  red: 'from-rose-500/10 to-rose-500/5 text-rose-700',
+};
+
+// Round to one decimal so 12.3456789 % renders as 12.3 % — keeps the
+// pill narrow and avoids the jittery width changes we saw when delta
+// values updated across periods. Multiplier hoisted as a named
+// constant to flag the intent (one decimal place of precision).
+const DELTA_ROUNDING_FACTOR = 10;
+
 // Wrapped in React.memo so that dashboard parent re-renders (sidebar
 // toggles, nav clicks) don't recompute 5+ identical cards. The prop
 // shapes are primitive so the default shallow compare works fine.
 function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = 'blue', loading = false, compact = false }: StatCardProps) {
-  const accentMap = {
-    blue: 'from-[#0052CC]/10 to-[#0052CC]/5 text-[#0052CC]',
-    gold: 'from-[#E8A838]/15 to-[#E8A838]/5 text-[#B37D10]',
-    green: 'from-emerald-500/10 to-emerald-500/5 text-emerald-700',
-    red: 'from-rose-500/10 to-rose-500/5 text-rose-700',
-  }[accent];
+  const accentMap = ACCENT_CLASSES[accent];
 
-  // Guard against NaN/Infinity (stat sources can divide by zero when a
-  // period has no prior data) — rendering "NaN%" or "Infinity%" in the
-  // delta pill looked broken. A non-finite delta is treated the same as
-  // "no delta": the pill is hidden, only the optional deltaLabel shows.
-  const hasFiniteDelta = delta !== undefined && Number.isFinite(delta);
+  // Guard against NaN/Infinity/null (stat sources can divide by zero
+  // when a period has no prior data, and upstream hooks sometimes pass
+  // null while the figure is still loading) — rendering "NaN%" or
+  // "Infinity%" in the delta pill looked broken. A non-finite delta is
+  // treated the same as "no delta": the pill is hidden, only the
+  // optional deltaLabel shows.
+  const hasFiniteDelta = delta !== undefined && delta !== null && Number.isFinite(delta);
   // Three-way direction so a flat period (delta === 0) gets a neutral
   // Minus icon + zinc colouring instead of a misleading green up-arrow.
   const direction: 'up' | 'down' | 'flat' = !hasFiniteDelta
@@ -39,11 +54,9 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
         ? 'down'
         : 'flat';
   const isPositive = direction === 'up';
-  // Round to one decimal so 12.3456789% renders as 12.3% — keeps the
-  // pill narrow and avoids the jittery width changes we saw when
-  // delta values updated across periods.
+  // Round to one decimal — see DELTA_ROUNDING_FACTOR above.
   const formattedDelta = hasFiniteDelta
-    ? (Math.round(Math.abs(delta!) * 10) / 10).toLocaleString('fr-CA')
+    ? (Math.round(Math.abs(delta!) * DELTA_ROUNDING_FACTOR) / DELTA_ROUNDING_FACTOR).toLocaleString('fr-CA')
     : '';
 
   // Compact mode trims paddings, value text-size and vertical gap so the
