@@ -23,6 +23,8 @@ const TIER_TONE: Record<LoyaltyTier, string> = {
   gold: 'bg-[#E8A838]/20 text-[#FFE7A3] border-[#E8A838]/50',
 };
 
+const GOLD_THRESHOLD = 5000;
+
 export function LoyaltyCard() {
   const { lang } = useLang();
   const [account, setAccount] = useState<LoyaltyAccount | null>(null);
@@ -48,8 +50,8 @@ export function LoyaltyCard() {
   // Locale-aware money: fr-CA shows "5,00 $", en-CA shows "$5.00". Avoids
   // the raw .toFixed(2) bug where French copy rendered as "5.00$".
   const dollarValue = fmtMoney((account.points / 100) * 5, lang);
-  const remainingToGold = Math.max(0, 5000 - account.lifetime);
-  const showProgressHint = account.lifetime < 5000;
+  const remainingToGold = Math.max(0, GOLD_THRESHOLD - account.lifetime);
+  const showProgressHint = account.lifetime < GOLD_THRESHOLD;
 
   return (
     <section
