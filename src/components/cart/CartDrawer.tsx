@@ -4,10 +4,12 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from '@/lib/toast';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X, ShoppingBag, Trash2, Tag, ChevronRight } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useCartStore as useShopifyCartStore } from '@/stores/cartStore';
+import { useUiStore } from '@/stores/uiStore';
 import { useLang } from '@/lib/langContext';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
@@ -113,12 +115,28 @@ function getPublicPromoHints(): Array<{ code: string; rate: number; threshold: n
   return hints;
 }
 
+// Phase 3.1 — free shipping threshold (CAD subtotal). When the cart
+// crosses this number from below, the drawer footer flips from a
+// "$X to free shipping" nudge to the green "Livraison gratuite ✓" pill.
+const FREE_SHIPPING_THRESHOLD_CAD = 300;
+
 // ── Cart drawer ──────────────────────────────────────────────────────────────
-export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpen: boolean; onClose: () => void }) {
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const cart = useCartStore();
   const shopifyCart = useShopifyCartStore();
+  // Phase 3.1 — also reflect the global UI flag so cartStore.addItem
+  // (and any future surface) can pop the drawer without threading a
+  // setter through the page tree. The legacy prop-controlled path
+  // still works unchanged for the existing Navbar → setCartOpen click.
+  const uiCartDrawerOpen = useUiStore(s => s.cartDrawerOpen);
+  const closeUiCartDrawer = useUiStore(s => s.closeCartDrawer);
+  const isOpen = isOpenProp || uiCartDrawerOpen;
+  const onClose = () => {
+    closeUiCartDrawer();
+    onCloseProp();
+  };
 
   // Mirror remove to Shopify cart so the checkout reflects what the user
   // actually has (was a P0 in the audit — local removal alone left ghost
@@ -175,6 +193,38 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
       if (codeMsgTimerRef.current) clearTimeout(codeMsgTimerRef.current);
     };
   }, []);
+
+  // Phase 3.3 — toast when the buyer crosses the free-shipping threshold
+  // (gross subtotal goes from <THRESHOLD to >=THRESHOLD). Multiple
+  // drawer instances are mounted across pages; the sessionStorage flag
+  // dedupes the announcement so they don't all fire when a single
+  // addItem flips the cart over the line. The flag clears once the
+  // cart drops back below the threshold so a later add can re-trigger
+  // the celebration if the user removes items and re-stocks.
+  const grossSubtotal = cart.items.reduce(
+    (s, it) => s + (Number.isFinite(it.totalPrice) ? it.totalPrice : 0),
+    0,
+  );
+  const prevGrossRef = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = prevGrossRef.current;
+    prevGrossRef.current = grossSubtotal;
+    if (prev === null) return; // first render — no transition to detect
+    const FLAG = 'va_free_shipping_toasted';
+    const wasBelow = prev < FREE_SHIPPING_THRESHOLD_CAD;
+    const isAtOrAbove = grossSubtotal >= FREE_SHIPPING_THRESHOLD_CAD;
+    if (wasBelow && isAtOrAbove) {
+      let alreadyToasted = false;
+      try { alreadyToasted = sessionStorage.getItem(FLAG) === '1'; } catch { /* private mode */ }
+      if (!alreadyToasted) {
+        try { sessionStorage.setItem(FLAG, '1'); } catch { /* non-fatal */ }
+        toast.info(lang === 'en' ? 'Free shipping unlocked!' : 'Livraison gratuite débloquée !');
+      }
+    }
+    if (grossSubtotal < FREE_SHIPPING_THRESHOLD_CAD) {
+      try { sessionStorage.removeItem(FLAG); } catch { /* non-fatal */ }
+    }
+  }, [grossSubtotal, lang]);
 
   // Match the locale-aware money formatting used on the Cart page /
   // FeaturedProducts / WishlistGrid / ProductDetailBulkCalc so French
@@ -285,16 +335,21 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             aria-modal="true"
             aria-labelledby="cart-drawer-title"
           >
-        {/* Header */}
+        {/* Header — Phase 3.1: "Panier ({count})" with the count in
+            brand-blue when non-zero so the customer feels the cart fill
+            up at a glance. Falls back to plain "Panier" when empty. */}
         <div className="px-5 py-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingBag size={16} className="text-primary" aria-hidden="true" />
-            <h2 id="cart-drawer-title" className="text-base font-extrabold text-foreground">{t('monPanier')}</h2>
-            {cart.getItemCount() > 0 && (
-              <span className="bg-primary text-primary-foreground text-[10px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center">
-                {cart.getItemCount()}
-              </span>
-            )}
+            <h2 id="cart-drawer-title" className="text-base font-extrabold text-foreground">
+              {lang === 'en' ? 'Cart' : 'Panier'}
+              {cart.getItemCount() > 0 && (
+                <>
+                  {' '}
+                  <span className="text-[#0052CC] tabular-nums">({cart.getItemCount()})</span>
+                </>
+              )}
+            </h2>
           </div>
           <button
             onClick={onClose}
@@ -619,15 +674,46 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               {fmtMoney(cart.getTotal())} $
             </span>
 
+            {/* Phase 3.1 — free-shipping nudge / unlock badge. Reads
+                gross subtotal (pre-discount) so a code rabais doesn't
+                inadvertently push the customer back below the threshold.
+                Amount short-fall shown in CAD with locale-aware formatting. */}
+            {grossSubtotal >= FREE_SHIPPING_THRESHOLD_CAD ? (
+              <div className="text-center text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-2 px-3">
+                {lang === 'en' ? 'Free shipping ✓' : 'Livraison gratuite ✓'}
+              </div>
+            ) : (
+              <div className="text-center text-[11px] font-semibold text-muted-foreground bg-secondary border border-border rounded-lg py-2 px-3">
+                {lang === 'en'
+                  ? <>Add <span className="font-extrabold text-[#0052CC] tabular-nums">{fmtMoney(FREE_SHIPPING_THRESHOLD_CAD - grossSubtotal)} $</span> for free shipping</>
+                  : <>Ajoute <span className="font-extrabold text-[#0052CC] tabular-nums">{fmtMoney(FREE_SHIPPING_THRESHOLD_CAD - grossSubtotal)} $</span> pour la livraison gratuite</>}
+              </div>
+            )}
+
+            {/* Phase 3.1 — primary checkout CTA: brand-blue (#0052CC),
+                rounded-xl, font-bold, py-4. Goes straight to /checkout
+                so the drawer's main button finalizes the sale instead
+                of detouring through the cart page. The full-cart route
+                stays accessible via the secondary text link below. */}
             <button
               type="button"
-              className="w-full bg-primary text-primary-foreground font-extrabold text-sm py-3.5 rounded-full flex items-center justify-center gap-2 hover:opacity-90 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-              style={{ boxShadow: '0 6px 20px rgba(27,58,107,0.3)' }}
-              onClick={() => { onClose(); navigate('/cart'); }}
+              className="w-full bg-[#0052CC] text-white font-bold text-sm py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#003e99] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              onClick={() => { onClose(); navigate('/checkout'); }}
             >
-              {t('passerCaisse')} <ChevronRight size={15} aria-hidden="true" />
+              {lang === 'en' ? 'Checkout' : 'Passer au paiement'}{' '}
+              <span className="tabular-nums">{fmtMoney(cart.getTotal())} $</span>
+              <ChevronRight size={15} aria-hidden="true" />
             </button>
-            <p className="text-center text-[11px] text-muted-foreground">{t('livraisonNote')}</p>
+            {/* Phase 3.1 — secondary "view full cart" link. Replaces the
+                old livraisonNote subtext (the free-shipping pill above
+                already covers the shipping callout). */}
+            <button
+              type="button"
+              onClick={() => { onClose(); navigate('/cart'); }}
+              className="w-full text-xs font-semibold text-[#0052CC] hover:underline underline-offset-2 py-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/40 rounded"
+            >
+              {lang === 'en' ? 'View full cart' : 'Voir mon panier complet'}
+            </button>
             <button
               type="button"
               onClick={async () => {

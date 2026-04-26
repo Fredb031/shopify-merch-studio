@@ -811,9 +811,10 @@ export default function Checkout() {
         }));
       });
       if (localLines.length === 0) {
+        // Phase 4.1 — terminal failure standardized message + phone fallback.
         toast.error(lang === 'en'
-          ? 'Your cart could not be synced to Shopify. Please refresh and try again, or contact us at 367-380-4808.'
-          : "Le panier n'a pas pu être synchronisé avec Shopify. Rafraîchis la page ou appelle-nous au 367-380-4808.");
+          ? 'Connection error — contact us at 367-380-4808'
+          : 'Erreur de connexion — contacte-nous au 367-380-4808');
         setProcessing(false);
         return;
       }
@@ -827,9 +828,11 @@ export default function Checkout() {
         })
         .filter((s): s is string => s !== null);
       if (permalinkParts.length === 0) {
+        // Phase 4.1 — terminal failure: include the storefront phone so
+        // the customer has a fallback contact instead of a dead end.
         toast.error(lang === 'en'
-          ? 'Your cart could not be synced to Shopify. Please refresh and try again.'
-          : "Le panier n'a pas pu être synchronisé avec Shopify. Rafraîchis la page et réessaie.");
+          ? 'Connection error — contact us at 367-380-4808'
+          : 'Erreur de connexion — contacte-nous au 367-380-4808');
         setProcessing(false);
         return;
       }
@@ -889,9 +892,11 @@ export default function Checkout() {
           },
         );
       } else {
+        // Phase 4.1 — non-network terminal failure: include the storefront
+        // phone so "call us" is actionable, not a vague gesture.
         toast.error(lang === 'en'
-          ? 'Something went wrong. Please try again or call us.'
-          : 'Une erreur est survenue. Réessaie ou appelle-nous.');
+          ? 'Connection error — contact us at 367-380-4808'
+          : 'Erreur de connexion — contacte-nous au 367-380-4808');
       }
       setProcessing(false);
     }

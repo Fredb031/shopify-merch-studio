@@ -1,6 +1,25 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { storefrontApiRequest, ShopifyError, ShopifyProduct } from '@/lib/shopify';
+import { useUiStore } from '@/stores/uiStore';
+import { toast } from '@/lib/toast';
+
+// Phase 4.1 — mirror the Shopify cartId into a stable localStorage key
+// the rest of the app (Checkout retry loop, recovery flows) can read
+// without needing to crack open the zustand-persist envelope. Wrapped
+// in try/catch so private-mode browsers / quota errors don't crash the
+// store; the zustand persist layer is still the source of truth.
+const SHOPIFY_CART_ID_KEY = 'va_shopify_cart_id';
+function writeCartIdMirror(cartId: string | null): void {
+  try {
+    if (cartId) localStorage.setItem(SHOPIFY_CART_ID_KEY, cartId);
+    else localStorage.removeItem(SHOPIFY_CART_ID_KEY);
+  } catch { /* private mode / quota — non-fatal */ }
+}
+function readCartIdMirror(): string | null {
+  try { return localStorage.getItem(SHOPIFY_CART_ID_KEY); }
+  catch { return null; }
+}
 
 export interface CartItem {
   lineId: string | null;
@@ -224,12 +243,24 @@ export const useCartStore = create<CartStore>()(
         const { items, cartId, clearCart } = get();
         const existingItem = items.find(i => i.variantId === item.variantId);
         set({ isLoading: true });
+        // Tracks whether the Shopify side committed the line. Used to
+        // gate Phase 3.1 cart-drawer auto-open + Phase 3.3 error toast.
+        let shopifyAddSucceeded = false;
+        // Set when this call recursed (orphan-line / cartNotFound recovery
+        // paths) — the inner call handles notifications, so the outer
+        // finally skips them to avoid double-toast / double-open.
+        let delegatedToRecursion = false;
         try {
           if (!cartId) {
             pendingCartCreation = (async () => {
               const result = await createShopifyCart({ ...item, lineId: null }, signal);
               if (result) {
                 set({ cartId: result.cartId, checkoutUrl: result.checkoutUrl, items: [{ ...item, lineId: result.lineId }] });
+                // Phase 4.1 — mirror the new cartId so the Checkout retry
+                // loop has something to resolve even if zustand-persist
+                // hasn't flushed yet (the persist write is async).
+                writeCartIdMirror(result.cartId);
+                shopifyAddSucceeded = true;
               }
             })();
             try { await pendingCartCreation; } finally { pendingCartCreation = null; }
@@ -247,12 +278,14 @@ export const useCartStore = create<CartStore>()(
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
               set({ isLoading: false });
+              delegatedToRecursion = true;
               await get().addItem(item, signal);
               return;
             }
             const result = await updateShopifyCartLine(cartId, existingItem.lineId, newQuantity, signal);
             if (result.success) {
               set({ items: get().items.map(i => i.variantId === item.variantId ? { ...i, quantity: newQuantity } : i) });
+              shopifyAddSucceeded = true;
             } else if (result.cartNotFound) {
               // Session expired. Wipe the stale cartId and retry as a
               // fresh-cart create so the user's latest click isn't just
@@ -263,6 +296,7 @@ export const useCartStore = create<CartStore>()(
               // the inner addItem awaits the slot we're still holding.
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
+              delegatedToRecursion = true;
               await get().addItem(item, signal);
               return;
             }
@@ -273,6 +307,7 @@ export const useCartStore = create<CartStore>()(
               // without it the item can't be updated/removed later, leaving
               // the cart in a state where users see the item but can't touch it.
               set({ items: [...get().items, { ...item, lineId: result.lineId }] });
+              shopifyAddSucceeded = true;
             } else if (result.cartNotFound) {
               // Same recovery as the update path — clear the dead cart
               // and retry so the user's add actually lands. Without
@@ -282,6 +317,7 @@ export const useCartStore = create<CartStore>()(
               set({ isLoading: false });
               if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
               release();
+              delegatedToRecursion = true;
               await get().addItem(item, signal);
               return;
             } else if (result.success && !result.lineId) {
@@ -306,6 +342,20 @@ export const useCartStore = create<CartStore>()(
             pendingAdds.delete(item.variantId);
           }
           release();
+          // Phase 3.1 — pop the cart drawer open on a successful Shopify
+          // add so the customer sees confirmation without a page nav.
+          // Skip the recursion-recovery pass; the inner call handles it.
+          // Phase 3.3 — surface a toast on terminal failure so silent
+          // logCartError() bails don't leave the customer wondering why
+          // their click did nothing. Suppressed in the recursion-recovery
+          // path for the same reason as auto-open above.
+          if (!delegatedToRecursion) {
+            if (shopifyAddSucceeded) {
+              try { useUiStore.getState().openCartDrawer(); } catch { /* non-fatal */ }
+            } else {
+              try { toast.error('Erreur de panier — réessaie'); } catch { /* non-fatal */ }
+            }
+          }
         }
       },
 
@@ -353,8 +403,9 @@ export const useCartStore = create<CartStore>()(
 
       /** Drop all local cart state. Does not touch Shopify — use this
        * after Shopify reports the cart is gone (cartNotFound) or on
-       * explicit user clear. */
-      clearCart: () => set({ items: [], cartId: null, checkoutUrl: null }),
+       * explicit user clear. Also wipes the dedicated cartId mirror
+       * so a stale id can't outlive the cart it pointed to. */
+      clearCart: () => { set({ items: [], cartId: null, checkoutUrl: null }); writeCartIdMirror(null); },
       /** Checkout URL captured at cart-create time (already channel-tagged). */
       getCheckoutUrl: () => get().checkoutUrl,
 
@@ -400,6 +451,18 @@ export const useCartStore = create<CartStore>()(
               state.checkoutUrl = null;
             }
           }
+        }
+        // Phase 4.1 — coexist with the dedicated cartId mirror. If the
+        // zustand-persist envelope has no cartId (older session, blob
+        // got cleared) but the dedicated mirror does, adopt it so the
+        // checkout retry loop has something real to land on. Inversely,
+        // if zustand has a cartId but the mirror is missing, write the
+        // mirror — keeps the two layers from drifting apart.
+        if (!state.cartId) {
+          const mirror = readCartIdMirror();
+          if (mirror) state.cartId = mirror;
+        } else {
+          writeCartIdMirror(state.cartId);
         }
       },
     }
