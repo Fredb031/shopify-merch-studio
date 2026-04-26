@@ -21,6 +21,15 @@ function readCartIdMirror(): string | null {
   catch { return null; }
 }
 
+/** Per-line custom attribute (Shopify Storefront `AttributeInput`). Used
+ * by the customizer to attach Logo URL / Placement / Zone / Aperçu to
+ * each cart line so two customized designs in the same cart don't
+ * overwrite each other on the production team's Shopify order view. */
+export interface CartLineAttribute {
+  key: string;
+  value: string;
+}
+
 export interface CartItem {
   lineId: string | null;
   product: ShopifyProduct;
@@ -29,6 +38,11 @@ export interface CartItem {
   price: { amount: string; currencyCode: string };
   quantity: number;
   selectedOptions: Array<{ name: string; value: string }>;
+  /** Shopify cart line-level attributes. Optional so non-customized
+   * adds (legacy / non-customizer paths) keep working without change.
+   * When present, forwarded as `attributes` on the cartLinesAdd /
+   * cartCreate `CartLineInput`. */
+  lineAttributes?: CartLineAttribute[];
 }
 
 const CART_QUERY = `
@@ -43,7 +57,7 @@ const CART_CREATE_MUTATION = `
       cart {
         id
         checkoutUrl
-        lines(first: 100) { edges { node { id merchandise { ... on ProductVariant { id } } } } }
+        lines(first: 100) { edges { node { id merchandise { ... on ProductVariant { id } } attributes { key value } } } }
       }
       userErrors { field message }
     }
@@ -55,7 +69,7 @@ const CART_LINES_ADD_MUTATION = `
     cartLinesAdd(cartId: $cartId, lines: $lines) {
       cart {
         id
-        lines(first: 100) { edges { node { id merchandise { ... on ProductVariant { id } } } } }
+        lines(first: 100) { edges { node { id merchandise { ... on ProductVariant { id } } attributes { key value } } } }
       }
       userErrors { field message }
     }
@@ -114,9 +128,30 @@ function isRetryable(err: unknown): boolean {
   return false;
 }
 
+/** Build a CartLineInput for the Storefront API. Drops `attributes`
+ * entirely when none were supplied so non-customized adds round-trip
+ * the exact same payload they always have (no behavioural change for
+ * the catalog-add path). Empty attribute arrays are also dropped —
+ * Shopify accepts them but rendering "0 attributes" wastes a network
+ * round-trip on every catalog click. */
+function buildLineInput(item: Pick<CartItem, 'quantity' | 'variantId' | 'lineAttributes'>): {
+  quantity: number;
+  merchandiseId: string;
+  attributes?: CartLineAttribute[];
+} {
+  const line: { quantity: number; merchandiseId: string; attributes?: CartLineAttribute[] } = {
+    quantity: item.quantity,
+    merchandiseId: item.variantId,
+  };
+  if (item.lineAttributes && item.lineAttributes.length > 0) {
+    line.attributes = item.lineAttributes;
+  }
+  return line;
+}
+
 async function createShopifyCart(item: CartItem, signal?: AbortSignal): Promise<{ cartId: string; checkoutUrl: string; lineId: string } | null> {
   const data = await storefrontApiRequest(CART_CREATE_MUTATION, {
-    input: { lines: [{ quantity: item.quantity, merchandiseId: item.variantId }] },
+    input: { lines: [buildLineInput(item)] },
   }, { signal });
   // Mirror the guard the other mutation helpers added: storefrontApiRequest
   // returns undefined on HTTP 402, and the optional chaining below would
@@ -134,7 +169,7 @@ async function createShopifyCart(item: CartItem, signal?: AbortSignal): Promise<
 async function addLineToShopifyCart(cartId: string, item: CartItem, signal?: AbortSignal): Promise<{ success: boolean; lineId?: string; cartNotFound?: boolean }> {
   const data = await storefrontApiRequest(CART_LINES_ADD_MUTATION, {
     cartId,
-    lines: [{ quantity: item.quantity, merchandiseId: item.variantId }],
+    lines: [buildLineInput(item)],
   }, { signal });
   // storefrontApiRequest returns undefined on HTTP 402 (store plan
   // lapsed). Without this guard, userErrors=[], the empty-check
@@ -234,14 +269,28 @@ export const useCartStore = create<CartStore>()(
           await pendingCartCreation;
         }
         // Serialize same-variant re-clicks so the increment branch sees
-        // the prior committed quantity instead of a stale read.
-        const prior = pendingAdds.get(item.variantId);
+        // the prior committed quantity instead of a stale read. Customizer
+        // adds (lineAttributes present) get a unique slot key per call so
+        // two distinct designs for the same variant don't serialize on
+        // each other (they're independent lines, not a quantity bump).
+        const slotKey = item.lineAttributes && item.lineAttributes.length > 0
+          ? `${item.variantId}::custom::${Math.random().toString(36).slice(2)}`
+          : item.variantId;
+        const prior = pendingAdds.get(slotKey);
         if (prior) await prior;
         let release!: () => void;
         const slot = new Promise<void>(resolve => { release = resolve; });
-        pendingAdds.set(item.variantId, slot);
+        pendingAdds.set(slotKey, slot);
         const { items, cartId, clearCart } = get();
-        const existingItem = items.find(i => i.variantId === item.variantId);
+        // Match against the existing line by variantId — but ONLY when
+        // neither side carries line-level attributes. Two customized
+        // designs of the same variant (different logos / placements) are
+        // independent lines and must never merge or one of them silently
+        // overwrites the other's attributes on the production team's
+        // order view.
+        const existingItem = (item.lineAttributes && item.lineAttributes.length > 0)
+          ? undefined
+          : items.find(i => i.variantId === item.variantId && (!i.lineAttributes || i.lineAttributes.length === 0));
         set({ isLoading: true });
         // Tracks whether the Shopify side committed the line. Used to
         // gate Phase 3.1 cart-drawer auto-open + Phase 3.3 error toast.
@@ -274,7 +323,7 @@ export const useCartStore = create<CartStore>()(
               // twice. Previously this path silently `return`ed, which
               // made the add button feel broken on affected sessions.
               set({ items: get().items.filter(i => i.variantId !== item.variantId) });
-              if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
+              if (pendingAdds.get(slotKey) === slot) pendingAdds.delete(slotKey);
               release();
               set({ isLoading: false });
               delegatedToRecursion = true;
@@ -293,7 +342,7 @@ export const useCartStore = create<CartStore>()(
               set({ isLoading: false });
               // Release our per-variant slot BEFORE the recursive call or
               // the inner addItem awaits the slot we're still holding.
-              if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
+              if (pendingAdds.get(slotKey) === slot) pendingAdds.delete(slotKey);
               release();
               delegatedToRecursion = true;
               await get().addItem(item, signal);
@@ -314,7 +363,7 @@ export const useCartStore = create<CartStore>()(
               // cart and returned silently with nothing added.
               clearCart();
               set({ isLoading: false });
-              if (pendingAdds.get(item.variantId) === slot) pendingAdds.delete(item.variantId);
+              if (pendingAdds.get(slotKey) === slot) pendingAdds.delete(slotKey);
               release();
               delegatedToRecursion = true;
               await get().addItem(item, signal);
@@ -335,8 +384,8 @@ export const useCartStore = create<CartStore>()(
           }
         } finally {
           set({ isLoading: false });
-          if (pendingAdds.get(item.variantId) === slot) {
-            pendingAdds.delete(item.variantId);
+          if (pendingAdds.get(slotKey) === slot) {
+            pendingAdds.delete(slotKey);
           }
           release();
           // Phase 3.1 — pop the cart drawer open on a successful Shopify

@@ -778,6 +778,37 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     }
     setAdding(true);
     try {
+    // Customizer Blueprint §8.1 — build per-line Shopify attributes once
+    // up front so every Shopify cartLinesAdd carries its own copy of
+    // the customizer trail (Logo URL / Placement / Zone / Aperçu).
+    // Cart-level setCustomizerAttributes (called below) overwrites on
+    // every add, so two custom designs in one cart used to clobber
+    // each other on the production team's order view. With per-line
+    // attributes the production team sees the right metadata next to
+    // each line item even when the cart has multiple custom designs.
+    // Empty array → buildLineInput in the cart store drops the
+    // `attributes` field entirely, so the legacy non-customized path
+    // (no logo, no placement) round-trips the exact same payload it
+    // always has.
+    const lineAttributesForAdd: Array<{ key: string; value: string }> = (() => {
+      const out: Array<{ key: string; value: string }> = [];
+      const logoUrl =
+        store.logoPlacement?.processedUrl ??
+        store.logoPlacement?.previewUrl ??
+        store.logoPlacementBack?.processedUrl ??
+        store.logoPlacementBack?.previewUrl;
+      if (logoUrl) out.push({ key: 'Logo URL', value: logoUrl });
+      const placementLabel = activeBlueprintPreset?.label
+        ?? (store.placementSides === 'none' ? 'Vierge' : 'Centre');
+      if (placementLabel) out.push({ key: 'Placement', value: placementLabel });
+      const placementZone = activeBlueprintPreset?.zone
+        ?? (store.placementSides === 'back' ? 'back' : 'front');
+      if (placementZone) out.push({ key: 'Zone', value: placementZone });
+      const apercuUrl = getSnapshotRef.current?.();
+      if (apercuUrl) out.push({ key: 'Aperçu', value: apercuUrl });
+      return out;
+    })();
+
     // ── Multi-variant flow: push each (color × size) Shopify variant to
     //    the Shopify cart FIRST so a mid-loop failure doesn't leave the
     //    local cart stocked with items Shopify can't fulfil. Local lines
@@ -828,6 +859,14 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               { name: 'Couleur', value: v.colorName },
               { name: 'Taille', value: v.size },
             ],
+            // Customizer Blueprint §8.1 — per-line attributes ride the
+            // Shopify cartLinesAdd payload so the production team sees
+            // Logo URL / Placement / Zone / Aperçu next to each line on
+            // the order page, even when the cart contains multiple
+            // distinct custom designs. Omitted on legacy/non-custom
+            // adds so the existing catalog-add path round-trips the
+            // exact same payload it always has.
+            lineAttributes: lineAttributesForAdd.length > 0 ? lineAttributesForAdd : undefined,
           });
           // shopifyCartStore.addItem doesn't throw on Shopify userErrors —
           // it logs and returns without committing to items. Confirm the
@@ -1002,6 +1041,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         price: { amount: (unitPrice * discount).toFixed(2), currencyCode: 'CAD' },
         quantity: totalQty,
         selectedOptions: [{ name: 'Couleur', value: shopifyColor.colorName }],
+        // Customizer Blueprint §8.1 — same per-line attribute trail as
+        // the multi-variant flow so the legacy single-color path also
+        // surfaces the customizer payload on the order page line item.
+        lineAttributes: lineAttributesForAdd.length > 0 ? lineAttributesForAdd : undefined,
       });
       // addItem doesn't throw on Shopify userErrors / 402 / network
       // drops — it logs and returns. Confirm the line actually landed
