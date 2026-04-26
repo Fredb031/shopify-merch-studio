@@ -94,6 +94,7 @@ export default function CaseStudies() {
               {CASE_STUDIES.map(cs => (
                 <article
                   key={cs.slug}
+                  aria-labelledby={`cs-title-${cs.slug}`}
                   className="group flex flex-col bg-card border border-border rounded-2xl overflow-hidden transition-all hover:-translate-y-[2px] hover:shadow-[0_16px_40px_rgba(15,35,65,0.10)]"
                 >
                   <CardHero cs={cs} />
@@ -101,7 +102,10 @@ export default function CaseStudies() {
                     <div className="text-[11px] font-bold tracking-[1.8px] uppercase text-muted-foreground mb-1.5">
                       {cs.industry} · {cs.location}
                     </div>
-                    <h2 className="text-[19px] font-extrabold text-foreground tracking-[-0.3px] mb-3">
+                    <h2
+                      id={`cs-title-${cs.slug}`}
+                      className="text-[19px] font-extrabold text-foreground tracking-[-0.3px] mb-3"
+                    >
                       {cs.companyName}
                     </h2>
                     <div aria-hidden="true" className="h-[2px] w-10 bg-[#E8A838] mb-4" />
