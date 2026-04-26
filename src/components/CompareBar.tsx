@@ -36,6 +36,10 @@ export function CompareBar() {
     .map(sku => PRODUCTS.find(p => p.sku === sku))
     .filter((p): p is NonNullable<typeof p> => Boolean(p));
 
+  // Stale localStorage may hold SKUs no longer in PRODUCTS; if resolution
+  // drops us below 2, the bar has nothing meaningful to compare.
+  if (products.length < 2) return null;
+
   const compareLabel = lang === 'en' ? `Compare (${products.length})` : `Comparer (${products.length})`;
   const clearLabel = lang === 'en' ? 'Clear' : 'Effacer';
 
