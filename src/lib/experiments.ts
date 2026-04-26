@@ -120,20 +120,30 @@ function hashToUnitInterval(input: string): number {
  * absent) so flipping `.active = false` is a clean kill-switch.
  */
 export function assignVariant(exp: Experiment, visitorId: string): string {
+  // Defensive: an empty variants array is a config error. Always
+  // return a literal 'control' string so callers never receive
+  // `undefined` when indexing into a zero-length array — TypeScript's
+  // signature says we return `string` and we must honour it.
+  if (exp.variants.length === 0) {
+    return 'control';
+  }
+
   if (!exp.active) {
     return exp.variants.includes('control') ? 'control' : exp.variants[0];
   }
 
-  // Defensive: malformed config (mismatched lengths or empty variant
-  // list) shouldn't crash the page. Fail safe to control.
-  if (exp.variants.length === 0) {
-    return 'control';
-  }
+  // Defensive: malformed config (mismatched lengths) shouldn't crash
+  // the page. Fail safe to the first variant.
   if (exp.variants.length !== exp.weights.length) {
     return exp.variants[0];
   }
 
-  const totalWeight = exp.weights.reduce((sum, w) => sum + w, 0);
+  // Reject NaN / negative / non-finite weights — they would poison the
+  // cumulative walk and produce silently wrong assignments.
+  const totalWeight = exp.weights.reduce(
+    (sum, w) => sum + (Number.isFinite(w) && w > 0 ? w : 0),
+    0,
+  );
   if (totalWeight <= 0) {
     return exp.variants[0];
   }
@@ -142,7 +152,8 @@ export function assignVariant(exp: Experiment, visitorId: string): string {
 
   let cumulative = 0;
   for (let i = 0; i < exp.variants.length; i++) {
-    cumulative += exp.weights[i];
+    const w = exp.weights[i];
+    cumulative += Number.isFinite(w) && w > 0 ? w : 0;
     if (bucket < cumulative) {
       return exp.variants[i];
     }
