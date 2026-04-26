@@ -1,0 +1,17 @@
+[
+  {
+    "path": "/*",
+    "timings": [
+      { "metric": "interactive", "budget": 3500, "tolerance": "warning" },
+      { "metric": "first-contentful-paint", "budget": 1500, "tolerance": "warning" },
+      { "metric": "largest-contentful-paint", "budget": 2000, "tolerance": "warning" }
+    ],
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 250, "tolerance": "warning" },
+      { "resourceType": "total", "budget": 500, "tolerance": "warning" }
+    ],
+    "resourceCounts": [
+      { "resourceType": "third-party", "budget": 10, "tolerance": "warning" }
+    ]
+  }
+]
