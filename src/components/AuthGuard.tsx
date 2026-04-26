@@ -51,6 +51,12 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
     // URL the user tried to reach — previously state.from dropped the
     // ?cat=polos / #anchor, stranding the user on the bare route.
     const target = redirectTo ?? '/admin/login';
+    // Defensive loop guard: if AuthGuard ever wraps the login page
+    // itself (misconfiguration), redirecting to it again would loop
+    // forever. Render children so the login form can mount.
+    if (location.pathname === target) {
+      return <>{children}</>;
+    }
     const from = `${location.pathname}${location.search}${location.hash}`;
     return <Navigate to={target} state={{ from }} replace />;
   }
