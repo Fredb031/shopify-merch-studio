@@ -121,8 +121,11 @@ function ensurePixelInit(): void {
     script.onerror = () => {
       // Network blocked the request (ad-blocker, DNS failure, CSP).
       // Reset the guard so a future consent grant or retry can try
-      // again rather than being permanently stuck.
+      // again rather than being permanently stuck. Also remove the
+      // orphan <script> node so retries don't accumulate dead tags
+      // in <head> across multiple failed attempts.
       w.__vaPixelInitialized = false;
+      script.parentNode?.removeChild(script);
     };
     const head = document.head || document.getElementsByTagName('head')[0];
     head.appendChild(script);
