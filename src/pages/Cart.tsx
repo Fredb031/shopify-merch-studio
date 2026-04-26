@@ -10,6 +10,7 @@ import { getSettings } from '@/lib/appSettings';
 import { AIChat } from '@/components/AIChat';
 import { CartRecommendations } from '@/components/CartRecommendations';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
+import { DeliverySpeedPicker, loadDeliverySpeed, getDeliverySurcharge, type DeliverySpeedId } from '@/components/DeliverySpeedPicker';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { PRODUCTS, type Product } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
@@ -267,6 +268,13 @@ export default function Cart() {
   // Also used to disable the buttons + dim the row while the background
   // sync is inflight so the user sees something is happening.
   const [pendingRows, setPendingRows] = useState<Record<string, boolean>>({});
+
+  // Section 5.1 — selected delivery tier. Hydrated from localStorage on
+  // mount so a refresh doesn't lose the buyer's pick. The actual Shopify
+  // wiring (cart attribute / line-item surcharge) is an operator
+  // follow-up; this state is currently UI-only and the warehouse honours
+  // the tier manually until the surcharge is plumbed through checkout.
+  const [deliverySpeed, setDeliverySpeed] = useState<DeliverySpeedId>(() => loadDeliverySpeed());
 
   // "Copier le lien du panier" — lets shoppers park the URL to come
   // back later or forward it to a colleague. Writes window.location.href
@@ -1113,6 +1121,12 @@ export default function Cart() {
                     ? getSettings().discountCodes[discountCode] ?? 0
                     : 0;
                 const ratePct = Math.round(rate * 100);
+                // Surcharge is computed off the DISCOUNTED total so a
+                // VISION10 buyer doesn't pay rush on the strike-through
+                // gross. Section 5 is UI-only — the upcharge is
+                // currently a commitment we surface in the receipt.
+                const deliverySurcharge = getDeliverySurcharge(deliverySpeed, totalPrice);
+                const finalTotal = totalPrice + deliverySurcharge;
                 return (
                   <>
                     <div className="space-y-1.5 text-sm">
@@ -1168,6 +1182,17 @@ export default function Cart() {
                       </div>
                     </div>
 
+                    {/* Section 5.1 — delivery-speed picker. Sits below the
+                        subtotal block so the buyer sees the surcharge
+                        commitment before the estimated total. UI-only;
+                        Shopify variant for the upcharge is operator
+                        follow-up. */}
+                    <DeliverySpeedPicker
+                      subtotal={totalPrice}
+                      value={deliverySpeed}
+                      onChange={setDeliverySpeed}
+                    />
+
                     {/* aria-live so screen readers announce the new total when
                         the user removes a line, applies a discount, or clears
                         one — without it, the visual total update was silent. */}
@@ -1186,15 +1211,15 @@ export default function Cart() {
                             className="text-sm font-semibold text-muted-foreground line-through opacity-50 tabular-nums"
                             aria-label={lang === 'en' ? 'Original total' : 'Total original'}
                           >
-                            {fmtMoney(grossSubtotal)} $
+                            {fmtMoney(grossSubtotal + deliverySurcharge)} $
                           </s>
                           <span className="text-2xl font-extrabold text-primary tabular-nums">
-                            {fmtMoney(totalPrice)} $
+                            {fmtMoney(finalTotal)} $
                           </span>
                         </span>
                       ) : (
                         <span className="text-2xl font-extrabold text-primary tabular-nums">
-                          {fmtMoney(totalPrice)} $
+                          {fmtMoney(finalTotal)} $
                         </span>
                       )}
                     </div>
