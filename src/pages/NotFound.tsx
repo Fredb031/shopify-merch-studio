@@ -189,7 +189,12 @@ const NotFound = () => {
                 en: 'Contact',
               },
               {
-                to: '/track-order',
+                // Route mismatch: the actual track-order route is `/track`
+                // (and `/suivi` in French) per App.tsx. Linking to
+                // `/track-order` would have bounced the user back to the
+                // 404 — a recursive dead-end on the very recovery surface
+                // designed to rescue them.
+                to: lang === 'en' ? '/track' : '/suivi',
                 Icon: Truck,
                 fr: 'Suivre ma commande',
                 en: 'Track my order',
