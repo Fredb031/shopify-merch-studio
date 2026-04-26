@@ -7,27 +7,47 @@ import {
   SHOPIFY_STATS,
 } from '@/data/shopifySnapshot';
 
+type Priority = 'urgent' | 'normal' | 'low';
+
 interface ActionItem {
   id: string;
   label: string;
   detail: string;
   href: string;
   icon: typeof AlertCircle;
-  priority: 'urgent' | 'normal' | 'low';
+  priority: Priority;
 }
+
+// Thresholds lifted out of the build loop so a product owner tweaking
+// what counts as "high-value abandoned" or how many idle prospects
+// trigger a nurture nudge edits one symbol instead of hunting two
+// inline literals. Currency in CAD; counts are absolute.
+const HIGH_VALUE_ABANDONED_MIN_CAD = 200;
+const INACTIVE_PROSPECT_NUDGE_THRESHOLD = 5;
+
+// Stable sort order so 'urgent' rows always render above 'normal' /
+// 'low' even if a future caller reorders the build steps. Negative
+// number == higher priority — Array#sort is stable in modern engines
+// (ES2019+) so equal-priority items keep their insertion order.
+const PRIORITY_RANK: Record<Priority, number> = { urgent: 0, normal: 1, low: 2 };
 
 // Freshness stamp — rounds to the nearest human-friendly bucket so the
 // widget header subtly communicates that the list is live. Data itself
 // is a static snapshot, but the rendered view re-evaluates on mount,
 // so "il y a Ns" reflects how long the operator has been staring at
-// this card without refreshing the dashboard.
+// this card without refreshing the dashboard. Negative inputs (clock
+// skew on a freshly mounted widget) and the > 1 day overflow are both
+// flattened to bounded copy rather than letting "il y a 27 h" or "-1s"
+// bleed through.
 function formatFreshness(seconds: number): string {
-  if (seconds < 5) return "à l'instant";
-  if (seconds < 60) return `il y a ${seconds}s`;
+  if (!Number.isFinite(seconds) || seconds < 5) return "à l'instant";
+  if (seconds < 60) return `il y a ${Math.floor(seconds)}s`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `il y a ${minutes} min`;
   const hours = Math.floor(minutes / 60);
-  return `il y a ${hours} h`;
+  if (hours < 24) return `il y a ${hours} h`;
+  const days = Math.floor(hours / 24);
+  return `il y a ${days} j`;
 }
 
 function TodayWidgetInner() {
@@ -69,23 +89,33 @@ function TodayWidgetInner() {
     });
   }
 
-  // High-value abandoned carts (≥ 200 $)
-  const highValueAbandoned = SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(c => c.total >= 200);
+  // High-value abandoned carts — threshold tuned so we surface the carts
+  // worth a human follow-up, not every $30 t-shirt that lapsed.
+  const highValueAbandoned = SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.filter(
+    c => c.total >= HIGH_VALUE_ABANDONED_MIN_CAD,
+  );
   if (highValueAbandoned.length > 0) {
     const total = highValueAbandoned.reduce((s, c) => s + c.total, 0);
     acc.push({
       id: 'recover-abandoned',
       label: `${highValueAbandoned.length} panier${highValueAbandoned.length > 1 ? 's' : ''} à récupérer`,
-      detail: `${total.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} $ en valeur (≥ 200 $/panier)`,
+      detail: `${total.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} $ en valeur (≥ ${HIGH_VALUE_ABANDONED_MIN_CAD} $/panier)`,
       href: '/admin/abandoned-carts',
       icon: ShoppingCart,
       priority: 'normal',
     });
   }
 
-  // Inactive prospects (no order in last 7d)
-  const inactiveProspects = SHOPIFY_STATS.totalCustomers - SHOPIFY_STATS.payingCustomers;
-  if (inactiveProspects > 5) {
+  // Inactive prospects (no order in last 7d). Defensive max(0,…) so a
+  // payingCustomers count that briefly exceeds totalCustomers (e.g. a
+  // mid-sync snapshot where the totals are denormalized counters that
+  // settle on the next refresh) doesn't yield a negative number that
+  // still passes the > threshold compare with NaN-style coercion.
+  const inactiveProspects = Math.max(
+    0,
+    SHOPIFY_STATS.totalCustomers - SHOPIFY_STATS.payingCustomers,
+  );
+  if (inactiveProspects > INACTIVE_PROSPECT_NUDGE_THRESHOLD) {
     acc.push({
       id: 'nurture',
       label: `${inactiveProspects} prospects sans commande`,
@@ -95,6 +125,9 @@ function TodayWidgetInner() {
       priority: 'low',
     });
   }
+    // Ensure urgent surfaces first regardless of build order. Sort is
+    // stable, so two items at the same priority stay in insertion order.
+    acc.sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
     return acc;
   }, []);
 
@@ -154,12 +187,31 @@ function TodayWidgetInner() {
             normal: 'bg-amber-50 text-amber-700',
             low: 'bg-blue-50 text-blue-700',
           }[item.priority];
+          // Left edge stripe — a 3 px coloured rail that makes the
+          // urgent / normal / low triage visible without leaning on
+          // the icon-tile colour alone (icon tiles only render once
+          // the eye lands on them; the rail catches peripheral scan).
+          const rail = {
+            urgent: 'before:bg-rose-500',
+            normal: 'before:bg-amber-500',
+            low: 'before:bg-blue-400',
+          }[item.priority];
+          // Bilingual label so SR users on the EN side of the admin
+          // shell don't get a French-only "urgent" / "low" leaking out
+          // of an otherwise localized list. Visually hidden — the
+          // colour rail above is the sighted cue.
+          const priorityLabel = {
+            urgent: 'Priorité urgente',
+            normal: 'Priorité normale',
+            low: 'Priorité faible',
+          }[item.priority];
           return (
             <Link
               key={item.id}
               to={item.href}
-              className="flex items-center gap-3 p-4 hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-inset"
+              className={`relative flex items-center gap-3 p-4 pl-5 hover:bg-zinc-50 transition-colors group focus:outline-none focus-visible:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-inset before:absolute before:inset-y-2 before:left-1 before:w-1 before:rounded-full ${rail}`}
             >
+              <span className="sr-only">{priorityLabel}.</span>
               <div className={`w-9 h-9 rounded-xl ${tone} flex items-center justify-center flex-shrink-0`}>
                 <Icon size={16} aria-hidden="true" />
               </div>
