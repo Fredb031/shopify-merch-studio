@@ -13,14 +13,41 @@ interface SparklineProps {
   ariaLabel?: string;
 }
 
+// Layout constants — lifted out of the render body so the geometry is
+// auditable in one place and the placeholder/area branches don't drift
+// out of sync when someone tweaks padding or stroke math.
+const DEFAULT_WIDTH = 80;
+const DEFAULT_HEIGHT = 24;
+const DEFAULT_STROKE = '#E8A838';
+const DEFAULT_STROKE_WIDTH = 1.5;
+// Horizontal inset so the polyline never butts into the SVG edge — the
+// stroke would otherwise be clipped at half-width on the first/last
+// point. Y-padding plays the same role vertically for min/max points.
+const X_INSET = 1;
+const X_EDGE_MARGIN = 2;
+const Y_PADDING = 2;
+// Half-pixel nudge keeps the baseline crisp at 1px stroke widths
+// (otherwise it lands between rows and antialiases to a blurry band).
+const BASELINE_OFFSET = 0.5;
+// Muted zinc-300 for the "no data" dashed line — matches the rest of
+// the admin shell's empty-state palette.
+const PLACEHOLDER_STROKE = '#d4d4d8';
+const SINGLE_POINT_RADIUS = 1.5;
+
 export function Sparkline({
   data,
-  width = 80,
-  height = 24,
-  stroke = '#E8A838',
-  strokeWidth = 1.5,
+  width: rawWidth = DEFAULT_WIDTH,
+  height: rawHeight = DEFAULT_HEIGHT,
+  stroke = DEFAULT_STROKE,
+  strokeWidth = DEFAULT_STROKE_WIDTH,
   ariaLabel,
 }: SparklineProps) {
+  // Defensive dimension validation — a caller passing 0, NaN, or a
+  // negative width/height (e.g. from a CSS-derived measurement before
+  // layout settles) would otherwise produce an invalid viewBox and a
+  // blank SVG. Fall back to the defaults rather than rendering broken.
+  const width = Number.isFinite(rawWidth) && rawWidth > 0 ? rawWidth : DEFAULT_WIDTH;
+  const height = Number.isFinite(rawHeight) && rawHeight > 0 ? rawHeight : DEFAULT_HEIGHT;
   // Drop non-finite values (NaN / ±Infinity) up front. Stat sources
   // sometimes divide-by-zero when a comparison period has no data,
   // and a single NaN slipping into Math.min/max poisons the entire
@@ -48,11 +75,11 @@ export function Sparkline({
         className="overflow-visible"
       >
         <line
-          x1={2}
+          x1={X_EDGE_MARGIN}
           y1={midY}
-          x2={width - 2}
+          x2={width - X_EDGE_MARGIN}
           y2={midY}
-          stroke="#d4d4d8"
+          stroke={PLACEHOLDER_STROKE}
           strokeWidth={1}
           strokeDasharray="3 3"
           strokeLinecap="round"
@@ -71,7 +98,7 @@ export function Sparkline({
         role="img"
         aria-label={ariaLabel ?? 'Tendance (1 point)'}
       >
-        <circle cx={width / 2} cy={height / 2} r={1.5} fill={stroke} />
+        <circle cx={width / 2} cy={height / 2} r={SINGLE_POINT_RADIUS} fill={stroke} />
       </svg>
     );
   }
@@ -81,23 +108,22 @@ export function Sparkline({
   // Guard against a flat non-zero series — without this, (max-min)=0
   // divides to NaN and the polyline disappears. Render it centered.
   const range = max - min || 1;
-  const stepX = (width - 2) / (safeData.length - 1);
-  const padY = 2;
-  const innerH = height - padY * 2;
+  const stepX = (width - X_EDGE_MARGIN) / (safeData.length - 1);
+  const innerH = height - Y_PADDING * 2;
 
   const points = safeData.map((v, i) => {
-    const x = 1 + i * stepX;
+    const x = X_INSET + i * stepX;
     // Invert Y (SVG grows downward) so higher values sit higher.
-    const y = padY + innerH - ((v - min) / range) * innerH;
+    const y = Y_PADDING + innerH - ((v - min) / range) * innerH;
     return `${x.toFixed(2)},${y.toFixed(2)}`;
   });
 
   const linePath = points.join(' ');
   // Area path: close the polyline down to the baseline so we can
   // fill a translucent band beneath the stroke.
-  const firstX = 1;
-  const lastX = 1 + (safeData.length - 1) * stepX;
-  const baselineY = height - 0.5;
+  const firstX = X_INSET;
+  const lastX = X_INSET + (safeData.length - 1) * stepX;
+  const baselineY = height - BASELINE_OFFSET;
   const areaPath = `M ${firstX},${baselineY} L ${points.join(' L ')} L ${lastX.toFixed(2)},${baselineY} Z`;
 
   return (
