@@ -31,6 +31,35 @@ const INACTIVE_PROSPECT_NUDGE_THRESHOLD = 5;
 // (ES2019+) so equal-priority items keep their insertion order.
 const PRIORITY_RANK: Record<Priority, number> = { urgent: 0, normal: 1, low: 2 };
 
+// Per-priority presentation lookups lifted out of the render loop so
+// each row's class strings and SR labels reuse the same object refs
+// instead of allocating three fresh literal objects every map iteration
+// (and again on every re-render of the dashboard). Keys mirror the
+// Priority union — TS will flag any future addition that forgets a tone.
+const TONE_BY_PRIORITY: Record<Priority, string> = {
+  urgent: 'bg-rose-50 text-rose-700',
+  normal: 'bg-amber-50 text-amber-700',
+  low: 'bg-blue-50 text-blue-700',
+};
+// Left edge stripe — a 3 px coloured rail that makes the urgent /
+// normal / low triage visible without leaning on the icon-tile colour
+// alone (icon tiles only render once the eye lands on them; the rail
+// catches peripheral scan).
+const RAIL_BY_PRIORITY: Record<Priority, string> = {
+  urgent: 'before:bg-rose-500',
+  normal: 'before:bg-amber-500',
+  low: 'before:bg-blue-400',
+};
+// Bilingual label so SR users on the EN side of the admin shell don't
+// get a French-only "urgent" / "low" leaking out of an otherwise
+// localized list. Visually hidden — the colour rail above is the
+// sighted cue.
+const PRIORITY_LABEL: Record<Priority, string> = {
+  urgent: 'Priorité urgente',
+  normal: 'Priorité normale',
+  low: 'Priorité faible',
+};
+
 // Freshness stamp — rounds to the nearest human-friendly bucket so the
 // widget header subtly communicates that the list is live. Data itself
 // is a static snapshot, but the rendered view re-evaluates on mount,
@@ -182,29 +211,9 @@ function TodayWidgetInner() {
       <div className="divide-y divide-zinc-100">
         {items.map(item => {
           const Icon = item.icon;
-          const tone = {
-            urgent: 'bg-rose-50 text-rose-700',
-            normal: 'bg-amber-50 text-amber-700',
-            low: 'bg-blue-50 text-blue-700',
-          }[item.priority];
-          // Left edge stripe — a 3 px coloured rail that makes the
-          // urgent / normal / low triage visible without leaning on
-          // the icon-tile colour alone (icon tiles only render once
-          // the eye lands on them; the rail catches peripheral scan).
-          const rail = {
-            urgent: 'before:bg-rose-500',
-            normal: 'before:bg-amber-500',
-            low: 'before:bg-blue-400',
-          }[item.priority];
-          // Bilingual label so SR users on the EN side of the admin
-          // shell don't get a French-only "urgent" / "low" leaking out
-          // of an otherwise localized list. Visually hidden — the
-          // colour rail above is the sighted cue.
-          const priorityLabel = {
-            urgent: 'Priorité urgente',
-            normal: 'Priorité normale',
-            low: 'Priorité faible',
-          }[item.priority];
+          const tone = TONE_BY_PRIORITY[item.priority];
+          const rail = RAIL_BY_PRIORITY[item.priority];
+          const priorityLabel = PRIORITY_LABEL[item.priority];
           return (
             <Link
               key={item.id}
