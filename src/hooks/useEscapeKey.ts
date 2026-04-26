@@ -52,7 +52,26 @@ export function useEscapeKey(
         // Also treat contentEditable elements as text inputs — rich-text
         // surfaces (fabric.IText's hidden editor, any future WYSIWYG)
         // expect Esc to exit editing mode, not kill the containing modal.
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) return;
+        // For <input>, only skip when it's actually a text-bearing type —
+        // checkboxes/radios/buttons have no field to clear, so Esc should
+        // still dismiss the surrounding overlay.
+        if (tag === 'TEXTAREA' || t?.isContentEditable) return;
+        if (tag === 'INPUT') {
+          const inputType = (t as HTMLInputElement).type;
+          if (
+            inputType !== 'checkbox' &&
+            inputType !== 'radio' &&
+            inputType !== 'button' &&
+            inputType !== 'submit' &&
+            inputType !== 'reset' &&
+            inputType !== 'file' &&
+            inputType !== 'image' &&
+            inputType !== 'range' &&
+            inputType !== 'color'
+          ) {
+            return;
+          }
+        }
       }
       onEscape();
     };
