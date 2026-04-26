@@ -39,6 +39,16 @@ const loadKb = () => {
 // Cap at 200 messages to match the in-memory MAX so we don't grow the
 // quota unbounded across reloads.
 const TRANSCRIPT_KEY = 'vision-aichat-transcript';
+// Hard cap on transcript length. Used by both `send()` (free-form
+// questions) and `pickFromTopic()` (topic-card pre-canned Q+A pairs).
+// The DOM can handle it for a while but scroll animation chugs past
+// ~500 nodes on lower-end phones, and KB answers are static so old
+// history has no research value. Lifted to module scope so the topic
+// path doesn't grow the list past the cap a free-form send would
+// have trimmed — a customer who repeatedly clicked topic suggestions
+// could otherwise push the in-memory list to thousands of messages,
+// blow past the sessionStorage 5 MB quota, and trip the persist
+// effect into throwing on every keystroke.
 const TRANSCRIPT_MAX = 200;
 
 function readTranscript(): ChatMessage[] {
@@ -140,16 +150,9 @@ export function AIChatPanel() {
     // the user message.
     if (!trimmed || sendingRef.current) return;
     sendingRef.current = true;
-    // Cap the transcript at 200 messages so a user who hammers the
-    // bot in one session doesn't grow the in-memory list unbounded.
-    // The DOM can handle it for a while but the scroll animation
-    // chugs badly past ~500 nodes on lower-end phones, and the
-    // knowledge-base answers are static so there's no research value
-    // in keeping ancient history.
-    const MAX_MESSAGES = 200;
     setMessages(m => {
       const next = [...m, { role: 'user' as const, text: trimmed, ts: Date.now() }];
-      return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+      return next.length > TRANSCRIPT_MAX ? next.slice(-TRANSCRIPT_MAX) : next;
     });
     setInput('');
     setThinking(true);
@@ -161,7 +164,7 @@ export function AIChatPanel() {
       const { answer } = answerQuestion(trimmed, lang as Lang);
       setMessages(m => {
         const next = [...m, { role: 'assistant' as const, text: answer, ts: Date.now() }];
-        return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+        return next.length > TRANSCRIPT_MAX ? next.slice(-TRANSCRIPT_MAX) : next;
       });
     } catch (err) {
       // If the KB import fails (chunk 404, offline), the user was
@@ -173,7 +176,7 @@ export function AIChatPanel() {
         : 'Sorry, I can\u2019t load my answers right now. Call us at 367-380-4808 or email info@visionaffichage.com.';
       setMessages(m => {
         const next = [...m, { role: 'assistant' as const, text: fallback, ts: Date.now() }];
-        return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
+        return next.length > TRANSCRIPT_MAX ? next.slice(-TRANSCRIPT_MAX) : next;
       });
     } finally {
       setThinking(false);
@@ -192,11 +195,19 @@ export function AIChatPanel() {
   };
 
   const pickFromTopic = (qFr: string, qEn: string, aFr: string, aEn: string) => {
-    setMessages(m => [
-      ...m,
-      { role: 'user',      text: lang === 'fr' ? qFr : qEn, ts: Date.now() },
-      { role: 'assistant', text: lang === 'fr' ? aFr : aEn, ts: Date.now() + 1 },
-    ]);
+    setMessages(m => {
+      const next = [
+        ...m,
+        { role: 'user'      as const, text: lang === 'fr' ? qFr : qEn, ts: Date.now() },
+        { role: 'assistant' as const, text: lang === 'fr' ? aFr : aEn, ts: Date.now() + 1 },
+      ];
+      // Apply the same cap `send()` enforces — without this, a user
+      // who repeatedly tapped topic-card suggestions could grow the
+      // transcript past TRANSCRIPT_MAX (200), blowing through the
+      // sessionStorage quota and tripping the persist effect into
+      // throwing on every subsequent keystroke.
+      return next.length > TRANSCRIPT_MAX ? next.slice(-TRANSCRIPT_MAX) : next;
+    });
     setView('chat');
   };
 
