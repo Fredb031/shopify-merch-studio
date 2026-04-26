@@ -20,6 +20,18 @@ interface State {
 const VA_LOGO_SRC =
   'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651';
 
+// Tunable diagnostic constants. Stack frames cap keeps the clipboard payload
+// chat-friendly (full React stacks routinely exceed 100 lines of framework
+// frames). Copy feedback ms matches the rest of the app's toast cadence.
+const STACK_FRAMES_MAX = 10;
+const COPY_FEEDBACK_MS = 2000;
+
+// localStorage key written by LanguageContext. Inlined (not imported) for the
+// same reason as VA_LOGO_SRC: the boundary must keep functioning even if the
+// language module itself is what threw.
+const LANG_STORAGE_KEY = 'vision-lang';
+const LANG_EN = 'en';
+
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, error: null, copied: false };
 
@@ -40,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   private isFrench(): boolean {
-    try { return localStorage.getItem('vision-lang') !== 'en'; } catch { return true; }
+    try { return localStorage.getItem(LANG_STORAGE_KEY) !== LANG_EN; } catch { return true; }
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
@@ -62,7 +74,7 @@ export class ErrorBoundary extends Component<Props, State> {
   private buildDiagnostic(): string {
     const err = this.state.error;
     const message = err?.message || '(no message)';
-    const stackLines = (err?.stack || '').split('\n').slice(0, 10).join('\n');
+    const stackLines = (err?.stack || '').split('\n').slice(0, STACK_FRAMES_MAX).join('\n');
     let url = '';
     let userAgent = '';
     try { url = window.location.href; } catch { /* ignore */ }
@@ -110,7 +122,7 @@ export class ErrorBoundary extends Component<Props, State> {
       this.copyTimer = setTimeout(() => {
         this.copyTimer = null;
         this.setState({ copied: false });
-      }, 2000);
+      }, COPY_FEEDBACK_MS);
     }
   };
 
