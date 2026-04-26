@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Palette, Printer, Truck, Sparkles } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 
@@ -32,7 +32,7 @@ export function StepsTimeline() {
     return () => io.disconnect();
   }, []);
 
-  const steps = [
+  const steps = useMemo(() => [
     {
       icon: Palette,
       day: lang === 'en' ? 'Day 1-2' : 'Jour 1-2',
@@ -54,7 +54,7 @@ export function StepsTimeline() {
       desc: lang === 'en' ? 'Tracked shipping anywhere in Canada' : 'Livraison suivie partout au Canada',
       accent: '#10B981',
     },
-  ];
+  ], [lang]);
 
   return (
     <section
