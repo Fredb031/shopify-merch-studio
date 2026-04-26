@@ -85,25 +85,31 @@ export function getLoyalty(): LoyaltyAccount {
 
 export function awardPoints(n: number, reason: string): LoyaltyAccount {
   if (!Number.isFinite(n) || n <= 0) return readAccount();
+  // Points are whole units; floor any float input to avoid IEEE-754 drift
+  // accumulating in the balance over many awards.
+  const amount = Math.floor(n);
+  if (amount <= 0) return readAccount();
   const current = readAccount();
-  const points = current.points + n;
-  const lifetime = current.lifetime + n;
+  const points = current.points + amount;
+  const lifetime = current.lifetime + amount;
   const next: LoyaltyAccount = { points, lifetime, tier: tierOf(lifetime) };
   writeAccount(next);
-  pushTransaction({ type: 'earn', points: n, reason, at: new Date().toISOString() });
+  pushTransaction({ type: 'earn', points: amount, reason, at: new Date().toISOString() });
   return next;
 }
 
 export function redeemPoints(n: number): LoyaltyAccount | null {
   if (!Number.isFinite(n) || n <= 0) return null;
+  const amount = Math.floor(n);
+  if (amount <= 0) return null;
   const current = readAccount();
-  if (current.points < n) return null;
+  if (current.points < amount) return null;
   const next: LoyaltyAccount = {
-    points: current.points - n,
+    points: current.points - amount,
     lifetime: current.lifetime, // lifetime never decreases
     tier: tierOf(current.lifetime),
   };
   writeAccount(next);
-  pushTransaction({ type: 'redeem', points: n, reason: 'redeem', at: new Date().toISOString() });
+  pushTransaction({ type: 'redeem', points: amount, reason: 'redeem', at: new Date().toISOString() });
   return next;
 }
