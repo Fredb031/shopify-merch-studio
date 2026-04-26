@@ -36,23 +36,100 @@ const META_PIXEL_ID = 'YOUR_PIXEL_ID';
 
 /**
  * Lazy one-shot init — `fbq('init', ...)` must run exactly once per
- * page session, AFTER the visitor grants marketing consent. The
- * index.html stub registers `window.fbq` and queues calls; calling
- * init here flushes the queue and starts the auto-PageView. We track
- * the init state on the window so a hot-reload or duplicate import
- * doesn't double-init (Meta logs a warning + double-counts PageView).
+ * page session, AFTER the visitor grants marketing consent. We used
+ * to ship the Meta base-loader inline in index.html, but Law 25
+ * forbids that: the loader's script-tag injection causes the browser
+ * to fetch fbevents.js, which sets a `fr` cookie on
+ * connect.facebook.net BEFORE the visitor opts in. The fix is to
+ * defer everything — the queue stub, the script injection, and the
+ * init call — until marketing consent flips true.
+ *
+ * Flow on first call after consent:
+ *   1. Install the Meta queue stub (window.fbq) so events that fire
+ *      between now and onload don't error.
+ *   2. Inject <script src="connect.facebook.net/en_US/fbevents.js"
+ *      async> into <head>.
+ *   3. Wait for onload, then call fbq('init', META_PIXEL_ID) which
+ *      flushes the queued calls and starts the auto-PageView.
+ *
+ * Idempotent via window.__vaPixelInitialized — a hot-reload or a
+ * second consent grant in the same session won't double-fetch the
+ * script or double-count PageView.
  */
 function ensurePixelInit(): void {
   if (typeof window === 'undefined') return;
-  if (!window.fbq) return; // base stub not on the page yet
   if (META_PIXEL_ID === 'YOUR_PIXEL_ID') return; // operator hasn't set the ID
   const w = window as Window & { __vaPixelInitialized?: boolean };
   if (w.__vaPixelInitialized) return;
+  // Mark initialized up-front so concurrent callers in the same tick
+  // don't race to inject two <script> tags before onload fires.
+  w.__vaPixelInitialized = true;
+
   try {
-    window.fbq('init', META_PIXEL_ID);
-    w.__vaPixelInitialized = true;
+    // Step 1: install the Meta queue stub. This is the same snippet
+    // that used to live in index.html, minus the script-tag injection
+    // (we do that ourselves in step 2 so we can gate it on consent).
+    // It registers window.fbq as a queueing shim that callers can
+    // safely invoke before fbevents.js finishes downloading.
+    const f = window as Window & {
+      fbq?: ((...args: unknown[]) => void) & {
+        callMethod?: (...args: unknown[]) => void;
+        queue?: unknown[];
+        push?: unknown;
+        loaded?: boolean;
+        version?: string;
+      };
+      _fbq?: unknown;
+    };
+    if (!f.fbq) {
+      const n: ((...args: unknown[]) => void) & {
+        callMethod?: (...args: unknown[]) => void;
+        queue?: unknown[];
+        push?: unknown;
+        loaded?: boolean;
+        version?: string;
+      } = function (...args: unknown[]) {
+        if (n.callMethod) {
+          n.callMethod.apply(n, args);
+        } else {
+          (n.queue as unknown[]).push(args);
+        }
+      };
+      f.fbq = n;
+      if (!f._fbq) f._fbq = n;
+      n.push = n;
+      n.loaded = true;
+      n.version = '2.0';
+      n.queue = [];
+    }
+
+    // Step 2: dynamically inject the Pixel script. Only NOW does the
+    // browser open the connection to connect.facebook.net and accept
+    // the `fr` cookie — which is fine because we're already past the
+    // marketing-consent gate in trackEvent().
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    script.onload = () => {
+      // Step 3: flush the queue + start auto-PageView.
+      try {
+        window.fbq?.('init', META_PIXEL_ID);
+      } catch {
+        /* vendor script threw — don't let it bubble to the caller */
+      }
+    };
+    script.onerror = () => {
+      // Network blocked the request (ad-blocker, DNS failure, CSP).
+      // Reset the guard so a future consent grant or retry can try
+      // again rather than being permanently stuck.
+      w.__vaPixelInitialized = false;
+    };
+    const head = document.head || document.getElementsByTagName('head')[0];
+    head.appendChild(script);
   } catch {
-    /* vendor script threw — don't let it bubble to the caller */
+    // Anything in the bootstrap path threw — clear the guard so the
+    // next consented event has a chance to retry.
+    w.__vaPixelInitialized = false;
   }
 }
 
@@ -152,14 +229,15 @@ export function trackEvent(name: string, params?: Record<string, unknown>): void
   }
 
   if (consent.marketing === true) {
-    // Meta Pixel dispatch. The base loader stub in index.html
-    // registers `window.fbq` on first paint, but we hold off on the
-    // `init` call until consent is granted — that's the moment the
-    // first network request to connect.facebook.net is allowed to
-    // fire. ensurePixelInit() is idempotent; subsequent events skip
-    // straight to track. We only forward events that map to a Meta
-    // standard event — unmapped names are skipped (trackCustom would
-    // be a separate call shape we don't need yet).
+    // Meta Pixel dispatch. Nothing Pixel-related is on the page until
+    // we get here — ensurePixelInit() installs the fbq queue stub,
+    // injects fbevents.js, and fires `init` once the script onloads.
+    // That's the moment the first network request to
+    // connect.facebook.net is allowed to fire (Law 25). It's
+    // idempotent; subsequent events skip straight to track. We only
+    // forward events that map to a Meta standard event — unmapped
+    // names are skipped (trackCustom would be a separate call shape
+    // we don't need yet).
     ensurePixelInit();
     const pixelEvent = PIXEL_EVENT_MAP[name];
     if (pixelEvent) {

@@ -127,19 +127,16 @@
     </script>
 
     <!-- Meta Pixel — Volume II Section 08.1.
-         The base loader stub registers `window.fbq` and queues calls
-         until the real `fbevents.js` finishes downloading. We do NOT
-         call `fbq('init', ...)` here — that's deferred to
-         src/lib/analytics.ts which only fires after the visitor grants
-         marketing consent (Law 25 mirrors the GA4 gating pattern).
-         Operator must replace YOUR_PIXEL_ID with the real Pixel ID,
-         and follow up with the CAPI server-side mirror via Supabase
-         edge function (`META_ACCESS_TOKEN` secret) for iOS-blocking-
-         resistant attribution. -->
-    <script>
-    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-    // fbq('init','YOUR_PIXEL_ID') is fired by src/lib/analytics.ts after consent grant
-    </script>
+         Law 25 fix: the Pixel script no longer eager-loads here. Even
+         the script DOWNLOAD itself sets an `fr` cookie before the
+         visitor consents, which violates Québec's Law 25 opt-in
+         requirement. The full lazy bootstrap (queue stub + script
+         injection + init) now lives in src/lib/analytics.ts and runs
+         only after marketing consent flips true. Operator must drop the
+         real Pixel ID into META_PIXEL_ID inside analytics.ts and follow
+         up with the CAPI server-side mirror via Supabase edge function
+         (`META_ACCESS_TOKEN` secret) for iOS-blocking-resistant
+         attribution. -->
   </head>
 
   <body>
