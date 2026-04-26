@@ -36,6 +36,14 @@ export interface CustomizerAttributesPayload {
   canvasPreviewUrl?: string;
   productSku?: string;
   sizeMatrix?: Record<string, number>;
+  /** Customizer Blueprint §8.1 — human-readable placement label
+   * (e.g. "Centre poitrine") that the production team sees on the
+   * Shopify order page next to the structured `placement` JSON. */
+  placementLabel?: string;
+  /** Customizer Blueprint §8.1 — coarse zone label ("front" | "back" |
+   * "sleeve" | "cap-front" | "cap-side"). Lets the operator filter
+   * orders by print location without parsing the placement JSON. */
+  placementZone?: string;
 }
 
 /** Maps a payload field to a Shopify cart attribute. Strings pass
@@ -74,6 +82,16 @@ export async function setCustomizerAttributes(
     ['canvasPreviewUrl', 'canvas_preview_url'],
     ['productSku', 'product_sku'],
     ['sizeMatrix', 'size_matrix'],
+    // Customizer Blueprint §8.1 — friendly labels that show up on the
+    // order page exactly as the spec requested ("Logo URL", "Placement",
+    // "Zone", "Aperçu"). We keep the snake_case keys above for the
+    // structured payload and add these as additional, human-readable
+    // attributes so the production team can scan an order without
+    // expanding JSON.
+    ['logoUrl', 'Logo URL'],
+    ['placementLabel', 'Placement'],
+    ['placementZone', 'Zone'],
+    ['canvasPreviewUrl', 'Aperçu'],
   ];
 
   const attributes: Array<{ key: string; value: string }> = [];

@@ -28,6 +28,9 @@ import { LogoUploader } from './LogoUploader';
 import { MultiVariantPicker, type VariantQty } from './MultiVariantPicker';
 import { ColorPicker } from './ColorPicker';
 import { TemplatesSection, type CustomizerTemplate } from './TemplatesSection';
+import { PlacementButtons } from './PlacementButtons';
+import { OrderSummary } from './OrderSummary';
+import { PLACEMENTS, SKU_TO_PLACEMENT_TYPE, type PlacementPreset } from '@/data/productPlacements';
 // TemplateGallery (themed-placement starter templates) intentionally
 // removed per operator request — users now start with a blank canvas.
 // Keeping the file on disk in case the feature returns.
@@ -294,6 +297,23 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // click will drop the logo. Builds trust that the centring is correct.
   const [previewCenter, setPreviewCenter] = useState(false);
 
+  // Customizer Blueprint §4.1 — the active named placement preset id (e.g.
+  // 'tshirt-chest-center'). Independent of the existing zoneId/printZones
+  // path which keeps fine-tune controls + per-zone pricing intact. When
+  // the user picks a blueprint preset we stamp x/y/width on the active
+  // LogoPlacement; the existing zone grid below stays free to override.
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+
+  // Customizer Blueprint §7 — Résumé (Review) screen toggle. Switches the
+  // right panel from the canvas-edit experience to a read-only OrderSummary
+  // recap. The 5-step indicator gains a 6th tick when this is true.
+  const [reviewMode, setReviewMode] = useState(false);
+
+  // Cached canvas snapshot (data URL) — captured the moment the user opens
+  // the Résumé screen so OrderSummary renders the actual mockup the user
+  // designed, not a re-render of the live (potentially mid-edit) canvas.
+  const [reviewSnapshot, setReviewSnapshot] = useState<string | null>(null);
+
   // Task 17.3: confetti burst the first time the user crosses the bulk
   // discount threshold within a single customizer session. Silent
   // threshold crossings used to just flip the discount line — no moment
@@ -516,6 +536,47 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     }
   };
 
+  // Customizer Blueprint §3.3 / §4.1 — resolve the named-preset family for
+  // the current product. Falls back to 'tshirt' on miss so the
+  // PlacementButtons block is never empty. Pure data lookup; no state.
+  const placementType = (product?.sku && SKU_TO_PLACEMENT_TYPE[product.sku]) || 'tshirt';
+  const blueprintPresets: PlacementPreset[] = PLACEMENTS[placementType] ?? PLACEMENTS.tshirt;
+  const activeBlueprintPreset: PlacementPreset | null =
+    blueprintPresets.find(p => p.id === activePresetId) ?? null;
+
+  // Customizer Blueprint §4.1 — apply a named preset's xPct/yPct/maxWidthPct
+  // onto the active LogoPlacement. Routes through setCurrentPlacement so
+  // the side-aware logoPlacement / logoPlacementBack split is preserved.
+  // We translate xPct/yPct (preset-space, percent of canvas) to the
+  // canonical LogoPlacement.x/y range the canvas already understands —
+  // which is also percent of canvas — so the values pass through directly.
+  const applyBlueprintPreset = (preset: PlacementPreset) => {
+    setActivePresetId(preset.id);
+    const targetView: 'front' | 'back' =
+      preset.zone === 'back' ? 'back' : 'front';
+    if (targetView !== store.activeView) store.setView(targetView);
+    // Canvas view determines the slot (front vs back). Side mode is
+    // automatically promoted: if user is in 'front' and picks a back
+    // preset, flip placementSides to 'back' so the canvas wires the
+    // correct slot via setCurrentPlacement. Don't downgrade 'both'.
+    if (store.placementSides !== 'both') {
+      if (preset.zone === 'back' && store.placementSides !== 'back') {
+        store.setPlacementSides('back');
+      } else if (preset.zone !== 'back' && store.placementSides === 'back') {
+        store.setPlacementSides('front');
+      }
+    }
+    const base = currentPlacement ?? { zoneId: preset.id, mode: 'preset' as const };
+    setCurrentPlacement({
+      ...base,
+      zoneId: preset.id,
+      mode: 'preset',
+      x: preset.xPct,
+      y: preset.yPct,
+      width: preset.maxWidthPct,
+    });
+  };
+
   // A "placement is ready" when the picked sides all have a previewUrl.
   const placementComplete = (() => {
     if (store.placementSides === 'none') return true;
@@ -568,6 +629,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       store.placementSides === 'none' || placementHasCoords,        // 3. Zone
       anyLogoUploaded || store.placementSides === 'none',           // 4. Logo
       totalQty > 0,                                                 // 5. Quantité
+      reviewMode,                                                   // 6. Résumé (Blueprint §7)
     ];
     const currentIndex = (() => {
       const firstUndone = completed.findIndex(c => !c);
@@ -576,11 +638,12 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     return { completed, currentIndex };
   })();
   const FIVE_STEPS = [
-    { id: 1, label: 'Produit'  },
-    { id: 2, label: 'Couleur'  },
-    { id: 3, label: 'Zone'     },
-    { id: 4, label: 'Logo'     },
-    { id: 5, label: 'Quantité' },
+    { id: 1, label: 'Produit',  labelEn: 'Product'  },
+    { id: 2, label: 'Couleur',  labelEn: 'Color'    },
+    { id: 3, label: 'Zone',     labelEn: 'Zone'     },
+    { id: 4, label: 'Logo',     labelEn: 'Logo'     },
+    { id: 5, label: 'Quantité', labelEn: 'Quantity' },
+    { id: 6, label: 'Résumé',   labelEn: 'Resume'   },
   ];
 
   // Task 17.5 — Stepper tick animation.
@@ -651,6 +714,56 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   const handleSelectColor = (c: ShopifyVariantColor) => {
     setShopifyColor(c);
     store.setColor(c.variantId);
+  };
+
+  // Customizer Blueprint §6.3 / §7.2 — derive OrderSummary inputs from the
+  // existing customizer state. We don't introduce a separate price tier
+  // table; the existing unitPrice already incorporates basePrice + per-side
+  // print cost, so we add the blueprint preset surcharge on top. The
+  // free-shipping gate at $300 is applied once at the order level, not
+  // per line.
+  const buildOrderSummaryRows = (): { size: string; qty: number; colors?: { name: string; qty: number }[] }[] => {
+    if (multiVariants.length > 0) {
+      // Bucket multiVariants by size, with per-colour breakdown.
+      const bySize = new Map<string, { qty: number; colors: { name: string; qty: number }[] }>();
+      for (const v of multiVariants) {
+        if (v.qty <= 0) continue;
+        const row = bySize.get(v.size) ?? { qty: 0, colors: [] };
+        row.qty += v.qty;
+        row.colors.push({ name: v.colorName, qty: v.qty });
+        bySize.set(v.size, row);
+      }
+      return Array.from(bySize.entries()).map(([size, row]) => ({
+        size,
+        qty: row.qty,
+        colors: row.colors,
+      }));
+    }
+    return store.sizeQuantities
+      .filter(sq => sq.quantity > 0)
+      .map(sq => ({ size: sq.size, qty: sq.quantity }));
+  };
+  const orderSummaryRows = buildOrderSummaryRows();
+  const presetSurcharge = activeBlueprintPreset?.surcharge ?? 0;
+  // unitPrice already accounts for base + print sides; the named-preset
+  // surcharge stacks on top as a per-piece add-on (back placements / cap
+  // sides). discount keeps applying to the combined unit price.
+  const summaryUnitPrice = parseFloat(((unitPrice + presetSurcharge) * discount).toFixed(2));
+  const summarySubtotal  = parseFloat((summaryUnitPrice * totalQty).toFixed(2));
+  const summaryShipping  = summarySubtotal >= 300 ? 0 : 12;
+  const summaryTotal     = parseFloat((summarySubtotal + summaryShipping).toFixed(2));
+
+  const handleEnterReview = () => {
+    // Capture the canvas snapshot the moment the user opens the review.
+    // We don't re-snapshot on every render of OrderSummary because the
+    // canvas might have been unmounted by then on small screens.
+    const snap = getSnapshotRef.current?.();
+    setReviewSnapshot(snap ?? null);
+    setReviewMode(true);
+    // Park the 3-step indicator on Récap so the existing footer CTA
+    // matches the new flow (the primary "Add to cart" button shifts
+    // into the OrderSummary card itself).
+    if (store.step !== 3) store.setStep(3);
   };
 
   const handleAddToCart = async () => {
@@ -982,17 +1095,27 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
         // Fire-and-forget — operator gets the customizer trail when the
         // network behaves; falls back to the existing side-channel when
         // it doesn't. Awaiting would block the toast and slow the UX.
+        // Customizer Blueprint §8.1 — also surface the named preset's
+        // human-readable label + coarse zone so the order page is
+        // skimmable without parsing the structured placement JSON.
         void setCustomizerAttributes(liveCartId, {
           logoUrl: logoUrl ?? undefined,
           placement: {
             front: store.logoPlacement,
             back: store.logoPlacementBack,
             sides: store.placementSides,
+            preset: activeBlueprintPreset
+              ? { id: activeBlueprintPreset.id, label: activeBlueprintPreset.label, zone: activeBlueprintPreset.zone, surcharge: activeBlueprintPreset.surcharge }
+              : null,
           },
           printZones,
           canvasPreviewUrl: canvasPreviewUrl ?? undefined,
           productSku: product.sku,
           sizeMatrix,
+          placementLabel: activeBlueprintPreset?.label
+            ?? (store.placementSides === 'none' ? 'Vierge' : 'Centre'),
+          placementZone: activeBlueprintPreset?.zone
+            ?? (store.placementSides === 'back' ? 'back' : 'front'),
         });
       }
     }
@@ -1085,7 +1208,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   key={s.id}
                   className="flex-1 min-w-0 flex flex-col items-center gap-1"
                   aria-current={isCurrent ? 'step' : undefined}
-                  aria-label={`${s.id}. ${s.label} — ${stateSr}`}
+                  aria-label={`${s.id}. ${lang === 'en' ? s.labelEn : s.label} — ${stateSr}`}
                 >
                   <span
                     aria-hidden="true"
@@ -1104,7 +1227,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       isCurrent ? 'font-black text-[#0052CC]' : isDone ? 'font-bold text-[#0052CC]/70' : 'font-medium text-muted-foreground'
                     }`}
                   >
-                    {s.label}
+                    {lang === 'en' ? s.labelEn : s.label}
                   </span>
                 </li>
               );
@@ -1314,7 +1437,30 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               aria-hidden="true"
               className="pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-white/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-[#0052CC] shadow-sm border border-white/60"
             >
-              Aperçu réaliste · ce que tu vois = ce que tu reçois
+              {lang === 'en'
+                ? 'Real preview · what you see = what you get'
+                : 'Aperçu réaliste · ce que tu vois = ce que tu reçois'}
+            </div>
+
+            {/* Customizer Blueprint §1.1 — Persistent reassurance banner.
+                Lives directly under the canvas so the user reads it the
+                instant they place a logo. Never dismissible — first-time
+                buyers tend to over-fuss positioning, and this is the
+                operator's voice telling them it's fine. */}
+            <div className="bg-[#EBF2FF] border border-[#0052CC]/30 rounded-xl p-4 flex items-start gap-3 mt-4">
+              <span className="text-[#0052CC] text-xl flex-shrink-0 mt-0.5" aria-hidden>🖌</span>
+              <div>
+                <p className="font-semibold text-[#0052CC] text-sm">
+                  {lang === 'en'
+                    ? "No need to be perfect!"
+                    : "Pas besoin d'être parfait!"}
+                </p>
+                <p className="text-[#0052CC]/70 text-xs mt-1 leading-relaxed">
+                  {lang === 'en'
+                    ? 'Place your logo roughly — our team will reposition it to industry standards before printing. You can trust us.'
+                    : "Place ton logo approximativement — notre équipe va le repositionner selon les standards de l'industrie avant l'impression. Tu peux te fier à nous."}
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1345,6 +1491,37 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             </div>
 
             <div className="flex-1 min-h-0">
+            {/* Customizer Blueprint §7 — Review (Résumé) screen. Toggled
+                via the "Revoir ma commande" button on Step 3. The
+                OrderSummary card is fully self-contained and owns its
+                own Add-to-cart CTA, so we replace the whole step body
+                while reviewMode is on. The "Modifier le placement"
+                button on the card flips reviewMode back off. */}
+            {reviewMode ? (
+              <motion.div
+                key="review"
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -12 }}
+              >
+                <OrderSummary
+                  canvasPreviewUrl={reviewSnapshot ?? ''}
+                  product={{ title: product.name, sku: product.sku }}
+                  placement={activeBlueprintPreset}
+                  sizeMatrix={orderSummaryRows}
+                  totals={{
+                    totalPieces: totalQty,
+                    unitPrice: summaryUnitPrice,
+                    subtotal: summarySubtotal,
+                    shipping: summaryShipping,
+                    total: summaryTotal,
+                  }}
+                  onEdit={() => setReviewMode(false)}
+                  onAddToCart={handleAddToCart}
+                  isAdding={adding}
+                />
+              </motion.div>
+            ) : (
             <AnimatePresence mode="wait">
 
               {/* Step 1 — Design
@@ -1591,6 +1768,24 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                           {lang === 'en' ? '↑ Center on chest' : '↑ Centrer sur la poitrine'}
                         </button>
                       )}
+
+                      {/* Customizer Blueprint §4.1 — named preset picker.
+                          Sits ABOVE the existing zone grid because the
+                          presets are the friendlier UI: real names per
+                          garment ("Centre poitrine", "Coeur", "Dos
+                          complet") with explicit surcharges. The zone
+                          grid below remains as a power-user fallback so
+                          existing per-zone pricing and per-product
+                          custom zones (printZones data) keep working. */}
+                      <div className="rounded-xl border border-border bg-secondary/30 p-3">
+                        <PlacementButtons
+                          placements={blueprintPresets}
+                          activeId={activePresetId}
+                          onSelect={applyBlueprintPreset}
+                          currentView={store.activeView}
+                          onViewChange={store.setView}
+                        />
+                      </div>
 
                       {/* Zone grid — filter by active view so back-view
                           users don't see chest zones. */}
@@ -2014,10 +2209,29 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                   />
 
                   <p className="text-xs text-muted-foreground text-center">{t('taxesNote')}</p>
+
+                  {/* Customizer Blueprint §7 — primary "Revoir ma
+                      commande" CTA. Gated on the same readiness signals
+                      as add-to-cart (logo OR no-print + placement
+                      complete + at least one piece) so the user can't
+                      jump into a half-empty review. Sits above the
+                      footer's existing add-to-cart so the user has an
+                      easy lane to the OrderSummary recap before they
+                      commit. */}
+                  {(anyLogoUploaded || store.placementSides === 'none') && totalQty > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleEnterReview}
+                      className="w-full mt-2 py-3.5 rounded-2xl bg-[#0052CC] text-white font-bold hover:bg-[#003D99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                    >
+                      {lang === 'en' ? 'Review my order →' : 'Revoir ma commande →'}
+                    </button>
+                  )}
                 </motion.div>
               )}
 
             </AnimatePresence>
+            )}
             </div>
           </div>
         </div>
