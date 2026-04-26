@@ -125,7 +125,7 @@ export function getSettings(): AppSettings {
   // readLS handles the parse + private-mode guard. Everything below is
   // schema validation that readLS doesn't — and shouldn't — know about.
   const parsed = readLS<Record<string, unknown> | null>(STORAGE_KEY, null);
-  if (!parsed || typeof parsed !== 'object') {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return { ...DEFAULT_APP_SETTINGS, discountCodes: { ...DEFAULT_APP_SETTINGS.discountCodes } };
   }
   const codes = parsed.discountCodes != null
