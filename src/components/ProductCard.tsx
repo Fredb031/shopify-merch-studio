@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Heart } from 'lucide-react';
 import { ShopifyProduct } from '@/lib/shopify';
@@ -72,6 +72,13 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
     || (title && matchProductByTitle(title))
     || null;
   const isPopular = local ? POPULAR_SKUS.has(local.sku) : false;
+  // filterRealColors walks every color and probes COLOR_IMAGES for each;
+  // the same result is needed by the colour-dot strip and the count text
+  // below. Compute once per (sku, colors) instead of twice per render.
+  const realColors = useMemo(
+    () => (local ? filterRealColors(local.sku, local.colors) : []),
+    [local],
+  );
 
   // Use clean Drive images when available, fall back to Shopify CDN
   const image = local
@@ -314,17 +321,13 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
               Capped at 4 here; the explicit "+N" / "N couleurs" text
               now lives in the info row below so buyers scanning the
               grid can compare variety at a glance without counting dots. */}
-          {local && (() => {
-            const realColors = filterRealColors(local.sku, local.colors);
-            if (realColors.length === 0) return null;
-            return (
-              <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
-                {realColors.slice(0, 4).map(c => (
-                  <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
-                ))}
-              </div>
-            );
-          })()}
+          {local && realColors.length > 0 && (
+            <div className="absolute bottom-2 left-2 flex gap-1 z-[4]">
+              {realColors.slice(0, 4).map(c => (
+                <div key={c.id} className="w-3.5 h-3.5 rounded-full ring-1 ring-white/70 shadow-sm flex-shrink-0" style={{ background: c.hex }} title={c.name} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Info */}
@@ -355,7 +358,6 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
               but not *how many*; this text lets them compare variety
               across products in a single scan. */}
           {local && (() => {
-            const realColors = filterRealColors(local.sku, local.colors);
             const n = realColors.length;
             if (n === 0) return null;
             let text: string;
