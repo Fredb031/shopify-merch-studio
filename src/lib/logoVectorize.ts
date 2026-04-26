@@ -120,10 +120,16 @@ export function triggerBlobDownload(blob: Blob, filename: string): void {
  * download attribute already rejects most of these, but normalising
  * here keeps the filename predictable across the codebase. */
 export function buildLogoFilename(orderName: string, ext: string): string {
-  const safeOrder = orderName
+  // Defensive: callers occasionally pass `undefined` when an order is
+  // half-loaded or the upload's `sourceExt` is missing. Coerce to empty
+  // strings so the regex pipeline still produces the safe defaults
+  // (`order` / `bin`) rather than throwing on `.replace` of undefined.
+  const rawOrder = typeof orderName === 'string' ? orderName : '';
+  const rawExt = typeof ext === 'string' ? ext : '';
+  const safeOrder = rawOrder
     .replace(/^#/, '')
     .replace(/[^a-z0-9_-]/gi, '') || 'order';
-  const safeExt = ext
+  const safeExt = rawExt
     .replace(/^\./, '')
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '') || 'bin';
