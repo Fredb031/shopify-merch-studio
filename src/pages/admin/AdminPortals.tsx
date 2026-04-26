@@ -31,6 +31,15 @@ export default function AdminPortals() {
 
   return (
     <div>
+      <div className="mb-6 rounded-xl border border-[#D97706]/30 bg-[#FFFBEB] p-4 flex items-start gap-3">
+        <span className="text-[#D97706] text-lg flex-shrink-0 mt-0.5" aria-hidden>⚠</span>
+        <div className="flex-1">
+          <p className="font-semibold text-[#0A0A0A] text-sm">Fonctionnalité en développement</p>
+          <p className="text-[#374151] text-xs mt-1 leading-relaxed">
+            Cette section attend la migration Supabase + l'intégration backend. Les données affichées peuvent être synthétiques ou vides en attendant. À ne pas utiliser comme source de vérité pour le moment.
+          </p>
+        </div>
+      </div>
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
           <Building2 size={22} aria-hidden="true" className="text-[#0052CC]" />
