@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
 import { SubmitButton, type SubmitButtonState } from '@/components/SubmitButton';
+import { FooterTestimonialBar } from '@/components/FooterTestimonialBar';
 
 // Shape of a single subscriber row persisted to localStorage. Keeping
 // the captured-at timestamp alongside the email lets a future backend
@@ -116,6 +117,12 @@ export function SiteFooter() {
   };
 
   return (
+    <>
+      {/* Mega Blueprint 11.10 — final-trust testimonial strip mounted
+          above the dark footer columns. Lives inside SiteFooter so any
+          page that already imports the footer (every layout-wrapped
+          route) gets it automatically without touching App.tsx. */}
+      <FooterTestimonialBar />
     <footer className="bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] text-white pt-14 pb-8 px-6 md:px-10 mt-12">
       <div className="max-w-[1100px] mx-auto">
         {/* Newsletter signup band — prominent incentive above the link columns.
@@ -359,5 +366,6 @@ export function SiteFooter() {
         </div>
       </div>
     </footer>
+    </>
   );
 }
