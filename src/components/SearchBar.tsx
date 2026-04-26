@@ -4,6 +4,11 @@ import { Search } from 'lucide-react';
 import { search } from '@/lib/search';
 import type { SearchIndexEntry } from '@/lib/searchIndex';
 
+// Minimum trimmed query length before the dropdown opens. Single-character
+// searches against the merch index produce too much noise (every "t-shirt"
+// matches "t"), so we wait for two characters before showing results.
+const MIN_QUERY_LENGTH = 2;
+
 /**
  * SearchBar — Volume II §2 smart product search.
  *
@@ -96,7 +101,7 @@ export function SearchBar({ className = '', autoFocus = false, onNavigate }: {
     }
   }, [open, results, highlighted, goTo, query]);
 
-  const showDropdown = open && query.trim().length >= 2;
+  const showDropdown = open && query.trim().length >= MIN_QUERY_LENGTH;
 
   return (
     <div ref={wrapperRef} className={`relative ${className}`}>
