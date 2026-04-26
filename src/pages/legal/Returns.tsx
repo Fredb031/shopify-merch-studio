@@ -24,9 +24,14 @@ export default function Returns() {
         </p>
         <div className="prose prose-zinc max-w-none text-[15px] leading-relaxed text-zinc-700">
           <p>
-            {lang === 'en'
-              ? 'This page is under review. Contact us at support@visionaffichage.com for questions.'
-              : 'Cette page est en cours de révision. Pour toute question, écris-nous à support@visionaffichage.com.'}
+            {lang === 'en' ? 'This page is under review. Contact us at ' : 'Cette page est en cours de révision. Pour toute question, écris-nous à '}
+            <a
+              href={`mailto:support@visionaffichage.com?subject=${encodeURIComponent(lang === 'en' ? 'Return policy question' : 'Question politique de retour')}`}
+              className="text-[#0F2341] underline underline-offset-2 hover:text-[#1a3a6b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2341] focus-visible:ring-offset-2 rounded-sm"
+            >
+              support@visionaffichage.com
+            </a>
+            {lang === 'en' ? ' for questions.' : '.'}
           </p>
         </div>
       </main>
