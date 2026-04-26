@@ -18,7 +18,18 @@ interface Props {
 }
 
 function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }: Props) {
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  // Guard pageSize against 0 / negative / non-finite values before the
+  // division below — without this `total / 0` evaluates to Infinity,
+  // `Math.ceil(Infinity)` stays Infinity, and the counter renders
+  // "Page 1 de Infinity" while the prev/next buttons compute against a
+  // bogus upper bound. A devtools edit or an upstream filter wired with
+  // `pageSize: NaN` would all funnel here. Coerce to a sane positive
+  // integer (default 10 — every existing caller passes a value in that
+  // ballpark) so totalPages math is always well-defined.
+  const safePageSize = Number.isFinite(pageSize) && pageSize > 0
+    ? Math.floor(pageSize)
+    : 10;
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
 
   // Self-clamp: if `page` is beyond the last valid index (e.g. the
   // parent hasn't yet reset on a filter narrowing, or row deletions
@@ -34,15 +45,16 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
 
   // Nothing to paginate — don't render the footer at all. Keeps the
   // UI clean for small result sets.
-  if (total <= pageSize) return null;
+  if (total <= safePageSize) return null;
 
   // Defensive clamp on the displayed numbers too — the effect above
   // resolves the state on the next render, so render-1 still gets a
   // out-of-range page. Clamp here so the visible range never reads
-  // bogus values during that single frame.
-  const safePage = Math.min(page, totalPages - 1);
-  const first = safePage * pageSize + 1;
-  const last  = Math.min((safePage + 1) * pageSize, total);
+  // bogus values during that single frame. Also clamp at zero in case
+  // `page` arrived negative (same coercion family as safePageSize).
+  const safePage = Math.max(0, Math.min(page, totalPages - 1));
+  const first = safePage * safePageSize + 1;
+  const last  = Math.min((safePage + 1) * safePageSize, total);
 
   return (
     <nav
