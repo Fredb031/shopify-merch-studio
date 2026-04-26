@@ -1,5 +1,5 @@
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard, Sun, Moon, Monitor } from 'lucide-react';
+import { LayoutDashboard, ShoppingBag, Package, Users, FileText, Settings, LogOut, Menu, X, Mail, Sparkles, UserCircle, ShoppingCart, BarChart3, KeyRound, ChevronLeft, ChevronRight, Bell, CreditCard, Zap, Lock, Keyboard, Sun, Moon, Monitor, Building2, MessageSquare, Trophy, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
@@ -179,8 +179,18 @@ const NAV_ITEMS: Array<{
   { to: '/admin/abandoned-carts', label: 'Paniers abandonnés', icon: ShoppingCart, roles: ['admin', 'salesman', 'president'] },
   { to: '/admin/products', label: 'Produits', icon: Package, roles: ['admin', 'president'] },
   { to: '/admin/customers', label: 'Clients', icon: UserCircle, roles: ['admin', 'salesman', 'president'] },
+  // Volume II §22 — B2B-aware client roster (entreprise, LTV, niveau
+  // de fidélité). Sits next to "Clients" so the operator can pivot
+  // between the per-customer Shopify view and the company-grouped
+  // view without losing context.
+  { to: '/admin/clients', label: 'Clients B2B', icon: UsersRound, roles: ['admin', 'salesman', 'president'] },
   { to: '/admin/quotes', label: 'Soumissions', icon: FileText, roles: ['admin', 'salesman', 'president'] },
   { to: '/admin/vendors', label: 'Vendeurs', icon: Users, roles: ['admin', 'president'] },
+  // Volume II §22 — corporate portals (Volume I §04 schema).
+  { to: '/admin/portals', label: 'Portails entreprises', icon: Building2, roles: ['admin', 'president'] },
+  // Volume II §22 — AI chat session log + loyalty programme overview.
+  { to: '/admin/chat-logs', label: 'Discussions IA', icon: MessageSquare, roles: ['admin', 'president'] },
+  { to: '/admin/loyalty', label: 'Fidélité', icon: Trophy, roles: ['admin', 'president'] },
   { to: '/admin/users', label: 'Comptes & accès', icon: KeyRound, roles: ['admin', 'president'] },
   { to: '/admin/emails', label: 'Courriels', icon: Mail, roles: ['admin', 'president'] },
   { to: '/admin/automations', label: 'Automatisations', icon: Zap, roles: ['admin', 'president'] },

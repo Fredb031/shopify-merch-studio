@@ -53,6 +53,15 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 // path. localStorage today; Supabase weekly_capacity table is the
 // follow-up wiring.
 const AdminCapacity = lazy(() => import("./pages/admin/AdminCapacity"));
+// Volume II §22 — admin expansion shells. Each renders a placeholder
+// "Bientôt disponible" frame with a TODO note where the underlying
+// Supabase / Shopify / GA4 wiring is still operator follow-up. Lazy
+// for the same reason as the other admin pages — operator-only
+// surfaces, not the home hot path.
+const AdminClients = lazy(() => import("./pages/admin/AdminClients"));
+const AdminPortals = lazy(() => import("./pages/admin/AdminPortals"));
+const AdminChatLogs = lazy(() => import("./pages/admin/AdminChatLogs"));
+const AdminLoyalty = lazy(() => import("./pages/admin/AdminLoyalty"));
 
 // Vendor (lazy)
 const VendorLayout = lazy(() => import("@/components/vendor/VendorLayout").then(m => ({ default: m.VendorLayout })));
@@ -256,6 +265,13 @@ const AnimatedRoutes = () => {
             />
             <Route path="capacity" element={<AdminCapacity />} />
             <Route path="customers" element={<AdminCustomers />} />
+            {/* Volume II §22 expansion routes. Sit inside the existing
+                AuthGuard requiredRole="admin" + AdminLayout shell so
+                role-gating + nav chrome are inherited unchanged. */}
+            <Route path="clients" element={<AdminClients />} />
+            <Route path="portals" element={<AdminPortals />} />
+            <Route path="chat-logs" element={<AdminChatLogs />} />
+            <Route path="loyalty" element={<AdminLoyalty />} />
             <Route path="customers/:customerId" element={<AdminCustomerDetail />} />
             <Route path="abandoned-carts" element={<AdminAbandonedCarts />} />
             <Route path="analytics" element={<AdminAnalytics />} />
