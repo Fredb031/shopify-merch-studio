@@ -1228,9 +1228,32 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               checklist so the user sees at a glance how much of the
               full configuration they've covered. State derives from
               existing flags — no new state machinery. */}
+          {/* Mobile: compact "Étape X / 6 — <label>" line above the
+              bubble row. Saves vertical space on small phones where the
+              individual step labels don't fit. Hidden on sm+ where the
+              full bubbled labels render. */}
+          <div className="sm:hidden px-5 pt-3 pb-1 text-[11px] font-bold text-[#0052CC] flex items-center justify-between">
+            <span>
+              {lang === 'en' ? 'Step' : 'Étape'} {fiveStepStatus.currentIndex + 1}/{FIVE_STEPS.length}
+              <span className="ml-1.5 text-foreground/80">·</span>
+              <span className="ml-1.5 text-foreground">
+                {lang === 'en'
+                  ? FIVE_STEPS[fiveStepStatus.currentIndex].labelEn
+                  : FIVE_STEPS[fiveStepStatus.currentIndex].label}
+              </span>
+            </span>
+            <span className="text-muted-foreground font-medium">
+              {fiveStepStatus.completed.filter(Boolean).length}/{FIVE_STEPS.length} ✓
+            </span>
+          </div>
           <ol
-            className="flex items-center gap-1.5 px-5 pt-3 pb-2"
+            className="flex items-center gap-1.5 px-5 pt-3 sm:pt-3 pb-2"
             aria-label={lang === 'en' ? 'Customizer checklist' : 'Liste de personnalisation'}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={FIVE_STEPS.length}
+            aria-valuenow={fiveStepStatus.currentIndex + 1}
+            aria-valuetext={`${lang === 'en' ? 'Step' : 'Étape'} ${fiveStepStatus.currentIndex + 1} / ${FIVE_STEPS.length}`}
           >
             {FIVE_STEPS.map((s, idx) => {
               const isDone = fiveStepStatus.completed[idx] && idx !== fiveStepStatus.currentIndex;
@@ -1253,7 +1276,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                       isDone
                         ? 'bg-[#0052CC] text-white'
                         : isCurrent
-                          ? 'bg-white text-[#0052CC] ring-2 ring-[#0052CC]'
+                          ? 'bg-white text-[#0052CC] ring-2 ring-[#0052CC] scale-110'
                           : 'bg-[#E5E7EB] text-muted-foreground'
                     }`}
                   >
@@ -1469,10 +1492,16 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             />
             {/* Canvas Confidence Badge — reassures the user that the
                 preview is honest. pointer-events-none so it never
-                interferes with drag/zoom. */}
+                interferes with drag/zoom. Top-right on desktop;
+                shifts to top-left on mobile so it never collides with
+                the canvas snap toolbar (history / zoom / view) which
+                anchors top-right at small widths. */}
             <div
-              aria-hidden="true"
-              className="pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-white/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-[#0052CC] shadow-sm border border-white/60"
+              role="note"
+              aria-label={lang === 'en'
+                ? 'Real preview, what you see is what you get'
+                : 'Aperçu réaliste, ce que vous voyez est ce que vous recevez'}
+              className="pointer-events-none absolute top-3 left-3 sm:left-auto sm:right-3 z-10 rounded-full bg-white/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-[#0052CC] shadow-sm border border-white/60 max-w-[60%] sm:max-w-none truncate"
             >
               {lang === 'en'
                 ? 'Real preview · what you see = what you get'
@@ -1483,9 +1512,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 Lives directly under the canvas so the user reads it the
                 instant they place a logo. Never dismissible — first-time
                 buyers tend to over-fuss positioning, and this is the
-                operator's voice telling them it's fine. */}
-            <div className="bg-[#EBF2FF] border border-[#0052CC]/30 rounded-xl p-4 flex items-start gap-3 mt-4">
-              <span className="text-[#0052CC] text-xl flex-shrink-0 mt-0.5" aria-hidden>🖌</span>
+                operator's voice telling them it's fine. flex-shrink-0
+                on the wrapper anchors a stable height so the banner
+                doesn't reflow when fonts swap on first paint. */}
+            <div className="bg-[#EBF2FF] border border-[#0052CC]/30 rounded-xl p-4 flex items-start gap-3 mt-4 flex-shrink-0">
+              <span className="text-[#0052CC] text-xl flex-shrink-0 mt-0.5 leading-none" aria-hidden="true">🖌</span>
               <div>
                 <p className="font-semibold text-[#0052CC] text-sm">
                   {lang === 'en'

@@ -168,6 +168,23 @@ export function ProductCanvas({
   const EXTRA_PROPS = ['vaRole', 'vaId', 'side', 'selectable', 'evented', 'lockMovementX', 'lockMovementY', 'lockUniScaling', 'lockScalingFlip', 'hoverCursor', 'hasControls', 'hasBorders', 'padding', 'excludeFromExport', 'originX', 'originY'];
 
   const [canvasKey, setCanvasKey] = useState(0); // bumped on resize to force rebuild
+  // a11y — sr-only announcement string. Mirrors logo-add / logo-remove
+  // events for screen-reader users so they know when the canvas state
+  // changed without seeing it. We swap a zero-width-space onto the end
+  // of identical sequential messages to force AT to re-announce when the
+  // user undoes-then-redoes the same action. */
+  const [liveStatus, setLiveStatus] = useState<string>('');
+  const prevLogoUrlRef = useRef<string | null>(logoUrl);
+  useEffect(() => {
+    const had = !!prevLogoUrlRef.current;
+    const has = !!logoUrl;
+    prevLogoUrlRef.current = logoUrl;
+    if (had === has) return;
+    const msg = has
+      ? (lang === 'en' ? 'Logo added to canvas.' : 'Logo ajouté au canvas.')
+      : (lang === 'en' ? 'Logo removed.' : 'Logo retiré.');
+    setLiveStatus(prev => (prev === msg ? `${msg}\u200B` : msg));
+  }, [logoUrl, lang]);
   const [zoneId, setZoneId] = useState<string>(
     currentPlacement?.zoneId ?? (pickDefaultZone(product.printZones)?.id ?? ''),
   );
@@ -1602,6 +1619,13 @@ export function ProductCanvas({
 
   return (
     <div className="flex flex-col gap-2.5">
+      {/* Screen-reader-only live region — announces canvas state
+          changes (logo added/removed) for AT users who can't see the
+          visual update on the canvas. Polite so it queues behind any
+          in-progress speech. */}
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {liveStatus}
+      </span>
       {/* The interactive canvas — premium frame with subtle gradient + drop shadow */}
       {/* aspectRatio syncs with the JS ratio above: narrow = 1/1.2 (tall)
           on phones, widescreen on desktop. CSS-only so there's no flash

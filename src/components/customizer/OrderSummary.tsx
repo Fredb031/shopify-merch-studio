@@ -82,11 +82,13 @@ export function OrderSummary({
     <div className="flex flex-col gap-4">
       {/* Canvas preview ───────────────────────────────────────────────── */}
       <div className="bg-[#F9FAFB] rounded-2xl p-4 text-center">
-        <div className="aspect-square w-full max-w-[260px] mx-auto bg-white rounded-xl overflow-hidden flex items-center justify-center">
+        <div className="aspect-square w-full max-w-[320px] mx-auto bg-white rounded-xl overflow-hidden flex items-center justify-center shadow-sm">
           {canvasPreviewUrl ? (
             <img
               src={canvasPreviewUrl}
               alt="Aperçu du produit personnalisé"
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-contain"
             />
           ) : (
@@ -96,7 +98,8 @@ export function OrderSummary({
         <button
           type="button"
           onClick={onEdit}
-          className="mt-3 text-[#0052CC] text-sm font-semibold hover:text-[#003D99] underline-offset-2 hover:underline"
+          aria-label="Modifier le placement du logo"
+          className="mt-3 text-[#0052CC] text-sm font-semibold hover:text-[#003D99] underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
         >
           Modifier le placement
         </button>
@@ -185,13 +188,26 @@ export function OrderSummary({
         type="button"
         onClick={onAddToCart}
         disabled={disabled}
-        className={`w-full py-5 rounded-2xl font-semibold text-white transition-colors ${
+        aria-busy={isAdding}
+        aria-disabled={disabled}
+        aria-label={isAdding ? 'Ajout au panier en cours' : ctaLabel}
+        className={`w-full py-5 rounded-2xl font-semibold text-white transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 inline-flex items-center justify-center gap-2 ${
           disabled
-            ? 'bg-[#0052CC]/40 cursor-not-allowed'
-            : 'bg-[#0052CC] hover:bg-[#003D99]'
+            ? 'bg-[#0052CC] opacity-40 cursor-not-allowed'
+            : 'bg-[#0052CC] hover:bg-[#003D99] shadow-md hover:shadow-lg'
         }`}
       >
-        {isAdding ? 'Ajout en cours…' : ctaLabel}
+        {isAdding ? (
+          <>
+            <span
+              className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+            <span>Ajout en cours…</span>
+          </>
+        ) : (
+          ctaLabel
+        )}
       </button>
     </div>
   );
