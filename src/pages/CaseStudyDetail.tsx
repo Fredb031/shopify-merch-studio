@@ -195,28 +195,25 @@ export default function CaseStudyDetail() {
         <section className="py-14 md:py-20 px-6 md:px-10">
           <div className="max-w-[860px] mx-auto space-y-10">
             <div>
-              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
+              <h2 className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
                 {lang === 'en' ? 'Challenge' : 'Défi'}
-              </div>
-              <h2 className="sr-only">{lang === 'en' ? 'Challenge' : 'Défi'}</h2>
+              </h2>
               <p className="text-[16px] leading-[1.75] text-foreground/90">
                 {cs.challenge}
               </p>
             </div>
             <div>
-              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
+              <h2 className="text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-2">
                 {lang === 'en' ? 'Solution' : 'Solution'}
-              </div>
-              <h2 className="sr-only">{lang === 'en' ? 'Solution' : 'Solution'}</h2>
+              </h2>
               <p className="text-[16px] leading-[1.75] text-foreground/90">
                 {cs.solution}
               </p>
             </div>
             <div>
-              <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-[#E8A838] mb-2">
+              <h2 className="text-[11px] font-bold tracking-[2.5px] uppercase text-[#E8A838] mb-2">
                 {lang === 'en' ? 'Result' : 'Résultat'}
-              </div>
-              <h2 className="sr-only">{lang === 'en' ? 'Result' : 'Résultat'}</h2>
+              </h2>
               <p className="text-[17px] leading-[1.7] font-bold text-foreground tracking-[-0.2px]">
                 {cs.result}
               </p>
