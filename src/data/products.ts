@@ -482,18 +482,37 @@ export const PRINT_PRICE             = 3.50;
 export const BULK_DISCOUNT_THRESHOLD = 12;
 export const BULK_DISCOUNT_RATE      = 0.15;
 
+// Substring-based matchers (`handle.includes(sku)`, `title.includes(sku)`) must
+// try the longest SKUs/ids first, otherwise a shorter SKU defined earlier in
+// PRODUCTS wins over a longer one. Concrete bug this guards against: titles
+// like "T-Shirt femme — ATC 1000L" matching `ATC1000` (declared before
+// `ATC1000L`), or "Hoodie Zip — ATC F2600" matching `ATCF2500` first. The
+// exact-equality branches above the fuzzy step still take precedence; this
+// only reorders the fallback iteration.
+const SUBSTRING_MATCH_ORDER: readonly Product[] =
+  [...PRODUCTS].sort((a, b) =>
+    Math.max(b.sku.length, b.id.length) - Math.max(a.sku.length, a.id.length),
+  );
+
 export function findProductByHandle(handle: string): Product | undefined {
-  return PRODUCTS.find(p =>
+  // Exact matches first — cheap and unambiguous, no ordering subtleties.
+  const lower = handle.toLowerCase();
+  const exact = PRODUCTS.find(p =>
     p.shopifyHandle === handle ||
     p.id === handle ||
-    handle.toLowerCase().includes(p.sku.toLowerCase()) ||
-    p.sku.toLowerCase() === handle.toLowerCase()
+    p.sku.toLowerCase() === lower
   );
+  if (exact) return exact;
+  // Fuzzy substring fallback: longest SKU first so "atc1000l" doesn't
+  // collapse onto the unisex "ATC1000".
+  return SUBSTRING_MATCH_ORDER.find(p => lower.includes(p.sku.toLowerCase()));
 }
 
 export function matchProductByTitle(title: string): Product | undefined {
   const lower = title.toLowerCase();
-  return PRODUCTS.find(p =>
+  // Longest-first iteration: a title containing "S445LS" must match the
+  // long-sleeve polo, not the short-sleeve `S445` declared before it.
+  return SUBSTRING_MATCH_ORDER.find(p =>
     lower.includes(p.sku.toLowerCase()) || lower.includes(p.id.toLowerCase())
   );
 }
