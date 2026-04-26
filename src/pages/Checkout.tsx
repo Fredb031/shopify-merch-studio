@@ -886,7 +886,7 @@ export default function Checkout() {
   };
 
   return (
-    <div id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
+    <div id="main-content" tabIndex={-1} data-va-checkout className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
       <Navbar />
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
@@ -1104,6 +1104,11 @@ export default function Checkout() {
                       autoCapitalize="characters"
                       inputMode="text"
                       maxLength={7}
+                      // Vol II §20 — native HTML5 pattern for Canadian
+                      // postal codes (A1A 1A1, space optional). Browsers
+                      // surface this on submit attempts and screen-reader
+                      // tooling can announce the expected format.
+                      pattern="[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d"
                       required
                       // Show the red invalid state only AFTER the user has
                       // typed something — empty input shouldn't look like
@@ -1622,6 +1627,48 @@ export default function Checkout() {
         </div>
       </div>
 
+      {/* Vol II §20 — mobile-only sticky bottom CTA on the payment step.
+          The desktop layout already has a sticky aside (lg:sticky), but
+          on mobile the pay button scrolls off-screen as the buyer reads
+          the order summary, terms, and ship-by promise. Anchor a
+          persistent total + "Confirmer" bar to the viewport bottom so
+          the primary action is always one tap away. The page wrapper
+          already reserves pb-32 of bottom padding, so this overlay
+          doesn't cover content. Hidden on `lg:` since the desktop
+          aside + inline button already cover that case. */}
+      {step === 'payment' && (
+        <div
+          className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white/95 backdrop-blur border-t border-border px-4 py-3 flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]"
+          role="region"
+          aria-label={lang === 'en' ? 'Order total and payment action' : 'Total et paiement'}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
+              {lang === 'en' ? 'Total' : 'Total'}
+            </div>
+            <div className="text-lg font-extrabold text-primary tabular-nums">
+              {fmtMoney(total)} $
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={!acceptedTerms || processing}
+            onClick={handlePay}
+            aria-busy={processing}
+            className="flex-1 py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+          >
+            {processing ? (
+              <Loader2 size={16} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Lock size={14} aria-hidden="true" />
+            )}
+            {processing
+              ? lang === 'en' ? 'Processing…' : 'Traitement…'
+              : lang === 'en' ? 'Confirm' : 'Confirmer'}
+          </button>
+        </div>
+      )}
+
       <AIChat />
       <BottomNav />
     </div>
@@ -1629,7 +1676,7 @@ export default function Checkout() {
 }
 
 function Input({
-  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode, ariaInvalid, maxLength,
+  value, onChange, placeholder, autoComplete, type = 'text', required, className = '', ariaLabel, autoCapitalize, inputMode, ariaInvalid, maxLength, pattern,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -1650,6 +1697,10 @@ function Input({
   /** Hard cap on character count — useful for fixed-width formatted
    * fields like postal codes ("A1A 1A1" = 7) or phone ("(514) 555-1234" = 14). */
   maxLength?: number;
+  /** HTML5 native validation regex — Vol II §20 audit added this for the
+   * Canadian postal code (A1A 1A1) so browsers / autofill can validate
+   * the field shape without waiting for our JS-side check. */
+  pattern?: string;
 }) {
   // Phone inputs default to the tel keyboard for faster mobile entry.
   const effectiveInputMode = inputMode ?? (type === 'tel' ? 'tel' : undefined);
@@ -1669,6 +1720,7 @@ function Input({
       autoCapitalize={autoCapitalize}
       inputMode={effectiveInputMode}
       maxLength={maxLength}
+      pattern={pattern}
       required={required}
       className={`border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${ariaInvalid ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25' : 'border-border focus:border-primary focus-visible:ring-primary/25'} ${className}`}
     />

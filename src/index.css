@@ -97,6 +97,23 @@
   .price { line-height: 1.0; letter-spacing: -0.02em; }
   button { letter-spacing: 0.02em; }
   .label-caps { text-transform: uppercase; letter-spacing: 0.12em; font-size: 10px; }
+
+  /* Vol II §20.2 — Mobile tap-target floor inside the checkout flow.
+     Apple HIG / WCAG 2.5.5 floor is 44×44px; we ship 52px on mobile to
+     leave room for thumbs and reduce mis-taps in landscape. Scoped to
+     `[data-va-checkout]` so it doesn't accidentally inflate compact
+     UI elsewhere (cart-line +/- buttons, color swatches in PDP, etc.).
+     Excludes inputs that explicitly opt out via `data-no-tap-floor`
+     and the cart-resume Resume/Clear pills which are intentionally
+     compact. */
+  @media (max-width: 768px) {
+    [data-va-checkout] input:not([type="checkbox"]):not([type="radio"]):not([data-no-tap-floor]),
+    [data-va-checkout] select:not([data-no-tap-floor]),
+    [data-va-checkout] textarea:not([data-no-tap-floor]),
+    [data-va-checkout] button:not([data-no-tap-floor]):not([aria-label="Dismiss"]):not([aria-label="Fermer"]) {
+      min-height: 52px;
+    }
+  }
 }
 
 @layer utilities {
