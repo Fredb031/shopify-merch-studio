@@ -1,12 +1,15 @@
 import type { Product } from './products';
+import type { Lang } from '@/lib/i18n';
 
 type Category = Product['category'];
 
+type LangMap<T> = Record<Lang, T>;
+
 interface Description {
-  tagline: { fr: string; en: string };
-  paragraphs: { fr: string[]; en: string[] };
-  features: { fr: string[]; en: string[] };
-  useCase: { fr: string; en: string };
+  tagline: LangMap<string>;
+  paragraphs: LangMap<string[]>;
+  features: LangMap<string[]>;
+  useCase: LangMap<string>;
 }
 
 export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
@@ -307,8 +310,11 @@ export const CATEGORY_DESCRIPTIONS: Record<Category, Description> = {
   },
 };
 
-export function getDescription(category: Category, lang: 'fr' | 'en' = 'fr') {
-  const d = CATEGORY_DESCRIPTIONS[category];
+export function getDescription(category: Category, lang: Lang = 'fr') {
+  // Defensive lookup: if a future Category value (or a stringly-typed
+  // caller from JSX) bypasses TS, fall back to 'tshirt' so we never
+  // surface "Cannot read properties of undefined" on a product page.
+  const d = CATEGORY_DESCRIPTIONS[category] ?? CATEGORY_DESCRIPTIONS.tshirt;
   return {
     tagline: d.tagline[lang],
     paragraphs: d.paragraphs[lang],
