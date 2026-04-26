@@ -515,9 +515,14 @@ export function CartDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
               );
               const discounted = cart.getTotal();
               const savings = Math.max(0, grossSubtotal - discounted);
-              const rate = cart.discountCode
-                ? getSettings().discountCodes[cart.discountCode] ?? 0
-                : 0;
+              // Mirrors the try/catch in getPublicPromoHints above —
+              // getSettings() reads localStorage and can throw in private
+              // mode / quota-exceeded scenarios; a render-time crash here
+              // would wipe the whole drawer.
+              let rate = 0;
+              if (cart.discountCode) {
+                try { rate = getSettings().discountCodes?.[cart.discountCode] ?? 0; } catch { rate = 0; }
+              }
               const ratePct = Math.round(rate * 100);
               return (
                 <div className="flex items-center gap-2 px-3 py-2 bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-xl">
