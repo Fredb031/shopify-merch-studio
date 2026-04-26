@@ -238,6 +238,12 @@ export function SiteFooter() {
               <li><Link to="/about" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'About us' : 'À propos'}</Link></li>
               <li><a href="#testimonials" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Testimonials' : 'Témoignages'}</a></li>
               <li><a href="#how-it-works" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'How it works' : 'Comment ça marche'}</a></li>
+              {/* Volume II §05.2 — B2B Net 30 application entrypoint.
+                  Sits in the Company column (the closest "Informations"
+                  surface) so prospects who don't pay by credit card —
+                  municipalities, school boards, condo management, large
+                  corporates — discover the form without combing the nav. */}
+              <li><Link to="/compte-corporatif" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Corporate account' : 'Compte corporatif'}</Link></li>
             </ul>
           </div>
 

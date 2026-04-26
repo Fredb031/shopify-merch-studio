@@ -85,6 +85,12 @@ const Accessibility = lazy(() => import("./pages/legal/Accessibility"));
 // footer/nav, not the hot path. Keeps the Index bundle lean.
 const Contact = lazy(() => import("./pages/Contact"));
 
+// Volume II §05.2 — public Net 30 / corporate-account application form.
+// Lazy because B2B prospects reach it from a footer link, not the home
+// hot path; keeping it out of the Index chunk matches how Contact and
+// the legal stubs are split.
+const CompteCorporatif = lazy(() => import("./pages/CompteCorporatif"));
+
 // Mega Blueprint §9.5 + §17.11 — /merci order-confirmation page that
 // Shopify's "Order status URL" can redirect to after checkout. Lazy
 // because it's a one-shot post-checkout landing, not a navbar route.
@@ -317,6 +323,7 @@ const AnimatedRoutes = () => {
           <Route path="/returns" element={<Returns />} />
           <Route path="/accessibility" element={<Accessibility />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/compte-corporatif" element={<CompteCorporatif />} />
           <Route path="/merci" element={<ThankYou />} />
           <Route path="/comparer" element={<Compare />} />
           <Route path="/about" element={<About />} />
