@@ -1015,22 +1015,24 @@ export default function ProductDetail() {
             <div>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  {/* SKU as small gray subtitle ABOVE the title */}
+                  {/* Sec 11/02 — Category + SKU tag in monospace upper-case
+                      micro-caption. Brand-blue/black palette parity with
+                      Cart (d66a19a) and Products (5625e4c). */}
                   {localProduct && (
                     <div
-                      className="text-[11px] font-mono uppercase tracking-[2px] text-muted-foreground/70 mb-1"
+                      className="text-[#6B7280] text-xs font-mono uppercase tracking-widest mb-1"
                       data-sku={localProduct.sku}
                     >
-                      {localProduct.sku}
+                      {categoryLabel(localProduct.category, lang)} · {localProduct.sku}
                     </div>
                   )}
-                  {/* Type as the main title */}
-                  <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground leading-tight">
+                  {/* Product name h1 — brand-black display weight. */}
+                  <h1 className="font-display font-black text-3xl md:text-4xl text-[#0A0A0A] mb-3 tracking-tight leading-tight">
                     {localProduct ? categoryLabel(localProduct.category, lang) : product.title}
                   </h1>
-                  {/* Garment line in muted */}
+                  {/* Garment-fit line in muted gray. */}
                   {localProduct && localProduct.gender !== 'unisex' && (
-                    <div className="text-xs text-muted-foreground mt-1 capitalize">
+                    <div className="text-xs text-[#6B7280] mt-1 capitalize">
                       {lang === 'en' ? localProduct.gender : `Coupe ${localProduct.gender}`}
                     </div>
                   )}
@@ -1189,13 +1191,25 @@ export default function ProductDetail() {
                 </button>
                 </div>
               </div>
-              <div className="flex items-baseline gap-2 mt-3">
-                <span className="text-2xl font-extrabold text-primary">
-                  {price} {currency}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
-                </span>
+              {/* Sec 11/02 — price block in soft-gray frame. Display-black
+                  numerals, brand-black ink, single trust-strip caption
+                  ("Livraison gratuite dès 300 $ · Garantie 1 an") below
+                  the price. Replaces the bare price line + the trust grid
+                  that previously stacked beneath the CTA. */}
+              <div className="bg-[#F9FAFB] rounded-xl p-5 mb-6 mt-4">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display font-black text-3xl text-[#0A0A0A] tabular-nums">
+                    {price} {currency}
+                  </span>
+                  <span className="text-xs text-[#6B7280]">
+                    {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
+                  </span>
+                </div>
+                <p className="text-xs text-[#6B7280] mt-2">
+                  {lang === 'en'
+                    ? 'Free shipping over $300 · 1-year warranty'
+                    : 'Livraison gratuite dès 300 $ · Garantie 1 an'}
+                </p>
               </div>
 
             </div>
@@ -1291,11 +1305,11 @@ export default function ProductDetail() {
 
                 return (
                   <div key={option.name}>
-                    <label className="text-sm font-bold mb-2 block text-foreground">
+                    <label className="text-sm font-bold mb-2 block text-[#0A0A0A]">
                       {localizedName}
                       {currentOptions[option.name] && (
-                        <span className="font-normal text-muted-foreground ml-2">
-                          — {currentOptions[option.name]}
+                        <span className="font-normal text-[#6B7280] ml-1">
+                          : {currentOptions[option.name]}
                         </span>
                       )}
                     </label>
@@ -1505,12 +1519,14 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* CTA */}
+            {/* Sec 11/02 — primary CTA, full-width brand-blue. Matches
+                the Cart "Procéder au paiement" button (d66a19a) and the
+                Products "Personnaliser" pills (5625e4c). Customizer
+                wiring untouched. */}
             <button
               ref={inlineCtaRef}
               type="button"
-              className="w-full py-4 gradient-navy-dark text-primary-foreground border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-all hover:opacity-90 hover:-translate-y-px flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:hover:translate-y-0"
-              style={{ boxShadow: '0 8px 24px hsla(var(--navy), 0.35)' }}
+              className="w-full bg-[#0052CC] text-white py-4 text-base rounded-lg hover:bg-[#003D99] border-none font-extrabold cursor-pointer transition-colors flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setCustomizerOpen(true)}
               disabled={isVariantSoldOut}
               aria-disabled={isVariantSoldOut || undefined}
@@ -1518,9 +1534,15 @@ export default function ProductDetail() {
               <Shirt size={18} aria-hidden="true" />
               {isVariantSoldOut
                 ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
-                : (lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit')}
-              <ChevronRight size={16} className="ml-auto opacity-60" aria-hidden="true" />
+                : (lang === 'en' ? 'Personnaliser ce produit →' : 'Personnaliser ce produit →')}
             </button>
+
+            {/* Sec 11/02 — single trust line within 100px of the CTA. */}
+            <p className="text-[#6B7280] text-xs text-center -mt-2">
+              {lang === 'en'
+                ? '🔒 Satisfied or refunded · Delivered in 5 business days guaranteed'
+                : '🔒 Satisfait ou remboursé · Livré en 5 jours ouvrables garanti'}
+            </p>
 
             {/* Volume II §09 — inline WhatsApp CTA right under the
                 primary "Personnaliser" button. Same product context
@@ -1669,21 +1691,11 @@ export default function ProductDetail() {
               );
             })()}
 
-            {/* Trust badges + delivery estimate */}
-            <div className="grid grid-cols-3 gap-2 text-center">
-              {[
-                { icon: '🚚', en: '5-day delivery', fr: 'Livraison 5 jours' },
-                { icon: '🔒', en: 'Secure payment', fr: 'Paiement sécurisé' },
-                { icon: '✅', en: 'No minimum', fr: 'Aucun minimum' },
-              ].map((b) => (
-                <div key={b.en} className="flex flex-col items-center gap-1 px-2 py-2.5 rounded-xl bg-secondary border border-border">
-                  <span className="text-sm">{b.icon}</span>
-                  <span className="text-[10px] font-bold text-muted-foreground leading-tight">
-                    {lang === 'en' ? b.en : b.fr}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {/* Sec 11/02 — the redundant 3-cell trust grid (5-day delivery
+                / secure payment / no minimum) was cut here. The single
+                "Satisfait ou remboursé · Livré en 5 jours" line right
+                under the primary CTA carries the same reassurance without
+                stacking another visual block in the buy box. */}
 
             {localProduct && (() => {
               const desc = getDescription(localProduct.category, lang);
@@ -1705,7 +1717,10 @@ export default function ProductDetail() {
                         renders when remaining < 15, so most of the
                         time the layout is unchanged. */}
                     <CapacityWidget variant="inline" className="mb-3" />
-                    <p className="text-base font-bold text-foreground leading-snug mb-3">
+                    {/* Sec 11/02 — identityHook quote in italic gray
+                        with brand-blue left border, matching homepage
+                        c08e02e and Products 5625e4c language. */}
+                    <p className="text-[#6B7280] text-base italic mb-5 border-l-2 border-[#0052CC] pl-4">
                       {desc.tagline}
                     </p>
                     {/* Task 3.14 — On mobile the multi-paragraph fabric/care
