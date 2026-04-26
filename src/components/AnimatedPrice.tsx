@@ -53,7 +53,19 @@ const ANIMATED_PRICE_CLEANUP_MS = 260;
  */
 export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
   const { lang } = useLang();
-  const formatted = fmtMoney(value, lang);
+  // If the upstream value is non-finite (NaN/Infinity briefly emitted by
+  // the customizer while a qty input is mid-edit) fmtMoney resolves to an
+  // em-dash. Showing that em-dash mid-keystroke makes the running total
+  // flicker to "—" and back, which is exactly the silent-twitch problem
+  // this component was meant to mask. Pin the displayed label to the last
+  // good formatted value instead, so a non-finite blip is visually a no-op.
+  const lastGoodFormattedRef = useRef<string>(fmtMoney(value, lang));
+  const formatted = Number.isFinite(value)
+    ? fmtMoney(value, lang)
+    : lastGoodFormattedRef.current;
+  if (Number.isFinite(value)) {
+    lastGoodFormattedRef.current = formatted;
+  }
 
   // Track the previous value so we can decide whether to animate and what
   // to render for the outgoing clone.
@@ -106,7 +118,14 @@ export function AnimatedPrice({ value, className }: AnimatedPriceProps) {
     // value as "no change" — keep the last good label on screen.
     if (!Number.isFinite(value)) return;
 
-    if (value === prevValueRef.current) return;
+    if (value === prevValueRef.current) {
+      // Value is unchanged but the formatted label may not be — e.g. the
+      // user just toggled fr ↔ en, so the locale changed under us. Refresh
+      // the cached label so the next genuine value flip animates from the
+      // current-language string, not a stale fr/en snapshot.
+      prevFormattedRef.current = formatted;
+      return;
+    }
 
     if (prefersReducedRef.current) {
       prevValueRef.current = value;
