@@ -2,9 +2,7 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ProductCard } from '@/components/ProductCard';
-import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { useProducts } from '@/hooks/useProducts';
-import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { plural } from '@/lib/plural';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -94,10 +92,9 @@ export default function Products() {
   // Client-side pagination. Sub-30 catalogs render the whole set.
   const PAGE_SIZE = 30;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  // Surface RecentlyViewed only with >=2 items so a fresh visitor
-  // doesn't see a near-empty strip.
-  const { handles: recentlyViewedHandles } = useRecentlyViewed();
-  const showRecentlyViewed = recentlyViewedHandles.length >= 2;
+  // Recently-viewed strip removed from /produits — hoodie + t-shirt are
+  // pinned at the top of the catalog so the strip was redundant. The
+  // RecentlyViewed component is still rendered on PDP/cart/account.
 
   // Keep the URL in sync with category + sort + debounced search.
   useEffect(() => {
@@ -809,11 +806,6 @@ export default function Products() {
               </div>
             ) : (
               <>
-                {showRecentlyViewed && (
-                  <div className="mb-8">
-                    <RecentlyViewed limit={6} />
-                  </div>
-                )}
                 <div
                   ref={gridRef}
                   onKeyDown={handleGridKeyDown}

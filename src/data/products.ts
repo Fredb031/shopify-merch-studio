@@ -133,7 +133,7 @@ const ATCF2500_COLORS: ProductColor[] = [
 
 const ATC1000_COLORS: ProductColor[] = [
   { id: 'black',            name: 'Noir',              nameEn: 'Black',            hex: '#141414',
-    imageDevant: '/products/ATC1000-Devant-Clean.jpg',
+    imageDevant: '/products/ATC1000-front-black.jpg',
     imageDos:    '/products/ATC1000-Dos-Clean.jpg' },
   { id: 'white',            name: 'Blanc',             nameEn: 'White',            hex: '#F2F0EB' },
   { id: 'navy',             name: 'Marine',            nameEn: 'Navy',             hex: '#1D2B4F' },
@@ -257,7 +257,9 @@ export const PRODUCTS: Product[] = [
     id: 'atc1000', sku: 'ATC1000',
     name: 'T-Shirt — ATC 1000', shortName: 'T-Shirt',
     category: 'tshirt', gender: 'unisex', basePrice: 4.15,
-    imageDevant: '/products/ATC1000-Devant-Clean.jpg',
+    // Cover aligned with the customizer/PDP black-variant asset so the
+    // /produits card and the PDP gallery render the same image.
+    imageDevant: '/products/ATC1000-front-black.jpg',
     imageDos:    '/products/ATC1000-Dos-Clean.jpg',
     shopifyHandle: 'atc1000',
     colors: ATC1000_COLORS,
