@@ -5,6 +5,7 @@ import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
 import { LoginModal } from '@/components/LoginModal';
+import { SearchBar } from '@/components/SearchBar';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface NavbarProps {
@@ -146,6 +147,16 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
         />
       </Link>
+
+      {/* Volume II §2 — desktop-only smart search. Sits in the navbar
+          center between the logo and the right-side nav cluster. Hidden
+          below the md breakpoint to keep the mobile bar uncluttered;
+          mobile shoppers reach product discovery through BottomNav and
+          /products. Max-width caps the bar so it doesn't crowd the
+          right-side pill cluster on mid-width laptops. */}
+      <div className="hidden md:flex flex-1 justify-center px-6 max-w-[420px] mx-auto">
+        <SearchBar className="w-full" />
+      </div>
 
       <div className="flex items-center gap-2">
         {/* Mega Blueprint Section 02 — desktop-only ghost link to the
