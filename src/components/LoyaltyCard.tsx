@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Sparkles, Gift } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
+import { fmtMoney } from '@/lib/format';
 import { getLoyalty, type LoyaltyAccount, type LoyaltyTier } from '@/lib/loyalty';
 
 /**
@@ -44,7 +45,9 @@ export function LoyaltyCard() {
     );
   }
 
-  const dollarValue = (account.points / 100 * 5).toFixed(2);
+  // Locale-aware money: fr-CA shows "5,00 $", en-CA shows "$5.00". Avoids
+  // the raw .toFixed(2) bug where French copy rendered as "5.00$".
+  const dollarValue = fmtMoney((account.points / 100) * 5, lang);
   const remainingToGold = Math.max(0, 5000 - account.lifetime);
   const showProgressHint = account.lifetime < 5000;
 
@@ -73,8 +76,8 @@ export function LoyaltyCard() {
           </h2>
           <div className="text-xs md:text-sm opacity-90 mt-1.5">
             {lang === 'en'
-              ? `= $${dollarValue} discount available`
-              : `= ${dollarValue}$ de rabais disponible`}
+              ? `= ${dollarValue} discount available`
+              : `= ${dollarValue} de rabais disponible`}
           </div>
         </div>
 
