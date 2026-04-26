@@ -197,6 +197,15 @@ export function TemplatesSection({
   const persist = (next: CustomizerTemplate[]) => {
     setTemplates(next);
     writeLS(TEMPLATES_KEY, next);
+    // If the "Voir tous" toggle is on but no cross-product templates
+    // remain, reset it to off — otherwise the state goes stale: the
+    // toggle button hides (line ~317 condition) while showAll stays
+    // true, and a later cross-product save would re-mount the toggle
+    // already in the "on" position with no visual cue. Resetting here
+    // keeps the visible filter and the underlying state aligned.
+    if (!next.some(t => t.config.handle !== handle)) {
+      setShowAll(false);
+    }
   };
 
   const handleSave = () => {
