@@ -148,6 +148,17 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
       </Link>
 
       <div className="flex items-center gap-2">
+        {/* Mega Blueprint Section 02 — desktop-only ghost link to the
+            /devis quote-request flow. Sits before the LangToggle so it
+            reads as a discovery surface for bulk shoppers without
+            crowding the mobile bar (BottomNav handles mobile CTAs). */}
+        <Link
+          to="/devis"
+          className="hidden md:inline-flex items-center text-[12px] font-bold text-foreground/80 hover:text-foreground px-3 py-[7px] rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+        >
+          {lang === 'en' ? 'Quote' : 'Devis'}
+        </Link>
+
         <LangToggle />
 
         {user ? (

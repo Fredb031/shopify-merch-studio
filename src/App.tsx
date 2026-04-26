@@ -57,6 +57,12 @@ const VendorProfile = lazy(() => import("./pages/vendor/VendorProfile"));
 // Client-facing (lazy)
 const QuoteAccept = lazy(() => import("./pages/QuoteAccept"));
 
+// Mega Blueprint Section 02 — public quote-request form. Lazy because
+// it's reached from the navbar/hero CTA, not the home hot path; the
+// form pulls PRODUCTS + pricing tiers, so keeping it out of the Index
+// chunk matches how Cart and PDP are split.
+const QuoteRequest = lazy(() => import("./pages/QuoteRequest"));
+
 // Legal stubs (lazy) — placeholder pages behind /privacy, /terms,
 // /returns, /accessibility. Real copy is owner-uploaded; we lazy-load
 // because these are link-from-footer-only routes that don't need to
@@ -241,6 +247,7 @@ const AnimatedRoutes = () => {
           />
 
           <Route path="/quote/:id" element={<QuoteAccept />} />
+          <Route path="/devis" element={<QuoteRequest />} />
 
           {/* Public vendor profile (Task 10.4). Sits outside the
               /vendor AuthGuard tree on purpose — prospects follow the
