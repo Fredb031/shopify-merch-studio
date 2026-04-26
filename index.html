@@ -91,7 +91,7 @@
          img beacons pointing at unexpected origins; it allow-lists all
          our real external origins (Shopify storefront + CDN, Supabase,
          Google Fonts, Google Maps embed, Zapier webhook, GitHub API). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https://cdn.shopify.com https://*.shopify.com https://*.supabase.co https://www.google.com https://maps.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; connect-src 'self' https://*.shopify.com https://*.supabase.co https://hooks.zapier.com https://api.github.com; frame-src 'self' https://www.google.com https://www.google.com/maps/; object-src 'none'; base-uri 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https://cdn.shopify.com https://*.shopify.com https://*.supabase.co https://www.google.com https://maps.gstatic.com https://www.facebook.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net; connect-src 'self' https://*.shopify.com https://*.supabase.co https://hooks.zapier.com https://api.github.com https://www.facebook.com; frame-src 'self' https://www.google.com https://www.google.com/maps/; object-src 'none'; base-uri 'self';" />
     <meta http-equiv="X-Content-Type-Options" content="nosniff" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
@@ -118,6 +118,21 @@
       "priceRange": "$$",
       "sameAs": ["https://www.facebook.com/visionaffichage", "https://www.instagram.com/visionaffichage"]
     }
+    </script>
+
+    <!-- Meta Pixel — Volume II Section 08.1.
+         The base loader stub registers `window.fbq` and queues calls
+         until the real `fbevents.js` finishes downloading. We do NOT
+         call `fbq('init', ...)` here — that's deferred to
+         src/lib/analytics.ts which only fires after the visitor grants
+         marketing consent (Law 25 mirrors the GA4 gating pattern).
+         Operator must replace YOUR_PIXEL_ID with the real Pixel ID,
+         and follow up with the CAPI server-side mirror via Supabase
+         edge function (`META_ACCESS_TOKEN` secret) for iOS-blocking-
+         resistant attribution. -->
+    <script>
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    // fbq('init','YOUR_PIXEL_ID') is fired by src/lib/analytics.ts after consent grant
     </script>
   </head>
 

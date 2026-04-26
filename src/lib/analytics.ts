@@ -21,6 +21,41 @@ import { getCookieConsent } from '@/components/CookieConsent';
 const QUEUE_KEY = 'vision-analytics-queue';
 const QUEUE_CAP = 200;
 
+/**
+ * Operator drops the real Pixel ID here once Meta Business Manager
+ * provisions it. Until then `YOUR_PIXEL_ID` stays as a sentinel and
+ * the init call below short-circuits — no network request to
+ * connect.facebook.net, no events leave the device.
+ *
+ * CAPI server-side mirror is operator follow-up: a Supabase edge
+ * function with the `META_ACCESS_TOKEN` secret that POSTs the same
+ * events to Meta's Conversions API for iOS-blocking-resistant
+ * attribution (see Volume II Section 08.1 brief).
+ */
+const META_PIXEL_ID = 'YOUR_PIXEL_ID';
+
+/**
+ * Lazy one-shot init — `fbq('init', ...)` must run exactly once per
+ * page session, AFTER the visitor grants marketing consent. The
+ * index.html stub registers `window.fbq` and queues calls; calling
+ * init here flushes the queue and starts the auto-PageView. We track
+ * the init state on the window so a hot-reload or duplicate import
+ * doesn't double-init (Meta logs a warning + double-counts PageView).
+ */
+function ensurePixelInit(): void {
+  if (typeof window === 'undefined') return;
+  if (!window.fbq) return; // base stub not on the page yet
+  if (META_PIXEL_ID === 'YOUR_PIXEL_ID') return; // operator hasn't set the ID
+  const w = window as Window & { __vaPixelInitialized?: boolean };
+  if (w.__vaPixelInitialized) return;
+  try {
+    window.fbq('init', META_PIXEL_ID);
+    w.__vaPixelInitialized = true;
+  } catch {
+    /* vendor script threw — don't let it bubble to the caller */
+  }
+}
+
 type DataLayerPush = {
   event: string;
   params?: Record<string, unknown>;
@@ -117,12 +152,15 @@ export function trackEvent(name: string, params?: Record<string, unknown>): void
   }
 
   if (consent.marketing === true) {
-    // Meta Pixel dispatch. `window.fbq` is only defined after the
-    // owner pastes the Pixel bootstrap snippet into index.html; until
-    // then the optional-chain short-circuits and nothing fires. We
-    // only forward events that map to a Meta standard event —
-    // unmapped names are skipped (trackCustom would be a separate
-    // call shape we don't need yet).
+    // Meta Pixel dispatch. The base loader stub in index.html
+    // registers `window.fbq` on first paint, but we hold off on the
+    // `init` call until consent is granted — that's the moment the
+    // first network request to connect.facebook.net is allowed to
+    // fire. ensurePixelInit() is idempotent; subsequent events skip
+    // straight to track. We only forward events that map to a Meta
+    // standard event — unmapped names are skipped (trackCustom would
+    // be a separate call shape we don't need yet).
+    ensurePixelInit();
     const pixelEvent = PIXEL_EVENT_MAP[name];
     if (pixelEvent) {
       try {
