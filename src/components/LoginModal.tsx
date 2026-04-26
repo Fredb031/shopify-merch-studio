@@ -99,9 +99,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+    // Trim before validating AND before forwarding to Supabase. iOS
+    // autocomplete and paste-from-email-client both routinely append a
+    // trailing space; isValidEmail trims internally so it would pass,
+    // but the untrimmed value going to signIn/signUp surfaces as a
+    // generic 'invalid credentials' error from Supabase.
+    const trimmedEmail = email.trim();
     // Pre-validate so the user gets our friendly message instead of
     // Supabase's generic 'invalid credentials' when they typo a@b.
-    if (!isValidEmail(email)) {
+    if (!isValidEmail(trimmedEmail)) {
       useAuthStore.getState().setError(
         lang === 'en' ? 'Please enter a valid email address' : 'Courriel invalide',
       );
@@ -124,7 +130,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     setSubmitting(true);
     try {
       if (mode === 'signup') {
-        const res = await signUp(email, password, name);
+        const res = await signUp(trimmedEmail, password, name);
         if (!res.ok) return;
         // Supabase signup with email confirmation returns ok=true but
         // the session is NOT live until the user clicks the email link.
@@ -141,7 +147,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         navigate('/');
         return;
       }
-      const res = await signIn(email, password);
+      const res = await signIn(trimmedEmail, password);
       if (!res.ok) return;
       onClose();
       if (res.role === 'admin' || res.role === 'president') navigate('/admin');
