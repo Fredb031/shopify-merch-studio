@@ -633,7 +633,7 @@ export default function Checkout() {
 
   if (step === 'done') {
     return (
-      <div id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
+      <div id="main-content" tabIndex={-1} className="min-h-screen bg-white focus:outline-none">
         <Navbar />
         <div className="max-w-[720px] mx-auto px-4 md:px-8 pt-20 pb-32">
           <DoneState
@@ -650,15 +650,15 @@ export default function Checkout() {
 
   if (cart.items.length === 0 && step !== 'done') {
     return (
-      <div className="min-h-screen bg-background flex flex-col pb-20">
+      <div className="min-h-screen bg-white flex flex-col pb-20">
         <Navbar />
         <div className="flex-1 flex items-center justify-center px-6 py-20">
           <div className="text-center max-w-sm">
-            <h1 className="text-2xl font-extrabold mb-2">{lang === 'en' ? 'Cart is empty' : 'Panier vide'}</h1>
-            <p className="text-sm text-muted-foreground mb-6">
+            <h1 className="text-2xl font-extrabold mb-2 text-[#0A0A0A]">{lang === 'en' ? 'Cart is empty' : 'Panier vide'}</h1>
+            <p className="text-sm text-[#6B7280] mb-6">
               {lang === 'en' ? 'Add a product before checkout.' : "Ajoute un produit avant de passer la commande."}
             </p>
-            <Link to="/products" className="inline-block text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy">
+            <Link to="/products" className="inline-block text-sm font-bold text-white bg-[#0052CC] hover:bg-[#003D99] transition-colors px-6 py-3 rounded-xl">
               {lang === 'en' ? 'See products' : 'Voir les produits'}
             </Link>
           </div>
@@ -897,8 +897,20 @@ export default function Checkout() {
     }
   };
 
+  // Brand-black/blue header copy. Mirrors the Cart treatment
+  // (d66a19a) so /checkout doesn't visually fight the new homepage
+  // (c08e02e) / Products (5625e4c) / Cart (d66a19a) language. The
+  // step-aware h1 keeps the buyer oriented; the breadcrumb sub-line
+  // stays consistent regardless of step.
+  const pageTitle = step === 'payment'
+    ? (lang === 'en' ? 'Finalize your order' : 'Finaliser ta commande')
+    : (lang === 'en' ? 'Checkout' : 'Paiement');
+  const breadcrumb = lang === 'en'
+    ? 'Cart > Shipping > Payment'
+    : 'Panier > Livraison > Paiement';
+
   return (
-    <div id="main-content" tabIndex={-1} data-va-checkout className="min-h-screen bg-gradient-to-b from-secondary/30 to-background focus:outline-none">
+    <div id="main-content" tabIndex={-1} data-va-checkout className="min-h-screen bg-white focus:outline-none">
       <Navbar />
 
       <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
@@ -906,15 +918,15 @@ export default function Checkout() {
           <div
             role="region"
             aria-label={lang === 'en' ? 'Resume in-progress checkout' : 'Reprendre la commande en cours'}
-            className="mb-4 flex items-start gap-3 border-l-4 border-[#0052CC] bg-blue-50/60 rounded-r-lg px-4 py-3"
+            className="mb-4 flex items-start gap-3 border-l-4 border-[#0052CC] bg-[#F9FAFB] rounded-r-lg px-4 py-3"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-sm font-semibold text-[#0A0A0A]">
                 {lang === 'en'
                   ? 'Resume your in-progress checkout?'
                   : 'Reprendre votre commande en cours ?'}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-xs text-[#6B7280] mt-0.5">
                 {lang === 'en'
                   ? `Last saved ${formatElapsed(Date.now() - draftOffer.updatedAt, 'en')} ago.`
                   : `Dernière modification il y a ${formatElapsed(Date.now() - draftOffer.updatedAt, 'fr')}.`}
@@ -923,14 +935,14 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={() => hydrateFromDraft(draftOffer)}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#0052CC] text-white text-xs font-extrabold hover:bg-[#003d99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                  className="inline-flex items-center px-3 py-1.5 rounded-md bg-[#0052CC] text-white text-xs font-extrabold hover:bg-[#003D99] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Resume' : 'Reprendre'}
                 </button>
                 <button
                   type="button"
                   onClick={clearDraft}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md border border-border text-foreground text-xs font-bold hover:bg-secondary/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  className="inline-flex items-center px-3 py-1.5 rounded-md border border-[#E5E7EB] text-[#0A0A0A] text-xs font-bold hover:bg-[#F9FAFB] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Clear' : 'Effacer'}
                 </button>
@@ -940,7 +952,7 @@ export default function Checkout() {
               type="button"
               onClick={clearDraft}
               aria-label={lang === 'en' ? 'Dismiss' : 'Fermer'}
-              className="flex-shrink-0 text-muted-foreground hover:text-foreground rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex-shrink-0 text-[#6B7280] hover:text-[#0A0A0A] rounded p-1 -m-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]"
             >
               <X size={16} aria-hidden="true" />
             </button>
@@ -950,13 +962,25 @@ export default function Checkout() {
         <button
           onClick={goBack}
           disabled={processing}
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+          className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#0A0A0A] mb-4 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {step === 'info'
             ? lang === 'en' ? 'Back to cart' : 'Retour au panier'
             : lang === 'en' ? 'Previous step' : 'Étape précédente'}
         </button>
+
+        {/* Brand-black header (matches Cart d66a19a + homepage c08e02e).
+            Sub-line shows the breadcrumb in #6B7280 so the buyer knows
+            where they are without a heavy banner. */}
+        <header className="mb-6">
+          <h1 className="font-extrabold tracking-tight text-3xl text-[#0A0A0A]">
+            {pageTitle}
+          </h1>
+          <p className="mt-1 text-[#6B7280] text-xs uppercase tracking-wider font-semibold">
+            {breadcrumb}
+          </p>
+        </header>
 
         {/* Step indicator — role=progressbar so screen readers announce
             "Step X of 3" without relying on the visual dot count. */}
@@ -990,15 +1014,15 @@ export default function Checkout() {
               <>
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold transition-all ${
-                    isDone ? 'bg-emerald-500 text-white'
-                      : isActive ? 'bg-[#0052CC] text-white scale-110'
-                      : 'bg-zinc-200 text-zinc-500'
+                    isDone ? 'bg-[#0052CC] text-white'
+                      : isActive ? 'bg-[#0A0A0A] text-white scale-110'
+                      : 'bg-[#F9FAFB] text-[#6B7280] border border-[#E5E7EB]'
                   }`}
                   aria-hidden="true"
                 >
                   {isDone ? <CheckCircle2 size={14} /> : i + 1}
                 </div>
-                <span className={`ml-2 text-xs font-bold uppercase tracking-wider ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <span className={`ml-2 text-xs font-bold uppercase tracking-wider ${isActive ? 'text-[#0A0A0A]' : 'text-[#6B7280]'}`}>
                   {labels[s][lang]}
                 </span>
               </>
@@ -1023,7 +1047,7 @@ export default function Checkout() {
                     {indicator}
                   </div>
                 )}
-                {i < 2 && <div className={`w-12 md:w-20 h-0.5 mx-3 ${isDone ? 'bg-emerald-500' : 'bg-zinc-200'}`} aria-hidden="true" />}
+                {i < 2 && <div className={`w-12 md:w-20 h-0.5 mx-3 ${isDone ? 'bg-[#0052CC]' : 'bg-[#E5E7EB]'}`} aria-hidden="true" />}
               </li>
             );
           })}
@@ -1031,11 +1055,11 @@ export default function Checkout() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
           {/* Main step content */}
-          <div className="bg-white border border-border rounded-2xl p-6 md:p-8">
+          <div className="bg-white border border-[#E5E7EB] rounded-2xl p-6 md:p-8">
             {step === 'info' && (
               <div className="space-y-5">
                 <div>
-                  <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
+                  <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1 text-[#0A0A0A]">
                     <Mail size={18} className="text-[#0052CC]" aria-hidden="true" />
                     {lang === 'en' ? 'Contact' : 'Contact'}
                   </h2>
@@ -1059,10 +1083,10 @@ export default function Checkout() {
                           aria-required="true"
                           aria-invalid={emailInvalid || undefined}
                           aria-describedby={emailInvalid ? 'checkout-email-error' : undefined}
-                          className={`w-full mt-2 border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${
+                          className={`w-full mt-2 bg-white border rounded-lg px-4 py-3 text-base outline-none focus:ring-2 transition-shadow ${
                             emailInvalid
-                              ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
-                              : 'border-border focus:border-primary focus-visible:ring-primary/25'
+                              ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-400/25'
+                              : 'border-[#E5E7EB] focus:border-[#0052CC] focus:ring-[#0052CC]/20'
                           }`}
                           required
                         />
@@ -1079,7 +1103,7 @@ export default function Checkout() {
                 </div>
 
                 <div>
-                  <h2 className="text-xl font-extrabold flex items-center gap-2 mb-3">
+                  <h2 className="text-xl font-extrabold flex items-center gap-2 mb-3 text-[#0A0A0A]">
                     <MapPin size={18} className="text-[#0052CC]" aria-hidden="true" />
                     {lang === 'en' ? 'Shipping address' : 'Adresse de livraison'}
                   </h2>
@@ -1158,10 +1182,10 @@ export default function Checkout() {
                     invalid state is silent until the user has typed
                     something so the field doesn't look broken on first
                     reveal. */}
-                <div className="border border-border rounded-xl overflow-hidden">
+                <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <label
                     className={`flex items-start gap-3 p-3 transition-colors ${
-                      taxExempt ? 'bg-amber-50' : 'bg-secondary/30 hover:bg-secondary/50'
+                      taxExempt ? 'bg-[#F9FAFB]' : 'bg-[#F9FAFB] hover:bg-[#F3F4F6]'
                     } cursor-pointer`}
                   >
                     <input
@@ -1173,10 +1197,10 @@ export default function Checkout() {
                       }}
                       aria-controls="checkout-tax-exempt-input"
                       aria-expanded={taxExempt}
-                      className={`mt-0.5 w-5 h-5 ${taxExempt ? 'accent-amber-600' : 'accent-primary'}`}
+                      className="mt-0.5 w-5 h-5 accent-[#0052CC]"
                     />
                     <span className="text-sm">
-                      <span className={taxExempt ? 'font-semibold text-amber-900' : ''}>
+                      <span className={taxExempt ? 'font-semibold text-[#0A0A0A]' : 'text-[#0A0A0A]'}>
                         {lang === 'en'
                           ? 'I am exempt from QST (organism number)'
                           : "Je suis exempté(e) de TVQ (numéro d'organisme)"}
@@ -1184,7 +1208,7 @@ export default function Checkout() {
                     </span>
                   </label>
                   {taxExempt && (
-                    <div className="px-3 pb-3 pt-2 bg-amber-50/40 border-t border-amber-100">
+                    <div className="px-3 pb-3 pt-2 bg-white border-t border-[#E5E7EB]">
                       <input
                         id="checkout-tax-exempt-input"
                         type="text"
@@ -1202,13 +1226,13 @@ export default function Checkout() {
                         }
                         aria-describedby="checkout-tax-exempt-helper"
                         maxLength={16}
-                        className={`w-full border rounded-lg px-3 py-2 text-sm bg-white outline-none focus-visible:ring-2 transition-shadow ${
+                        className={`w-full bg-white border rounded-lg px-4 py-3 text-base outline-none focus:ring-2 transition-shadow ${
                           taxExempt && taxExemptOrgTrimmed.length > 0 && !TAX_EXEMPT_ORG_REGEX.test(taxExemptOrgTrimmed)
-                            ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25'
-                            : 'border-amber-200 focus:border-amber-400 focus-visible:ring-amber-400/40'
+                            ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-400/25'
+                            : 'border-[#E5E7EB] focus:border-[#0052CC] focus:ring-[#0052CC]/20'
                         }`}
                       />
-                      <p id="checkout-tax-exempt-helper" className="mt-1 text-[11px] text-muted-foreground">
+                      <p id="checkout-tax-exempt-helper" className="mt-1 text-[11px] text-[#6B7280]">
                         {lang === 'en'
                           ? 'The actual tax-skip is applied at Shopify checkout once your file is verified.'
                           : "L'exemption sera appliquée au paiement Shopify après vérification du dossier."}
@@ -1228,7 +1252,7 @@ export default function Checkout() {
                   type="button"
                   disabled={!infoValid}
                   onClick={goNext}
-                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full bg-[#0052CC] hover:bg-[#003D99] text-white font-bold py-5 text-lg rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Continue to shipping' : 'Continuer à la livraison'}
                 </button>
@@ -1237,11 +1261,11 @@ export default function Checkout() {
 
             {step === 'shipping' && (
               <div className="space-y-5">
-                <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1 text-[#0A0A0A]">
                   <Truck size={18} className="text-[#0052CC]" aria-hidden="true" />
                   {lang === 'en' ? 'Shipping method' : 'Mode de livraison'}
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-[#6B7280]">
                   {lang === 'en'
                     ? 'Pick how you want your order delivered. ETA is calculated from today, weekends excluded.'
                     : "Choisis comment recevoir ta commande. Les délais sont calculés à partir d'aujourd'hui, week-ends exclus."}
@@ -1274,11 +1298,10 @@ export default function Checkout() {
                         key={m}
                         className={`relative flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
                           selected
-                            // Gold selection ring on the chosen tile — same
-                            // accent the checkout CTAs use for focus so it
-                            // reads as brand-consistent emphasis.
-                            ? 'border-[#E8A838] bg-[#E8A838]/5 ring-2 ring-[#E8A838]/40 shadow-sm'
-                            : 'border-border hover:border-primary/40 hover:bg-secondary/30'
+                            // Brand-blue selection ring on the chosen tile —
+                            // matches the homepage / Cart / Products palette.
+                            ? 'border-[#0052CC] bg-[#F9FAFB] ring-2 ring-[#0052CC]/20 shadow-sm'
+                            : 'border-[#E5E7EB] hover:border-[#0052CC]/40 hover:bg-[#F9FAFB]'
                         }`}
                       >
                         <input
@@ -1287,31 +1310,31 @@ export default function Checkout() {
                           value={m}
                           checked={selected}
                           onChange={() => setShippingMethod(m)}
-                          className="mt-1 w-4 h-4 accent-[#E8A838]"
+                          className="mt-1 w-4 h-4 accent-[#0052CC]"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-baseline justify-between gap-3">
-                            <div className="font-extrabold text-sm">
+                            <div className="font-extrabold text-sm text-[#0A0A0A]">
                               {lang === 'en' ? opt.labelEn : opt.labelFr}
-                              <span className="ml-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                              <span className="ml-2 text-[11px] font-semibold text-[#6B7280] uppercase tracking-wide">
                                 {lang === 'en' ? opt.windowEn : opt.windowFr}
                               </span>
                             </div>
-                            <div className="font-extrabold text-sm whitespace-nowrap">
+                            <div className="font-extrabold text-sm whitespace-nowrap text-[#0A0A0A]">
                               {priceLabel}
                             </div>
                           </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
+                          <div className="mt-1 text-xs text-[#6B7280]">
                             {lang === 'en' ? opt.descEn : opt.descFr}
                           </div>
                           {etaLabel && (
-                            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-[#0052CC]">
                               <Clock size={12} aria-hidden="true" />
                               {lang === 'en' ? `Arrives by ${etaLabel}` : `Livré autour du ${etaLabel}`}
                             </div>
                           )}
                           {!etaLabel && (
-                            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+                            <div className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold text-[#0052CC]">
                               <MapPin size={12} aria-hidden="true" />
                               {lang === 'en' ? 'Saint-Hyacinthe, QC' : 'Saint-Hyacinthe, QC'}
                             </div>
@@ -1325,7 +1348,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={goNext}
-                  className="w-full py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full bg-[#0052CC] hover:bg-[#003D99] text-white font-bold py-5 text-lg rounded-xl transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Continue to payment' : 'Continuer au paiement'}
                 </button>
@@ -1334,25 +1357,15 @@ export default function Checkout() {
 
             {step === 'payment' && (
               <div className="space-y-5">
-                <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-extrabold flex items-center gap-2 mb-1 text-[#0A0A0A]">
                   <CreditCard size={18} className="text-[#0052CC]" aria-hidden="true" />
                   {lang === 'en' ? 'Payment' : 'Paiement'}
                 </h2>
 
-                <div className="bg-secondary/40 border border-border rounded-xl p-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <ShieldCheck size={16} className="text-emerald-600" aria-hidden="true" />
-                    <span className="font-bold">{lang === 'en' ? 'Secure payment' : 'Paiement sécurisé'}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {lang === 'en'
-                      ? 'Card processing happens on Shopify\'s PCI-compliant infrastructure. Your card never touches our servers.'
-                      : "Le traitement des cartes s'effectue sur l'infrastructure PCI-compliant de Shopify. Ta carte ne touche jamais nos serveurs."}
-                  </p>
-                </div>
-
-                <div className="border border-border rounded-xl p-4">
-                  <div className="font-bold text-sm mb-2">
+                {/* Tax breakdown card — province-aware (preserves b30b61f
+                    math). Polished typography only; no logic changes. */}
+                <div className="bg-[#F9FAFB] rounded-xl p-4">
+                  <div className="font-bold text-sm mb-2 text-[#0A0A0A]">
                     {lang === 'en' ? 'Order summary' : 'Résumé de commande'}
                   </div>
                   <div className="space-y-1 text-sm">
@@ -1364,7 +1377,7 @@ export default function Checkout() {
                         a single line; GST+PST provinces get two; GST-only
                         provinces get one; QC keeps the historic GST + QST
                         split. Indented under the combined tax line. */}
-                    <div className="pl-3 border-l-2 border-border/60 ml-1 space-y-0.5 text-xs text-muted-foreground">
+                    <div className="pl-3 border-l-2 border-[#E5E7EB] ml-1 space-y-0.5 text-xs text-[#6B7280]">
                       {hasHst && (
                         <div className="flex justify-between">
                           <span>{hstLabel(lang)} ({fmtRate(taxRates.hst, lang)}%)</span>
@@ -1384,14 +1397,14 @@ export default function Checkout() {
                         </div>
                       )}
                     </div>
-                    <p className="text-[11px] text-muted-foreground italic mt-1">
+                    <p className="text-[11px] text-[#6B7280] italic mt-1">
                       {lang === 'en'
                         ? 'Final total calculated by Shopify based on your shipping address.'
                         : 'Total final calculé par Shopify selon ton adresse de livraison.'}
                     </p>
-                    <div className="border-t border-border pt-2 mt-2 flex justify-between items-baseline">
-                      <span className="font-extrabold">Total</span>
-                      <span className="text-2xl font-extrabold text-primary">{fmtMoney(total)} $ CAD</span>
+                    <div className="border-t border-[#E5E7EB] pt-2 mt-2 flex justify-between items-baseline">
+                      <span className="font-extrabold text-[#0A0A0A]">Total</span>
+                      <span className="text-2xl font-extrabold text-[#0A0A0A]">{fmtMoney(total)} $ CAD</span>
                     </div>
                   </div>
                 </div>
@@ -1404,10 +1417,10 @@ export default function Checkout() {
                     Emerald accent on the active toggle matches the same
                     "confirmed / positive" accent we use on the step-done
                     dots and the arrives-by banner above. */}
-                <div className="border border-border rounded-xl overflow-hidden">
+                <div className="border border-[#E5E7EB] rounded-xl overflow-hidden">
                   <label
                     className={`flex items-start gap-3 p-3 transition-colors ${
-                      isGift ? 'bg-emerald-50' : 'bg-secondary/30 hover:bg-secondary/50'
+                      isGift ? 'bg-[#F9FAFB]' : 'bg-[#F9FAFB] hover:bg-[#F3F4F6]'
                     } ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <input
@@ -1417,17 +1430,15 @@ export default function Checkout() {
                       onChange={e => setIsGift(e.target.checked)}
                       aria-controls="checkout-gift-textarea"
                       aria-expanded={isGift}
-                      className={`mt-0.5 w-5 h-5 disabled:cursor-not-allowed ${
-                        isGift ? 'accent-emerald-600' : 'accent-primary'
-                      }`}
+                      className="mt-0.5 w-5 h-5 disabled:cursor-not-allowed accent-[#0052CC]"
                     />
                     <span className="flex items-center gap-2 text-sm">
                       <Gift
                         size={16}
-                        className={isGift ? 'text-emerald-600' : 'text-muted-foreground'}
+                        className={isGift ? 'text-[#0052CC]' : 'text-[#6B7280]'}
                         aria-hidden="true"
                       />
-                      <span className={isGift ? 'font-semibold text-emerald-900' : ''}>
+                      <span className={isGift ? 'font-semibold text-[#0A0A0A]' : 'text-[#0A0A0A]'}>
                         {lang === 'en'
                           ? 'This is a gift — add a note'
                           : 'Ceci est un cadeau — ajouter un mot'}
@@ -1435,7 +1446,7 @@ export default function Checkout() {
                     </span>
                   </label>
                   {isGift && (
-                    <div className="px-3 pb-3 pt-2 bg-emerald-50/40 border-t border-emerald-100">
+                    <div className="px-3 pb-3 pt-2 bg-white border-t border-[#E5E7EB]">
                       <textarea
                         id="checkout-gift-textarea"
                         value={giftMessage}
@@ -1452,10 +1463,10 @@ export default function Checkout() {
                           : "Bonne fête! J'espère que ça te plaira. — M."}
                         aria-label={lang === 'en' ? 'Gift message' : 'Message cadeau'}
                         aria-describedby="checkout-gift-helper checkout-gift-counter"
-                        className="w-full resize-none border border-emerald-200 rounded-lg px-3 py-2 text-sm bg-white outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus:border-emerald-400 transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="w-full resize-none bg-white border border-[#E5E7EB] rounded-lg px-4 py-3 text-base outline-none focus:ring-2 focus:ring-[#0052CC]/20 focus:border-[#0052CC] transition-shadow disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                       <div className="mt-1 flex items-start justify-between gap-3">
-                        <p id="checkout-gift-helper" className="text-[11px] text-muted-foreground flex-1">
+                        <p id="checkout-gift-helper" className="text-[11px] text-[#6B7280] flex-1">
                           {lang === 'en'
                             ? 'Will appear on the delivery receipt.'
                             : 'Apparaîtra sur le reçu de livraison.'}
@@ -1468,7 +1479,7 @@ export default function Checkout() {
                               ? 'text-rose-600'
                               : giftMessage.length >= GIFT_MESSAGE_MAX - 25
                                 ? 'text-amber-600'
-                                : 'text-muted-foreground'
+                                : 'text-[#6B7280]'
                           }`}
                         >
                           {giftMessage.length}/{GIFT_MESSAGE_MAX}
@@ -1478,80 +1489,52 @@ export default function Checkout() {
                   )}
                 </div>
 
-                <label className={`flex items-start gap-3 p-3 bg-secondary/30 rounded-xl ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                <label className={`flex items-start gap-3 p-3 bg-[#F9FAFB] rounded-xl ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
                     checked={acceptedTerms}
                     disabled={processing}
                     onChange={e => setAcceptedTerms(e.target.checked)}
-                    className="mt-0.5 w-5 h-5 accent-primary disabled:cursor-not-allowed"
+                    className="mt-0.5 w-5 h-5 accent-[#0052CC] disabled:cursor-not-allowed"
                   />
-                  <span className="text-sm">
+                  <span className="text-sm text-[#0A0A0A]">
                     {lang === 'en'
                       ? "I accept the terms of service and confirm my order details."
                       : "J'accepte les conditions de service et confirme les détails de ma commande."}
                   </span>
                 </label>
 
-                {/* Urgency: ship-by promise. Calculated client-side from
-                    today's date. Past-3pm orders bump one business day,
-                    express cuts the window to 2-3 business days. Pickup
-                    swaps the whole line for a "ready tomorrow" cueillette
-                    message — a delivered-by date would be misleading for
-                    buyers coming in person. */}
-                {(() => {
-                  const now = new Date();
-                  const cutoff = new Date(now);
-                  cutoff.setHours(15, 0, 0, 0);
-                  const after3pm = now > cutoff;
-                  if (shippingMethod === 'pickup') {
-                    const ready = addBusinessDays(now, 1);
-                    return (
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
-                        <span className="text-emerald-600 text-base leading-none">📍</span>
-                        <span className="text-emerald-900">
-                          {lang === 'en'
-                            ? <>
-                                <strong>Ready for pickup</strong> in Saint-Hyacinthe by{' '}
-                                <strong>{ready.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
-                              </>
-                            : <>
-                                <strong>Prêt pour la cueillette</strong> à Saint-Hyacinthe d'ici le{' '}
-                                <strong>{ready.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
-                              </>}
-                        </span>
-                      </div>
-                    );
-                  }
-                  // Base promise matches the shipping method copy: standard
-                  // = 5 business days, express = 3. Before this, express
-                  // buyers saw the 5-day ETA even after paying for express.
-                  const baseDays = shippingMethod === 'express' ? 3 : 5;
-                  const ship = addBusinessDays(now, baseDays + (after3pm ? 1 : 0));
-                  return (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs flex items-start gap-2">
-                      <span className="text-emerald-600 text-base leading-none">⚡</span>
-                      <span className="text-emerald-900">
-                        {lang === 'en'
-                          ? <>
-                              <strong>{after3pm ? 'Order today —' : 'Order before 3pm —'}</strong> delivered by{' '}
-                              <strong>{ship.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
-                            </>
-                          : <>
-                              <strong>{after3pm ? 'Commande aujourd\'hui —' : 'Commande avant 15h —'}</strong> livrée d'ici le{' '}
-                              <strong>{ship.toLocaleDateString('fr-CA', { weekday: 'long', month: 'long', day: 'numeric' })}</strong>
-                            </>}
-                      </span>
-                    </div>
-                  );
-                })()}
+                {/* Trust strip — single tight row above the primary CTA.
+                    Replaces the earlier stacked urgency banner + payment-
+                    icons strip + repeat trust line. 2x2 on mobile, single
+                    horizontal grid above sm. */}
+                <div className="bg-[#F9FAFB] rounded-xl p-3 text-center">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#0A0A0A] font-semibold">
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <span aria-hidden="true">🔒</span>
+                      {lang === 'en' ? 'SSL secure payment' : 'Paiement sécurisé SSL'}
+                    </span>
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <span aria-hidden="true">💳</span>
+                      Visa/MC/Apple Pay
+                    </span>
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <span aria-hidden="true">📦</span>
+                      {lang === 'en' ? 'Tracked delivery' : 'Livraison trackée'}
+                    </span>
+                    <span className="inline-flex items-center justify-center gap-1.5">
+                      <span aria-hidden="true">✅</span>
+                      {lang === 'en' ? 'Satisfied or refunded' : 'Satisfait ou remboursé'}
+                    </span>
+                  </div>
+                </div>
 
                 <button
                   type="button"
                   disabled={!acceptedTerms || processing}
                   onClick={handlePay}
                   aria-busy={processing}
-                  className="w-full py-4 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="w-full bg-[#0052CC] hover:bg-[#003D99] text-white font-bold py-5 text-lg rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
                 >
                   {processing ? (
                     <Loader2 size={18} className="animate-spin" aria-hidden="true" />
@@ -1560,24 +1543,16 @@ export default function Checkout() {
                   )}
                   {processing
                     ? lang === 'en' ? 'Processing…' : 'Traitement…'
-                    : lang === 'en' ? `Pay ${fmtMoney(total)} $ securely` : `Payer ${fmtMoney(total)} $ en sécurité`}
+                    : lang === 'en' ? `Confirm and pay ${fmtMoney(total)} $` : `Confirmer et payer ${fmtMoney(total)} $`}
                 </button>
-
-                <p className="text-[11px] text-muted-foreground text-center">
-                  {lang === 'en'
-                    ? '🔒 Encrypted · 💳 All cards accepted · 🇨🇦 Made in Québec'
-                    : '🔒 Chiffré · 💳 Toutes cartes acceptées · 🇨🇦 Fabriqué au Québec'}
-                </p>
               </div>
             )}
           </div>
 
           {/* Sticky cart summary */}
-          <aside className="bg-white border border-border rounded-2xl p-5 h-fit lg:sticky lg:top-6">
-            {/* Task 5.19: delivery-by promise banner. Anchored to the
-                selected shipping method so the buyer sees a concrete
-                "arrives by {date}" at the very top of the sidebar —
-                reassuring while they read the order summary. Pickup
+          <aside className="bg-white border border-[#E5E7EB] rounded-2xl p-5 h-fit lg:sticky lg:top-6">
+            {/* Task 5.19: delivery-by promise — single tight pill,
+                brand-blue accent matching the new palette. Pickup
                 swaps in a "ready for pickup tomorrow" message because
                 a delivery date would be misleading for in-person
                 pickup. */}
@@ -1587,8 +1562,8 @@ export default function Checkout() {
                 const ready = addBusinessDays(now, 1);
                 const dateStr = ready.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', { weekday: 'long', month: 'long', day: 'numeric' });
                 return (
-                  <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-900">
-                    <MapPin size={14} className="text-emerald-600 flex-shrink-0" aria-hidden="true" />
+                  <div className="mb-4 flex items-center gap-2 rounded-full bg-[#F9FAFB] border border-[#E5E7EB] px-3 py-2 text-xs text-[#0A0A0A]">
+                    <MapPin size={14} className="text-[#0052CC] flex-shrink-0" aria-hidden="true" />
                     <span className="font-medium">
                       {lang === 'en'
                         ? <>Ready for pickup <span className="font-semibold">tomorrow</span> ({dateStr})</>
@@ -1601,8 +1576,8 @@ export default function Checkout() {
               const arrives = addBusinessDays(now, baseDays);
               const dateStr = arrives.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', { weekday: 'long', month: 'long', day: 'numeric' });
               return (
-                <div className="mb-4 flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs text-emerald-900">
-                  <Truck size={14} className="text-emerald-600 flex-shrink-0" aria-hidden="true" />
+                <div className="mb-4 flex items-center gap-2 rounded-full bg-[#F9FAFB] border border-[#E5E7EB] px-3 py-2 text-xs text-[#0A0A0A]">
+                  <Truck size={14} className="text-[#0052CC] flex-shrink-0" aria-hidden="true" />
                   <span className="font-medium">
                     {lang === 'en'
                       ? <>Arrives by <span className="font-semibold">{dateStr}</span></>
@@ -1612,24 +1587,24 @@ export default function Checkout() {
               );
             })()}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-extrabold">{lang === 'en' ? 'Your cart' : 'Ton panier'}</h2>
-              <span className="text-xs text-muted-foreground">{itemCount} {lang === 'en' ? 'items' : 'articles'}</span>
+              <h2 className="font-extrabold text-[#0A0A0A]">{lang === 'en' ? 'Your cart' : 'Ton panier'}</h2>
+              <span className="text-xs text-[#6B7280]">{itemCount} {lang === 'en' ? 'items' : 'articles'}</span>
             </div>
             <div className="space-y-3 max-h-[260px] overflow-y-auto">
               {cart.items.map(it => (
                 <div key={it.cartId} className="flex gap-3 text-sm">
                   {it.previewSnapshot && (
-                    <img src={it.previewSnapshot} alt="" width={48} height={48} className="w-12 h-12 rounded-lg object-cover bg-secondary border border-border flex-shrink-0" loading="lazy" decoding="async" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                    <img src={it.previewSnapshot} alt="" width={48} height={48} className="w-12 h-12 rounded-lg object-cover bg-[#F9FAFB] border border-[#E5E7EB] flex-shrink-0" loading="lazy" decoding="async" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="font-bold text-xs truncate">{it.productName}</div>
-                    <div className="text-[11px] text-muted-foreground">× {it.totalQuantity}</div>
+                    <div className="font-bold text-xs truncate text-[#0A0A0A]">{it.productName}</div>
+                    <div className="text-[11px] text-[#6B7280]">× {it.totalQuantity}</div>
                   </div>
-                  <div className="font-bold text-xs whitespace-nowrap">{fmtMoney(it.totalPrice)} $</div>
+                  <div className="font-bold text-xs whitespace-nowrap text-[#0A0A0A]">{fmtMoney(it.totalPrice)} $</div>
                 </div>
               ))}
             </div>
-            <div className="border-t border-border mt-4 pt-3 space-y-1 text-sm">
+            <div className="border-t border-[#E5E7EB] mt-4 pt-3 space-y-1 text-sm">
               <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} muted />
               <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} muted />
               <Row label={lang === 'en' ? 'Tax' : 'Taxes'} value={`${fmtMoney(tax)} $`} muted />
@@ -1637,7 +1612,7 @@ export default function Checkout() {
                   payment-step summary so the sticky aside renders the
                   correct components for ON/BC/AB/etc. instead of forcing
                   a Quebec breakdown on every buyer. */}
-              <div className="pl-3 border-l-2 border-border/60 ml-1 space-y-0.5 text-[11px] text-muted-foreground">
+              <div className="pl-3 border-l-2 border-[#E5E7EB] ml-1 space-y-0.5 text-[11px] text-[#6B7280]">
                 {hasHst && (
                   <div className="flex justify-between">
                     <span>{hstLabel(lang)} ({fmtRate(taxRates.hst, lang)}%)</span>
@@ -1657,14 +1632,14 @@ export default function Checkout() {
                   </div>
                 )}
               </div>
-              <p className="text-[10px] text-muted-foreground italic">
+              <p className="text-[10px] text-[#6B7280] italic">
                 {lang === 'en'
                   ? 'Final total calculated by Shopify based on your shipping address.'
                   : 'Total final calculé par Shopify selon ton adresse de livraison.'}
               </p>
-              <div className="flex justify-between pt-2 mt-1 border-t border-border">
-                <span className="font-extrabold">Total</span>
-                <span className="font-extrabold text-primary">{fmtMoney(total)} $</span>
+              <div className="flex justify-between pt-2 mt-1 border-t border-[#E5E7EB]">
+                <span className="font-extrabold text-[#0A0A0A]">Total</span>
+                <span className="font-extrabold text-[#0A0A0A]">{fmtMoney(total)} $</span>
               </div>
             </div>
             <div className="mt-4">
@@ -1685,15 +1660,15 @@ export default function Checkout() {
           aside + inline button already cover that case. */}
       {step === 'payment' && (
         <div
-          className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white/95 backdrop-blur border-t border-border px-4 py-3 flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]"
+          className="fixed bottom-0 inset-x-0 z-40 lg:hidden bg-white/95 backdrop-blur border-t border-[#E5E7EB] px-4 py-3 flex items-center gap-3 shadow-[0_-8px_24px_rgba(0,0,0,0.08)]"
           role="region"
           aria-label={lang === 'en' ? 'Order total and payment action' : 'Total et paiement'}
         >
           <div className="flex-1 min-w-0">
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-bold">
+            <div className="text-[11px] uppercase tracking-wider text-[#6B7280] font-bold">
               {lang === 'en' ? 'Total' : 'Total'}
             </div>
-            <div className="text-lg font-extrabold text-primary tabular-nums">
+            <div className="text-lg font-extrabold text-[#0A0A0A] tabular-nums">
               {fmtMoney(total)} $
             </div>
           </div>
@@ -1702,7 +1677,7 @@ export default function Checkout() {
             disabled={!acceptedTerms || processing}
             onClick={handlePay}
             aria-busy={processing}
-            className="flex-1 py-3.5 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+            className="flex-1 bg-[#0052CC] hover:bg-[#003D99] text-white font-bold py-3.5 text-sm rounded-xl flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
           >
             {processing ? (
               <Loader2 size={16} className="animate-spin" aria-hidden="true" />
@@ -1769,7 +1744,7 @@ function Input({
       maxLength={maxLength}
       pattern={pattern}
       required={required}
-      className={`border rounded-lg px-3 py-2.5 text-sm outline-none focus-visible:ring-2 transition-shadow ${ariaInvalid ? 'border-rose-400 focus:border-rose-500 focus-visible:ring-rose-400/25' : 'border-border focus:border-primary focus-visible:ring-primary/25'} ${className}`}
+      className={`bg-white border rounded-lg px-4 py-3 text-base outline-none focus:ring-2 transition-shadow ${ariaInvalid ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-400/25' : 'border-[#E5E7EB] focus:border-[#0052CC] focus:ring-[#0052CC]/20'} ${className}`}
     />
   );
 }
@@ -1777,8 +1752,8 @@ function Input({
 function Row({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex justify-between">
-      <span className={muted ? 'text-muted-foreground' : ''}>{label}</span>
-      <span className={muted ? 'font-semibold' : 'font-bold'}>{value}</span>
+      <span className={muted ? 'text-[#6B7280]' : 'text-[#0A0A0A]'}>{label}</span>
+      <span className={muted ? 'font-semibold text-[#0A0A0A]' : 'font-bold text-[#0A0A0A]'}>{value}</span>
     </div>
   );
 }
