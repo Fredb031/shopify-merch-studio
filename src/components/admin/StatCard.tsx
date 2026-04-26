@@ -134,3 +134,4 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
 }
 
 export const StatCard = memo(StatCardInner);
+StatCard.displayName = 'StatCard';
