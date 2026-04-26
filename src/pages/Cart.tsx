@@ -222,7 +222,7 @@ function PromoCodeInput({
                     onMouseDown={e => { e.preventDefault(); pickSuggestion(s.code); }}
                     onMouseEnter={() => setActiveIdx(idx)}
                     className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ${
-                      active ? 'bg-[#E8A838]/15 text-foreground' : 'hover:bg-secondary text-foreground'
+                      active ? 'bg-[#0052CC]/10 text-foreground' : 'hover:bg-secondary text-foreground'
                     }`}
                   >
                     <span className="font-mono font-extrabold tracking-wider">{s.code}</span>

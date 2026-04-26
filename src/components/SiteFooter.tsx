@@ -131,7 +131,7 @@ export function SiteFooter() {
           page that already imports the footer (every layout-wrapped
           route) gets it automatically without touching App.tsx. */}
       <FooterTestimonialBar />
-    <footer className="bg-gradient-to-br from-[#0F2341] via-[#1B3A6B] to-[#0F2341] text-white pt-14 pb-8 px-6 md:px-10 mt-12">
+    <footer className="bg-[#0A0A0A] text-white pt-14 pb-8 px-6 md:px-10 mt-12">
       <div className="max-w-[1100px] mx-auto">
         {/* Newsletter signup band — prominent incentive above the link columns.
             The concrete "what you get" headline and code-reveal-on-submit convert
@@ -139,7 +139,7 @@ export function SiteFooter() {
             Mail icon anchors the offer visually on mobile where the H3 wraps. */}
         <div className="grid md:grid-cols-2 gap-8 pb-10 border-b border-white/10">
           <div>
-            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#E8A838] mb-2">
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[2px] text-[#0052CC] mb-2">
               <Gift size={12} aria-hidden="true" className="-mt-px" />
               <span>
                 {lang === 'en' ? 'Exclusive promo' : 'Promo exclusive'}
@@ -167,7 +167,7 @@ export function SiteFooter() {
                 <Mail
                   size={16}
                   aria-hidden="true"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#E8A838] pointer-events-none"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#0052CC] pointer-events-none"
                 />
                 <input
                   ref={emailInputRef}
@@ -182,8 +182,8 @@ export function SiteFooter() {
                   // so SRs re-read the hint when the user refocuses
                   // the field after the role=alert one-shot announce.
                   aria-describedby={emailErr ? 'footer-newsletter-error' : undefined}
-                  className={`w-full pl-9 pr-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#E8A838]/50 transition-shadow ${
-                    emailErr ? 'border-rose-400/70 focus:border-rose-300' : 'border-white/20 focus:border-[#E8A838]'
+                  className={`w-full pl-9 pr-4 py-3 bg-white/10 border rounded-l-xl text-sm placeholder:text-white/40 outline-none focus:bg-white/15 focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 transition-shadow ${
+                    emailErr ? 'border-rose-400/70 focus:border-rose-300' : 'border-white/20 focus:border-[#0052CC]'
                   }`}
                   autoComplete="email"
                   required
@@ -192,7 +192,7 @@ export function SiteFooter() {
               <SubmitButton
                 state={submitState}
                 disabled={!email.trim()}
-                className="px-5 bg-[#E8A838] text-[#1B3A6B] font-extrabold text-sm rounded-r-xl hover:bg-[#F0B449] disabled:opacity-60 disabled:hover:bg-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341]"
+                className="px-5 bg-[#0052CC] text-white font-extrabold text-sm rounded-r-xl hover:bg-[#003D99] disabled:opacity-60 disabled:hover:bg-[#0052CC] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A]"
               >
                 {lang === 'en' ? 'Subscribe' : "S'abonner"}
               </SubmitButton>
@@ -227,10 +227,10 @@ export function SiteFooter() {
               {lang === 'en' ? 'Shop' : 'Boutique'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/products" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'All products' : 'Tous les produits'}</Link></li>
-              <li><Link to="/products?cat=tshirts" className="text-white/80 hover:text-[#E8A838]">T-Shirts</Link></li>
-              <li><Link to="/products?cat=chandails" className="text-white/80 hover:text-[#E8A838]">Hoodies</Link></li>
-              <li><Link to="/products?cat=headwear" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques'}</Link></li>
+              <li><Link to="/products" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'All products' : 'Tous les produits'}</Link></li>
+              <li><Link to="/products?cat=tshirts" className="text-white/80 hover:text-[#0052CC]">T-Shirts</Link></li>
+              <li><Link to="/products?cat=chandails" className="text-white/80 hover:text-[#0052CC]">Hoodies</Link></li>
+              <li><Link to="/products?cat=headwear" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques'}</Link></li>
             </ul>
           </div>
 
@@ -243,15 +243,15 @@ export function SiteFooter() {
                   home-page anchor, which 404'd the hash scroll when the
                   visitor was on a subpage. /about is a real route with
                   the founder story, values, and stat tiles. */}
-              <li><Link to="/about" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'About us' : 'À propos'}</Link></li>
-              <li><a href="#testimonials" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Testimonials' : 'Témoignages'}</a></li>
-              <li><a href="#how-it-works" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'How it works' : 'Comment ça marche'}</a></li>
+              <li><Link to="/about" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'About us' : 'À propos'}</Link></li>
+              <li><a href="#testimonials" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'Testimonials' : 'Témoignages'}</a></li>
+              <li><a href="#how-it-works" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'How it works' : 'Comment ça marche'}</a></li>
               {/* Volume II §05.2 — B2B Net 30 application entrypoint.
                   Sits in the Company column (the closest "Informations"
                   surface) so prospects who don't pay by credit card —
                   municipalities, school boards, condo management, large
                   corporates — discover the form without combing the nav. */}
-              <li><Link to="/compte-corporatif" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Corporate account' : 'Compte corporatif'}</Link></li>
+              <li><Link to="/compte-corporatif" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'Corporate account' : 'Compte corporatif'}</Link></li>
             </ul>
           </div>
 
@@ -260,14 +260,14 @@ export function SiteFooter() {
               {lang === 'en' ? 'Support' : 'Aide'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/track" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'Track an order' : 'Suivre une commande'}</Link></li>
-              <li><Link to="/account" className="text-white/80 hover:text-[#E8A838]">{lang === 'en' ? 'My account' : 'Mon compte'}</Link></li>
+              <li><Link to="/track" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'Track an order' : 'Suivre une commande'}</Link></li>
+              <li><Link to="/account" className="text-white/80 hover:text-[#0052CC]">{lang === 'en' ? 'My account' : 'Mon compte'}</Link></li>
               {/* Task 11.10 — previously this pointed to a raw mailto:,
                   which left mobile users without a Mail client stranded.
                   /contact resolves to a real page with phone, map, hours,
                   and a form fallback; the mailto is still one click
                   deeper in the contact card on that page. */}
-              <li><Link to="/contact" className="text-white/80 hover:text-[#E8A838]">Contact</Link></li>
+              <li><Link to="/contact" className="text-white/80 hover:text-[#0052CC]">Contact</Link></li>
             </ul>
           </div>
 
@@ -282,10 +282,10 @@ export function SiteFooter() {
               {lang === 'en' ? 'Legal' : 'Légal'}
             </h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/privacy" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Privacy policy' : 'Politique de confidentialité'}</Link></li>
-              <li><Link to="/terms" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Terms of service' : "Conditions d'utilisation"}</Link></li>
-              <li><Link to="/returns" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Return policy' : 'Politique de retour'}</Link></li>
-              <li><Link to="/accessibility" className="text-white/80 hover:text-[#E8A838] hover:underline underline-offset-4 decoration-[#E8A838]/60">{lang === 'en' ? 'Accessibility' : 'Accessibilité'}</Link></li>
+              <li><Link to="/privacy" className="text-white/80 hover:text-[#0052CC] hover:underline underline-offset-4 decoration-[#0052CC]/60">{lang === 'en' ? 'Privacy policy' : 'Politique de confidentialité'}</Link></li>
+              <li><Link to="/terms" className="text-white/80 hover:text-[#0052CC] hover:underline underline-offset-4 decoration-[#0052CC]/60">{lang === 'en' ? 'Terms of service' : "Conditions d'utilisation"}</Link></li>
+              <li><Link to="/returns" className="text-white/80 hover:text-[#0052CC] hover:underline underline-offset-4 decoration-[#0052CC]/60">{lang === 'en' ? 'Return policy' : 'Politique de retour'}</Link></li>
+              <li><Link to="/accessibility" className="text-white/80 hover:text-[#0052CC] hover:underline underline-offset-4 decoration-[#0052CC]/60">{lang === 'en' ? 'Accessibility' : 'Accessibilité'}</Link></li>
             </ul>
           </div>
 
@@ -295,15 +295,15 @@ export function SiteFooter() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2 text-white/80">
-                <Phone size={12} className="text-[#E8A838]" aria-hidden="true" />
-                <a href="tel:+13673804808" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">367-380-4808</a>
+                <Phone size={12} className="text-[#0052CC]" aria-hidden="true" />
+                <a href="tel:+13673804808" className="hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] rounded">367-380-4808</a>
               </li>
               <li className="flex items-center gap-2 text-white/80 break-all">
-                <Mail size={12} className="text-[#E8A838]" aria-hidden="true" />
-                <a href="mailto:info@visionaffichage.com" className="hover:text-[#E8A838] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded">info@visionaffichage.com</a>
+                <Mail size={12} className="text-[#0052CC]" aria-hidden="true" />
+                <a href="mailto:info@visionaffichage.com" className="hover:text-[#0052CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] rounded">info@visionaffichage.com</a>
               </li>
               <li className="flex items-center gap-2 text-white/80">
-                <MapPin size={12} className="text-[#E8A838]" aria-hidden="true" />
+                <MapPin size={12} className="text-[#0052CC]" aria-hidden="true" />
                 Québec, Canada
               </li>
             </ul>
@@ -326,7 +326,7 @@ export function SiteFooter() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Instagram @visionaffichage"
-            className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+            className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-[#0052CC] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] rounded"
           >
             <Instagram size={18} aria-hidden="true" />
             <span>@visionaffichage</span>
@@ -336,7 +336,7 @@ export function SiteFooter() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="Facebook @visionaffichage"
-            className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-[#E8A838] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0F2341] rounded"
+            className="inline-flex items-center gap-1.5 text-sm text-white/80 hover:text-[#0052CC] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] rounded"
           >
             <Facebook size={18} aria-hidden="true" />
             <span>@visionaffichage</span>

@@ -212,9 +212,9 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
               ? (lang === 'en' ? `Remove ${title} from wishlist` : `Retirer ${title} des favoris`)
               : (lang === 'en' ? `Save ${title} to wishlist` : `Ajouter ${title} aux favoris`)}
             aria-pressed={saved}
-            className={`absolute top-2.5 right-2.5 z-[5] w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8A838] focus-visible:ring-offset-1 ${
+            className={`absolute top-2.5 right-2.5 z-[5] w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border flex items-center justify-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 ${
               saved
-                ? 'border-[#E8A838] text-[#B37D10]'
+                ? 'border-[#DC2626] text-[#DC2626]'
                 : 'border-white/70 text-muted-foreground hover:text-foreground hover:border-border'
             }`}
             style={{ overflow: 'visible' }}

@@ -368,7 +368,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                 className="flex flex-col items-center justify-center py-12 px-4 text-center"
               >
                 <div className="relative w-24 h-24 mb-5">
-                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#E8A838]/10 blur-xl" aria-hidden="true" />
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#0052CC]/10 to-[#0052CC]/5 blur-xl" aria-hidden="true" />
                   <div className="relative w-24 h-24 rounded-full bg-secondary border-2 border-border flex items-center justify-center">
                     <ShoppingBag size={32} className="text-[#0052CC]" strokeWidth={1.5} aria-hidden="true" />
                   </div>
@@ -382,7 +382,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                 <button
                   type="button"
                   onClick={() => { onClose(); navigate('/products'); }}
-                  className="text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                  className="text-sm font-extrabold text-primary-foreground gradient-navy px-5 py-2.5 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
                 >
                   {t('explorerProduits')}
                 </button>
@@ -545,7 +545,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                               onMouseDown={e => { e.preventDefault(); pickPromoSuggestion(s.code); }}
                               onMouseEnter={() => setPromoActiveIdx(idx)}
                               className={`w-full flex items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors ${
-                                active ? 'bg-[#E8A838]/15 text-foreground' : 'hover:bg-secondary text-foreground'
+                                active ? 'bg-[#0052CC]/10 text-foreground' : 'hover:bg-secondary text-foreground'
                               }`}
                             >
                               <span className="font-mono font-extrabold tracking-wider">{s.code}</span>
@@ -580,8 +580,8 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
               }
               const ratePct = Math.round(rate * 100);
               return (
-                <div className="flex items-center gap-2 px-3 py-2 bg-[#E8A838]/10 border border-[#E8A838]/30 rounded-xl">
-                  <Tag size={11} className="text-[#E8A838]" aria-hidden="true" />
+                <div className="flex items-center gap-2 px-3 py-2 bg-[#059669]/10 border border-[#059669]/30 rounded-xl">
+                  <Tag size={11} className="text-[#059669]" aria-hidden="true" />
                   <span className="text-xs font-bold text-foreground flex-1 truncate">
                     {lang === 'en' ? 'Discount' : 'Rabais'}{' '}
                     <code className="font-mono">{cart.discountCode}</code>
@@ -592,7 +592,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                     )}
                   </span>
                   {savings > 0 && (
-                    <span className="text-xs font-extrabold text-[#E8A838] tabular-nums">
+                    <span className="text-xs font-extrabold text-[#059669] tabular-nums">
                       −{fmtMoney(savings)} $
                     </span>
                   )}
@@ -697,7 +697,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                 stays accessible via the secondary text link below. */}
             <button
               type="button"
-              className="w-full bg-[#0052CC] text-white font-bold text-sm py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#003e99] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="w-full bg-[#0052CC] text-white font-bold text-sm py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#003D99] transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
               onClick={() => { onClose(); navigate('/checkout'); }}
             >
               {lang === 'en' ? 'Checkout' : 'Passer au paiement'}{' '}

@@ -92,12 +92,12 @@ const REVIEWS = [
   { init: 'WB', name: 'William Barry',          color: '#1a3d2e', txt: 'Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\u2019une PME.' },
   { init: 'JP', name: 'Jean-Philippe N.-L.',    color: '#5f1f1f', txt: 'Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!' },
   { init: 'MC', name: 'Marie-Claude Tremblay',  color: '#4C1D95', txt: 'On a commandé des hoodies pour toute notre équipe et le résultat était impeccable. Livraison rapide, qualité premium. On recommande!' },
-  { init: 'PD', name: 'Patrick Dubois',         color: '#0F2341', txt: 'Excellente expérience du début à la fin. L\u2019outil de personnalisation est génial et le produit final a dépassé nos attentes.' },
+  { init: 'PD', name: 'Patrick Dubois',         color: '#0A0A0A', txt: 'Excellente expérience du début à la fin. L\u2019outil de personnalisation est génial et le produit final a dépassé nos attentes.' },
   { init: 'AB', name: 'Audrey Bergeron',        color: '#6B1B1B', txt: 'Parfait pour notre compagnie de construction. Qualité solide, délai rapide, prix compétitifs. Notre référence pour tout notre merch.' },
 ];
 
 const StarSvg = () => (
-  <svg className="w-3 h-3 fill-[#E8A838]" viewBox="0 0 24 24">
+  <svg className="w-3 h-3 fill-[#F59E0B]" viewBox="0 0 24 24">
     <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
   </svg>
 );

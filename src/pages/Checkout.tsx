@@ -1798,7 +1798,7 @@ function DoneState({
   // without pulling in a heavy library. Math.random is fine here — we
   // render once per mount and the visual doesn't need to be reproducible.
   const confettiPieces = useMemo(() => {
-    const colors = ['#0052CC', '#E8A838', '#10B981', '#EC4899', '#8B5CF6', '#F59E0B'];
+    const colors = ['#0052CC', '#003D99', '#059669', '#0EA5E9', '#8B5CF6', '#F59E0B'];
     return Array.from({ length: 24 }, (_, i) => ({
       id: i,
       left: Math.random() * 100,
@@ -1938,7 +1938,7 @@ function DoneState({
           {orderNumber.trim() && (
             <Link
               to={`/track/${encodeURIComponent(orderNumber.trim())}`}
-              className="flex-1 py-3 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold text-center hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+              className="flex-1 py-3 gradient-navy-dark text-primary-foreground rounded-xl text-sm font-extrabold text-center hover:shadow-xl transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Track order' : 'Suivre ma commande'}
             </Link>

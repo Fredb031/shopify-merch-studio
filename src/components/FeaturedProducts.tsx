@@ -26,7 +26,7 @@ export function FeaturedProducts() {
         <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2">
-              <Star size={12} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />
+              <Star size={12} className="fill-[#F59E0B] text-[#F59E0B]" aria-hidden="true" />
               {lang === 'en' ? 'Most ordered' : 'Les plus commandés'}
             </div>
             <h2 className="text-[clamp(28px,4vw,42px)] font-extrabold tracking-[-1px] text-foreground leading-tight">
@@ -79,8 +79,8 @@ export function FeaturedProducts() {
                   decoding="async"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />
-                <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#1B3A6B] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
-                  <Star size={9} className="fill-[#E8A838] text-[#E8A838]" aria-hidden="true" />
+                <div className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-sm text-[#0A0A0A] text-[10px] font-extrabold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+                  <Star size={9} className="fill-[#F59E0B] text-[#F59E0B]" aria-hidden="true" />
                   {lang === 'en' ? 'Top' : 'Top'}
                 </div>
               </div>

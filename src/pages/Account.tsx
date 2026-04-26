@@ -185,7 +185,7 @@ export default function Account() {
             <div className="flex gap-3 justify-center">
               <Link
                 to="/admin/login"
-                className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="inline-flex items-center gap-2 text-sm font-extrabold text-primary-foreground gradient-navy px-6 py-3 rounded-full shadow-navy focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Sign in' : 'Se connecter'}
               </Link>
@@ -321,8 +321,8 @@ export default function Account() {
         <div className="bg-white border border-border rounded-2xl p-5 md:p-6 mb-5 flex items-center gap-4">
           <div className={`w-16 h-16 rounded-full text-white flex items-center justify-center text-xl font-extrabold flex-shrink-0 ${
             user.role === 'president'
-              ? 'bg-gradient-to-br from-[#E8A838] to-[#B37D10] ring-2 ring-[#E8A838]/30'
-              : 'bg-gradient-to-br from-[#0052CC] to-[#1B3A6B]'
+              ? 'bg-gradient-to-br from-[#F59E0B] to-[#D97706] ring-2 ring-[#F59E0B]/30'
+              : 'bg-gradient-to-br from-[#0052CC] to-[#003D99]'
           }`}>
             {user.initials}
           </div>
@@ -368,7 +368,7 @@ export default function Account() {
               {totalSpent.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 0 })} $
             </div>
           </div>
-          <Link to="/products" className="bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white rounded-2xl p-4 hover:shadow-lg transition-shadow focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2">
+          <Link to="/products" className="bg-gradient-to-br from-[#0052CC] to-[#003D99] text-white rounded-2xl p-4 hover:shadow-lg transition-shadow focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2">
             <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
               {lang === 'en' ? 'Reorder' : 'Recommander'}
             </div>
@@ -569,7 +569,7 @@ export default function Account() {
                 onClick={handleExportData}
                 disabled={exporting}
                 aria-busy={exporting || undefined}
-                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 <Download size={14} aria-hidden="true" />
                 {lang === 'en' ? 'Download my data (JSON)' : 'Télécharger mes données (JSON)'}

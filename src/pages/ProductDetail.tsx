@@ -675,7 +675,7 @@ export default function ProductDetail() {
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
+                className="text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Retry' : 'Réessayer'}
               </button>
@@ -1080,7 +1080,7 @@ export default function ProductDetail() {
                     : (lang === 'en' ? 'Save' : 'Enregistrer')}
                   className={`w-11 h-11 rounded-full border flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                     saved
-                      ? 'border-[#E8A838] bg-[#E8A838]/10 text-[#B37D10]'
+                      ? 'border-[#DC2626] bg-[#DC2626]/10 text-[#DC2626]'
                       : 'border-border text-muted-foreground hover:text-foreground hover:border-primary'
                   }`}
                   style={{ overflow: 'visible' }}

@@ -195,7 +195,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
               aria-label={lang === 'en' ? `Account menu for ${user.name}` : `Menu compte de ${user.name}`}
             >
               <span className="hidden sm:inline text-muted-foreground" aria-hidden="true">{user.name.split(' ')[0]}</span>
-              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0052CC] to-[#1B3A6B] text-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
+              <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#0052CC] to-[#003D99] text-white flex items-center justify-center text-[10px] font-extrabold" aria-hidden="true">
                 {user.initials}
               </span>
             </button>
