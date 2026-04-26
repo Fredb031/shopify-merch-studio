@@ -25,5 +25,10 @@ export const WA_MESSAGES = {
  * native app correctly).
  */
 export function waLink(message: string): string {
-  return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(message)}`;
+  // Guard against undefined/empty: encodeURIComponent(undefined) yields the
+  // literal "undefined", which would prefill the chat with garbage.
+  const text = typeof message === 'string' && message.length > 0
+    ? message
+    : WA_MESSAGES.default;
+  return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
 }
