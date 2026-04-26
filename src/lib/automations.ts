@@ -246,10 +246,17 @@ export function readAutomationFlags(): AutomationFlagMap {
 
 /** Persist the admin's automation override map; no-ops on SSR or quota errors. */
 export function writeAutomationFlags(flags: AutomationFlagMap): void {
+  // Mirror readAutomationFlags' validation on the write path so a
+  // caller passing a TS-cast invalid status doesn't leave stale junk
+  // bytes in localStorage that the reader will silently discard.
+  const sanitized: AutomationFlagMap = {};
+  for (const [k, v] of Object.entries(flags)) {
+    if (v === 'active' || v === 'paused') sanitized[k] = v;
+  }
   // writeLS handles the quota/private-mode guard + the SSR-safe early
   // return. Overrides just won't persist on failure — callers don't
   // branch on the return value.
-  writeLS(AUTOMATION_FLAGS_KEY, flags);
+  writeLS(AUTOMATION_FLAGS_KEY, sanitized);
 }
 
 /** Merge stored overrides on top of the seed defaults. */
