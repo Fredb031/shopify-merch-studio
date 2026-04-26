@@ -49,7 +49,11 @@ type TabId = 'orders' | 'notes' | 'activity' | 'tags';
 function initials(c: ShopifyCustomerSnapshot): string {
   const first = (c.firstName?.[0] ?? '').toUpperCase();
   const last = (c.lastName?.[0] ?? '').toUpperCase();
-  return (first + last) || c.email[0].toUpperCase();
+  // Empty-email defense: snapshots backfilled from Shopify guest orders
+  // can have a blank email, so c.email[0] would be undefined and crash
+  // the avatar render. Fall back to '?' so the initials block always
+  // renders something legible.
+  return (first + last) || (c.email?.[0] ?? '?').toUpperCase();
 }
 
 function fullName(c: ShopifyCustomerSnapshot): string {
