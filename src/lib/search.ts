@@ -162,6 +162,11 @@ function escapeRegex(s: string): string {
  * list — the dropdown should stay closed until the query is meaningful.
  */
 export function search(query: string): SearchIndexEntry[] {
+  // Defensive: callers wire this to an <input value>, which can occasionally
+  // surface as null/undefined (cleared programmatically, hydration race).
+  // Bail early instead of throwing inside .normalize().
+  if (typeof query !== 'string' || query.length === 0) return [];
+
   const normalised = normalise(query);
   if (normalised.length < MIN_QUERY_LENGTH) return [];
 
