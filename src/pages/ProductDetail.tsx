@@ -2390,6 +2390,11 @@ function PhotoZoomOverlay({
       <img
         src={current.url}
         alt={current.alt}
+        width={1200}
+        height={1200}
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
         className="max-w-[95vw] max-h-[85vh] object-contain select-none"
         style={{ touchAction: 'pinch-zoom' }}
         draggable={false}
@@ -2433,6 +2438,8 @@ function PhotoZoomOverlay({
                   src={shot.url}
                   alt=""
                   aria-hidden="true"
+                  width={48}
+                  height={48}
                   loading="lazy"
                   decoding="async"
                   className="absolute inset-0 w-full h-full object-cover"
@@ -2877,6 +2884,8 @@ function DesktopStickyCTA({
             src={thumbnail}
             alt=""
             aria-hidden="true"
+            width={56}
+            height={56}
             loading="lazy"
             decoding="async"
             className="w-14 h-14 rounded-lg object-cover bg-secondary shrink-0 border border-[#E5E7EB]"

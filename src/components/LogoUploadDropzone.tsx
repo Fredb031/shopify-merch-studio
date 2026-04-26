@@ -115,7 +115,7 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
       <div className="relative border-2 border-emerald-300 bg-emerald-50/40 rounded-2xl p-4 flex items-center gap-4">
         <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center flex-shrink-0 overflow-hidden border border-emerald-200">
           {isImage ? (
-            <img src={preview} alt={lang === 'en' ? `Logo preview: ${file.name}` : `Aperçu du logo : ${file.name}`} className="w-full h-full object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+            <img src={preview} alt={lang === 'en' ? `Logo preview: ${file.name}` : `Aperçu du logo : ${file.name}`} width={64} height={64} loading="lazy" decoding="async" className="w-full h-full object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
           ) : (
             <FileImage size={28} className="text-emerald-600" aria-hidden="true" />
           )}

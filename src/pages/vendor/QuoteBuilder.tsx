@@ -694,7 +694,7 @@ export default function QuoteBuilder() {
                 className="text-left border border-zinc-200 rounded-lg overflow-hidden hover:border-[#0052CC] hover:shadow-md transition-all bg-white group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
               >
                 <div className="aspect-square bg-zinc-100 relative">
-                  {p.imageDevant && <img src={p.imageDevant} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />}
+                  {p.imageDevant && <img src={p.imageDevant} alt="" width={400} height={400} loading="lazy" decoding="async" className="w-full h-full object-cover" />}
                   <div className="absolute inset-0 bg-[#0052CC]/0 group-hover:bg-[#0052CC]/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                     <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md">
                       <Plus size={16} className="text-[#0052CC]" aria-hidden="true" />
@@ -946,7 +946,7 @@ function QuoteLineItemRow({
        *  re-reflowing. Desktop stays one tight row. */}
       <div className="flex flex-col md:flex-row md:items-start md:gap-4 p-4 border-b border-zinc-100">
         <div className="flex gap-4 flex-1 min-w-0">
-          <img src={item.image} alt="" className="w-16 h-16 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
+          <img src={item.image} alt="" width={64} height={64} loading="lazy" decoding="async" className="w-16 h-16 rounded-lg object-cover bg-zinc-100 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="text-[11px] text-zinc-500 uppercase tracking-wider">Produit</div>
             <div className="font-bold text-sm truncate">{item.productName}</div>

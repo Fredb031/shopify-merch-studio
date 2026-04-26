@@ -33,7 +33,7 @@ function SideThumb({
   const lw = placement?.width ?? 28;
   return (
     <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-border bg-secondary flex-shrink-0">
-      {img && <img src={img} alt={alt} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />}
+      {img && <img src={img} alt={alt} width={64} height={64} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />}
       {color && color.hex !== '#F2F0EB' && (
         <div
           className="absolute inset-0"

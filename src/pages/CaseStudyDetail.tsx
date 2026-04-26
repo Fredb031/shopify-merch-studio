@@ -43,6 +43,7 @@ function HeroImage({ src, alt }: { src: string; alt: string }) {
       width={900}
       height={600}
       loading="eager"
+      fetchPriority="high"
       decoding="async"
       className="w-full h-full rounded-[22px] aspect-[3/2] object-cover"
       onError={() => setFailed(true)}

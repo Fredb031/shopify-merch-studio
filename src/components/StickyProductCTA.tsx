@@ -196,6 +196,8 @@ export function StickyProductCTA({
             src={thumbnail}
             alt=""
             aria-hidden="true"
+            width={48}
+            height={48}
             loading="lazy"
             decoding="async"
             className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0 border border-border"

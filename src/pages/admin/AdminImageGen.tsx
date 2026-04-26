@@ -546,6 +546,8 @@ export default function AdminImageGen() {
                       // for what should be a glanceable thumbnail. Full
                       // prompt still lives below the image.
                       alt={img.prompt.length > 120 ? `${img.prompt.slice(0, 117)}…` : img.prompt}
+                      width={400}
+                      height={400}
                       loading="lazy"
                       decoding="async"
                       className="w-full h-full object-cover"

@@ -226,6 +226,10 @@ function LogoAttachmentCard({
         <img
           src={logo.previewUrl}
           alt={logo.label}
+          width={64}
+          height={64}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-contain"
           onError={e => {
             // Broken CDN link shouldn't leave a "missing image" icon
