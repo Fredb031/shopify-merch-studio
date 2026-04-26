@@ -43,7 +43,9 @@ function fullName(c: ShopifyCustomerSnapshot): string {
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('fr-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 // Best-effort company derivation from the snapshot until the
