@@ -241,6 +241,12 @@ const NOTIFS_READ_UNTIL_KEY = 'vision-admin-notifs-read-until';
 // prefers-color-scheme media query. Stored as a single string so a
 // later migration can extend the enum without renaming the key.
 const THEME_KEY = 'vision-admin-theme';
+// "As-of" timestamp for the bundled Shopify snapshot. Lifted to module
+// scope so it's parsed once at load time instead of on every render of
+// AdminLayout. When the snapshot in src/data/shopifySnapshot.ts is
+// refreshed, bump this date to match so mark-all-read greys out the
+// right batch of notifications.
+const SNAPSHOT_AS_OF = Date.parse('2026-04-18T00:00:00Z');
 
 type AdminTheme = 'light' | 'dark' | 'system';
 
@@ -325,7 +331,6 @@ export function AdminLayout() {
   // notification older than that stamp greys out. This lets the admin
   // acknowledge the current batch and only see *new* items light up
   // once the snapshot is refreshed to a later date.
-  const SNAPSHOT_AS_OF = Date.parse('2026-04-18T00:00:00Z');
   const isStale = notifsReadUntil > 0 && SNAPSHOT_AS_OF <= notifsReadUntil;
   // Badge math: show the exact count up to 9; anything larger
   // collapses to "9+" so the dot stays a dot. Cast to string for
