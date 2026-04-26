@@ -15,6 +15,7 @@ import { fmtMoney as fmtCAD } from '@/lib/format';
 import { trackEvent } from '@/lib/analytics';
 import { readLS, writeLS } from '@/lib/storage';
 import { sanitizeText } from '@/lib/sanitize';
+import { computeTax, fmtRate, gstLabel, hstLabel, pstLabel } from '@/lib/tax';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
@@ -39,13 +40,14 @@ interface ShippingForm {
   poNumber: string;
 }
 
-// Quebec effective combined rate is 14.975% (5% GST + 9.975% QST).
-// We break out each component for the order summary so buyers can see
-// where the tax number came from — federal GST and provincial QST
-// are separate line items on any Quebec invoice.
-const GST_RATE = 0.05;
-const QST_RATE = 0.09975;
-const TAX_RATE = GST_RATE + QST_RATE; // 0.14975 — QST + GST combined for Quebec
+// Audit P1 #5 — tax rates moved to `src/lib/tax.ts` and made province-
+// aware. Previously Checkout hardcoded GST 5% + QST 9.975% for every
+// buyer regardless of `form.province`, so ON / BC / AB shoppers saw a
+// Quebec line on the summary and a total that wouldn't match the amount
+// Shopify actually charged at the final step. `computeTax()` now returns
+// a per-province breakdown (HST for ON/Atlantic, GST+PST for BC/SK/MB,
+// GST-only for AB/Territories, GST+QST for QC) and the summary renders
+// only the components that apply.
 
 // Shipping options shown as radio tiles on the Shipping step. Each tile
 // renders the method name, price, a computed ETA date (skipping weekends,
@@ -602,11 +604,21 @@ export default function Checkout() {
   const subtotal = cart.getTotal();
   const shippingCost = SHIPPING_OPTIONS[shippingMethod].price;
   const taxableBase = subtotal + shippingCost;
-  const gst = taxableBase * GST_RATE;
-  const qst = taxableBase * QST_RATE;
-  const tax = gst + qst;
+  // Audit P1 #5 — province-aware tax. Falls back to QC when the
+  // province field is empty / unknown, preserving prior behaviour for
+  // the most common case while honouring buyers shipping outside QC.
+  const taxBreakdown = computeTax(taxableBase, form.province);
+  const { gst, pst, hst, total: tax, province: taxProvince, rates: taxRates } = taxBreakdown;
   const total = subtotal + shippingCost + tax;
   const itemCount = cart.getItemCount();
+  // Branch flags so the JSX summary renders only the lines that apply
+  // to the resolved province. HST provinces show a single "TVH" line;
+  // GST+PST provinces (BC/SK/MB) show GST + a provincial PST line;
+  // GST-only (AB / Territories) shows just the GST line; QC shows the
+  // historic GST + QST split.
+  const hasHst = taxRates.hst > 0;
+  const hasPst = taxRates.pst > 0;
+  const hasGst = taxRates.gst > 0;
 
   // Match the locale-aware money formatting used on Cart /
   // FeaturedProducts / WishlistGrid / ProductDetailBulkCalc so French
@@ -1346,19 +1358,37 @@ export default function Checkout() {
                   <div className="space-y-1 text-sm">
                     <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} />
                     <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} />
-                    <Row label={lang === 'en' ? 'Tax (14.975%)' : 'Taxes (14.975%)'} value={`${fmtMoney(tax)} $`} />
-                    {/* QC invoices must show GST + QST separately. Indented
-                        to read as a breakdown of the combined tax line. */}
+                    <Row label={lang === 'en' ? 'Tax' : 'Taxes'} value={`${fmtMoney(tax)} $`} />
+                    {/* Audit P1 #5 — render only the tax components that
+                        apply to the resolved province. HST provinces get
+                        a single line; GST+PST provinces get two; GST-only
+                        provinces get one; QC keeps the historic GST + QST
+                        split. Indented under the combined tax line. */}
                     <div className="pl-3 border-l-2 border-border/60 ml-1 space-y-0.5 text-xs text-muted-foreground">
-                      <div className="flex justify-between">
-                        <span>{lang === 'en' ? 'GST (5%)' : 'TPS (5%)'}</span>
-                        <span className="font-semibold">{fmtMoney(gst)} $</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>{lang === 'en' ? 'QST (9.975%)' : 'TVQ (9,975%)'}</span>
-                        <span className="font-semibold">{fmtMoney(qst)} $</span>
-                      </div>
+                      {hasHst && (
+                        <div className="flex justify-between">
+                          <span>{hstLabel(lang)} ({fmtRate(taxRates.hst, lang)}%)</span>
+                          <span className="font-semibold">{fmtMoney(hst)} $</span>
+                        </div>
+                      )}
+                      {hasGst && (
+                        <div className="flex justify-between">
+                          <span>{gstLabel(lang)} ({fmtRate(taxRates.gst, lang)}%)</span>
+                          <span className="font-semibold">{fmtMoney(gst)} $</span>
+                        </div>
+                      )}
+                      {hasPst && (
+                        <div className="flex justify-between">
+                          <span>{pstLabel(taxProvince, lang)} ({fmtRate(taxRates.pst, lang)}%)</span>
+                          <span className="font-semibold">{fmtMoney(pst)} $</span>
+                        </div>
+                      )}
                     </div>
+                    <p className="text-[11px] text-muted-foreground italic mt-1">
+                      {lang === 'en'
+                        ? 'Final total calculated by Shopify based on your shipping address.'
+                        : 'Total final calculé par Shopify selon ton adresse de livraison.'}
+                    </p>
                     <div className="border-t border-border pt-2 mt-2 flex justify-between items-baseline">
                       <span className="font-extrabold">Total</span>
                       <span className="text-2xl font-extrabold text-primary">{fmtMoney(total)} $ CAD</span>
@@ -1603,18 +1633,35 @@ export default function Checkout() {
               <Row label={lang === 'en' ? 'Subtotal' : 'Sous-total'} value={`${fmtMoney(subtotal)} $`} muted />
               <Row label={lang === 'en' ? 'Shipping' : 'Livraison'} value={shippingCost === 0 ? lang === 'en' ? 'Free' : 'Gratuit' : `${fmtMoney(shippingCost)} $`} muted />
               <Row label={lang === 'en' ? 'Tax' : 'Taxes'} value={`${fmtMoney(tax)} $`} muted />
-              {/* Mirror the GST/QST split from the payment-step summary so
-                  the sticky aside shows the same breakdown on every step. */}
+              {/* Audit P1 #5 — mirror the province-aware split from the
+                  payment-step summary so the sticky aside renders the
+                  correct components for ON/BC/AB/etc. instead of forcing
+                  a Quebec breakdown on every buyer. */}
               <div className="pl-3 border-l-2 border-border/60 ml-1 space-y-0.5 text-[11px] text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>{lang === 'en' ? 'GST (5%)' : 'TPS (5%)'}</span>
-                  <span className="font-semibold">{fmtMoney(gst)} $</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{lang === 'en' ? 'QST (9.975%)' : 'TVQ (9,975%)'}</span>
-                  <span className="font-semibold">{fmtMoney(qst)} $</span>
-                </div>
+                {hasHst && (
+                  <div className="flex justify-between">
+                    <span>{hstLabel(lang)} ({fmtRate(taxRates.hst, lang)}%)</span>
+                    <span className="font-semibold">{fmtMoney(hst)} $</span>
+                  </div>
+                )}
+                {hasGst && (
+                  <div className="flex justify-between">
+                    <span>{gstLabel(lang)} ({fmtRate(taxRates.gst, lang)}%)</span>
+                    <span className="font-semibold">{fmtMoney(gst)} $</span>
+                  </div>
+                )}
+                {hasPst && (
+                  <div className="flex justify-between">
+                    <span>{pstLabel(taxProvince, lang)} ({fmtRate(taxRates.pst, lang)}%)</span>
+                    <span className="font-semibold">{fmtMoney(pst)} $</span>
+                  </div>
+                )}
               </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                {lang === 'en'
+                  ? 'Final total calculated by Shopify based on your shipping address.'
+                  : 'Total final calculé par Shopify selon ton adresse de livraison.'}
+              </p>
               <div className="flex justify-between pt-2 mt-1 border-t border-border">
                 <span className="font-extrabold">Total</span>
                 <span className="font-extrabold text-primary">{fmtMoney(total)} $</span>
