@@ -38,6 +38,9 @@ const EMPTY_SUMMARY: StockSummary = Object.freeze({
   byColorSize: EMPTY_BY_COLOR_SIZE as Map<string, number>,
 }) as StockSummary;
 
+const STALE_TIME_MS = 5 * 60 * 1000;
+const GC_TIME_MS = 60 * 60 * 1000;
+
 export function useSanmarInventory(styleNumber: string | null | undefined): SanmarInventoryResult {
   // Normalize before the cache key so 'ATCF2500', ' atcf2500 ', and
   // 'atcf2500\n' all hit the same React Query entry instead of firing
@@ -60,12 +63,12 @@ export function useSanmarInventory(styleNumber: string | null | undefined): Sanm
     // drops within a reasonable window. Shorter than the 30-min catalog
     // cache because inventory is the one SanMar surface that actually
     // changes during a browsing session.
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE_TIME_MS,
     // Keep inventory in memory for 1 hour after unmount so bouncing
     // between a PDP, the cart, and back doesn't re-fetch when the stale
     // window hasn't even closed yet — the query just re-hydrates from
     // the cache instead of sending the edge function another request.
-    gcTime: 60 * 60 * 1000,
+    gcTime: GC_TIME_MS,
     retry: 1,
   });
 
