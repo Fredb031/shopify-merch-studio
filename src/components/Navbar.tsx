@@ -104,6 +104,10 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
   );
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 100);
+    // Re-sync on mount: browsers may restore scroll position AFTER the
+    // useState initializer ran (back/forward cache, hash navigation),
+    // leaving the navbar transparent over already-scrolled content.
+    onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
