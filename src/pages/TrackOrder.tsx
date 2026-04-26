@@ -9,6 +9,7 @@ import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { SHOPIFY_ORDERS_SNAPSHOT } from '@/data/shopifySnapshot';
 import { isValidEmail, normalizeInvisible } from '@/lib/utils';
+import { getOrderStatus, getCarrierTrackingUrl, type OrderStage } from '@/lib/orderTracking';
 
 type Stage = 'pending' | 'production' | 'shipped' | 'delivered';
 
@@ -32,6 +33,18 @@ function deriveStage(o: typeof SHOPIFY_ORDERS_SNAPSHOT[0]): Stage {
   if (o.fulfillmentStatus === 'partial') return 'shipped';
   if (o.financialStatus === 'paid') return 'production';
   return 'pending';
+}
+
+/**
+ * Map the orderTracking lib's OrderStage to this page's local Stage
+ * union. The lib uses "received" (matches the brief's "Commande reçue"
+ * literal) while the snapshot path has historically called the same
+ * thing "pending". Keeping both unions and bridging them here avoids
+ * touching the snapshot-derived deriveStage logic.
+ */
+function mapMockStage(s: OrderStage): Stage {
+  if (s === 'received') return 'pending';
+  return s;
 }
 
 /** Public order-tracking page — gated lookup (order # + email) over the Shopify snapshot, with copy/share/print and timeline UI. */
@@ -79,6 +92,19 @@ export default function TrackOrder() {
       return matchNumber && matchEmail;
     }) ?? null;
   }, [searchInput, emailInput]);
+
+  // Mega Blueprint §16 mock fallback — when the URL carries an order
+  // number AND the customer-data Shopify snapshot didn't match (most
+  // common case: operator seeded a row into localStorage `va:orders`
+  // for support/QA before the real Shopify webhook sync exists), fall
+  // through to the orderTracking lib. The mock path doesn't gate on
+  // email because the rows are operator-seeded test data; the real
+  // sync will inherit the snapshot path's email gate instead.
+  const mockOrder = useMemo(() => {
+    if (order) return null;
+    if (!paramOrder) return null;
+    return getOrderStatus(paramOrder);
+  }, [order, paramOrder]);
 
   useDocumentTitle(lang === 'en' ? 'Track an order — Vision Affichage' : 'Suivre une commande — Vision Affichage');
 
@@ -201,7 +227,151 @@ export default function TrackOrder() {
             </label>
           </div>
 
-          {!searchInput.trim() || !emailInput.trim() ? (
+          {mockOrder ? (
+            <div className="track-order-print space-y-5 pt-2">
+              {/* Mock-data render path — Mega Blueprint §16 stub.
+                  Operator-seeded rows in localStorage `va:orders` show
+                  the same 4-stage stepper UI as a Shopify-snapshot
+                  match, just with simpler data (no totals, no
+                  itemsCount). The TODO in lib/orderTracking explains
+                  the real Shopify-webhook follow-up. */}
+              <div className="flex items-center justify-between p-4 bg-secondary/40 rounded-xl gap-3 flex-wrap">
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    {lang === 'en' ? 'Order' : 'Commande'}
+                  </div>
+                  <div className="text-xl font-extrabold">#{mockOrder.orderNumber}</div>
+                </div>
+                {mockOrder.eta && (
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {lang === 'en' ? 'Expected delivery' : 'Livraison prévue'}
+                    </div>
+                    <div className="text-xl font-extrabold text-primary">
+                      {(() => {
+                        const d = new Date(mockOrder.eta);
+                        if (Number.isNaN(d.getTime())) return mockOrder.eta;
+                        return d.toLocaleDateString(lang === 'fr' ? 'fr-CA' : 'en-CA', { weekday: 'long', day: 'numeric', month: 'long' });
+                      })()}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {mockOrder.trackingNumber && (() => {
+                const carrier = getCarrierTrackingUrl(mockOrder.trackingNumber);
+                return (
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="font-bold text-muted-foreground">
+                      {lang === 'en' ? 'Tracking #' : 'N° de suivi'}
+                    </span>
+                    {carrier ? (
+                      <a
+                        href={carrier.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono bg-secondary/60 rounded px-2 py-1 text-[#0052CC] underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                        aria-label={lang === 'en' ? `Track on ${carrier.carrier}` : `Suivre sur ${carrier.carrier}`}
+                      >
+                        {mockOrder.trackingNumber}
+                      </a>
+                    ) : (
+                      <code className="font-mono bg-secondary/60 rounded px-2 py-1">{mockOrder.trackingNumber}</code>
+                    )}
+                    {carrier && (
+                      <span className="text-[11px] font-bold text-muted-foreground">
+                        {lang === 'en' ? `via ${carrier.carrier}` : `via ${carrier.carrier}`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {mockOrder.items.length > 0 && (
+                <div className="bg-secondary/30 rounded-xl p-4">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    {lang === 'en' ? 'Items' : 'Articles'}
+                  </div>
+                  <ul className="space-y-1.5 text-sm">
+                    {mockOrder.items.map((it, i) => (
+                      <li key={i} className="flex items-baseline justify-between gap-2">
+                        <span className="font-bold text-foreground">{it.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {it.qty}× {it.sizes ? `(${it.sizes})` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground" id="track-mock-progress-label">
+                  {lang === 'en' ? 'Progress' : 'Progression'}
+                </div>
+                <ol aria-labelledby="track-mock-progress-label" className="space-y-3">
+                  {STAGES.map((s, i) => {
+                    const mockStage = mapMockStage(mockOrder.stage);
+                    const mockIdx = STAGES.findIndex(x => x.id === mockStage);
+                    const isDone = i < mockIdx;
+                    const isCurrent = i === mockIdx;
+                    const isLast = i === STAGES.length - 1;
+                    const Icon = s.icon;
+                    const stateSr = isDone
+                      ? (lang === 'en' ? 'completed' : 'complété')
+                      : isCurrent
+                        ? (lang === 'en' ? 'current' : 'en cours')
+                        : (lang === 'en' ? 'upcoming' : 'à venir');
+                    return (
+                      <li
+                        key={s.id}
+                        className="flex items-start gap-3 relative"
+                        aria-current={isCurrent ? 'step' : undefined}
+                        aria-label={`${lang === 'en' ? s.en : s.fr} — ${stateSr}`}
+                      >
+                        {!isLast && (
+                          <span
+                            aria-hidden="true"
+                            className={`absolute left-[17px] top-9 w-0.5 h-[calc(100%+0.25rem)] ${
+                              isDone ? 'bg-emerald-400' : isCurrent ? 'bg-gradient-to-b from-[#0052CC] to-zinc-200' : 'bg-zinc-200'
+                            }`}
+                          />
+                        )}
+                        <div className={`relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all z-10 ${
+                          isDone ? 'bg-emerald-500 text-white'
+                          : isCurrent ? 'bg-[#0052CC] text-white scale-110 shadow-lg ring-4 ring-[#0052CC]/15 animate-pulse'
+                          : 'bg-zinc-100 text-zinc-400'
+                        }`}
+                        aria-hidden="true"
+                        >
+                          <Icon size={16} />
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <div className={`text-sm font-extrabold ${isCurrent ? 'text-foreground' : isDone ? 'text-emerald-700' : 'text-muted-foreground'}`}>
+                            {lang === 'en' ? s.en : s.fr}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {lang === 'en' ? s.desc.en : s.desc.fr}
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+
+              <div className="print-hide border-t border-border pt-4 flex items-center gap-3 flex-wrap">
+                <a
+                  href={`mailto:info@visionaffichage.com?subject=${encodeURIComponent(`Question commande #${mockOrder.orderNumber}`)}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-[#0052CC] text-white rounded-lg hover:bg-[#0047B3] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
+                >
+                  <Mail size={12} aria-hidden="true" />
+                  {lang === 'en' ? 'Contact support' : 'Contacter le support'}
+                </a>
+                <DeliveryBadge size="sm" />
+              </div>
+            </div>
+          ) : !searchInput.trim() || !emailInput.trim() ? (
             <div className="text-center py-12">
               <Search size={32} className="text-muted-foreground/40 mx-auto mb-3" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">
@@ -318,12 +488,28 @@ export default function TrackOrder() {
               {(() => {
                 const trackingNumber = (order as unknown as { trackingNumber?: string | null }).trackingNumber;
                 if (!trackingNumber) return null;
+                const carrier = getCarrierTrackingUrl(trackingNumber);
                 return (
                   <div className="flex items-center gap-2 flex-wrap text-xs">
                     <span className="font-bold text-muted-foreground">
                       {lang === 'en' ? 'Tracking #' : 'N° de suivi'}
                     </span>
-                    <code className="font-mono bg-secondary/60 rounded px-2 py-1">{trackingNumber}</code>
+                    {carrier ? (
+                      <a
+                        href={carrier.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono bg-secondary/60 rounded px-2 py-1 text-[#0052CC] underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+                        aria-label={lang === 'en' ? `Track on ${carrier.carrier}` : `Suivre sur ${carrier.carrier}`}
+                      >
+                        {trackingNumber}
+                      </a>
+                    ) : (
+                      <code className="font-mono bg-secondary/60 rounded px-2 py-1">{trackingNumber}</code>
+                    )}
+                    {carrier && (
+                      <span className="text-[11px] font-bold text-muted-foreground">via {carrier.carrier}</span>
+                    )}
                     <button
                       type="button"
                       onClick={async () => {
@@ -408,7 +594,7 @@ export default function TrackOrder() {
                         )}
                         <div className={`relative w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-all z-10 ${
                           isDone ? 'bg-emerald-500 text-white'
-                          : isCurrent ? 'bg-[#0052CC] text-white scale-110 shadow-lg ring-4 ring-[#0052CC]/15'
+                          : isCurrent ? 'bg-[#0052CC] text-white scale-110 shadow-lg ring-4 ring-[#0052CC]/15 animate-pulse'
                           : 'bg-zinc-100 text-zinc-400'
                         }`}
                         aria-hidden="true"

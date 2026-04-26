@@ -140,6 +140,11 @@ const AnimatedRoutes = () => {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/track" element={<TrackOrder />} />
           <Route path="/track/:orderNumber" element={<TrackOrder />} />
+          {/* French-canonical aliases (Mega Blueprint §16). /suivi mirrors
+              /track so links shared in French copy resolve without a
+              redirect hop. Same component, same param name. */}
+          <Route path="/suivi" element={<TrackOrder />} />
+          <Route path="/suivi/:orderNumber" element={<TrackOrder />} />
           <Route path="/account" element={<Account />} />
 
           <Route path="/admin/login" element={<AdminLogin />} />
