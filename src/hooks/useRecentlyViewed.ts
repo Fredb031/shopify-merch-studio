@@ -81,9 +81,18 @@ export function useRecentlyViewed() {
     // re-implement the dance. RecentlyViewed.tsx currently duplicates
     // this exact sequence (localStorage.removeItem + CustomEvent
     // dispatch) because no clear() existed — now they can migrate.
-    try { localStorage.removeItem(KEY); } catch { /* private mode */ }
-    try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
-    setHandles([]);
+    // Bail early when already empty: an idempotent clear() shouldn't
+    // pay for a localStorage.removeItem write nor wake every sibling
+    // hook instance with a same-tab broadcast that re-runs readStorage()
+    // only to land on the same empty array. Matches the no-op guard
+    // useWishlist.clear() applies (`if (prev.length === 0) return prev`)
+    // and the redundant-write guard track() applies above.
+    setHandles(prev => {
+      if (prev.length === 0) return prev;
+      try { localStorage.removeItem(KEY); } catch { /* private mode */ }
+      try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
+      return [];
+    });
   }, []);
 
   const track = useCallback((handle: string) => {
