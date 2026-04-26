@@ -171,7 +171,18 @@ function appendToDiagnosticQueue(entry: DataLayerPush): void {
     if (raw) {
       try {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) list = parsed as DataLayerPush[];
+        if (Array.isArray(parsed)) {
+          // Defensive: drop entries that don't shape-match DataLayerPush
+          // so a single corrupted/foreign write can't pollute the queue
+          // forever (entries persist across reloads via localStorage).
+          list = parsed.filter(
+            (e): e is DataLayerPush =>
+              !!e &&
+              typeof e === 'object' &&
+              typeof (e as DataLayerPush).event === 'string' &&
+              typeof (e as DataLayerPush).ts === 'string',
+          );
+        }
       } catch {
         // Corrupted payload — replace with a fresh queue rather than
         // carrying over whatever malformed JSON was there.
