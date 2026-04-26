@@ -402,6 +402,20 @@ export function ProductCanvas({
             // Now that the new photo is ready, retire the old one. This
             // keeps the canvas painted with the previous color until the
             // pixel-perfect replacement lands — eliminates the flash.
+            //
+            // Phase 4.4 — remove ONLY objects tagged data.type='garment'
+            // (and the matching tint Rect). We never iterate broadly or
+            // touch the logo object during a colour swap. The previous
+            // implementation already used the photoObj/tintObj refs (so
+            // the logo was untouched), but defending in depth here means
+            // a stale ref or a future refactor that adds a second photo
+            // can't accidentally wipe the user's artwork.
+            const stragglerGarments = (canvas.getObjects?.() ?? [])
+              .filter((o: { data?: { type?: string } }) => o?.data?.type === 'garment' && o !== prevPhoto);
+            for (const g of stragglerGarments) {
+              canvas.remove(g);
+              try { (g as { dispose?: () => void }).dispose?.(); } catch { /* noop */ }
+            }
             if (prevPhoto) {
               canvas.remove(prevPhoto);
               try { prevPhoto.dispose?.(); } catch { /* noop */ }
@@ -423,6 +437,10 @@ export function ProductCanvas({
               hoverCursor: 'default',
             });
             (img as unknown as { vaRole?: string }).vaRole = 'photo';
+            // Phase 4.4 — see init effect: data.type guards the swap
+            // path against accidentally pulling the logo when a colour
+            // change hot-swaps the garment photo.
+            (img as unknown as { data?: Record<string, unknown> }).data = { type: 'garment' };
             canvas.add(img);
             canvas.sendToBack(img);
             photoObj.current = img;
@@ -596,6 +614,11 @@ export function ProductCanvas({
               hoverCursor: 'default',
             });
             (img as unknown as { vaRole?: string; excludeFromExport?: boolean }).vaRole = 'photo';
+            // Phase 4.4 — tag garment-photo objects so the colour-swap
+            // pass can find and remove ONLY the garment, never the
+            // user's logo. data.type complements vaRole so external
+            // tooling/tests can match either tag.
+            (img as unknown as { data?: Record<string, unknown> }).data = { type: 'garment' };
             canvas.add(img);
             canvas.sendToBack(img);
             photoObj.current = img;
@@ -984,8 +1007,12 @@ export function ProductCanvas({
             mtr: true,
           });
           // Tag so the undo/redo replay can rebind logoObj.current after
-          // loadFromJSON swaps in a fresh set of fabric objects.
+          // loadFromJSON swaps in a fresh set of fabric objects. Phase
+          // 4.4 also tags `data.type='logo'` so the colour-swap path can
+          // distinguish garment vs logo and never accidentally remove
+          // the user's artwork when the photo hot-swaps.
           (img as unknown as { vaRole?: string }).vaRole = 'logo';
+          (img as unknown as { data?: Record<string, unknown> }).data = { type: 'logo' };
           canvas.add(img);
           canvas.setActiveObject(img);
           canvas.bringToFront(img);
@@ -1008,6 +1035,15 @@ export function ProductCanvas({
   // ── Re-position existing logo when parent updates placement (e.g. center
   //    button click). Does NOT rebuild — just moves the existing fabric
   //    object so center/zone presets work in real time.
+  //
+  //    Phase 4.3 fix: explicitly set scaleX/scaleY on every placement
+  //    update (not just when width changed) and call renderAll() so the
+  //    canvas actually repaints. The previous version used
+  //    requestRenderAll() which can defer to the next animation frame —
+  //    on some Safari builds the deferred render was being preempted
+  //    by the parent's color/view re-render and the logo visibly
+  //    snapped back to its pre-click position. renderAll() is sync,
+  //    so the move is reflected in the same paint cycle as the click.
   useEffect(() => {
     if (!fc.current || !logoObj.current || !currentPlacement) return;
     if (currentPlacement.x == null || currentPlacement.y == null) return;
@@ -1018,30 +1054,38 @@ export function ProductCanvas({
     const targetX = (currentPlacement.x / 100) * W;
     const targetY = (currentPlacement.y / 100) * H;
 
+    // Compute the target scale every time so a center/zone click that
+    // doesn't carry an explicit width still ends up with a defined
+    // scaleX/scaleY (otherwise a logo that was never resized comes back
+    // through here with scaleX=undefined and fabric falls back to 1).
+    let targetScale = img.scaleX ?? 1;
     if (currentPlacement.width != null) {
       const targetW = (currentPlacement.width / 100) * W;
       const naturalW = img.width ?? 100;
-      const newScale = targetW / naturalW;
-      img.set({ scaleX: newScale, scaleY: newScale });
+      targetScale = targetW / naturalW;
     }
+
     // The init effect sets originX/Y='center', so left/top ARE the center
-    // of the logo, not its top-left corner. The old math here subtracted
-    // width/2 + height/2 anyway — which shifted the logo up-left by half
-    // its size on every "Center on garment" / zone preset click. Match
-    // the origin so pre-set placements land exactly on the target point.
+    // of the logo. Match that origin when computing left/top so pre-set
+    // placements land exactly on the target point.
     const originX = (img as unknown as { originX?: string }).originX;
     const originY = (img as unknown as { originY?: string }).originY;
+    const left = originX === 'center'
+      ? targetX
+      : targetX - (img.width ?? 0) * targetScale / 2;
+    const top = originY === 'center'
+      ? targetY
+      : targetY - (img.height ?? 0) * targetScale / 2;
+
     img.set({
-      left: originX === 'center'
-        ? targetX
-        : targetX - (img.width ?? 0) * (img.scaleX ?? 1) / 2,
-      top: originY === 'center'
-        ? targetY
-        : targetY - (img.height ?? 0) * (img.scaleY ?? 1) / 2,
+      left,
+      top,
+      scaleX: targetScale,
+      scaleY: targetScale,
       angle: currentPlacement.rotation ?? img.angle ?? 0,
     });
     img.setCoords?.();
-    canvas.requestRenderAll?.();
+    canvas.renderAll();
     // Tracking individual fields intentionally — a new currentPlacement object
     // every render would retrigger the effect and fight the user's drag.
     // eslint-disable-next-line react-hooks/exhaustive-deps

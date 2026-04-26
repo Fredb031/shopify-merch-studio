@@ -297,3 +297,22 @@
   background-repeat: no-repeat;
   animation: vaShimmer 1.4s ease-in-out infinite;
 }
+
+/* Phase 4.6 — Mobile customizer height.
+   iOS Safari's bottom chrome was pushing the primary CTA off-screen on
+   the customizer sheet. Switching to dynamic viewport (100dvh) +
+   grid-template-rows: auto 1fr auto guarantees the footer stays
+   anchored regardless of the URL bar's collapse state. The
+   .canvas-wrapper child uses `min-height: 0` so the flex/grid child
+   actually shrinks instead of overflowing the dvh budget. */
+.customizer-container {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+.canvas-wrapper {
+  min-height: 0;
+  overflow: hidden;
+}

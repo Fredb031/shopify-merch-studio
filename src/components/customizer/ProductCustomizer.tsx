@@ -551,6 +551,38 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     { id: 3 as const, label: lang === 'en' ? 'Review'  : 'Récap',    shortLabel: lang === 'en' ? 'Review' : 'Récap',       done: false },
   ];
 
+  // ── Phase 3.5 — Top-of-customizer 5-step indicator ────────────────────
+  // Adds a coarser-grained progress trail (Produit · Couleur · Zone ·
+  // Logo · Quantité) above the existing 3-step pill row. Derived from
+  // existing state — no new state machinery — so the two indicators
+  // can never disagree: a colour is "completed" the moment the swatch is
+  // chosen, a zone the moment the placement carries an x/y, and so on.
+  // The current step is the FIRST one that isn't yet completed; if the
+  // user has filled every box, the current step parks on the last one
+  // (Quantité) so the visual stays coherent on the Review screen.
+  const fiveStepStatus = (() => {
+    const placementHasCoords = currentPlacement?.x != null && currentPlacement?.y != null;
+    const completed = [
+      true,                                                         // 1. Produit (modal open)
+      colorChosen,                                                  // 2. Couleur
+      store.placementSides === 'none' || placementHasCoords,        // 3. Zone
+      anyLogoUploaded || store.placementSides === 'none',           // 4. Logo
+      totalQty > 0,                                                 // 5. Quantité
+    ];
+    const currentIndex = (() => {
+      const firstUndone = completed.findIndex(c => !c);
+      return firstUndone === -1 ? completed.length - 1 : firstUndone;
+    })();
+    return { completed, currentIndex };
+  })();
+  const FIVE_STEPS = [
+    { id: 1, label: 'Produit'  },
+    { id: 2, label: 'Couleur'  },
+    { id: 3, label: 'Zone'     },
+    { id: 4, label: 'Logo'     },
+    { id: 5, label: 'Quantité' },
+  ];
+
   // Task 17.5 — Stepper tick animation.
   // When a step transitions false → true on `done` we remount its check
   // icon via a bumped key so the CSS keyframe restarts cleanly. The
@@ -1020,11 +1052,66 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
       <motion.div
         initial={{ y: 80, scale: 0.97 }} animate={{ y: 0, scale: 1 }} exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-        className="bg-background w-full md:rounded-2xl md:max-w-5xl border border-border/50 shadow-[0_32px_80px_rgba(0,0,0,0.35)] overflow-hidden"
-        style={{ maxHeight: '92dvh', height: '92dvh', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr) auto' }}
+        // Phase 4.6 — `customizer-container` switches the sheet to
+        // 100dvh + grid-template-rows so the iOS chrome can't push the
+        // primary CTA off-screen (the inline style still applies on
+        // desktop where the modal floats; the CSS class wins on mobile
+        // where the sheet snaps to the viewport edges).
+        className="customizer-container bg-background w-full md:rounded-2xl md:max-w-5xl border border-border/50 shadow-[0_32px_80px_rgba(0,0,0,0.35)] overflow-hidden"
+        style={{ maxHeight: '100dvh' }}
       >
-        {/* ── Header ── */}
-        <div className="px-5 py-3 border-b border-border flex items-center gap-3">
+        {/* ── Header (5-step indicator + existing 3-step header) ── */}
+        <div className="border-b border-border">
+          {/* Phase 3.5 — 5-step indicator. Coarser-grained than the
+              existing 3-step Design/Tailles/Récap pill row (which lives
+              below); this one mirrors the master prompt's shopper
+              checklist so the user sees at a glance how much of the
+              full configuration they've covered. State derives from
+              existing flags — no new state machinery. */}
+          <ol
+            className="flex items-center gap-1.5 px-5 pt-3 pb-2"
+            aria-label={lang === 'en' ? 'Customizer checklist' : 'Liste de personnalisation'}
+          >
+            {FIVE_STEPS.map((s, idx) => {
+              const isDone = fiveStepStatus.completed[idx] && idx !== fiveStepStatus.currentIndex;
+              const isCurrent = idx === fiveStepStatus.currentIndex;
+              const stateSr = isDone
+                ? (lang === 'en' ? 'completed' : 'complété')
+                : isCurrent
+                  ? (lang === 'en' ? 'current step' : 'étape courante')
+                  : (lang === 'en' ? 'upcoming' : 'à venir');
+              return (
+                <li
+                  key={s.id}
+                  className="flex-1 min-w-0 flex flex-col items-center gap-1"
+                  aria-current={isCurrent ? 'step' : undefined}
+                  aria-label={`${s.id}. ${s.label} — ${stateSr}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black transition-all ${
+                      isDone
+                        ? 'bg-[#0052CC] text-white'
+                        : isCurrent
+                          ? 'bg-white text-[#0052CC] ring-2 ring-[#0052CC]'
+                          : 'bg-[#E5E7EB] text-muted-foreground'
+                    }`}
+                  >
+                    {isDone ? <Check size={11} strokeWidth={4} /> : s.id}
+                  </span>
+                  <span
+                    className={`hidden sm:block text-[9px] leading-none truncate w-full text-center ${
+                      isCurrent ? 'font-black text-[#0052CC]' : isDone ? 'font-bold text-[#0052CC]/70' : 'font-medium text-muted-foreground'
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="px-5 py-3 flex items-center gap-3">
           <div className="flex-shrink-0">
             <h2 id="customizer-title" className="text-sm font-black text-foreground">{product.shortName}</h2>
             <p className="text-xs text-muted-foreground">{t('personnaliseTonProduit')}</p>
@@ -1179,6 +1266,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
           >
             <X size={14} aria-hidden="true" />
           </button>
+          </div>
         </div>
 
         {/* ── Body ──
@@ -1190,7 +1278,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               controls. Color palette + step content live in the right panel.
               Mobile: force a square aspect so the canvas doesn't collapse
               into a cramped sliver when the panel below expands. */}
-          <div className="p-3 md:p-4 flex flex-col min-h-0 w-full aspect-square md:aspect-auto">
+          {/* `canvas-wrapper` ensures the flex/grid child shrinks
+              cleanly inside the dvh budget on mobile (Phase 4.6). The
+              relative position anchors the Canvas Confidence Badge
+              (Phase 3.5 / master prompt) over the top-right corner. */}
+          <div className="canvas-wrapper relative p-3 md:p-4 flex flex-col min-h-0 w-full aspect-square md:aspect-auto">
             <ProductCanvas
               product={product}
               garmentColor={activeColor?.hex}
@@ -1215,6 +1307,15 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               }}
               showBboxCenter={store.step === 1 && previewCenter}
             />
+            {/* Canvas Confidence Badge — reassures the user that the
+                preview is honest. pointer-events-none so it never
+                interferes with drag/zoom. */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute top-3 right-3 z-10 rounded-full bg-white/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-[#0052CC] shadow-sm border border-white/60"
+            >
+              Aperçu réaliste · ce que tu vois = ce que tu reçois
+            </div>
           </div>
 
           {/* RIGHT (bottom on mobile) — persistent color palette at the TOP
