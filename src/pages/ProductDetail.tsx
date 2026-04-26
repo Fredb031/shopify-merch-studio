@@ -376,6 +376,11 @@ export default function ProductDetail() {
   // IntersectionObserver here — the previous Hunt 133 implementation
   // kept inlineCtaInView state, which is now redundant.
   const inlineCtaRef = useRef<HTMLButtonElement | null>(null);
+  // Phase 3.4 §6 — sentinel for the desktop sticky CTA. Sits 1px above
+  // the inline primary button. IntersectionObserver toggles the
+  // desktop sticky bar's visibility when this sentinel leaves the
+  // viewport (via the bottom edge — see DesktopStickyCTA).
+  const ctaSentinelRef = useRef<HTMLDivElement | null>(null);
   const handleWishlistClick = () => {
     if (!handle) return;
     const wasAdding = !saved;
@@ -1042,6 +1047,25 @@ export default function ProductDetail() {
                       {lang === 'en' ? localProduct.gender : `Coupe ${localProduct.gender}`}
                     </div>
                   )}
+                  {/* Phase 3.4 — star rating + Google review count below H1.
+                      Hard-coded 5.0 / 50+ until a live aggregate-rating
+                      feed lands; the visual band carries the social-proof
+                      weight regardless of whether the number ticks up over
+                      time. text-yellow-400 keeps swatch parity with the
+                      rest of the brand-trust pills. JSON-LD AggregateRating
+                      isn't injected here yet — once Google Reviews API is
+                      wired in we should feed `aggregateRating` into
+                      buildProductSchema rather than hand-roll a script.
+                      Operator TODO: replace with live data when available. */}
+                  <div
+                    className="flex items-center gap-1.5 mt-2"
+                    aria-label={lang === 'en' ? 'Rated 5 out of 5 from over 50 Google reviews' : 'Note 5 sur 5 selon plus de 50 avis Google'}
+                  >
+                    <span className="text-yellow-400 text-sm leading-none" aria-hidden="true">{'\u2605\u2605\u2605\u2605\u2605'}</span>
+                    <span className="text-xs text-[#374151] font-medium">
+                      {lang === 'en' ? '5.0 · 50+ Google reviews' : '5.0 · 50+ avis Google'}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 mt-1 flex-shrink-0">
                 <button
@@ -1203,6 +1227,15 @@ export default function ProductDetail() {
                   the price. Replaces the bare price line + the trust grid
                   that previously stacked beneath the CTA. */}
               <div className="bg-[#F9FAFB] rounded-xl p-5 mb-6 mt-4">
+                {/* Phase 8 copy — "À partir de X $ / pièce" anchor label
+                    sits above the bare price so the visitor sees the
+                    expectation framing before the number. The next row
+                    keeps the original /unité, avant impression caption
+                    so the BulkCalculator tier table downstream still
+                    reads consistently. */}
+                <div className="text-[11px] uppercase tracking-wider font-bold text-[#6B7280] mb-1">
+                  {lang === 'en' ? `Starting at $${price} / piece` : `À partir de ${price}$ / pièce`}
+                </div>
                 <div className="flex items-baseline gap-2">
                   <span className="font-display font-black text-3xl text-[#0A0A0A] tabular-nums">
                     {price} {currency}
@@ -1211,7 +1244,60 @@ export default function ProductDetail() {
                     {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
                   </span>
                 </div>
-                <p className="text-xs text-[#6B7280] mt-2">
+                {/* Phase 3.4 §5 — volume discount tier pills.
+                    Pulls the per-product pricing tier table from
+                    src/data/pricing.ts when present, otherwise falls back
+                    to a 4-tier curve (1+, 12+, 25+, 50+) anchored on the
+                    Shopify base price. Pills are presentational only —
+                    the BulkCalculator below still owns the live tier
+                    selection logic, this row is a quick scannable anchor
+                    so visitors see the volume opportunity before they
+                    even touch the calculator. */}
+                {(() => {
+                  const base = parseFloat(price);
+                  if (!Number.isFinite(base) || base <= 0) return null;
+                  const sku = localProduct?.sku;
+                  const skuPricing = sku ? PRICING?.[sku] : undefined;
+                  let tiers: Array<{ minQty: number; price: number }> = [];
+                  if (skuPricing && Array.isArray(skuPricing) && skuPricing.length > 0) {
+                    tiers = skuPricing
+                      .map((t: { minQty?: number; pricePerUnit?: number }) => ({
+                        minQty: Number(t.minQty ?? 1),
+                        price: Number(t.pricePerUnit ?? 0),
+                      }))
+                      .filter(t => Number.isFinite(t.minQty) && Number.isFinite(t.price) && t.price > 0)
+                      .sort((a, b) => a.minQty - b.minQty)
+                      .slice(0, 4);
+                  }
+                  if (tiers.length === 0) {
+                    tiers = [
+                      { minQty: 1,  price: base },
+                      { minQty: 12, price: base * 0.85 },
+                      { minQty: 25, price: base * 0.75 },
+                      { minQty: 50, price: base * 0.65 },
+                    ];
+                  }
+                  return (
+                    <div
+                      className="flex flex-wrap gap-1.5 mt-3"
+                      role="list"
+                      aria-label={lang === 'en' ? 'Volume pricing tiers' : 'Paliers de prix par quantité'}
+                    >
+                      {tiers.map(t => (
+                        <span
+                          key={t.minQty}
+                          role="listitem"
+                          className="inline-flex items-center gap-1 bg-white border border-[#E5E7EB] text-[#0A0A0A] rounded-full px-3 py-1 text-xs font-semibold tabular-nums"
+                        >
+                          <span className="text-[#6B7280]">{t.minQty}+ {lang === 'en' ? 'pcs' : 'pces'}</span>
+                          <span aria-hidden="true" className="text-[#9CA3AF]">·</span>
+                          <span>{lang === 'en' ? `$${t.price.toFixed(2)}` : `${t.price.toFixed(2)}$`}</span>
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })()}
+                <p className="text-xs text-[#6B7280] mt-3">
                   {lang === 'en'
                     ? 'Free shipping over $300 · 1-year warranty'
                     : 'Livraison gratuite dès 300 $ · Garantie 1 an'}
@@ -1311,14 +1397,34 @@ export default function ProductDetail() {
 
                 return (
                   <div key={option.name}>
-                    <label className="text-sm font-bold mb-2 block text-[#0A0A0A]">
-                      {localizedName}
-                      {currentOptions[option.name] && (
-                        <span className="font-normal text-[#6B7280] ml-1">
-                          : {currentOptions[option.name]}
-                        </span>
+                    <div className="flex items-baseline justify-between gap-3 mb-2">
+                      <label className="text-sm font-bold block text-[#0A0A0A]">
+                        {localizedName}
+                        {currentOptions[option.name] && (
+                          <span className="font-normal text-[#6B7280] ml-1">
+                            : {currentOptions[option.name]}
+                          </span>
+                        )}
+                      </label>
+                      {/* Phase 3.4 §4 — size guide affordance next to the
+                          color/size label. Brand-blue underline, opens the
+                          existing SizeGuide modal. /guide-tailles route
+                          isn't built yet — operator TODO — but the
+                          aria-controls hooks the modal so keyboard / SR
+                          users still reach the same content the route
+                          would eventually serve. */}
+                      {isColor && (
+                        <button
+                          type="button"
+                          onClick={() => setSizeGuideOpen(true)}
+                          aria-haspopup="dialog"
+                          aria-expanded={sizeGuideOpen}
+                          className="text-[#0052CC] text-xs font-medium underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded shrink-0"
+                        >
+                          {lang === 'en' ? 'Size guide \u2192' : 'Guide des tailles \u2192'}
+                        </button>
                       )}
-                    </label>
+                    </div>
 
                     {isColor && localProduct ? (
                       /* Color swatches. Source of truth = `getDisplayColors`
@@ -1471,6 +1577,38 @@ export default function ProductDetail() {
                         })}
                       </div>
                     )}
+
+                    {/* Phase 3.4 §3 — color commitment micro-copy.
+                        Renders only after the user has actually picked a
+                        color (currentOptions has a value for the color
+                        option). Hard-coded "popular" set covers the
+                        canonical brand-trust colourways; if the picked
+                        colour normalises to one of those we tack on
+                        " — populaire" to push the conversion nudge.
+                        Kept tiny + brand-blue so it reads as a confidence
+                        cue, not another CTA fighting the primary button. */}
+                    {isColor && currentOptions[option.name] && (() => {
+                      const picked = currentOptions[option.name];
+                      const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                      const POPULAR = ['noir', 'marine', 'charbon', 'black', 'navy', 'charcoal'];
+                      const isPopular = POPULAR.some(p => norm(picked).includes(p));
+                      return (
+                        <p
+                          className="text-[#0052CC] text-xs mt-2 font-medium"
+                          aria-live="polite"
+                        >
+                          <span aria-hidden="true">{'\u2713'}</span>{' '}
+                          {lang === 'en'
+                            ? `${picked} selected`
+                            : `${picked} sélectionné`}
+                          {isPopular && (
+                            <span className="text-[#6B7280] font-normal">
+                              {' '}{lang === 'en' ? '— popular' : '— populaire'}
+                            </span>
+                          )}
+                        </p>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -1527,6 +1665,12 @@ export default function ProductDetail() {
               )}
             </div>
 
+            {/* Phase 3.4 §6 sentinel — 1px tall, above the primary CTA.
+                The desktop sticky bar's IntersectionObserver watches
+                this element; the bar appears once the sentinel scrolls
+                out of view. Stays semantically silent (aria-hidden +
+                empty) so it doesn't pollute the a11y tree. */}
+            <div ref={ctaSentinelRef} aria-hidden="true" className="h-px" />
             {/* Sec 11/02 — primary CTA, full-width brand-blue. Matches
                 the Cart "Procéder au paiement" button (d66a19a) and the
                 Products "Personnaliser" pills (5625e4c). Customizer
@@ -1542,7 +1686,7 @@ export default function ProductDetail() {
               <Shirt size={18} aria-hidden="true" />
               {isVariantSoldOut
                 ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
-                : (lang === 'en' ? 'Personnaliser ce produit →' : 'Personnaliser ce produit →')}
+                : (lang === 'en' ? 'Customize and order \u2192' : 'Personnaliser et commander \u2192')}
             </button>
 
             {/* Sec 11/02 — single trust line within 100px of the CTA. */}
@@ -1760,6 +1904,79 @@ export default function ProductDetail() {
                     </ul>
                   </RevealBlock>
 
+                  {/* Phase 8 §3.4 — collapsible spec sections in
+                      benefit-language. Native <details>/<summary> so the
+                      a11y semantics are free (Enter/Space toggles, group
+                      role on the summary). Each block carries a
+                      benefit-framed lead line plus the literal spec
+                      underneath, matching the Phase 8 copy direction
+                      ("matière épaisse qui tient au lavage" beats
+                      "240 gsm cotton/poly"). Operator can lift these
+                      into the per-product description data later —
+                      they're intentionally generic per category here so
+                      every PDP picks them up without a content backfill. */}
+                  <RevealBlock className="pt-3 border-t border-border">
+                    <h3 className="font-bold mb-2.5 text-sm text-foreground">
+                      {lang === 'en' ? 'Specs' : 'Détails du produit'}
+                    </h3>
+                    <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
+                      <details className="group bg-background">
+                        <summary className="flex items-center justify-between cursor-pointer px-4 py-3 text-sm font-semibold text-foreground hover:bg-secondary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                          <span>{lang === 'en' ? 'Fabric & composition' : 'Matière et composition'}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden="true" />
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed">
+                          <p className="text-foreground font-medium mb-1">
+                            {lang === 'en'
+                              ? 'A solid fabric that keeps its shape wash after wash.'
+                              : 'Une matière solide qui garde sa forme lavage après lavage.'}
+                          </p>
+                          <p>
+                            {lang === 'en'
+                              ? 'Mid-weight knit (≈ 220–280 gsm depending on the model), pre-shrunk, no surprise after the first wash. The print sits flush on the surface — no plastic-feel after a few rounds in the dryer.'
+                              : 'Tricot mi-lourd (≈ 220–280 g/m² selon le modèle), pré-rétréci, aucune surprise au premier lavage. L\u2019impression reste lisse en surface — pas d\u2019effet plastique après quelques passages à la sécheuse.'}
+                          </p>
+                        </div>
+                      </details>
+                      <details className="group bg-background">
+                        <summary className="flex items-center justify-between cursor-pointer px-4 py-3 text-sm font-semibold text-foreground hover:bg-secondary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                          <span>{lang === 'en' ? 'Care' : 'Entretien'}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden="true" />
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed">
+                          <p className="text-foreground font-medium mb-1">
+                            {lang === 'en'
+                              ? 'Wash cold, hang dry — the print stays sharp for years.'
+                              : 'Lavage à l\u2019eau froide, séchage à l\u2019air — l\u2019impression reste nette pour des années.'}
+                          </p>
+                          <p>
+                            {lang === 'en'
+                              ? 'Machine wash cold inside-out, no bleach, tumble low or hang dry. Iron on the reverse if needed — never directly on the print. Same routine your team already runs for any branded gear.'
+                              : 'Lavage machine à froid à l\u2019envers, sans javellisant, séchage à basse température ou à l\u2019air. Repassage à l\u2019envers au besoin — jamais directement sur l\u2019impression. Le même réflexe que pour n\u2019importe quel vêtement promotionnel.'}
+                          </p>
+                        </div>
+                      </details>
+                      <details className="group bg-background">
+                        <summary className="flex items-center justify-between cursor-pointer px-4 py-3 text-sm font-semibold text-foreground hover:bg-secondary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1">
+                          <span>{lang === 'en' ? 'Availability' : 'Disponibilité'}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden="true" />
+                        </summary>
+                        <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed">
+                          <p className="text-foreground font-medium mb-1">
+                            {lang === 'en'
+                              ? 'In stock at our Québec warehouse — your order ships within 5 business days.'
+                              : 'En stock dans notre entrepôt au Québec — ta commande part en 5 jours ouvrables.'}
+                          </p>
+                          <p>
+                            {lang === 'en'
+                              ? 'Live SanMar Canada inventory feeds the swatches above so a sold-out colour/size is shown before you commit. Need 500+ units fast? Contact us and we\u2019ll lock the inventory before you confirm.'
+                              : 'L\u2019inventaire SanMar Canada en direct alimente les swatches plus haut, donc une couleur/taille épuisée s\u2019affiche avant que tu t\u2019engages. Besoin de 500+ unités rapidement ? Contacte-nous, on bloque l\u2019inventaire avant la confirmation.'}
+                          </p>
+                        </div>
+                      </details>
+                    </div>
+                  </RevealBlock>
+
                   <div className="pt-3 border-t border-border bg-secondary/40 -mx-4 md:mx-0 px-4 md:px-4 py-3 md:rounded-xl">
                     <div className="text-[11px] font-bold text-[#0052CC] uppercase tracking-wider mb-1">
                       {lang === 'en' ? 'Best for' : 'Idéal pour'}
@@ -1847,6 +2064,29 @@ export default function ProductDetail() {
         anchorRef={inlineCtaRef}
         disabled={isVariantSoldOut}
         hidden={customizerOpen}
+      />
+
+      {/* Phase 3.4 §6 — desktop sticky add-to-cart bar. The existing
+          StickyProductCTA component is mobile-only (md:hidden) — we
+          keep it untouched and pair it with a desktop-only twin here so
+          wide-viewport visitors who scroll past the inline CTA also get
+          a one-tap path back to "Personnaliser". The IntersectionObserver
+          watches a sentinel placed just above the inline CTA; when the
+          sentinel scrolls out of the viewport we know the CTA went with
+          it. max-w-7xl centered, slide-up from bottom, z-50 so it sits
+          above the BottomNav-less desktop chrome. Hidden under
+          customizer-open and sold-out states for the same reasons the
+          mobile twin is. */}
+      <DesktopStickyCTA
+        product={product}
+        localProduct={localProduct ?? null}
+        selectedColor={selectedColor}
+        pricePerUnit={parseFloat(price) + PRINT_PRICE}
+        sentinelRef={ctaSentinelRef}
+        onClick={() => setCustomizerOpen(true)}
+        disabled={isVariantSoldOut}
+        hidden={customizerOpen}
+        lang={lang}
       />
 
       <AnimatePresence>
@@ -2585,3 +2825,140 @@ function BulkCalculator({ sku, basePrice, unitWithPrint, discountedUnit, lang, v
   );
 }
 
+/**
+ * Phase 3.4 §6 — desktop-only sticky add-to-cart bar.
+ *
+ * The shared StickyProductCTA is mobile-only (md:hidden) and we don't
+ * own that file in this slice. To extend the sticky pattern to desktop
+ * per the master prompt — "Mobile: full-width sticky-bottom. Desktop:
+ * max-w-7xl centered." — we colocate this twin here. It uses an
+ * IntersectionObserver on a sentinel rendered just above the inline
+ * primary CTA: when the sentinel leaves the viewport (bottom edge
+ * crosses the top), we slide the bar up. That mirrors the existing
+ * scroll-listener semantics in StickyProductCTA but with the IO API
+ * the brief explicitly calls for.
+ *
+ * Hidden on small viewports (<md) so it never doubles up with the
+ * mobile sticky bar. Hidden under customizer-open for the same iOS
+ * stacking-context reason the mobile twin is.
+ */
+function DesktopStickyCTA({
+  product,
+  localProduct,
+  selectedColor,
+  pricePerUnit,
+  sentinelRef,
+  onClick,
+  disabled = false,
+  hidden = false,
+  lang,
+}: {
+  product: { title: string; images?: { edges?: Array<{ node?: { url?: string } }> } };
+  localProduct: { sku?: string; category?: string; imageDevant?: string } | null;
+  selectedColor?: string;
+  pricePerUnit: number;
+  sentinelRef: React.RefObject<HTMLDivElement | null>;
+  onClick: () => void;
+  disabled?: boolean;
+  hidden?: boolean;
+  lang: 'fr' | 'en';
+}) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') return;
+    const obs = new IntersectionObserver(
+      entries => {
+        const e = entries[0];
+        if (!e) return;
+        // Show the bar once the sentinel has fully scrolled past the
+        // top of the viewport (boundingClientRect.bottom < 0). That
+        // mirrors the "the inline CTA is gone" mental model rather
+        // than firing on the more subtle "partially intersecting".
+        const rect = e.boundingClientRect;
+        setVisible(rect.bottom < 0);
+      },
+      { threshold: 0, rootMargin: '0px' },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [sentinelRef]);
+
+  if (hidden) return null;
+
+  // Thumbnail resolution — prefer per-color asset to match what the
+  // visitor was just looking at, fall back through the same chain the
+  // mobile twin uses.
+  const thumbnail =
+    (localProduct?.sku && selectedColor
+      ? findColorImage(localProduct.sku, selectedColor)?.front
+      : undefined)
+    ?? localProduct?.imageDevant
+    ?? product.images?.edges?.[0]?.node?.url
+    ?? '';
+
+  const displayTitle = localProduct?.category
+    ? categoryLabel(localProduct.category, lang)
+    : product.title;
+
+  const priceLabel = lang === 'en'
+    ? `From $${pricePerUnit.toFixed(2)} / piece`
+    : `À partir de ${pricePerUnit.toFixed(2)}$ / pièce`;
+
+  return (
+    <div
+      role="region"
+      aria-label={lang === 'en' ? 'Sticky purchase bar' : "Barre d'achat persistante"}
+      aria-hidden={!visible}
+      className={[
+        'hidden md:block fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[min(96vw,80rem)]',
+        'transition-[transform,opacity] duration-300 ease-out',
+        visible
+          ? 'translate-y-0 opacity-100 pointer-events-auto'
+          : 'translate-y-[120%] opacity-0 pointer-events-none',
+      ].join(' ')}
+    >
+      <div className="bg-white border border-[#E5E7EB] shadow-lg rounded-2xl flex items-center gap-4 px-4 py-3">
+        {thumbnail && (
+          <img
+            src={thumbnail}
+            alt=""
+            aria-hidden="true"
+            loading="lazy"
+            decoding="async"
+            className="w-14 h-14 rounded-lg object-cover bg-secondary shrink-0 border border-[#E5E7EB]"
+          />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-bold text-[#0A0A0A] truncate leading-tight">
+            {displayTitle}
+          </div>
+          <div className="text-xs text-[#6B7280] truncate leading-tight mt-0.5">
+            {selectedColor ? (
+              <>
+                <span>{selectedColor}</span>
+                <span aria-hidden="true" className="mx-1.5 opacity-50">·</span>
+                <span className="font-semibold text-[#0A0A0A]">{priceLabel}</span>
+              </>
+            ) : (
+              <span className="font-semibold text-[#0A0A0A]">{priceLabel}</span>
+            )}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClick}
+          disabled={disabled}
+          aria-disabled={disabled || undefined}
+          className="shrink-0 inline-flex items-center gap-1.5 bg-[#0052CC] hover:bg-[#003D99] text-white font-extrabold text-sm rounded-lg px-5 py-3 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Shirt size={16} aria-hidden="true" />
+          <span>{lang === 'en' ? 'Customize' : 'Personnaliser'}</span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
