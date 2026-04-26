@@ -33,6 +33,8 @@ export function getCookieConsent(): ConsentState | null {
     const parsed = JSON.parse(raw) as Partial<ConsentState>;
     if (
       parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
       parsed.essentials === true &&
       typeof parsed.analytics === 'boolean' &&
       typeof parsed.marketing === 'boolean' &&
