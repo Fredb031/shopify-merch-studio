@@ -46,6 +46,19 @@ export function LogoUploadDropzone({ onFileReady, onRemove, maxSizeMB = 20, acce
         );
         return;
       }
+      // Reject 0-byte files — they pass the format + size checks but
+      // produce a blob URL that can't render anything and get handed
+      // to the parent as a "ready" logo. Surfacing a clear error here
+      // avoids a silent dead-end where the customizer shows an empty
+      // placement and the order ships without artwork.
+      if (f.size === 0) {
+        setError(
+          lang === 'en'
+            ? 'File is empty. Please upload a valid logo.'
+            : 'Le fichier est vide. T\u00e9l\u00e9verse un logo valide.',
+        );
+        return;
+      }
       const url = URL.createObjectURL(f);
       // Free the previous blob URL if the user is swapping files so we
       // don't leak object URLs for every re-upload attempt.
