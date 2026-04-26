@@ -228,7 +228,11 @@ function coerceRole(raw: unknown): UserRole {
 }
 
 function buildUser(authUser: { id: string; email?: string }, profile: Awaited<ReturnType<typeof fetchProfile>>): AuthUser | null {
-  const email = (profile?.email ?? authUser.email ?? '').toLowerCase();
+  // Strip invisibles BEFORE lowercasing so a ZWSP that snuck into the
+  // profiles.email column (e.g. via a manual paste in the Supabase
+  // dashboard) doesn't silently break PRESIDENT_EMAILS.has(email) and
+  // downgrade the owner to 'client'.
+  const email = normalizeInvisible(profile?.email ?? authUser.email ?? '').trim().toLowerCase();
   if (!email) return null;
   const name = profile?.full_name ?? email.split('@')[0];
   // Owner fallback: PRESIDENT_EMAILS beats whatever the profile row says.
