@@ -19,13 +19,30 @@ export function isMuted(): boolean {
 
 /** Persist the user's mute preference. Writes '1' / '0' under
  * `va:intro-muted`. All localStorage failures (quota, disabled storage,
- * private mode) are swallowed so the caller never sees an exception. */
+ * private mode) are swallowed so the caller never sees an exception.
+ *
+ * When toggled to muted while audio is mid-playback, we also ramp the
+ * master gain to silence and stop every scheduled source so the user
+ * actually hears silence immediately — without this, the flag only
+ * suppresses *future* play* calls and the in-flight intro keeps playing
+ * through to its natural end. */
 export function setMuted(muted: boolean): void {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(MUTE_STORAGE_KEY, muted ? '1' : '0');
   } catch {
     /* storage disabled / quota exceeded — silently ignore */
+  }
+  if (muted && ctxSingleton && masterGainSingleton) {
+    try {
+      const now = ctxSingleton.currentTime;
+      masterGainSingleton.gain.cancelScheduledValues(now);
+      masterGainSingleton.gain.setValueAtTime(masterGainSingleton.gain.value, now);
+      masterGainSingleton.gain.linearRampToValueAtTime(0, now + 0.05);
+    } catch {
+      /* gain ramp failed — stopAllScheduledAudio below still silences */
+    }
+    stopAllScheduledAudio();
   }
 }
 
