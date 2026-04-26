@@ -20,7 +20,9 @@ import { downloadCsv } from '@/lib/csv';
 function initials(c: ShopifyCustomerSnapshot): string {
   const first = (c.firstName?.[0] ?? '').toUpperCase();
   const last = (c.lastName?.[0] ?? '').toUpperCase();
-  const fallback = c.email[0].toUpperCase();
+  // Guard against an empty email string — `''[0]` is undefined and would
+  // crash `.toUpperCase()`, taking the entire customer table down.
+  const fallback = (c.email?.[0] ?? '?').toUpperCase();
   return (first + last) || fallback;
 }
 
