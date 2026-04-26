@@ -511,7 +511,11 @@ function scoreEntry(entry: KBEntry, qTokens: string[], lang: Lang): number {
  * Falls back to a friendly "call us" message if nothing scores above
  * MIN_SCORE so the chat never invents facts. */
 export function answerQuestion(question: string, lang: Lang): { answer: string; entry: KBEntry | null } {
-  const qTokens = tokens(question);
+  // Defensive: callers occasionally pass null/undefined/non-string (e.g. an
+  // empty form field, an aborted speech-to-text result). Coerce safely so
+  // `normalize` never throws on `.toLowerCase()` of a non-string.
+  const safeQuestion = typeof question === 'string' ? question : '';
+  const qTokens = tokens(safeQuestion);
   if (qTokens.length === 0) {
     return {
       answer: lang === 'fr'
