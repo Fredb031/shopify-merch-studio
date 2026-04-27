@@ -635,7 +635,7 @@ export default function Checkout() {
     return (
       <div id="main-content" tabIndex={-1} className="min-h-screen bg-white focus:outline-none">
         <Navbar />
-        <div className="max-w-[720px] mx-auto px-4 md:px-8 pt-20 pb-32">
+        <div className="max-w-[720px] mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-24">
           <DoneState
             lang={lang}
             firstName={form.firstName}
@@ -918,7 +918,7 @@ export default function Checkout() {
     <div id="main-content" tabIndex={-1} data-va-checkout className="min-h-screen bg-white focus:outline-none">
       <Navbar />
 
-      <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
+      <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-24">
         {draftOffer && (
           <div
             role="region"
@@ -947,7 +947,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={clearDraft}
-                  className="inline-flex items-center px-3 py-1.5 rounded-md border border-[#E5E7EB] text-[#0A0A0A] text-xs font-bold hover:bg-[#F9FAFB] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                  className="inline-flex items-center px-4 py-2 rounded-md border border-[#E5E7EB] text-[#0A0A0A] text-xs font-bold hover:bg-[#F9FAFB] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
                 >
                   {lang === 'en' ? 'Clear' : 'Effacer'}
                 </button>
@@ -1560,7 +1560,7 @@ export default function Checkout() {
           </div>
 
           {/* Sticky cart summary */}
-          <aside className="bg-white border border-[#E5E7EB] rounded-2xl p-5 h-fit lg:sticky lg:top-6">
+          <aside className="bg-white border border-[#E5E7EB] rounded-2xl p-6 h-fit lg:sticky lg:top-6">
             {/* Task 5.19: delivery-by promise — single tight pill,
                 brand-blue accent matching the new palette. Pickup
                 swaps in a "ready for pickup tomorrow" message because

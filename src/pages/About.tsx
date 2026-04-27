@@ -105,7 +105,7 @@ export default function About() {
       <Navbar />
       <main
         id="main-content"
-        className="flex-1 max-w-[960px] w-full mx-auto px-6 md:px-10 py-12 md:py-16"
+        className="flex-1 max-w-[960px] w-full mx-auto px-6 md:px-10 py-16 md:py-24"
       >
         {/* Hero — eyebrow + H1 + short lede. The eyebrow echoes the
             cream/gold brand accents used on the homepage feature
@@ -116,7 +116,7 @@ export default function About() {
             <MapPin size={12} aria-hidden="true" className="-mt-px" />
             <span>Saint-Hyacinthe, Québec</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-[#0A0A0A] tracking-[-0.8px] mb-4">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-[#0A0A0A] tracking-tight mb-4">
             {lang === 'en' ? 'Our story' : 'Notre histoire'}
           </h1>
           <p className="text-base md:text-lg text-zinc-700 max-w-[680px] leading-relaxed">
@@ -131,7 +131,7 @@ export default function About() {
             Keep bilingual pairing and the 2-3 paragraph rhythm. */}
         <section
           aria-labelledby="about-founded"
-          className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-10 shadow-sm mb-10"
+          className="bg-white rounded-2xl border border-zinc-200 p-6 md:p-8 shadow-sm mb-12"
         >
           <h2
             id="about-founded"
@@ -162,14 +162,14 @@ export default function About() {
             strip conceptually (Qualité / Local / Service) but with
             body copy space for each. Grid collapses to a single
             column under md: so the cards stack rather than shrink. */}
-        <section aria-labelledby="about-values" className="mb-10">
+        <section aria-labelledby="about-values" className="mb-12">
           <h2
             id="about-values"
             className="text-2xl md:text-3xl font-extrabold text-[#0A0A0A] tracking-[-0.5px] mb-5"
           >
             {lang === 'en' ? 'Our values' : 'Nos valeurs'}
           </h2>
-          <div className="grid md:grid-cols-3 gap-4 md:gap-5">
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8">
             {values.map(v => {
               const Icon = v.icon;
               return (
@@ -205,11 +205,11 @@ export default function About() {
           >
             {lang === 'en' ? 'By the numbers' : 'En chiffres'}
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
             {stats.map(s => (
               <div
                 key={s.labelEn}
-                className="bg-[#0A0A0A] text-white rounded-2xl p-6 md:p-7 shadow-sm text-center"
+                className="bg-[#0A0A0A] text-white rounded-2xl p-6 shadow-sm text-center"
               >
                 <div className="text-3xl md:text-4xl font-extrabold tracking-[-0.5px] text-[#0052CC]">
                   {s.value}
@@ -228,7 +228,7 @@ export default function About() {
             the buyer prefers, it's one click from here. */}
         <section
           aria-labelledby="about-cta"
-          className="bg-[#EBF2FF] border border-[#0052CC]/20 rounded-2xl p-8 md:p-10 text-center"
+          className="bg-[#EBF2FF] border border-[#0052CC]/20 rounded-2xl p-8 text-center"
         >
           <h2
             id="about-cta"

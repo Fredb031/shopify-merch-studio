@@ -512,7 +512,7 @@ export default function Index() {
       <FadeIn>
         <section
           id="how-it-works"
-          className="scroll-mt-20 bg-background py-20 md:py-24 px-6 md:px-10 border-t border-border"
+          className="scroll-mt-20 bg-background py-20 md:py-28 px-6 md:px-10 border-t border-border"
         >
           <div className="max-w-[1160px] mx-auto">
             <div className="text-center mb-14">
@@ -587,7 +587,7 @@ export default function Index() {
           5. GOOGLE REVIEWS — 5.0 aggregate hero + scrollable cards.
           ============================================================ */}
       <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 border-t border-border bg-background">
+        <section className="scroll-mt-20 py-20 md:py-28 px-6 md:px-10 border-t border-border bg-background">
           <div className="max-w-[1160px] mx-auto">
             <div className="flex items-center justify-center gap-7 mb-10 flex-wrap text-center">
               <div>
@@ -640,7 +640,7 @@ export default function Index() {
       <FadeIn>
         <section
           aria-label={lang === 'en' ? 'The cost of waiting' : 'Le coût de l\u2019attente'}
-          className="scroll-mt-20 bg-[#0A0A0A] text-white py-24 md:py-28 px-6 md:px-10 border-t border-b border-[#E5E7EB]"
+          className="scroll-mt-20 bg-[#0A0A0A] text-white py-20 md:py-28 px-6 md:px-10 border-t border-b border-[#E5E7EB]"
         >
           <div className="max-w-[920px] mx-auto text-center">
             <div className="text-[12px] font-bold tracking-[2.5px] uppercase text-white/60 mb-5">
@@ -677,7 +677,7 @@ export default function Index() {
 
       {/* FAQ */}
       <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 border-t border-border">
+        <section className="scroll-mt-20 py-20 md:py-28 px-6 md:px-10 border-t border-border">
           <div className="max-w-[780px] mx-auto">
             <div className="text-center mb-10">
               <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#0052CC] mb-2.5">

@@ -576,7 +576,7 @@ export default function Products() {
           // Skeleton mirrors ProductCard's real DOM so the catalog
           // doesn't visually jump when the fetch resolves.
           <div
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5"
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"
             role="status"
             aria-live="polite"
             aria-label={lang === 'en' ? 'Loading products' : 'Chargement des produits'}
@@ -779,7 +779,7 @@ export default function Products() {
                             {lang === 'en' ? 'See all \u2192' : 'Voir tous \u2192'}
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8">
                           {popularSuggestions.map((product, i) => {
                             const key = product?.node?.id ?? product?.node?.handle ?? `pop-${i}`;
                             try {
@@ -823,7 +823,7 @@ export default function Products() {
                 <div
                   ref={gridRef}
                   onKeyDown={handleGridKeyDown}
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5"
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8"
                 >
                 {visibleProducts.map((product, i) => {
                   const key = product?.node?.id ?? product?.node?.handle ?? `idx-${i}`;

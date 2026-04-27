@@ -578,7 +578,7 @@ export default function Cart() {
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      <div className="max-w-6xl mx-auto px-6 pt-20 pb-32 lg:pb-20">
+      <div className="max-w-6xl mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-32 lg:pb-24">
         <Link
           to="/products"
           className="inline-flex items-center gap-1.5 text-sm text-[#6B7280] hover:text-[#0A0A0A] mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 rounded"
@@ -659,7 +659,7 @@ export default function Cart() {
               return (
               <li
                 key={item.cartId}
-                className={`flex gap-4 p-4 rounded-xl border border-[#E5E7EB] bg-white transition-opacity ${pending ? 'opacity-80' : ''}`}
+                className={`flex gap-4 p-6 rounded-xl border border-[#E5E7EB] bg-white transition-opacity ${pending ? 'opacity-80' : ''}`}
               >
                 {/* Preview image — logo preview or product photo */}
                 <div className="w-20 h-20 bg-secondary rounded-xl overflow-hidden flex-shrink-0">

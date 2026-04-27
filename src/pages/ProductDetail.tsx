@@ -619,7 +619,7 @@ export default function ProductDetail() {
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
         <div
-          className="max-w-[1100px] mx-auto px-6 md:px-10 pt-24 pb-32"
+          className="max-w-[1100px] mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-24"
           role="status"
           aria-busy="true"
           aria-live="polite"
@@ -659,7 +659,7 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background">
         <Navbar onOpenCart={() => setCartOpen(true)} />
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
-        <div className="container mx-auto px-4 py-20 text-center pt-24" role={isNetworkError ? 'alert' : undefined}>
+        <div className="container mx-auto px-6 md:px-10 py-16 md:py-24 text-center" role={isNetworkError ? 'alert' : undefined}>
           <p className="text-foreground text-lg font-bold mb-2">
             {isNetworkError
               ? (lang === 'en' ? 'Couldn\u2019t load this product' : 'Impossible de charger ce produit')
@@ -851,7 +851,7 @@ export default function ProductDetail() {
       <Navbar onOpenCart={() => setCartOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      <div className="max-w-[1100px] mx-auto px-4 md:px-8 pt-20 pb-32">
+      <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-24">
         {/* Breadcrumb (§3.10): Home → Products → Category → Product.
             Mirrors the JSON-LD BreadcrumbList fed to Google so the
             visible trail and the structured-data trail agree. Each
