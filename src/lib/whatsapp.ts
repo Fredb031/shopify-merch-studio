@@ -25,10 +25,10 @@ export const WA_MESSAGES = {
  * native app correctly).
  */
 export function waLink(message: string): string {
-  // Guard against undefined/empty: encodeURIComponent(undefined) yields the
-  // literal "undefined", which would prefill the chat with garbage.
-  const text = typeof message === 'string' && message.length > 0
-    ? message
-    : WA_MESSAGES.default;
+  // Guard against undefined/empty/whitespace-only: encodeURIComponent(undefined)
+  // yields the literal "undefined", and a whitespace-only message would prefill
+  // the chat with blank space — both look broken on the operator's side.
+  const trimmed = typeof message === 'string' ? message.trim() : '';
+  const text = trimmed.length > 0 ? trimmed : WA_MESSAGES.default;
   return `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(text)}`;
 }
