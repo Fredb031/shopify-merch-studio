@@ -130,17 +130,30 @@ export function saveDesign(
     preview = null;
   }
 
+  const current = readAll();
+  // Generate an id that doesn't collide with an existing entry. The
+  // crypto.randomUUID path is collision-safe in practice, but the
+  // Math.random fallback (older browsers, or contexts where crypto is
+  // missing) only has ~6.7M random suffixes per millisecond and a
+  // hand-crafted entry imported via devtools could pin a fixed id.
+  // A duplicate id breaks deleteSavedDesign (filters BOTH rows) and
+  // getSavedDesign (returns whichever sorts first), so we retry up to
+  // a small bound before falling back to a guaranteed-unique suffix.
+  const existingIds = new Set(current.map((d) => d.id));
+  const makeId = (): string =>
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `va-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  let id = makeId();
+  for (let i = 0; i < 5 && existingIds.has(id); i++) id = makeId();
+  if (existingIds.has(id)) id = `${id}-${current.length}`;
+
   const entry: SavedDesign = {
     ...design,
     canvasPreviewDataUrl: preview,
-    id:
-      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-        ? crypto.randomUUID()
-        : `va-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    id,
     createdAt: Date.now(),
   };
-
-  const current = readAll();
   // FIFO eviction: keep the newest MAX-1 plus the new entry. Sort
   // descending first so the slice() drops the oldest rather than
   // whichever order the storage happened to return.
