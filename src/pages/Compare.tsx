@@ -16,7 +16,7 @@
  * never enters the bundle for users who only want to compare specs.
  */
 import { useNavigate } from 'react-router-dom';
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Trash2, Check } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
@@ -144,6 +144,19 @@ export default function Compare() {
   const products = items
     .map(sku => PRODUCTS.find(p => p.sku === sku))
     .filter((p): p is Product => Boolean(p));
+
+  // Self-heal: if compareStore holds stale SKUs (retired catalogue entries
+  // persisted in localStorage from a prior catalogue version), silently
+  // purge them so the store and rendered table stay in lock-step. Without
+  // this, users see "3 items in compare" globally but only 1-2 rows here,
+  // and `Clear all` is the only escape.
+  useEffect(() => {
+    if (items.length === products.length) return;
+    const valid = new Set(PRODUCTS.map(p => p.sku));
+    items.forEach(sku => {
+      if (!valid.has(sku)) remove(sku);
+    });
+  }, [items, products.length, remove]);
 
   if (products.length === 0) {
     return (
