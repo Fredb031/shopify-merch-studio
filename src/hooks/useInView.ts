@@ -18,6 +18,17 @@ export function useInView(
       setInView(true);
       return;
     }
+    // Respect prefers-reduced-motion: snap to "in view" immediately so
+    // fade-up/translate animations gated on this flag render in their
+    // final state without motion. Mirrors useCountUp's behaviour.
+    const reduceMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) {
+      setInView(true);
+      return;
+    }
     const obs = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
