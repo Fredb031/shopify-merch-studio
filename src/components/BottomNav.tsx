@@ -44,8 +44,16 @@ export function BottomNav() {
     }
     // Brief scale pulse so the badge "pops" when the count changes. Pure
     // CSS via a timed class toggle — avoids pulling in framer-motion for
-    // a 200ms flourish.
+    // a 200ms flourish. Respect prefers-reduced-motion (WCAG 2.3.3): users
+    // who've opted out of motion shouldn't get a scale animation, even
+    // a small one — the live-region announcement above already conveys
+    // the change non-visually.
     if (itemCount > 0) {
+      const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
       setPulse(true);
       const id = window.setTimeout(() => setPulse(false), PULSE_DURATION_MS);
       return () => window.clearTimeout(id);
