@@ -16,6 +16,7 @@
 
 import { useEffect, useState } from 'react';
 import { bumpSession, getProfile, updateProfile, type VisitorProfile } from '@/lib/visitorProfile';
+import { getCookieConsent } from '@/components/CookieConsent';
 
 export function useVisitorTracking(): VisitorProfile {
   // Lazy-initialise from the persisted profile so the first render
@@ -26,6 +27,17 @@ export function useVisitorTracking(): VisitorProfile {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Québec Law 25 — analytics-category consent gates everything below.
+    // sessionCount, UTM hints, and the firstVisit timestamp are personalization
+    // signals (not strictly-essential), so without an explicit opt-in we must
+    // not write them back to localStorage. Reading the existing profile is
+    // still fine (it's already on disk from a prior consented session, or
+    // empty defaults), so the consumer keeps a well-typed value to render.
+    const consent = getCookieConsent();
+    if (!consent || consent.analytics !== true) {
+      setProfile(getProfile());
+      return;
+    }
     // 1) Bump session count (+ firstVisit if missing).
     let next = bumpSession();
 
