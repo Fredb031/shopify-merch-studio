@@ -105,10 +105,22 @@ export default function IndustriesHub() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {industries.map(ind => {
             const Icon = ind.icon;
+            const indTitle = lang === 'en' ? ind.titleEn : ind.titleFr;
+            // a11y: card-shaped <Link> wraps a heading + body + repeated
+            // "Explore"/"Découvrir" affordance. Without an explicit
+            // accessible name, screen-reader rotor users see five
+            // identical "Explore" entries in the link list. The
+            // aria-label disambiguates each tile by its industry +
+            // destination intent.
+            const cardLabel =
+              lang === 'en'
+                ? `Explore ${indTitle} apparel`
+                : `Découvrir les vêtements ${indTitle}`;
             return (
               <Link
                 key={ind.href}
                 to={ind.href}
+                aria-label={cardLabel}
                 className="group bg-white border border-border rounded-2xl p-6 transition-all duration-300 hover:border-[#0F2341]/30 hover:shadow-[0_16px_40px_rgba(27,58,107,0.14)] hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0F2341] focus-visible:ring-offset-2"
               >
                 <span
@@ -118,7 +130,7 @@ export default function IndustriesHub() {
                   <Icon size={20} />
                 </span>
                 <h2 className="text-lg font-extrabold text-[#0F2341] tracking-[-0.3px] mb-2">
-                  {lang === 'en' ? ind.titleEn : ind.titleFr}
+                  {indTitle}
                 </h2>
                 <p className="text-sm text-zinc-700 leading-relaxed mb-4">
                   {lang === 'en' ? ind.bodyEn : ind.bodyFr}
