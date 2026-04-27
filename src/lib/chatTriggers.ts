@@ -135,15 +135,32 @@ export function useChatTriggers(): void {
     // previous page doesn't insta-fire on PDP load.
     lastInteractionRef.current = Date.now();
 
-    const timer = window.setTimeout(() => {
+    // Track the active timer so we can re-arm it when the user is still
+    // active at fire time. Without this, an interaction at e.g. t=44 s
+    // would push lastInteractionRef forward, the timer would fire at
+    // t=45 s, find idleFor < threshold, do nothing, and the trigger
+    // would be silently lost for the rest of the session.
+    let timer: number | undefined;
+    const arm = (delay: number) => {
+      timer = window.setTimeout(check, delay);
+    };
+    const check = () => {
       const idleFor = Date.now() - lastInteractionRef.current;
       if (idleFor >= PRODUCT_IDLE_DELAY_MS) {
         firePrefill('Tu as des questions sur ce produit ? Je suis là.');
         markFired('product-idle');
+        return;
       }
-    }, PRODUCT_IDLE_DELAY_MS);
+      // User was active recently — re-arm for the remaining idle window.
+      // Floor at 1 s so we don't busy-loop on rapid-fire activity.
+      const remaining = Math.max(1_000, PRODUCT_IDLE_DELAY_MS - idleFor);
+      arm(remaining);
+    };
+    arm(PRODUCT_IDLE_DELAY_MS);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
   }, [location.pathname]);
 
   // ---- Trigger 2: Customizer 60 s without upload -------------------------
