@@ -173,7 +173,7 @@ export default function AdminCapacity() {
           </span>
         </div>
         <div
-          className="w-full h-2 rounded-full bg-zinc-100 overflow-hidden"
+          className="w-full h-2 rounded-full bg-muted overflow-hidden"
           role="progressbar"
           aria-valuenow={pctBooked}
           aria-valuemin={0}
