@@ -6,6 +6,13 @@ import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
  * "événement corporatif uniformes". Pushes polos + premium tees +
  * crewnecks for the office/conference crowd, not workwear basics.
  */
+// Hoisted to module scope so the array reference is stable across
+// re-renders. The shell memoizes resolved products on `productSkus`
+// (d57851d); passing an inline literal would mint a new array each
+// render and defeat that memo. Module-scope const = same identity for
+// the lifetime of the page.
+const CORPORATE_PRODUCT_SKUS: string[] = ['S445', 'WERK250', 'ATCF2500', 'L445'];
+
 export default function Corporate() {
   return (
     <IndustryPageShell
@@ -23,7 +30,7 @@ export default function Corporate() {
       ctaLabel="Personnaliser pour mon équipe corporate"
       productsHeading="Vêtements recommandés pour le corporate"
       productsSubcopy="Notre sélection pour les entreprises — coupes ajustées, tissus haut de gamme, finition broderie qui projette le bon niveau d'image de marque."
-      productSkus={['S445', 'WERK250', 'ATCF2500', 'L445']}
+      productSkus={CORPORATE_PRODUCT_SKUS}
       faqHeading="Questions fréquentes — Corporate"
       faq={[
         {
