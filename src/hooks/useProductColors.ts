@@ -22,8 +22,14 @@ function dedupeAndSortColors(colors: ShopifyVariantColor[]): ShopifyVariantColor
     seen.add(key);
     unique.push(c);
   }
+  // Pin the collator locale to 'en' instead of relying on the browser's
+  // default. Without a fixed locale, two visitors in different regions
+  // (e.g. Turkish 'i'/'I' rules, Swedish 'å' ordering) would see swatches
+  // in different orders for the same product, defeating the whole point
+  // of sorting here — which is to give every user a stable, predictable
+  // visual order regardless of Shopify's variant insertion order.
   return unique.sort((a, b) =>
-    (a.colorName ?? '').localeCompare(b.colorName ?? '', undefined, { sensitivity: 'base' })
+    (a.colorName ?? '').localeCompare(b.colorName ?? '', 'en', { sensitivity: 'base' })
   );
 }
 
