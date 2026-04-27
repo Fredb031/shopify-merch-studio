@@ -28,22 +28,28 @@ interface CompareToggleButtonProps {
 
 export function CompareToggleButton({ sku, productName }: CompareToggleButtonProps) {
   const { lang } = useLang();
+  // Defensive trim — a whitespace-only SKU would otherwise pass the
+  // `!sku` truthy check, get persisted to localStorage via the compare
+  // store, and create a phantom row that can't be matched against any
+  // real product. Normalise once at the boundary so the store only ever
+  // sees a clean identifier (or skips the toggle entirely).
+  const cleanSku = typeof sku === 'string' ? sku.trim() : '';
   // Subscribe to scalar derived values rather than the items array — a
   // fresh array reference is published on every toggle, which would
   // otherwise re-render every CompareToggleButton on the catalogue page
   // even though only one SKU's selection state actually changed.
-  const isSelected = useCompareStore(s => (sku ? s.items.includes(sku) : false));
+  const isSelected = useCompareStore(s => (cleanSku ? s.items.includes(cleanSku) : false));
   const isFull = useCompareStore(s => s.items.length >= COMPARE_MAX);
   const toggle = useCompareStore(s => s.toggle);
 
-  if (!sku) return null;
+  if (!cleanSku) return null;
 
   const disabled = isFull && !isSelected;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (disabled) return;
-    toggle(sku);
+    toggle(cleanSku);
   };
 
   // Bilingual aria — labels track French-canonical site copy with
