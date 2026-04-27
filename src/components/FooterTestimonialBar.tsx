@@ -81,7 +81,12 @@ export function FooterTestimonialBar() {
         // aria-live polite so screen readers pick up the new review
         // when it rotates without interrupting whatever the user is
         // hearing — matches the visual subtlety of the fade.
+        // aria-atomic forces the assistive tech to read the full quote
+        // + attribution as one unit rather than just the diff, which
+        // would otherwise drop the author name on every rotation since
+        // only the inner text nodes change.
         aria-live="polite"
+        aria-atomic="true"
       >
         <p
           className="text-sm md:text-base text-[#1B3A6B] flex flex-wrap items-center justify-center gap-x-2 gap-y-1"
