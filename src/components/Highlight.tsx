@@ -1,6 +1,7 @@
 /**
- * Highlight — wraps every case-insensitive occurrence of `query` inside
- * `text` with a <mark> using a gold tint. Task 2.18.
+ * Highlight — wraps every case-insensitive, accent-insensitive
+ * occurrence of `query` inside `text` with a <mark> using a gold tint.
+ * Task 2.18.
  *
  * Scanning a grid of results after typing "shirt" gave the user no
  * visual signal for WHICH part of each title matched — the eye had to
@@ -14,9 +15,17 @@
  *  - Query special chars are regex-escaped so a user typing ".",
  *    "(", "+", etc. doesn't blow up the RegExp constructor or match
  *    unintended characters.
- *  - Match is case-insensitive but the ORIGINAL casing from `text` is
- *    preserved inside the <mark> (we slice by index, not replace with
- *    the query).
+ *  - Match is case-insensitive AND diacritic-insensitive: a query of
+ *    "ecran" highlights inside "Écran", "creme" inside "Crème", etc.
+ *    This mirrors the NFD-strip + lowercase contract used by
+ *    src/lib/search.ts (2a831fb), src/lib/searchIndex.ts and
+ *    src/lib/colorMap.ts (1e7268d). Without this, search hits arrive
+ *    on the result list (because the index normalises) but the
+ *    Highlight finds nothing — the user sees a card with no visible
+ *    match and assumes the search is broken. The ORIGINAL casing AND
+ *    diacritics from `text` are preserved inside the <mark> (we slice
+ *    by index in the original string via a position map, not by
+ *    splicing the normalised form).
  *  - Zero-width matches (which shouldn't happen after the empty-query
  *    guard, but defensively) are skipped so we don't infinite-loop.
  *  - Ridiculously long text (>10k chars) is rendered as plain text —
@@ -45,6 +54,57 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Combining diacritic mark range — same U+0300-U+036F predicate used
+// by src/lib/search.ts and src/lib/colorMap.ts. Pulled into a constant
+// so the regex isn't re-compiled per call.
+const COMBINING_MARK = /[̀-ͯ]/;
+
+/**
+ * Strip diacritics + lowercase `text`, AND emit a parallel `posMap`
+ * such that `posMap[i]` is the index in the ORIGINAL string at which
+ * the i-th character of the stripped form begins. `posMap` always has
+ * one extra trailing entry equal to original length, so a slice that
+ * ends at `posMap[strippedLen]` is well-defined.
+ *
+ * Why per-base-codepoint rather than naive `.normalize().replace()`:
+ * `'café'` is a single precomposed codepoint (U+00E9) of length 1, but
+ * after NFD it's `'café'` of length 5. Stripping combining marks
+ * gives `'cafe'` — its index 3 corresponds to original index 3, which
+ * works here, but `'éfoo'` (length 4) decomposes to length 5 and
+ * strips to length 4: the mapping from stripped index back to original
+ * index is no longer the identity. We therefore walk the original
+ * codepoint-by-codepoint (NOT the decomposed form) so each base char
+ * we emit maps to a known original index.
+ */
+function buildNormalized(text: string): { norm: string; posMap: number[] } {
+  let norm = '';
+  const posMap: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    // Decompose this single char and strip its combining marks. Most
+    // Latin chars are 1:1; precomposed accented letters become base+
+    // mark(s) and we keep only the base.
+    const decomposed = ch.normalize('NFD');
+    let base = '';
+    for (const dch of decomposed) {
+      if (!COMBINING_MARK.test(dch)) base += dch;
+    }
+    if (base.length === 0) {
+      // Pure combining mark in the original (rare — would happen if
+      // upstream data is already decomposed). Skip; it folds into the
+      // previous base char's normalised representation.
+      continue;
+    }
+    const lower = base.toLowerCase();
+    for (let j = 0; j < lower.length; j++) {
+      norm += lower[j];
+      posMap.push(i);
+    }
+  }
+  posMap.push(text.length);
+  return { norm, posMap };
+}
+
 export function Highlight({ text, query }: HighlightProps) {
   const parts = useMemo<Array<string | JSX.Element>>(() => {
     // Defensive coercion — TS says these are strings but upstream data
@@ -57,9 +117,20 @@ export function Highlight({ text, query }: HighlightProps) {
     const q = query.trim();
     if (!q || !text) return [text];
 
-    const escaped = escapeRegex(q);
+    // Normalise BOTH sides to the same NFD-stripped lowercase form so
+    // an FR query like "ecran" can find "Écran" — mirrors the search
+    // index contract. We slice the ORIGINAL text via posMap so the
+    // <mark> shows accents/case as the user expects.
+    const { norm: normText, posMap } = buildNormalized(text);
+    const { norm: normQuery } = buildNormalized(q);
+    if (!normQuery || !normText) return [text];
+
+    const escaped = escapeRegex(normQuery);
     let re: RegExp;
     try {
+      // Already lowercased by buildNormalized, but keep the `i` flag
+      // as a belt-and-braces guard against any non-Latin casing edge
+      // case where toLowerCase() isn't fully idempotent.
       re = new RegExp(escaped, 'gi');
     } catch {
       // Escaping should make this unreachable, but if the RegExp
@@ -69,10 +140,10 @@ export function Highlight({ text, query }: HighlightProps) {
     }
 
     const out: Array<string | JSX.Element> = [];
-    let lastIndex = 0;
+    let lastOrigIndex = 0;
     let match: RegExpExecArray | null;
     let key = 0;
-    while ((match = re.exec(text)) !== null) {
+    while ((match = re.exec(normText)) !== null) {
       // Defensive guard against zero-width matches causing an infinite
       // loop. The empty-query check above should prevent this, but an
       // exotic input could still produce a 0-width regex.
@@ -80,21 +151,23 @@ export function Highlight({ text, query }: HighlightProps) {
         re.lastIndex++;
         continue;
       }
-      if (match.index > lastIndex) {
-        out.push(text.slice(lastIndex, match.index));
+      const startOrig = posMap[match.index];
+      const endOrig = posMap[match.index + match[0].length];
+      if (startOrig > lastOrigIndex) {
+        out.push(text.slice(lastOrigIndex, startOrig));
       }
       out.push(
         <mark
           key={key++}
           className="bg-[#E8A838]/25 text-inherit rounded-sm px-0.5"
         >
-          {match[0]}
+          {text.slice(startOrig, endOrig)}
         </mark>,
       );
-      lastIndex = match.index + match[0].length;
+      lastOrigIndex = endOrig;
     }
-    if (lastIndex < text.length) {
-      out.push(text.slice(lastIndex));
+    if (lastOrigIndex < text.length) {
+      out.push(text.slice(lastOrigIndex));
     }
     return out;
   }, [text, query]);
