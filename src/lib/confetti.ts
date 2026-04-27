@@ -41,7 +41,17 @@ export function fireConfetti(opts?: { count?: number; durationMs?: number }): vo
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
 
   // Honour reduced-motion: no particles, no DOM churn.
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  // Defensive: `window.matchMedia?.(...)` short-circuits to `undefined` when
+  // `matchMedia` is missing (older Safari iframes, some jsdom setups, embedded
+  // webviews), and `undefined.matches` would throw. Guard the whole chain.
+  try {
+    if (typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+  } catch {
+    // matchMedia threw (sandbox / CSP / exotic env) — fall through and animate.
+  }
 
   injectKeyframesOnce();
 
