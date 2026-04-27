@@ -42,6 +42,9 @@ export function CompareBar() {
 
   const compareLabel = lang === 'en' ? `Compare (${products.length})` : `Comparer (${products.length})`;
   const clearLabel = lang === 'en' ? 'Clear' : 'Effacer';
+  const countAnnouncement = lang === 'en'
+    ? `${products.length} products being compared`
+    : `${products.length} produits comparés`;
 
   return (
     <div
@@ -49,6 +52,13 @@ export function CompareBar() {
       aria-label={lang === 'en' ? 'Product comparison bar' : 'Barre de comparaison produits'}
       className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-card/95 backdrop-blur-md shadow-[0_-8px_24px_rgba(27,58,107,0.12)]"
     >
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {countAnnouncement}
+      </div>
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
           {products.map(p => {
