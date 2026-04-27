@@ -1,9 +1,13 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Award, MapPin, HeartHandshake, ArrowRight } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { SiteFooter } from '@/components/SiteFooter';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useCountUp } from '@/hooks/useCountUp';
+import { useInView } from '@/hooks/useInView';
 
 // Task 11.9 — /about surface. A buyer vetting the brand before a
 // custom order needs a story page; the Shopify catalog alone doesn't
@@ -66,14 +70,26 @@ export default function About() {
     },
   ] as const;
 
+  // "By the numbers" tiles. The two integer counters (547 clients, 3200
+  // items printed) ramp from 0 to target on scroll-in via useCountUp;
+  // the rating tile stays static (4.9 is below the threshold where
+  // counting feels meaningful, and the ★ glyph isn't a numeric digit).
+  // duration falls to 0 under prefers-reduced-motion so the values land
+  // immediately for users who opt out of motion.
+  const reduceMotion = useReducedMotion();
+  const statsRef = useRef<HTMLElement>(null);
+  const statsInView = useInView(statsRef, { threshold: 0.5 });
+  const clientsCount = useCountUp(547, statsInView, reduceMotion ? 0 : 1500);
+  const itemsCount = useCountUp(3200, statsInView, reduceMotion ? 0 : 1500);
+
   const stats = [
     {
-      value: '547',
+      value: clientsCount.toLocaleString('fr-CA'),
       labelFr: 'Clients servis',
       labelEn: 'Clients served',
     },
     {
-      value: '3\u202f200+',
+      value: `${itemsCount.toLocaleString('fr-CA')}+`,
       labelFr: 'Articles imprimés',
       labelEn: 'Items printed',
     },
@@ -182,7 +198,7 @@ export default function About() {
         {/* Block 3 — By the numbers. Stat tiles reuse the hero-strip
             figures so the two surfaces stay consistent. If those
             numbers ever move, update both call sites at once. */}
-        <section aria-labelledby="about-stats" className="mb-12">
+        <section ref={statsRef} aria-labelledby="about-stats" className="mb-12">
           <h2
             id="about-stats"
             className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-5"

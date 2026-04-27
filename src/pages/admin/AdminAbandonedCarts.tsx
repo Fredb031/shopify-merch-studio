@@ -468,18 +468,24 @@ export default function AdminAbandonedCarts() {
         <StatCard
           label="Valeur totale"
           value={SHOPIFY_STATS.abandonedCheckoutsValue.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
+          numericValue={SHOPIFY_STATS.abandonedCheckoutsValue}
+          formatValue={n => Math.round(n).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
           icon={ShoppingBag}
           accent="gold"
         />
         <StatCard
           label="Checkouts en attente"
           value={String(SHOPIFY_STATS.abandonedCheckoutsCount)}
+          numericValue={SHOPIFY_STATS.abandonedCheckoutsCount}
+          formatValue={n => n.toLocaleString('fr-CA')}
           icon={Mail}
           accent="blue"
         />
         <StatCard
           label="Valeur moyenne"
           value={(SHOPIFY_STATS.abandonedCheckoutsValue / Math.max(SHOPIFY_STATS.abandonedCheckoutsCount, 1)).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
+          numericValue={SHOPIFY_STATS.abandonedCheckoutsValue / Math.max(SHOPIFY_STATS.abandonedCheckoutsCount, 1)}
+          formatValue={n => Math.round(n).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
           accent="green"
         />
       </div>

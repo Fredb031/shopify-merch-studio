@@ -1,10 +1,30 @@
+import { useRef } from 'react';
 import { Zap, MapPin, ShieldCheck, Users } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
 import { useLang } from '@/lib/langContext';
+import { useCountUp } from '@/hooks/useCountUp';
+import { useInView } from '@/hooks/useInView';
 
 const ICON_COLOR = '#0052CC';
 
 export function TrustSignalsBar() {
   const { lang } = useLang();
+
+  // Animate "500+ companies" tile when the bar scrolls into view —
+  // mirrors the same effect on the hero trust line so a returning
+  // visitor sees consistent motion language across surfaces. The other
+  // three tiles aren't animated: "5 business days" is below the
+  // ANIMATION_MIN threshold (counting 0→5 looks staccato), and "Made in
+  // Québec" / "1-year guarantee" aren't pure integer counters.
+  const reduceMotion = useReducedMotion();
+  const sectionRef = useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { threshold: 0.5 });
+  const companiesCount = useCountUp(500, inView, reduceMotion ? 0 : 1500);
+
+  const companiesTitle =
+    lang === 'en'
+      ? `${companiesCount.toLocaleString('en-CA')}+ companies`
+      : `${companiesCount.toLocaleString('fr-CA')}+ entreprises`;
 
   const signals = [
     {
@@ -24,13 +44,14 @@ export function TrustSignalsBar() {
     },
     {
       icon: Users,
-      title: lang === 'en' ? '500+ companies' : '500+ entreprises',
+      title: companiesTitle,
       sub: lang === 'en' ? 'Trust us since 2021' : 'Nous font confiance depuis 2021',
     },
   ];
 
   return (
     <section
+      ref={sectionRef}
       className="bg-secondary/60 border-y border-border py-6 px-6 md:px-10"
       aria-label={lang === 'en' ? 'Trust signals' : 'Nos garanties'}
     >

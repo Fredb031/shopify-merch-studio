@@ -18,6 +18,7 @@ import { Shirt, Upload, Zap, Package, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useCountUp } from '@/hooks/useCountUp';
 import { useInView } from '@/hooks/useInView';
 import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
 
@@ -214,6 +215,17 @@ export default function Index() {
     return () => obs.disconnect();
   }, []);
 
+  // Hero trust-line count-up — the "500+ entreprises" / "33 000+ pièces"
+  // numbers ramp from 0 to target the moment the line enters view, so the
+  // scale registers as a moment instead of static text. Distinct ref from
+  // the post-hero trustBarRef above (which fades the TrustSignalsBar
+  // strip in). Duration falls to 0 under prefers-reduced-motion so the
+  // values land instantly for users who opt out of motion.
+  const heroStatsRef = useRef<HTMLDivElement>(null);
+  const heroStatsInView = useInView(heroStatsRef, { threshold: 0.5 });
+  const businessesCount = useCountUp(500, heroStatsInView, reducedMotion ? 0 : 1500);
+  const piecesCount = useCountUp(33000, heroStatsInView, reducedMotion ? 0 : 1500);
+
   // FAQ accordion — one-at-a-time open behaviour. Native <details>
   // gives us keyboard/SR semantics + no-JS progressive enhancement
   // for free; this handler enforces mutual exclusion.
@@ -399,7 +411,7 @@ export default function Index() {
           </div>
 
           {/* Trust bar — single line, wraps gracefully on mobile. */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-[#374151]">
+          <div ref={heroStatsRef} className="mt-10 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] md:text-[13px] text-[#374151]">
             <span className="inline-flex items-center gap-1.5">
               <span aria-hidden="true" className="flex gap-0.5 text-[#F59E0B]">
                 <StarSvg /><StarSvg /><StarSvg /><StarSvg /><StarSvg />
@@ -407,9 +419,17 @@ export default function Index() {
               <span className="font-bold">5/5 Google</span>
             </span>
             <span aria-hidden="true" className="text-[#0A0A0A]/30">·</span>
-            <span>{lang === 'en' ? '500+ businesses' : '500+ entreprises'}</span>
+            <span>
+              {lang === 'en'
+                ? `${businessesCount.toLocaleString('en-CA')}+ businesses`
+                : `${businessesCount.toLocaleString('fr-CA')}+ entreprises`}
+            </span>
             <span aria-hidden="true" className="text-[#0A0A0A]/30">·</span>
-            <span>{lang === 'en' ? '33,000+ pieces' : '33\u202F000+ pièces'}</span>
+            <span>
+              {lang === 'en'
+                ? `${piecesCount.toLocaleString('en-CA')}+ pieces`
+                : `${piecesCount.toLocaleString('fr-CA')}+ pièces`}
+            </span>
             <span aria-hidden="true" className="text-[#0A0A0A]/30">·</span>
             <span>{lang === 'en' ? 'Free shipping $300+' : 'Livraison gratuite 300$+'}</span>
           </div>

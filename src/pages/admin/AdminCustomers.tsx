@@ -289,12 +289,32 @@ export default function AdminCustomers() {
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total clients" value={String(SHOPIFY_STATS.totalCustomers)} accent="blue" />
-        <StatCard label="Clients payants" value={String(SHOPIFY_STATS.payingCustomers)} accent="green" />
-        <StatCard label="Prospects" value={String(SHOPIFY_STATS.totalCustomers - SHOPIFY_STATS.payingCustomers)} accent="gold" />
+        <StatCard
+          label="Total clients"
+          value={String(SHOPIFY_STATS.totalCustomers)}
+          numericValue={SHOPIFY_STATS.totalCustomers}
+          formatValue={n => n.toLocaleString('fr-CA')}
+          accent="blue"
+        />
+        <StatCard
+          label="Clients payants"
+          value={String(SHOPIFY_STATS.payingCustomers)}
+          numericValue={SHOPIFY_STATS.payingCustomers}
+          formatValue={n => n.toLocaleString('fr-CA')}
+          accent="green"
+        />
+        <StatCard
+          label="Prospects"
+          value={String(SHOPIFY_STATS.totalCustomers - SHOPIFY_STATS.payingCustomers)}
+          numericValue={SHOPIFY_STATS.totalCustomers - SHOPIFY_STATS.payingCustomers}
+          formatValue={n => n.toLocaleString('fr-CA')}
+          accent="gold"
+        />
         <StatCard
           label="Revenue total"
           value={SHOPIFY_STATS.totalLifetimeRevenue.toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
+          numericValue={SHOPIFY_STATS.totalLifetimeRevenue}
+          formatValue={n => Math.round(n).toLocaleString('fr-CA', { style: 'currency', currency: 'CAD', maximumFractionDigits: 0 })}
           accent="green"
         />
       </div>

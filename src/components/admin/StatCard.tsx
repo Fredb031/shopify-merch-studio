@@ -1,6 +1,9 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
+import { useCountUp } from '@/hooks/useCountUp';
+import { useInView } from '@/hooks/useInView';
 
 interface StatCardProps {
   label: string;
@@ -11,7 +14,21 @@ interface StatCardProps {
   accent?: 'blue' | 'gold' | 'green' | 'red';
   loading?: boolean;
   compact?: boolean;
+  /**
+   * When provided alongside `formatValue`, the displayed number animates
+   * from 0 to `numericValue` once the card scrolls into view. Numbers
+   * below ANIMATION_MIN are rendered statically — counting "5 → 5" feels
+   * silly. Falls back to the static `value` string when the prop is
+   * omitted, so existing call-sites keep working unchanged.
+   */
+  numericValue?: number;
+  formatValue?: (n: number) => string;
 }
+
+// Animating a target below ~20 produces a staccato flicker rather than
+// the satisfying ramp the effect is meant to deliver, so we skip the
+// animation entirely under that threshold and render the final value.
+const ANIMATION_MIN = 20;
 
 // Hoisted out of the component body so the same object literal isn't
 // re-allocated on every render — the colour map is render-pure and
@@ -34,8 +51,24 @@ const DELTA_ROUNDING_FACTOR = 10;
 // Wrapped in React.memo so that dashboard parent re-renders (sidebar
 // toggles, nav clicks) don't recompute 5+ identical cards. The prop
 // shapes are primitive so the default shallow compare works fine.
-function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = 'blue', loading = false, compact = false }: StatCardProps) {
+function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = 'blue', loading = false, compact = false, numericValue, formatValue }: StatCardProps) {
   const accentMap = ACCENT_CLASSES[accent];
+
+  // Count-up hook is gated on (a) the caller supplying both numericValue
+  // + formatValue, (b) the target being big enough to feel, and (c) the
+  // user not opting out of motion. The ref + useInView pair fires once
+  // when the tile scrolls past 50% visible — re-scrolls don't re-count.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
+  const canAnimate =
+    !loading
+    && typeof numericValue === 'number'
+    && Number.isFinite(numericValue)
+    && numericValue >= ANIMATION_MIN
+    && typeof formatValue === 'function';
+  const inView = useInView(cardRef, { threshold: 0.5 });
+  const animatedCount = useCountUp(canAnimate ? numericValue! : 0, canAnimate && inView, reduceMotion ? 0 : 1500);
+  const displayValue = canAnimate && formatValue ? formatValue(animatedCount) : value;
 
   // Guard against NaN/Infinity/null (stat sources can divide by zero
   // when a period has no prior data, and upstream hooks sometimes pass
@@ -79,7 +112,7 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
     : undefined;
 
   return (
-    <div className={`bg-white border border-zinc-200 rounded-2xl ${rootPadding} hover:shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-shadow`}>
+    <div ref={cardRef} className={`bg-white border border-zinc-200 rounded-2xl ${rootPadding} hover:shadow-[0_8px_32px_rgba(0,0,0,0.04)] transition-shadow`}>
       <div className={`flex items-center justify-between ${headerGap}`}>
         <div className="text-[11px] font-semibold text-zinc-500 tracking-wider uppercase">{label}</div>
         {Icon && (
@@ -101,7 +134,7 @@ function StatCardInner({ label, value, delta, deltaLabel, icon: Icon, accent = '
           />
         </div>
       ) : (
-        <div className={`${valueSize} font-extrabold text-zinc-900 tracking-tight`}>{value}</div>
+        <div className={`${valueSize} font-extrabold text-zinc-900 tracking-tight`}>{displayValue}</div>
       )}
       {!loading && (hasFiniteDelta || deltaLabel) && (
         <div className={`flex items-center gap-1 ${deltaGap}`}>

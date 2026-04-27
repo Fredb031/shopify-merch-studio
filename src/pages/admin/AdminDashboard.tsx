@@ -522,12 +522,39 @@ export default function AdminDashboard() {
       <div key={refreshKey} className="contents">
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Commandes (7j)" value={String(SHOPIFY_STATS.ordersLast7Days)} delta={12} deltaLabel="vs. sem. dernière" icon={ShoppingBag} accent="blue" />
-        <StatCard label="Revenus (7j)" value={`${revenueFmt} $`} delta={8} deltaLabel="vs. sem. dernière" icon={DollarSign} accent="green" />
-        <StatCard label="À expédier" value={String(SHOPIFY_STATS.awaitingFulfillment)} icon={FileText} accent="gold" />
+        <StatCard
+          label="Commandes (7j)"
+          value={String(SHOPIFY_STATS.ordersLast7Days)}
+          numericValue={SHOPIFY_STATS.ordersLast7Days}
+          formatValue={n => n.toLocaleString('fr-CA')}
+          delta={12}
+          deltaLabel="vs. sem. dernière"
+          icon={ShoppingBag}
+          accent="blue"
+        />
+        <StatCard
+          label="Revenus (7j)"
+          value={`${revenueFmt} $`}
+          numericValue={SHOPIFY_STATS.revenueLast7Days}
+          formatValue={n => `${Math.round(n).toLocaleString('fr-CA')} $`}
+          delta={8}
+          deltaLabel="vs. sem. dernière"
+          icon={DollarSign}
+          accent="green"
+        />
+        <StatCard
+          label="À expédier"
+          value={String(SHOPIFY_STATS.awaitingFulfillment)}
+          numericValue={SHOPIFY_STATS.awaitingFulfillment}
+          formatValue={n => n.toLocaleString('fr-CA')}
+          icon={FileText}
+          accent="gold"
+        />
         <StatCard
           label="Paniers à récupérer"
           value={`${SHOPIFY_STATS.abandonedCheckoutsValue.toFixed(0)} $`}
+          numericValue={SHOPIFY_STATS.abandonedCheckoutsValue}
+          formatValue={n => `${Math.round(n).toLocaleString('fr-CA')} $`}
           deltaLabel={`${SHOPIFY_STATS.abandonedCheckoutsCount} paniers`}
           icon={Package}
           accent="gold"

@@ -1480,12 +1480,16 @@ export default function VendorDashboard() {
         <StatCard
           label={L('Ventes du mois', 'Sales this month')}
           value={formatMoney(summary.totalSales, lang)}
+          numericValue={summary.totalSales}
+          formatValue={n => formatMoney(n, lang)}
           icon={TrendingUp}
           accent="blue"
         />
         <StatCard
           label={L('Commission gagnée', 'Commission earned')}
           value={formatMoney(summary.totalCommission, lang)}
+          numericValue={summary.totalCommission}
+          formatValue={n => formatMoney(n, lang)}
           deltaLabel={L(`Taux ${(summary.rate * 100).toFixed(1)}%`, `Rate ${(summary.rate * 100).toFixed(1)}%`)}
           icon={DollarSign}
           accent="gold"
@@ -1493,6 +1497,8 @@ export default function VendorDashboard() {
         <StatCard
           label={L('Commandes créditées', 'Credited orders')}
           value={String(summary.orderCount)}
+          numericValue={summary.orderCount}
+          formatValue={n => n.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA')}
           icon={FileText}
           accent="blue"
         />

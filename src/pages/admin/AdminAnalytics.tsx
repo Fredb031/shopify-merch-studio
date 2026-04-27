@@ -373,6 +373,8 @@ export default function AdminAnalytics() {
         <StatCard
           label={`Revenus ${activeRange.label}`}
           value={`${revenueInRange.toLocaleString('fr-CA', { maximumFractionDigits: 0 })} $`}
+          numericValue={revenueInRange}
+          formatValue={n => `${Math.round(n).toLocaleString('fr-CA')} $`}
           delta={compare && revenueDelta !== null ? revenueDelta : undefined}
           deltaLabel={compare ? 'vs période précédente' : undefined}
           icon={DollarSign}
@@ -389,12 +391,16 @@ export default function AdminAnalytics() {
         <StatCard
           label="Panier moyen"
           value={`${(SHOPIFY_STATS.totalLifetimeRevenue / Math.max(SHOPIFY_STATS.payingCustomers, 1)).toFixed(0)} $`}
+          numericValue={SHOPIFY_STATS.totalLifetimeRevenue / Math.max(SHOPIFY_STATS.payingCustomers, 1)}
+          formatValue={n => `${Math.round(n).toLocaleString('fr-CA')} $`}
           icon={ShoppingBag}
           accent="gold"
         />
         <StatCard
           label="Clients actifs"
           value={String(SHOPIFY_STATS.payingCustomers)}
+          numericValue={SHOPIFY_STATS.payingCustomers}
+          formatValue={n => n.toLocaleString('fr-CA')}
           deltaLabel={`sur ${SHOPIFY_STATS.totalCustomers} inscrit${SHOPIFY_STATS.totalCustomers > 1 ? 's' : ''}`}
           icon={Users}
           accent="blue"
