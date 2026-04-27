@@ -22,7 +22,7 @@ import { CASE_STUDIES, type CaseStudy } from '@/data/caseStudies';
 // Brand-navy fallback rendered when the placeholder hero image fails
 // to load. Keeps the card aspect ratio so the grid stays even, and
 // surfaces the company name so the card still communicates clearly.
-function CardHero({ cs }: { cs: CaseStudy }) {
+function CardHero({ cs, alt }: { cs: CaseStudy; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (failed) {
     return (
@@ -39,7 +39,7 @@ function CardHero({ cs }: { cs: CaseStudy }) {
   return (
     <img
       src={cs.heroImage}
-      alt=""
+      alt={alt}
       width={800}
       height={500}
       loading="lazy"
@@ -97,7 +97,14 @@ export default function CaseStudies() {
                   aria-labelledby={`cs-title-${cs.slug}`}
                   className="group flex flex-col bg-card border border-border rounded-2xl overflow-hidden transition-all hover:-translate-y-[2px] hover:shadow-[0_16px_40px_rgba(15,35,65,0.10)]"
                 >
-                  <CardHero cs={cs} />
+                  <CardHero
+                    cs={cs}
+                    alt={
+                      lang === 'en'
+                        ? `${cs.companyName} — ${cs.industry} team in ${cs.location}`
+                        : `${cs.companyName} — équipe ${cs.industry} à ${cs.location}`
+                    }
+                  />
                   <div className="flex flex-col flex-1 p-6">
                     <div className="text-[11px] font-bold tracking-[1.8px] uppercase text-muted-foreground mb-1.5">
                       {cs.industry} · {cs.location}
