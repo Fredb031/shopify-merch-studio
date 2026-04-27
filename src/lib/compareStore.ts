@@ -32,6 +32,10 @@ export const useCompareStore = create<CompareStore>()(
     (set, get) => ({
       items: [],
       add: (sku) => {
+        // Match the rehydrate contract: ignore non-string / empty / whitespace SKUs
+        // so the live path can't poison the store with bad shape that the
+        // onRehydrateStorage filter would otherwise drop on next reload.
+        if (typeof sku !== 'string' || sku.trim().length === 0) return;
         const { items } = get();
         if (items.includes(sku)) return;
         if (items.length >= COMPARE_MAX) return;
@@ -41,6 +45,7 @@ export const useCompareStore = create<CompareStore>()(
         set({ items: get().items.filter(s => s !== sku) });
       },
       toggle: (sku) => {
+        if (typeof sku !== 'string' || sku.trim().length === 0) return;
         const { items } = get();
         if (items.includes(sku)) {
           set({ items: items.filter(s => s !== sku) });
