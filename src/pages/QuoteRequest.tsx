@@ -35,6 +35,27 @@ const QUEUE_CAP = 20;
 // the 5MB localStorage budget and brick the queue. 800kB at base64
 // (~600kB raw) is enough for a typical PNG/JPG client logo.
 const LOGO_MAX_BYTES = 800 * 1024;
+// Hard upper bound on quantity — well beyond any realistic merch order
+// (Vision's largest single-shot has been ~5K units), prevents a runaway
+// 1e10 from flowing into the price preview or the queued payload.
+const QTY_MAX = 50_000;
+
+// Integer-only quantity parser. Mirrors AdminCapacity 0636a9f's
+// parseSlotCount — Number.isInteger >= 0 with NaN/Infinity/decimal/
+// negative all collapsing to 0. Pricing.ts is frozen at ba33680, so
+// guaranteeing the upstream qty is a non-negative integer is the
+// cheapest way to keep getPricePerUnit's tier-ladder math stable.
+function parseQty(raw: string): number {
+  const trimmed = raw.trim();
+  if (!trimmed) return 0;
+  // Reject anything that isn't a run of ASCII digits — kills "1.5",
+  // "1e3", "-5", "0x10", "  5  abc" before Number() sees them.
+  if (!/^\d+$/.test(trimmed)) return 0;
+  const n = Number(trimmed);
+  if (!Number.isInteger(n) || n < 0) return 0;
+  if (n > QTY_MAX) return QTY_MAX;
+  return n;
+}
 
 type QuoteQueueRow = {
   // Step 1
@@ -111,7 +132,12 @@ export default function QuoteRequest() {
   // before the user changes the default product.
   const { unitPrice, totalPrice, productName } = useMemo(() => {
     const product = PRODUCTS.find(p => p.sku === productSku) ?? PRODUCTS[0];
-    const safeQty = Math.max(1, Number.isFinite(quantity) ? quantity : 0);
+    // Belt-and-braces: parseQty already clamps the source state, but
+    // re-validate on the read-side so a stray useState write or a
+    // future regression can't poison the price preview.
+    const safeQty = Number.isInteger(quantity) && quantity >= 1
+      ? Math.min(quantity, QTY_MAX)
+      : 1;
     const unit = getPricePerUnit(productSku, safeQty);
     return {
       unitPrice: unit,
@@ -120,7 +146,8 @@ export default function QuoteRequest() {
     };
   }, [productSku, quantity]);
 
-  const step1Valid = quantity >= 1 && !!productSku;
+  const step1Valid =
+    Number.isInteger(quantity) && quantity >= 1 && quantity <= QTY_MAX && !!productSku;
   const step2Valid = !!company.trim() && isValidEmail(normalizeInvisible(email)) && isValidPhone(phone);
 
   const goNext = () => {
@@ -174,7 +201,9 @@ export default function QuoteRequest() {
     setSubmitState('loading');
 
     const row: QuoteQueueRow = {
-      quantity: Math.max(1, quantity),
+      quantity: Number.isInteger(quantity) && quantity >= 1
+        ? Math.min(quantity, QTY_MAX)
+        : 1,
       productSku,
       productName: sanitizeText(productName, { maxLength: 200 }),
       deadline: sanitizeText(deadline, { maxLength: 40 }),
@@ -332,12 +361,23 @@ export default function QuoteRequest() {
                     <input
                       id="qty"
                       type="number"
+                      inputMode="numeric"
                       min={1}
+                      max={QTY_MAX}
+                      step={1}
                       value={quantity}
-                      onChange={e => setQuantity(parseInt(e.target.value, 10) || 0)}
+                      onChange={e => setQuantity(parseQty(e.target.value))}
                       required
+                      aria-required="true"
+                      aria-invalid={quantity < 1 || !Number.isInteger(quantity)}
+                      aria-describedby="qty-hint"
                       className="w-full px-4 py-2.5 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0052CC]/40 focus:border-[#0052CC]"
                     />
+                    <p id="qty-hint" className="text-[11px] text-zinc-500 mt-1">
+                      {lang === 'en'
+                        ? 'Whole number, 1 to 50,000.'
+                        : 'Nombre entier, de 1 à 50 000.'}
+                    </p>
                   </div>
 
                   <div>
