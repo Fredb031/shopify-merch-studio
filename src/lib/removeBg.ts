@@ -194,10 +194,15 @@ export async function removeBackground(
   try {
     const blob = await removeWhiteBackground(file, (fraction) => {
       report('canvas-progress', undefined, fraction);
-    });
+    }, signal);
     report('canvas-success');
     return blob;
-  } catch {
+  } catch (err) {
+    // Propagate caller-initiated cancels (effect cleanup on unmount, user
+    // hitting "cancel") instead of silently returning the original file —
+    // a swallowed abort would let the now-stale result race back into the
+    // customizer state after the user has moved on.
+    if (err instanceof RemoveBgError && err.code === 'aborted') throw err;
     // silent — caller falls back to original
     report('canvas-failure');
     return file;
@@ -218,10 +223,11 @@ export async function removeBackground(
 async function removeWhiteBackground(
   file: File,
   onFraction?: (fraction: number) => void,
+  signal?: AbortSignal,
 ): Promise<Blob> {
   const bitmap = await createImageBitmap(file);
   try {
-    return await processBitmap(bitmap, onFraction);
+    return await processBitmap(bitmap, onFraction, signal);
   } finally {
     // createImageBitmap allocates a GPU-backed buffer that only gets
     // freed when .close() is called (or on GC, which is unpredictable
@@ -235,7 +241,11 @@ async function removeWhiteBackground(
 async function processBitmap(
   bitmap: ImageBitmap,
   onFraction?: (fraction: number) => void,
+  signal?: AbortSignal,
 ): Promise<Blob> {
+  if (signal?.aborted) {
+    throw new RemoveBgError('canvas pass aborted before start', { code: 'aborted' });
+  }
   // Cap canvas dimensions so an 8k+ logo upload doesn't OOM lower-end
   // mobile browsers on the getImageData call. A cap of 4000px on the
   // longest edge is well above the print DPI we need for a 40cm logo
@@ -271,6 +281,13 @@ async function processBitmap(
   let nextTick = tickStride;
   for (let i = 0; i < total; i += 4) {
     if (i >= nextTick) {
+      // Piggy-back on the existing progress boundary to honour an external
+      // abort. Checking `signal?.aborted` per pixel would tank the hot loop;
+      // doing it 4 times across the whole pass keeps the worst-case wait
+      // under ~500ms even on a 16M-pixel image on a low-end phone.
+      if (signal?.aborted) {
+        throw new RemoveBgError('canvas pass aborted by caller', { code: 'aborted' });
+      }
       onFraction?.(i / total);
       nextTick += tickStride;
     }
