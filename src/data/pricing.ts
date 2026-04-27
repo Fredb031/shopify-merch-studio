@@ -24,40 +24,49 @@
 // largest qualifying tier wins, with a safe fallback to ATC1000 for any
 // unknown SKU (defensive — a pricing miss would otherwise crash a PDP).
 
-type Tier = { minQty: number; pricePerUnit: number };
+// Pricing is the financial source of truth for the app. The tier rows
+// and the PRICING table are frozen on export so a stray consumer can't
+// mutate `PRICING['ATC1000'][0].pricePerUnit = 0` mid-render and silently
+// corrupt every subsequent quote in the SPA session. `readonly` on the
+// type surfaces the same guarantee at compile time.
+export type Tier = Readonly<{ minQty: number; pricePerUnit: number }>;
 
 // Shared discount ladder applied to a category's "tier 1" price.
 // Index aligns with the minQty ladder below.
 const DISCOUNT_LADDER = [1.0, 0.88, 0.78, 0.70, 0.63, 0.57] as const;
 const QTY_LADDER = [12, 50, 100, 250, 500, 1000] as const;
 
-function buildTiers(tier1Price: number): Tier[] {
-  return QTY_LADDER.map((minQty, i) => ({
-    minQty,
-    pricePerUnit: Math.round(tier1Price * DISCOUNT_LADDER[i] * 100) / 100,
-  }));
+function buildTiers(tier1Price: number): readonly Tier[] {
+  return Object.freeze(
+    QTY_LADDER.map((minQty, i) =>
+      Object.freeze({
+        minQty,
+        pricePerUnit: Math.round(tier1Price * DISCOUNT_LADDER[i] * 100) / 100,
+      }),
+    ),
+  );
 }
 
 // Brief baseline anchors. ATC1000 (budget tee) and ATCF2500 (hoodie) are
 // quoted directly so the tier shape is stable even if the helper above
 // is later swapped for a per-SKU schedule.
-const ATC1000_TIERS: Tier[] = [
-  { minQty: 12,   pricePerUnit: 8.50 },
-  { minQty: 50,   pricePerUnit: 7.50 },
-  { minQty: 100,  pricePerUnit: 6.50 },
-  { minQty: 250,  pricePerUnit: 5.75 },
-  { minQty: 500,  pricePerUnit: 5.25 },
-  { minQty: 1000, pricePerUnit: 4.75 },
-];
+const ATC1000_TIERS: readonly Tier[] = Object.freeze([
+  Object.freeze({ minQty: 12,   pricePerUnit: 8.50 }),
+  Object.freeze({ minQty: 50,   pricePerUnit: 7.50 }),
+  Object.freeze({ minQty: 100,  pricePerUnit: 6.50 }),
+  Object.freeze({ minQty: 250,  pricePerUnit: 5.75 }),
+  Object.freeze({ minQty: 500,  pricePerUnit: 5.25 }),
+  Object.freeze({ minQty: 1000, pricePerUnit: 4.75 }),
+]);
 
-const ATCF2500_TIERS: Tier[] = [
-  { minQty: 12,   pricePerUnit: 32.00 },
-  { minQty: 50,   pricePerUnit: 28.00 },
-  { minQty: 100,  pricePerUnit: 25.00 },
-  { minQty: 250,  pricePerUnit: 22.50 },
-  { minQty: 500,  pricePerUnit: 20.50 },
-  { minQty: 1000, pricePerUnit: 18.50 },
-];
+const ATCF2500_TIERS: readonly Tier[] = Object.freeze([
+  Object.freeze({ minQty: 12,   pricePerUnit: 32.00 }),
+  Object.freeze({ minQty: 50,   pricePerUnit: 28.00 }),
+  Object.freeze({ minQty: 100,  pricePerUnit: 25.00 }),
+  Object.freeze({ minQty: 250,  pricePerUnit: 22.50 }),
+  Object.freeze({ minQty: 500,  pricePerUnit: 20.50 }),
+  Object.freeze({ minQty: 1000, pricePerUnit: 18.50 }),
+]);
 
 // Category-level baselines (tier-1 / 12-unit price). Other tiers scale
 // off these via DISCOUNT_LADDER inside buildTiers().
@@ -73,7 +82,7 @@ const CAP_PREMIUM_TIER1 = 18.00; // performance/snapback (ATC6277-class)
 const TOQUE_TIER1 = 8.00;        // knit beanie (≈ 50% of tee — minimal material)
 const TOQUE_PREMIUM_TIER1 = 11.00;
 
-export const PRICING: Record<string, Tier[]> = {
+export const PRICING: Readonly<Record<string, readonly Tier[]>> = Object.freeze({
   // --- T-shirts ---
   ATC1000:   ATC1000_TIERS,
   ATC1000L:  buildTiers(TEE_TIER1 + 0.50),   // women's cut, slight premium
@@ -105,7 +114,7 @@ export const PRICING: Record<string, Tier[]> = {
   // --- Toques ---
   C100:      buildTiers(TOQUE_TIER1),
   C105:      buildTiers(TOQUE_PREMIUM_TIER1),
-};
+});
 
 /**
  * Resolve the per-unit price for a SKU at a given quantity.
