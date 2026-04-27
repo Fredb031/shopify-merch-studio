@@ -60,7 +60,11 @@ export function DeliverySpeedPicker({ subtotal, value, onChange }: Props) {
       <div role="radiogroup" aria-labelledby={`${groupId}-legend`} className="space-y-2">
         {DELIVERY_OPTIONS.map((opt) => {
           const Icon = ICONS[opt.id];
-          const surchargeAmount = subtotal * opt.surcharge;
+          // Mirror getDeliverySurcharge: clamp negative / non-finite subtotals
+          // so the inline display matches the cart total math exactly and a
+          // stale value can never produce NaN or a negative surcharge.
+          const safeSubtotal = Number.isFinite(subtotal) ? Math.max(0, subtotal) : 0;
+          const surchargeAmount = safeSubtotal * opt.surcharge;
           const isActive = value === opt.id;
           const inputId = `${groupId}-${opt.id}`;
           return (
