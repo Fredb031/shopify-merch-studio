@@ -103,6 +103,17 @@ export function SearchBar({ className = '', autoFocus = false, onNavigate }: {
 
   const showDropdown = open && query.trim().length >= MIN_QUERY_LENGTH;
 
+  // Screen-reader announcement for result count. WAI-ARIA APG combobox
+  // pattern requires the listbox state changes be announced via a polite
+  // live region — sighted users see results materialize, AT users get
+  // nothing without this. Empty string while the dropdown is closed so
+  // we don't announce anything during typing below MIN_QUERY_LENGTH.
+  const liveMessage = showDropdown
+    ? results.length === 0
+      ? `Aucun résultat pour ${query.trim()}`
+      : `${results.length} résultat${results.length > 1 ? 's' : ''} trouvé${results.length > 1 ? 's' : ''}`
+    : '';
+
   return (
     <div ref={wrapperRef} className={`relative ${className}`}>
       <div className="flex items-center gap-2 border border-border rounded-full px-3 py-[6px] bg-background/70 backdrop-blur-sm focus-within:border-foreground transition-colors">
@@ -128,6 +139,15 @@ export function SearchBar({ className = '', autoFocus = false, onNavigate }: {
           // most platforms; we still handle Esc-to-clear ourselves for
           // platforms that don't render one (Firefox desktop).
         />
+      </div>
+
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {liveMessage}
       </div>
 
       {showDropdown && (
