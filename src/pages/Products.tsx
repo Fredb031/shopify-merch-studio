@@ -7,6 +7,7 @@ import { findProductByHandle, PRODUCTS } from '@/data/products';
 import { plural } from '@/lib/plural';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useInView } from '@/hooks/useInView';
 import { useLang } from '@/lib/langContext';
 import { Search, SearchX, X } from 'lucide-react';
 import { AIChat } from '@/components/AIChat';
@@ -159,6 +160,11 @@ export default function Products() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   // Ref to the main ProductCard grid for arrow-key navigation.
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-triggered fade-up on the product grid container. Hero stays
+  // static; the grid below it eases in as the user starts to scroll.
+  const gridSectionRef = useRef<HTMLDivElement>(null);
+  const gridSectionInView = useInView(gridSectionRef, { threshold: 0.1 });
 
   // Sticky filter bar — sentinel sits where the hero ends. Once it
   // leaves the viewport (user scrolls past hero) the filter strip
@@ -560,7 +566,12 @@ export default function Products() {
       </div>
 
       {/* Content */}
-      <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-10 pb-32">
+      <div
+        ref={gridSectionRef}
+        className={`max-w-[1200px] mx-auto px-6 md:px-10 py-10 pb-32 transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:transform-none motion-reduce:opacity-100 ${
+          gridSectionInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
+      >
         {isLoading ? (
           // Skeleton mirrors ProductCard's real DOM so the catalog
           // doesn't visually jump when the fetch resolves.

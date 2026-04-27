@@ -18,7 +18,15 @@ import { Shirt, Upload, Zap, Package, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useInView } from '@/hooks/useInView';
 import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
+
+// Shared utility: Tailwind class string for the canonical scroll-triggered
+// fade-up. 16px slide, 700ms ease-out, motion-reduce variants snap to the
+// final state so motion-averse visitors never see a static opacity-0 frame.
+const FADE_UP_BASE = 'transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:transform-none motion-reduce:opacity-100';
+const fadeUpClass = (inView: boolean) =>
+  `${FADE_UP_BASE} ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`;
 
 // Client placeholder names — swap each entry to { name, logoSrc } and switch
 // the render to <img> once /public/logos/clients/*.svg files land.
@@ -163,6 +171,17 @@ export default function Index() {
   // bugged. Visitors land directly on the hero with no overlay.
   const [showLoader, setShowLoader] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+
+  // Scroll-triggered fade-up refs for each section below the hero.
+  // Hooks must live at the component top — calling useInView inside a
+  // map or conditional would violate the Rules of Hooks. The hero
+  // itself stays static (above-the-fold should not animate-in).
+  const marqueeRef = useRef<HTMLElement>(null);
+  const trustBarRef = useRef<HTMLDivElement>(null);
+  const featuredRef = useRef<HTMLDivElement>(null);
+  const marqueeInView = useInView(marqueeRef, { threshold: 0.15 });
+  const trustBarInView = useInView(trustBarRef, { threshold: 0.15 });
+  const featuredInView = useInView(featuredRef, { threshold: 0.1 });
 
   // Sticky bottom CTA (mobile only). Sentinel sits at the bottom of
   // the hero; when it leaves the viewport we know the user has
@@ -402,7 +421,11 @@ export default function Index() {
       {/* ============================================================
           2. INDUSTRY MARQUEE — text-only, single line.
           ============================================================ */}
-      <section aria-label={lang === 'en' ? 'Trusted by Québec professionals' : 'Les pros du Québec'} className="border-b border-border bg-background">
+      <section
+        ref={marqueeRef}
+        aria-label={lang === 'en' ? 'Trusted by Québec professionals' : 'Les pros du Québec'}
+        className={`border-b border-border bg-background ${fadeUpClass(marqueeInView)}`}
+      >
         <div className="max-w-[1160px] mx-auto px-6 md:px-10 py-7">
           <h2 className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-3">
             {lang === 'en'
@@ -451,10 +474,14 @@ export default function Index() {
           carries the delivery / guarantee / Québec promises. */}
 
       {/* Existing trust signals strip (delivery promise, guarantees) */}
-      <TrustSignalsBar />
+      <div ref={trustBarRef} className={fadeUpClass(trustBarInView)}>
+        <TrustSignalsBar />
+      </div>
 
       {/* Featured products — kept; conversion-critical. */}
-      <FeaturedProducts />
+      <div ref={featuredRef} className={fadeUpClass(featuredInView)}>
+        <FeaturedProducts />
+      </div>
 
       {/* ============================================================
           4. HOW IT WORKS — transformation language, ghost numbers,
