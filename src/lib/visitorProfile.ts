@@ -104,7 +104,17 @@ function coerce(raw: Partial<VisitorProfile> | null | undefined): VisitorProfile
   if (typeof raw.sessionCount === 'number' && Number.isFinite(raw.sessionCount) && raw.sessionCount >= 0) {
     out.sessionCount = Math.floor(raw.sessionCount);
   }
-  if (typeof raw.firstVisit === 'string') out.firstVisit = raw.firstVisit;
+  // firstVisit must be a parseable ISO timestamp — a garbage string
+  // (older build, devtools edit, half-written entry) would slip past a
+  // bare typeof check and then poison every `new Date(profile.firstVisit)`
+  // downstream with `Invalid Date`. Worse, bumpSession's `!firstVisit`
+  // guard only catches the empty string, so a non-empty garbage value
+  // would never get re-stamped. Validate via Date.parse and fall back to
+  // '' so the next bumpSession() re-stamps a clean ISO timestamp — also
+  // the only way Law 25 retention windows compute against a real date.
+  if (typeof raw.firstVisit === 'string' && raw.firstVisit !== '' && Number.isFinite(Date.parse(raw.firstVisit))) {
+    out.firstVisit = raw.firstVisit;
+  }
   if (typeof raw.utmSource === 'string') out.utmSource = raw.utmSource;
   if (typeof raw.utmIndustry === 'string') out.utmIndustry = raw.utmIndustry;
   if (typeof raw.lastOrderCategory === 'string') out.lastOrderCategory = raw.lastOrderCategory;
