@@ -122,18 +122,31 @@ export function useWishlist() {
   }, []);
 
   useEffect(() => {
+    // Bail if the freshly-read list is content-equal to what we already
+    // hold. The same-tab event always fires after a local write — so
+    // without this guard, every toggle/remove/clear triggers a redundant
+    // setHandles(readStorage()) immediately after the writer's own
+    // setHandles(next), producing a new array reference and a wasted
+    // re-render in every consuming heart button. Cheap O(n) since MAX
+    // is capped at 50 and both arrays are already normalized + ordered.
+    const sync = () => setHandles(prev => {
+      const next = readStorage();
+      if (prev.length === next.length && prev.every((h, i) => h === next[i])) {
+        return prev;
+      }
+      return next;
+    });
     const onStorage = (e: StorageEvent) => {
       // e.key === null fires when another tab calls localStorage.clear()
       // — re-read in that case too so this tab doesn't keep rendering
       // hearts for products whose wishlist entry was just wiped.
-      if (e.key === KEY || e.key === null) setHandles(readStorage());
+      if (e.key === KEY || e.key === null) sync();
     };
-    const onLocal = () => setHandles(readStorage());
     window.addEventListener('storage', onStorage);
-    window.addEventListener(SAME_TAB_EVENT, onLocal);
+    window.addEventListener(SAME_TAB_EVENT, sync);
     return () => {
       window.removeEventListener('storage', onStorage);
-      window.removeEventListener(SAME_TAB_EVENT, onLocal);
+      window.removeEventListener(SAME_TAB_EVENT, sync);
     };
   }, []);
 
