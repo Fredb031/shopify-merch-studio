@@ -31,9 +31,15 @@ export function useCountUp(target: number, inView: boolean, duration = DEFAULT_D
     const tick = (now: number) => {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
+      if (progress >= 1) {
+        // Snap to exact target to avoid floating-point drift leaving the
+        // final value one short (e.g. 99 instead of 100) on integer counts.
+        setCount(target);
+        return;
+      }
       const eased = 1 - Math.pow(1 - progress, 3);
-      setCount(Math.floor(eased * target));
-      if (progress < 1) raf = requestAnimationFrame(tick);
+      setCount(Math.round(eased * target));
+      raf = requestAnimationFrame(tick);
     };
 
     raf = requestAnimationFrame(tick);
