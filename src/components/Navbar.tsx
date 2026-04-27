@@ -173,13 +173,6 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         >
           {t('boutique')}
         </Link>
-        <Link
-          to="/products?customize=1"
-          className="hidden md:inline-flex items-center text-[12px] font-bold text-foreground/80 hover:text-foreground px-3 py-[7px] rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          {t('creer')}
-        </Link>
-
         <LangToggle />
 
         {user ? (
@@ -320,9 +313,9 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
             <>
               <style>{`
                 @keyframes cartAddPulse {
-                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 hsla(35, 91%, 55%, 0.0); }
-                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px hsla(35, 91%, 55%, 0.55); background-color: hsl(35, 91%, 55%); }
-                  100% { transform: scale(1);    box-shadow: 0 0 0 0 hsla(35, 91%, 55%, 0.0); }
+                  0%   { transform: scale(1);    box-shadow: 0 0 0 0 hsla(217, 100%, 40%, 0.0); }
+                  45%  { transform: scale(1.25); box-shadow: 0 0 0 6px hsla(217, 100%, 40%, 0.55); background-color: hsl(217, 100%, 40%); }
+                  100% { transform: scale(1);    box-shadow: 0 0 0 0 hsla(217, 100%, 40%, 0.0); }
                 }
               `}</style>
               <span
@@ -342,8 +335,7 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
 
         <Link
           to="/products"
-          className="hidden sm:inline-block text-[13px] font-bold text-primary-foreground gradient-navy-dark border-none px-[22px] py-[9px] rounded-full transition-all hover:opacity-85 hover:-translate-y-px"
-          style={{ boxShadow: '0 4px 16px hsla(var(--navy), 0.3)' }}
+          className="hidden sm:inline-block bg-[#0052CC] text-white font-bold px-5 py-2.5 rounded-xl hover:bg-[#003D99] transition-all"
         >
           {t('voirProduits')}
         </Link>
