@@ -105,9 +105,14 @@ export function useFocusTrap<T extends HTMLElement = HTMLElement>(active: boolea
       }
     };
 
-    el.addEventListener('keydown', onKey);
+    // Listen on document, not `el`: a keydown event only fires on the
+    // container if focus is already inside it, which would make the
+    // "focus escaped the container" recovery branch above unreachable.
+    // Document-level capture catches Tab presses regardless of where
+    // activeElement currently sits, so escape-recovery actually runs.
+    document.addEventListener('keydown', onKey);
     return () => {
-      el.removeEventListener('keydown', onKey);
+      document.removeEventListener('keydown', onKey);
       // Restore focus so the SkipLink / opening button regains it.
       if (prevActive && typeof prevActive.focus === 'function') {
         prevActive.focus({ preventScroll: true });
