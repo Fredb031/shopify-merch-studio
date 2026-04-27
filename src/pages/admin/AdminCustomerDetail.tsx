@@ -24,6 +24,7 @@ import {
   type ShopifyCustomerSnapshot,
   type ShopifyOrderSnapshot,
 } from '@/data/shopifySnapshot';
+import { getOrderLogos, LOGO_STATE_LABEL } from '@/data/orderLogos';
 import { readLS, writeLS } from '@/lib/storage';
 import { sanitizeText } from '@/lib/sanitize';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -544,22 +545,63 @@ export default function AdminCustomerDetail() {
                       <th className="text-left px-4 py-3">Commande</th>
                       <th className="text-left px-4 py-3">Date</th>
                       <th className="text-left px-4 py-3">Statut</th>
+                      {/* Customizer Blueprint §8.1 — surface the per-line
+                          logo / placement / zone / aperçu trail that ships
+                          on the cart attributes. Until the live Shopify
+                          line-item fetch lands, we read the same
+                          getOrderLogos() lookup AdminOrders uses so the
+                          production team can spot custom orders from the
+                          customer detail page without round-tripping
+                          through /admin/orders. */}
+                      <th className="text-left px-4 py-3">Logo</th>
                       <th className="text-right px-4 py-3">Articles</th>
                       <th className="text-right px-4 py-3">Total</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {customerOrders.map(o => (
+                    {customerOrders.map(o => {
+                      const logos = getOrderLogos(o.id);
+                      return (
                       <tr key={o.id} className="border-t border-zinc-100 hover:bg-zinc-50">
-                        <td className="px-4 py-3 font-bold">{o.name}</td>
+                        <td className="px-4 py-3 font-bold">
+                          <Link
+                            to={`/admin/orders?q=${encodeURIComponent(o.name)}`}
+                            className="text-[#0052CC] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded"
+                          >
+                            {o.name}
+                          </Link>
+                        </td>
                         <td className="px-4 py-3 text-zinc-500 text-xs">{formatDate(o.createdAt)}</td>
                         <td className="px-4 py-3">
                           <StatusBadge status={o.financialStatus} fulfillment={o.fulfillmentStatus} />
                         </td>
+                        <td className="px-4 py-3">
+                          {logos.length === 0 ? (
+                            <span className="text-[11px] text-zinc-400">—</span>
+                          ) : (
+                            <div className="flex items-center gap-1.5" title={logos.map(l => `${l.label} (${LOGO_STATE_LABEL[l.state]})`).join(', ')}>
+                              {logos.slice(0, 3).map(l => (
+                                <img
+                                  key={l.id}
+                                  src={l.previewUrl}
+                                  alt={l.label}
+                                  width={28}
+                                  height={28}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-7 h-7 rounded border border-zinc-200 object-contain bg-white"
+                                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                                />
+                              ))}
+                              <span className="text-[11px] font-bold text-zinc-600">×{logos.length}</span>
+                            </div>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-right">{o.itemsCount}</td>
                         <td className="px-4 py-3 text-right font-bold">{formatCurrency(o.total)}</td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
