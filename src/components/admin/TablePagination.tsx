@@ -29,7 +29,15 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
   const safePageSize = Number.isFinite(pageSize) && pageSize > 0
     ? Math.floor(pageSize)
     : 10;
-  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  // Mirror the pageSize guard for `total`. A non-finite or negative
+  // `total` (devtools edit, mid-flight fetch returning -1, NaN from
+  // `array.length` on `undefined`) would otherwise propagate through
+  // `Math.ceil` as NaN, defeating `Math.max(1, …)` (since `Math.max`
+  // returns NaN when any arg is NaN) and rendering "Page 1 de NaN".
+  const safeTotal = Number.isFinite(total) && total > 0
+    ? Math.floor(total)
+    : 0;
+  const totalPages = Math.max(1, Math.ceil(safeTotal / safePageSize));
 
   // Self-clamp: if `page` is beyond the last valid index (e.g. the
   // parent hasn't yet reset on a filter narrowing, or row deletions
@@ -45,7 +53,7 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
 
   // Nothing to paginate — don't render the footer at all. Keeps the
   // UI clean for small result sets.
-  if (total <= safePageSize) return null;
+  if (safeTotal <= safePageSize) return null;
 
   // Defensive clamp on the displayed numbers too — the effect above
   // resolves the state on the next render, so render-1 still gets a
@@ -54,7 +62,7 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
   // `page` arrived negative (same coercion family as safePageSize).
   const safePage = Math.max(0, Math.min(page, totalPages - 1));
   const first = safePage * safePageSize + 1;
-  const last  = Math.min((safePage + 1) * safePageSize, total);
+  const last  = Math.min((safePage + 1) * safePageSize, safeTotal);
 
   return (
     <nav
@@ -63,7 +71,7 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
       className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500"
     >
       <span>
-        {first}–{last} sur {total}
+        {first}–{last} sur {safeTotal}
         {itemLabel ? ` ${itemLabel}` : ''}
         {' · '}
         <span className="text-zinc-400">
