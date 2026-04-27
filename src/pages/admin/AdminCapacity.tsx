@@ -58,15 +58,35 @@ export default function AdminCapacity() {
     return Math.min(100, Math.round((capacity.bookedSlots / capacity.totalSlots) * 100));
   }, [capacity]);
 
+  // Strict non-negative integer parse. parseInt silently accepts
+  // "3.7" (→3) and "12abc" (→12); Number() rejects trailing junk
+  // but accepts "" (→0) and floats. We need both signals: reject
+  // empty/whitespace, reject non-finite, reject non-integers, reject
+  // negatives. The public scarcity widget reads these values, so a
+  // bogus float here would surface as "Plus que 12.5 créneaux".
+  const parseSlotCount = (raw: string): number | null => {
+    const trimmed = raw.trim();
+    if (trimmed === '') return null;
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) return null;
+    if (!Number.isInteger(n)) return null;
+    if (n < 0) return null;
+    // Guard against absurd inputs (typos like "500000") that would
+    // make the gauge math meaningless. 10k is well above any real
+    // weekly ceiling.
+    if (n > 10000) return null;
+    return n;
+  };
+
   const handleSave = () => {
-    const total = Number.parseInt(totalInput, 10);
-    const booked = Number.parseInt(bookedInput, 10);
-    if (!Number.isFinite(total) || total < 0) {
-      toast.error('Total invalide — entrez un nombre positif.');
+    const total = parseSlotCount(totalInput);
+    const booked = parseSlotCount(bookedInput);
+    if (total === null) {
+      toast.error('Total invalide — entrez un entier entre 0 et 10000.');
       return;
     }
-    if (!Number.isFinite(booked) || booked < 0) {
-      toast.error('Réservés invalide — entrez un nombre positif ou zéro.');
+    if (booked === null) {
+      toast.error('Réservés invalide — entrez un entier entre 0 et 10000.');
       return;
     }
     if (booked > total) {
@@ -117,6 +137,8 @@ export default function AdminCapacity() {
               id="cap-total"
               type="number"
               min={0}
+              max={10000}
+              step={1}
               inputMode="numeric"
               value={totalInput}
               onChange={(e) => setTotalInput(e.target.value)}
@@ -135,6 +157,8 @@ export default function AdminCapacity() {
               id="cap-booked"
               type="number"
               min={0}
+              max={10000}
+              step={1}
               inputMode="numeric"
               value={bookedInput}
               onChange={(e) => setBookedInput(e.target.value)}
