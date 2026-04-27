@@ -16,6 +16,22 @@
  */
 import { PRODUCTS, type Product } from '@/data/products';
 
+/**
+ * Strip diacritics + lowercase. Mirrors the `normalise()` helper in
+ * search.ts so the haystack we scan and the query we receive live in the
+ * same character space. searchSynonyms.ts (8797ad5) already enforces
+ * normalised keys for the same reason — without this the haystack
+ * contained "vert forêt" / "bleu pâle" / "gris foncé chiné" while
+ * incoming queries arrived as "foret" / "pale" / "fonce", causing every
+ * accented colour name to silently miss substring + Levenshtein scoring.
+ */
+function normaliseIndexText(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
+}
+
 export interface SearchIndexEntry {
   /** Lowercase SKU, used as stable id */
   sku: string;
@@ -66,14 +82,14 @@ function buildEntry(p: Product): SearchIndexEntry {
   };
   const typeNameEn = categoryEnMap[p.category] ?? typeName;
 
-  const colorNamesFr = (p.colors ?? []).map(c => (c.name || '').toLowerCase());
-  const colorNamesEn = (p.colors ?? []).map(c => (c.nameEn || '').toLowerCase());
+  const colorNamesFr = (p.colors ?? []).map(c => normaliseIndexText(c.name || ''));
+  const colorNamesEn = (p.colors ?? []).map(c => normaliseIndexText(c.nameEn || ''));
   const colors = Array.from(new Set([...colorNamesFr, ...colorNamesEn].filter(Boolean)));
 
   const tags = Array.from(new Set([
     p.category,
     p.gender,
-    ...(p.features ?? []).map(f => f.toLowerCase()),
+    ...(p.features ?? []).map(f => normaliseIndexText(f)),
   ].filter(Boolean)));
 
   const image = p.imageDevant || p.imageDos || '/placeholder.svg';
@@ -81,8 +97,10 @@ function buildEntry(p: Product): SearchIndexEntry {
 
   // The haystack is a single lowercase string we scan for partial
   // matches — assembling it once per product is far cheaper than the
-  // alternative of looping over every field on every keystroke.
-  const haystack = [
+  // alternative of looping over every field on every keystroke. It is
+  // diacritic-stripped to match search.ts's normalised query form;
+  // without this, "Vert forêt" never matches the query "foret".
+  const haystack = normaliseIndexText([
     p.sku,
     typeName,
     typeNameEn,
@@ -90,7 +108,7 @@ function buildEntry(p: Product): SearchIndexEntry {
     p.gender,
     ...colors,
     ...tags,
-  ].join(' ').toLowerCase();
+  ].join(' '));
 
   return {
     sku: p.sku.toLowerCase(),
