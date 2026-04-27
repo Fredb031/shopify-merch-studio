@@ -258,9 +258,13 @@ export default function AdminAbandonedCarts() {
     }
   }, [sort, query, reminderFilter, ageBucket, searchParams, setSearchParams]);
 
-  // Reset pagination when search / filter changes so narrowing doesn't
-  // strand the user on an empty page 5.
-  useEffect(() => { setPage(0); }, [query, reminderFilter, ageBucket]);
+  // Reset pagination when search / filter / sort changes so narrowing
+  // (or re-ranking) doesn't strand the user on an empty page 5. Sort
+  // is included alongside the filters because flipping recent ↔ value
+  // on page 3 of a 100-row list shows a confusing slice of the
+  // re-ordered tail; resetting to page 0 keeps the top of the new
+  // ranking visible.
+  useEffect(() => { setPage(0); }, [query, reminderFilter, ageBucket, sort]);
 
   const markReminderSent = useCallback((cartId: number): void => {
     setReminders(prev => {
@@ -343,9 +347,6 @@ export default function AdminAbandonedCarts() {
     else arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return arr;
   }, [sort, query, reminderFilter, ageBucket, reminders]);
-
-  // Reset page on sort change so user isn't stranded.
-  useEffect(() => { setPage(0); }, [sort]);
 
   // Candidates for the bulk send: every cart currently visible after
   // search / filter that hasn't been nudged in the last 24h. Using
