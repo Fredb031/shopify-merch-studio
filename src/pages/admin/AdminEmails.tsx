@@ -1036,7 +1036,7 @@ function RecentSendsPanel({ entries, onClear, onRefresh }: {
           <span className="text-[11px] text-zinc-500">
             ({entries.length} au total
             {filtersActive ? ` · ${filtered.length} filtré${filtered.length > 1 ? 's' : ''}` : ''}
-            {' '}· 10 derniers)
+            {' '}· {visible.length} affiché{visible.length > 1 ? 's' : ''})
           </span>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
