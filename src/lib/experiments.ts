@@ -171,25 +171,35 @@ export function assignVariant(exp: Experiment, visitorId: string): string {
  */
 export function useExperiment(exp: Experiment): string {
   // Memoise visitor id + variant so re-renders don't recompute the
-  // hash. The variant is referentially stable for the same experiment
-  // active flag and visitor id.
+  // hash. Depend on stable primitives drawn from `exp` rather than
+  // object identity — callers occasionally construct the experiment
+  // object inline (e.g. `{ ...EXPERIMENTS.heroCta, active: flag }`),
+  // which would otherwise re-bucket on every render and break the
+  // useRef-based single-fire guard below.
+  const variantsKey = exp.variants.join('|');
+  const weightsKey = exp.weights.join('|');
   const variant = useMemo(() => {
     const visitorId = getVisitorId();
     return assignVariant(exp, visitorId);
-  }, [exp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exp.id, exp.active, variantsKey, weightsKey]);
 
-  const firedRef = useRef(false);
+  // Track which experiment id we last fired for so swapping the
+  // experiment within the same component (e.g. a feature-flagged
+  // ramp-up that toggles between two tests) emits a fresh exposure
+  // event instead of being permanently muted by the ref guard.
+  const firedForRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (firedRef.current) return;
-    firedRef.current = true;
     if (!exp.active) return; // No exposure event for inactive tests.
+    if (firedForRef.current === exp.id) return;
+    firedForRef.current = exp.id;
     trackEvent('experiment_viewed', {
       experiment_id: exp.id,
       experiment_name: exp.name,
       variant,
     });
-  }, [exp, variant]);
+  }, [exp.id, exp.name, exp.active, variant]);
 
   return variant;
 }
