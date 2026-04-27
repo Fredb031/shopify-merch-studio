@@ -280,15 +280,13 @@ interface SwitchProps {
   onToggle: () => void;
 }
 
-function SwitchButton({ id, label, enabled, onToggle }: SwitchProps) {
-  const labelId = `automation-${id}-switch`;
+function SwitchButton({ id: _id, label, enabled, onToggle }: SwitchProps) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={enabled}
       aria-label={`${enabled ? 'Mettre en pause' : 'Activer'} ${label}`}
-      aria-labelledby={labelId}
       onClick={e => {
         e.stopPropagation();
         onToggle();
@@ -302,7 +300,6 @@ function SwitchButton({ id, label, enabled, onToggle }: SwitchProps) {
         enabled ? 'bg-[#0052CC]' : 'bg-zinc-300'
       }`}
     >
-      <span className="sr-only" id={labelId}>{label}</span>
       <span
         className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
           enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
