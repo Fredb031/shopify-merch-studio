@@ -18,7 +18,7 @@
  *
  * Add new entries lowercase, accents stripped (we normalise both sides).
  */
-export const SYNONYMS: Record<string, string[]> = {
+const SYNONYMS_RAW: Record<string, string[]> = {
   // ── Garment types — FR ↔ EN ↔ slang ↔ typo ────────────────────────────────
   'chandail':   ['t-shirt', 'tshirt', 'chandail'],
   'tshirt':     ['t-shirt', 'tshirt'],
@@ -89,3 +89,43 @@ export const SYNONYMS: Record<string, string[]> = {
   'youth':      ['enfant', 'youth'],
   'jeunesse':   ['enfant', 'jeunesse', 'youth'],
 };
+
+/**
+ * Normalise a token the same way the consumer (search.ts) does: NFD decompose,
+ * strip combining marks, lowercase, trim. Kept inline here so this module has
+ * zero runtime deps and the contract check below can't drift from the consumer.
+ */
+function normaliseKey(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Dev-time contract check. The consumer looks up `SYNONYMS[t]` where `t` is
+ * already lowercased + accent-stripped + trimmed. If a contributor adds a key
+ * like `'Café'` or `' marine'` it would be silently unreachable — defined but
+ * never matched. We assert the invariant once at module load so the failure
+ * surfaces immediately in dev, not as a mysterious "why isn't this synonym
+ * firing?" two weeks later.
+ *
+ * In production the check is elided by the bundler (import.meta.env.DEV is
+ * a compile-time constant under Vite) so this costs nothing at runtime.
+ */
+if (import.meta.env.DEV) {
+  for (const key of Object.keys(SYNONYMS_RAW)) {
+    const normalised = normaliseKey(key);
+    if (key !== normalised) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[searchSynonyms] Key "${key}" is not normalised (expected "${normalised}"). ` +
+        `It will be unreachable from search() because queries are normalised before lookup.`,
+      );
+    }
+  }
+}
+
+/** Frozen so accidental runtime mutation can't corrupt the shared dictionary. */
+export const SYNONYMS: Readonly<Record<string, readonly string[]>> = Object.freeze(SYNONYMS_RAW);
