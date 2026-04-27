@@ -66,8 +66,15 @@ function isPlacement(v: unknown): v is SavedDesign['placement'] {
 
 function isSizeQty(v: unknown): v is Record<string, number> {
   if (!v || typeof v !== 'object' || Array.isArray(v)) return false;
+  // Quantities feed straight into order math (subtotal, fulfillment
+  // line items, inventory checks). A negative, fractional, NaN, or
+  // Infinity value would either silently corrupt totals or crash a
+  // downstream Number() coercion. Force non-negative integers here so
+  // a hand-edited devtools blob can't poison the basket.
   for (const val of Object.values(v as Record<string, unknown>)) {
-    if (typeof val !== 'number' || !Number.isFinite(val)) return false;
+    if (typeof val !== 'number' || !Number.isInteger(val) || val < 0) {
+      return false;
+    }
   }
   return true;
 }
