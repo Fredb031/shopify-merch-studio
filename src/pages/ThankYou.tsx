@@ -38,6 +38,16 @@ interface LastOrderBlob {
   deliveryDays?: number;
 }
 
+// Hard ceiling on the `?days=` URL param. Without this, a hostile
+// or fat-fingered link like /merci?days=9999999 would lock the
+// render thread inside computeFallbackDeliveryDate's while loop
+// — a trivial client-side DoS through a URL search param. 60
+// business days (~3 months) is well past any legitimate Vision
+// Affichage delivery window (Standard=5, Express=2, Custom rush
+// caps around 10) so clamping here is purely defensive.
+const DEFAULT_DELIVERY_DAYS = 5;
+const MAX_DELIVERY_DAYS = 60;
+
 /**
  * Compute a delivery date string in fr-CA long form (e.g.
  * "vendredi 2 mai"). Used when the URL/localStorage payload lacks an
@@ -48,7 +58,7 @@ interface LastOrderBlob {
  * customer doesn't see "samedi 3 mai" when nothing actually ships
  * over the weekend.
  */
-function computeFallbackDeliveryDate(days = 5): Date {
+function computeFallbackDeliveryDate(days = DEFAULT_DELIVERY_DAYS): Date {
   const d = new Date();
   let added = 0;
   while (added < days) {
@@ -86,7 +96,14 @@ export default function ThankYou() {
       params.get('first_name') ?? params.get('firstName') ?? blob.firstName ?? '';
     const etaParam = params.get('eta') ?? blob.eta ?? '';
     const daysParam = params.get('days');
-    const days = daysParam ? Number.parseInt(daysParam, 10) : blob.deliveryDays;
+    const rawDays = daysParam ? Number.parseInt(daysParam, 10) : blob.deliveryDays;
+    // Clamp to [1, MAX_DELIVERY_DAYS]. Anything outside that band
+    // (negative, NaN, absurdly large) falls back to the Standard
+    // tier — protects against ?days=9999999 hanging the loop.
+    const days =
+      typeof rawDays === 'number' && Number.isFinite(rawDays) && rawDays > 0
+        ? Math.min(Math.floor(rawDays), MAX_DELIVERY_DAYS)
+        : DEFAULT_DELIVERY_DAYS;
 
     let etaDate: Date | null = null;
     if (etaParam) {
@@ -94,9 +111,7 @@ export default function ThankYou() {
       if (!Number.isNaN(parsed.getTime())) etaDate = parsed;
     }
     if (!etaDate) {
-      etaDate = computeFallbackDeliveryDate(
-        Number.isFinite(days) && (days as number) > 0 ? (days as number) : 5,
-      );
+      etaDate = computeFallbackDeliveryDate(days);
     }
 
     return {
