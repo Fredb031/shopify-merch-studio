@@ -20,7 +20,6 @@ import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useInView } from '@/hooks/useInView';
-import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
 
 // Shared utility: Tailwind class string for the canonical scroll-triggered
 // fade-up. 16px slide, 700ms ease-out, motion-reduce variants snap to the
@@ -28,6 +27,26 @@ import { getProfile, type VisitorProfile } from '@/lib/visitorProfile';
 const FADE_UP_BASE = 'transition-all duration-700 ease-out motion-reduce:transition-none motion-reduce:transform-none motion-reduce:opacity-100';
 const fadeUpClass = (inView: boolean) =>
   `${FADE_UP_BASE} ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`;
+
+// Dynamic delivery date — design blueprint section 3.6. Orders before 3pm
+// Quebec time hit production same-day (5 business days from now); after the
+// cutoff they roll to the next business day (6 business days). Skips
+// weekends. Renders "lundi 5 mai" in FR, "Monday, May 5" in EN.
+function getDeliveryDate(lang: 'fr' | 'en'): string {
+  const now = new Date();
+  const cutoffHour = 15; // 3pm Quebec — orders after roll to next business day
+  const businessDays = now.getHours() >= cutoffHour ? 6 : 5;
+  const date = new Date(now);
+  let added = 0;
+  while (added < businessDays) {
+    date.setDate(date.getDate() + 1);
+    const d = date.getDay();
+    if (d !== 0 && d !== 6) added++;
+  }
+  return date.toLocaleDateString(lang === 'en' ? 'en-CA' : 'fr-CA', {
+    weekday: 'long', day: 'numeric', month: 'long',
+  });
+}
 
 // Client placeholder names — swap each entry to { name, logoSrc } and switch
 // the render to <img> once /public/logos/clients/*.svg files land.
@@ -163,10 +182,6 @@ export default function Index() {
   );
   const cart = useCartStore();
   const [cartOpen, setCartOpen] = useState(false);
-  const [visitor, setVisitor] = useState<VisitorProfile>(() => getProfile());
-  useEffect(() => {
-    setVisitor(getProfile());
-  }, []);
   const [showGame, setShowGame] = useState(false);
   // Intro animation disabled by default — site owner reported it as
   // bugged. Visitors land directly on the hero with no overlay.
@@ -353,27 +368,6 @@ export default function Index() {
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
-      {/* Returning-visitor "Bon retour!" pill — renders only when
-          sessionCount >= 2 AND we have a recorded last-viewed product. */}
-      {visitor.sessionCount >= 2 && visitor.lastViewedProduct && visitor.lastViewedHref ? (
-        <div className="px-6 md:px-10 pt-[88px]" data-vision-returning-banner>
-          <div className="max-w-[920px] mx-auto">
-            <Link
-              to={visitor.lastViewedHref}
-              className="inline-flex items-center gap-2 rounded-full bg-[#0052CC]/10 px-4 py-2 text-sm text-foreground hover:bg-[#0052CC]/20 transition-colors"
-            >
-              <span aria-hidden="true">{'\uD83D\uDC4B'}</span>
-              <span>
-                {lang === 'en'
-                  ? `Welcome back! Looking for ${visitor.lastViewedProduct}? Pick up where I left off`
-                  : `Bon retour\u00A0! Tu cherchais ${visitor.lastViewedProduct}\u00A0? Reprendre o\u00F9 je me suis arr\u00EAt\u00E9`}
-              </span>
-              <span aria-hidden="true">{'\u2192'}</span>
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
       {/* ============================================================
           1. HERO — restored classic light surface with single CTA.
           Flat white background. Headline + sub centered, ONE primary
@@ -381,20 +375,23 @@ export default function Index() {
           ============================================================ */}
       <section className="relative overflow-hidden bg-white min-h-[92vh] flex items-center justify-center px-6 md:px-10 pt-[88px] pb-20">
         <div className="relative z-[1] max-w-[1080px] mx-auto text-center">
-          {/* H1 */}
-          <h1 className="font-display font-black text-[#0A0A0A] text-5xl md:text-6xl xl:text-7xl leading-[1.02] tracking-[-0.04em]">
+          {/* H1 — softer weight + smaller scale per v4 feedback. The
+              previous Outfit-black setting read too corporate; bumping
+              to font-bold (700) and dropping a tier of size makes the
+              hero feel friendlier without losing presence. */}
+          <h1 className="font-display font-bold text-[#0A0A0A] text-4xl md:text-5xl xl:text-6xl leading-[1.1] tracking-tight">
             {lang === 'en' ? (
-              <>Your team is working.<br /><span className="text-[#0052CC]">Who knows who they are?</span></>
+              <>Dress your team.<br /><span className="text-[#0052CC]">Delivered in 5 days.</span></>
             ) : (
-              <>Ton équipe travaille.<br /><span className="text-[#0052CC]">Qui sait c'est qui?</span></>
+              <>Habille ton équipe.<br /><span className="text-[#0052CC]">Livré en 5 jours.</span></>
             )}
           </h1>
 
           {/* Sub */}
-          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-[#1F2937] max-w-[620px] mx-auto leading-relaxed">
+          <p className="mt-7 text-[clamp(15px,1.6vw,19px)] text-[#374151] max-w-[620px] mx-auto leading-relaxed">
             {lang === 'en'
-              ? 'Print your logo on t-shirts, hoodies, polos and caps. Delivered in 5 business days — from one piece up.'
-              : "Imprime ton logo sur tes t-shirts, hoodies, polos et casquettes. Livré en 5 jours ouvrables \u2014 à partir d'une pièce."}
+              ? 'T-shirts, hoodies, polos, caps — with your logo on them. Starting at one piece, no minimum.'
+              : "T-shirts, hoodies, polos, casquettes \u2014 avec ton logo. \u00C0 partir d'une pi\u00E8ce, sans stress."}
           </p>
 
           {/* Single primary CTA — one pill only, no ghost link. */}
@@ -405,8 +402,13 @@ export default function Index() {
             >
               {lang === 'en' ? 'Order now' : 'Commander maintenant'}
             </Link>
+            {/* Dynamic delivery date — concrete + urgency. Calls
+                getDeliveryDate() on every render so the date is always
+                current; cutoff logic lives inside the helper. */}
             <p className="mt-3 text-[#374151] text-xs">
-              {lang === 'en' ? '5-day delivery guaranteed' : 'Livraison garantie en 5 jours ouvrables'}
+              {lang === 'en'
+                ? <>Order today &mdash; delivered <strong>{getDeliveryDate('en')}</strong></>
+                : <>Commande aujourd'hui &mdash; livr&eacute; <strong>{getDeliveryDate('fr')}</strong></>}
             </p>
           </div>
 

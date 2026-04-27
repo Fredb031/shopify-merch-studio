@@ -163,16 +163,11 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Phase 8 — desktop-only nav cluster. The logo handles
-            "Accueil"; we expose Boutique + Créer as inline ghost links
-            so the master-prompt nav set (Accueil / Boutique / Créer /
-            Panier) is reachable in one tap. Mobile uses BottomNav. */}
-        <Link
-          to="/products"
-          className="hidden md:inline-flex items-center text-[12px] font-bold text-foreground/80 hover:text-foreground px-3 py-[7px] rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          {t('boutique')}
-        </Link>
+        {/* Phase 8 — desktop-only nav cluster. v4 simplification:
+            the logo handles "Accueil"; "Cr\u00E9er" and "Boutique"
+            were both pulled to declutter the bar. Discovery happens
+            via search (center), the hero CTA, and the mobile
+            BottomNav. Right side is now LangToggle / cart / login. */}
         <LangToggle />
 
         {user ? (
