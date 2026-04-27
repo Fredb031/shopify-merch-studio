@@ -8,7 +8,7 @@
  * the parent's onSelect fires (and vice-versa for front), so the user
  * sees the relevant garment side immediately.
  */
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import {
   AlignCenter,
   AlignLeft,
@@ -109,6 +109,14 @@ export function PlacementButtons({
   // upcharge instead of a per-tile range.
   const backSurcharge = back.reduce((max, p) => Math.max(max, p.surcharge), 0);
 
+  // Stable ids so each chip group is programmatically labelled by its
+  // visible "Devant"/"Dos" heading (and the back-zone surcharge badge).
+  // Without this, screen-reader users navigating the chips never hear the
+  // group context — including the "+X$/pce" upcharge that applies to
+  // every back tile.
+  const frontLabelId = useId();
+  const backLabelId = useId();
+
   return (
     <div className="flex flex-col gap-4">
       <h3 className="text-brand-grey text-xs uppercase tracking-widest font-semibold">
@@ -117,8 +125,8 @@ export function PlacementButtons({
 
       {front.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <div className="text-[11px] font-semibold text-[#374151]">Devant</div>
-          <div className="grid grid-cols-2 gap-2">
+          <div id={frontLabelId} className="text-[11px] font-semibold text-[#374151]">Devant</div>
+          <div role="group" aria-labelledby={frontLabelId} className="grid grid-cols-2 gap-2">
             {front.map(preset => (
               <PlacementButton
                 key={preset.id}
@@ -133,7 +141,7 @@ export function PlacementButtons({
 
       {back.length > 0 ? (
         <div className="flex flex-col gap-2">
-          <div className="text-[11px] font-semibold text-[#374151] flex items-center gap-1.5">
+          <div id={backLabelId} className="text-[11px] font-semibold text-[#374151] flex items-center gap-1.5">
             <span>Dos</span>
             {backSurcharge > 0 ? (
               <span className="text-[10px] font-bold text-[#0052CC] bg-[#EBF2FF] px-1.5 py-0.5 rounded-full">
@@ -141,7 +149,7 @@ export function PlacementButtons({
               </span>
             ) : null}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div role="group" aria-labelledby={backLabelId} className="grid grid-cols-2 gap-2">
             {back.map(preset => (
               <PlacementButton
                 key={preset.id}
