@@ -23,13 +23,28 @@
 // out of this helper.
 
 export function readLS<T>(key: string, fallback: T): T {
+  if (typeof localStorage === 'undefined') return fallback;
+  let raw: string | null = null;
   try {
-    if (typeof localStorage === 'undefined') return fallback;
-    const raw = localStorage.getItem(key);
-    if (raw == null) return fallback;
+    raw = localStorage.getItem(key);
+  } catch {
+    // SecurityError in sandboxed iframes, or Safari private mode throwing
+    // on getItem itself. Nothing to evict — the storage is unreachable.
+    return fallback;
+  }
+  if (raw == null) return fallback;
+  try {
     const parsed = JSON.parse(raw) as unknown;
     return (parsed ?? fallback) as T;
   } catch {
+    // Corrupted blob (older build, devtools edit, partial write). Evict
+    // it so subsequent reads stop paying the parse-and-throw cost on
+    // every mount, and the next writeLS starts from a clean slate.
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // best-effort — if removal also throws we still return fallback
+    }
     return fallback;
   }
 }
