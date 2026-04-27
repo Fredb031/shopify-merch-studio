@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import {
   getCurrentCapacity,
@@ -63,23 +63,31 @@ export function CapacityWidget({ variant = 'hero', className = '' }: CapacityWid
   // and contradicts the "order now to guarantee delivery" CTA.
   if (remaining <= 0 || remaining >= SCARCITY_THRESHOLD) return null;
 
-  const nextDelivery = getNextDeliveryDate();
-  const dateStr = nextDelivery.toLocaleDateString(
-    lang === 'en' ? 'en-CA' : 'fr-CA',
-    { weekday: 'long', day: 'numeric', month: 'long' }
-  );
-
-  const headline = lang === 'en'
-    ? `Only ${remaining} slots left this week`
-    : `Plus que ${remaining} créneaux disponibles cette semaine`;
-
-  const subline = lang === 'en'
-    ? `Order now to guarantee delivery before ${dateStr}`
-    : `Commande maintenant pour garantir ta livraison avant le ${dateStr}`;
-
-  const layout = variant === 'hero'
-    ? 'flex-col items-center text-center max-w-[440px] mx-auto'
-    : 'flex-col items-start text-left';
+  // Memoize derived display strings: parents (homepage hero,
+  // PDP right column) re-render on unrelated state (lang toggle
+  // aside, scroll, hover, query updates), but the widget's
+  // output only changes when `remaining`, `lang`, or `variant`
+  // changes. Recomputing toLocaleDateString + building 4
+  // strings per parent render is wasted work, and Intl
+  // formatting in particular is non-trivial.
+  const { headline, subline, layout } = useMemo(() => {
+    const nextDelivery = getNextDeliveryDate();
+    const dateStr = nextDelivery.toLocaleDateString(
+      lang === 'en' ? 'en-CA' : 'fr-CA',
+      { weekday: 'long', day: 'numeric', month: 'long' }
+    );
+    return {
+      headline: lang === 'en'
+        ? `Only ${remaining} slots left this week`
+        : `Plus que ${remaining} créneaux disponibles cette semaine`,
+      subline: lang === 'en'
+        ? `Order now to guarantee delivery before ${dateStr}`
+        : `Commande maintenant pour garantir ta livraison avant le ${dateStr}`,
+      layout: variant === 'hero'
+        ? 'flex-col items-center text-center max-w-[440px] mx-auto'
+        : 'flex-col items-start text-left',
+    };
+  }, [remaining, lang, variant]);
 
   return (
     <div
