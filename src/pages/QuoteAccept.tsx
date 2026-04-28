@@ -51,6 +51,17 @@ const MOCK_QUOTE = {
   notes: 'Livraison prioritaire demandée pour événement du 30 avril.',
 };
 
+/** A URL `:id` is a usable quote token only when it is a non-empty,
+ *  non-whitespace string that is not the literal "undefined" / "null"
+ *  produced by accidental stringification upstream. */
+function isValidQuoteToken(token: string | undefined): token is string {
+  if (typeof token !== 'string') return false;
+  const trimmed = token.trim();
+  if (trimmed.length === 0) return false;
+  const lower = trimmed.toLowerCase();
+  return lower !== 'undefined' && lower !== 'null';
+}
+
 /** Customer-facing quote acceptance page — review line items, upload a
  *  logo, fill the shipping address, agree to terms, then proceed to
  *  Shopify checkout. Includes a print stylesheet, copy-link, and a
@@ -63,7 +74,13 @@ export default function QuoteAccept() {
   const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
-  const quoteNumber = id ?? MOCK_QUOTE.number;
+  // Defensive token validation — public B2B URLs occasionally land here
+  // with `/quote/undefined` or `/quote/null` when an upstream caller
+  // stringifies a missing value, and react-router happily binds those
+  // literal strings to `id`. Treat empty / whitespace / "undefined" /
+  // "null" as missing so we never render "Quote undefined" in the page
+  // title or visible heading.
+  const quoteNumber = isValidQuoteToken(id) ? id : MOCK_QUOTE.number;
   // Per-page meta description (Task 8.12) — quote-acceptance pages are
   // shared as private links, but if one is ever previewed in chat or
   // search, a descriptive snippet beats inheriting the generic default.
@@ -201,7 +218,7 @@ export default function QuoteAccept() {
           </h1>
           <p className="text-sm text-muted-foreground">
             {lang === 'en'
-              ? `Prepared by ${MOCK_QUOTE.vendor} · ${MOCK_QUOTE.number} · Quote #${id ?? MOCK_QUOTE.number}`
+              ? `Prepared by ${MOCK_QUOTE.vendor} · ${MOCK_QUOTE.number} · Quote #${quoteNumber}`
               : `Préparée par ${MOCK_QUOTE.vendor} · ${MOCK_QUOTE.number}`}
           </p>
         </div>
