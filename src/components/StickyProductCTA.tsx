@@ -80,6 +80,30 @@ export function StickyProductCTA({
 }: StickyProductCTAProps) {
   const { lang } = useLang();
   const [visible, setVisible] = useState(false);
+  // Honour prefers-reduced-motion. The header comment promises that
+  // motion-averse visitors get a plain visibility toggle (no slide,
+  // no fade transition); previously the className unconditionally
+  // applied `transition-[transform,opacity] duration-300` and the
+  // `translate-y-full` slide regardless of the OS-level setting,
+  // which violated WCAG 2.3.3 (Animation from Interactions) for
+  // anyone with vestibular sensitivity. We track the media query
+  // live so a visitor toggling the system setting in another tab
+  // sees the change without a reload.
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduceMotion(mql.matches);
+    sync();
+    // Safari < 14 only exposes the deprecated addListener API; guard
+    // against environments where addEventListener is unavailable.
+    if (mql.addEventListener) {
+      mql.addEventListener('change', sync);
+      return () => mql.removeEventListener('change', sync);
+    }
+    mql.addListener(sync);
+    return () => mql.removeListener(sync);
+  }, []);
 
   // Visibility gate. We use getBoundingClientRect on a scroll listener
   // rather than IntersectionObserver here because the brief
@@ -179,14 +203,24 @@ export function StickyProductCTA({
       className={[
         'md:hidden fixed bottom-0 left-0 right-0 z-40',
         'bg-white border-t border-border shadow-lg',
-        'transition-[transform,opacity] duration-300 ease-out',
+        // Skip the transition entirely when reduce-motion is set —
+        // applying `transition-none` short-circuits the slide/fade
+        // pair so the bar pops in/out without animation. Otherwise
+        // run the standard 300ms slide-up + fade.
+        reduceMotion
+          ? 'transition-none'
+          : 'transition-[transform,opacity] duration-300 ease-out',
         // Hidden state: pushed fully off the bottom edge + fully
         // transparent so it doesn't intercept taps. pointer-events
         // is keyed off the same flag so screen readers won't surface
-        // the buttons while the bar is dismissed.
+        // the buttons while the bar is dismissed. Under reduce-motion
+        // we drop the translate so there's no movement at all — just
+        // an opacity flip plus pointer-events gating.
         visible
           ? 'translate-y-0 opacity-100 pointer-events-auto'
-          : 'translate-y-full opacity-0 pointer-events-none',
+          : reduceMotion
+            ? 'opacity-0 pointer-events-none'
+            : 'translate-y-full opacity-0 pointer-events-none',
       ].join(' ')}
       style={{ paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))' }}
     >
