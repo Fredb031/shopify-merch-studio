@@ -92,6 +92,23 @@ function coerceStatus(raw: unknown): Status {
     : 'draft';
 }
 
+// Strip diacritics + lowercase so French queries match French data.
+// Mirrors the NFD-strip contract used by AdminClients (3a536ec) and
+// CommandPalette (2906d98): the vendor's quote list is a Quebec
+// roster — clients named "Frédérick", "Hélène", "Marc-André" and
+// numbers tagged with cities like "Lévis"/"Québec" — so a search for
+// "frederick"/"helene"/"andre"/"levis" would silently miss every
+// accented row without normalisation. Combined with normalizeInvisible
+// (ZWSP strip) we cover both invisible and accent mismatches in one
+// pass; both sides of the comparison must live in the same character
+// space or .includes() returns false.
+function normaliseSearch(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
 // Accepts either `?status=` (what VendorDashboard's quick-links emit)
 // or `?filter=` (mirror of the admin URL scheme) as the initial filter
 // so deep links like "/vendor/quotes?status=draft" actually land on
@@ -201,13 +218,18 @@ export default function QuoteList() {
   const all = useMemo(() => [...savedQuotes], [savedQuotes]);
 
   const filtered = useMemo(() => {
-    // ZWSP-safe search — same pattern as AdminQuotes / AdminOrders.
-    const Q = normalizeInvisible(query).trim().toLowerCase();
+    // ZWSP-safe + diacritic-insensitive search — combine
+    // normalizeInvisible (ZWSP strip) with NFD-strip lowercase so a
+    // vendor typing "frederick" / "andre" / "levis" matches Quebec
+    // rows like "Frédérick" / "Marc-André" / "Lévis". Same pattern as
+    // AdminQuotes / AdminOrders for invisible chars and AdminClients
+    // (3a536ec) / CommandPalette (2906d98) for accents.
+    const Q = normaliseSearch(normalizeInvisible(query).trim());
     return all.filter(q => {
       if (filter !== 'all' && q.status !== filter) return false;
       if (!Q) return true;
-      const client = normalizeInvisible(q.client).toLowerCase();
-      const num = normalizeInvisible(q.number).toLowerCase();
+      const client = normaliseSearch(normalizeInvisible(q.client));
+      const num = normaliseSearch(normalizeInvisible(q.number));
       return client.includes(Q) || num.includes(Q);
     });
   }, [all, query, filter]);
