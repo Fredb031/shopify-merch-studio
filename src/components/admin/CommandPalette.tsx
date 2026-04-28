@@ -114,7 +114,15 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   }, [recent, query]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    // Match the project-wide search contract (see src/lib/search.ts,
+    // src/lib/colorMap.ts, src/lib/aiKnowledgeBase.ts): NFD-decompose,
+    // strip combining marks, lowercase. Without this, typing "paramètres"
+    // would miss the "parametres" keyword on Settings, "génération"
+    // would miss "generation" on Images, etc. — French admins routinely
+    // type the accented form and expect a hit.
+    const norm = (s: string) =>
+      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = norm(query.trim());
     if (!q) {
       // When no query, the "Pages" section excludes anything already
       // surfaced in "Récents" — otherwise the same row appears twice
@@ -124,8 +132,8 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       return ITEMS.filter(i => !recentSet.has(i.to));
     }
     return ITEMS.filter(i =>
-      i.label.toLowerCase().includes(q) ||
-      (i.keywords?.toLowerCase().includes(q) ?? false),
+      norm(i.label).includes(q) ||
+      (i.keywords ? norm(i.keywords).includes(q) : false),
     );
   }, [query, recentItems]);
 
