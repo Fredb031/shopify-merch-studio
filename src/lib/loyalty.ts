@@ -33,12 +33,31 @@ const KEY = 'va:loyalty';
 const TX_KEY = 'va:loyalty:transactions';
 const TX_MAX = 100;
 
-const DEFAULT: LoyaltyAccount = { points: 0, lifetime: 0, tier: 'bronze' };
+/**
+ * Tier thresholds — frozen lookup table mirroring the pricing.ts /
+ * tax.ts / permissions.ts pattern so a stray import-time mutation
+ * can't silently rewrite the loyalty ladder. Ordered highest-first
+ * so tierOf() can short-circuit on the first match. Boundaries are
+ * inclusive on the lower edge: `lifetime` exactly at a threshold
+ * belongs to the upper tier (e.g. 1000 -> silver, 5000 -> gold).
+ */
+const TIER_THRESHOLDS: ReadonlyArray<Readonly<{ tier: LoyaltyTier; min: number }>> = Object.freeze([
+  Object.freeze({ tier: 'gold' as const, min: 5000 }),
+  Object.freeze({ tier: 'silver' as const, min: 1000 }),
+  Object.freeze({ tier: 'bronze' as const, min: 0 }),
+]);
+
+const DEFAULT: Readonly<LoyaltyAccount> = Object.freeze({ points: 0, lifetime: 0, tier: 'bronze' });
 
 /** Bronze 0-999, Silver 1000-4999, Gold 5000+. */
 export function tierOf(lifetime: number): LoyaltyTier {
-  if (lifetime >= 5000) return 'gold';
-  if (lifetime >= 1000) return 'silver';
+  // Guard against NaN/-Infinity slipping through from corrupted storage —
+  // table walk would otherwise return 'bronze' for NaN by accident, but
+  // being explicit makes the contract auditable.
+  const safe = Number.isFinite(lifetime) && lifetime > 0 ? lifetime : 0;
+  for (const row of TIER_THRESHOLDS) {
+    if (safe >= row.min) return row.tier;
+  }
   return 'bronze';
 }
 
