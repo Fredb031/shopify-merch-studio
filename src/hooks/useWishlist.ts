@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { readLS, writeLS, removeLS } from '@/lib/storage';
 
 const KEY = 'vision-wishlist';
 // Hard cap so a bored user smashing hearts on every product doesn't
@@ -14,34 +15,38 @@ const MAX = 50;
 const SAME_TAB_EVENT = 'vision-wishlist-change';
 
 function readStorage(): string[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]');
-    if (!Array.isArray(raw)) return [];
-    // Dedup + filter non-strings in one pass. A corrupted list with
-    // duplicate handles would otherwise render duplicate cards in the
-    // wishlist grid AND trigger React's list-key warning (the grid
-    // uses the handle as the key).
-    const seen = new Set<string>();
-    const out: string[] = [];
-    for (const x of raw) {
-      if (typeof x !== 'string') continue;
-      // Normalize on read too — an older build could have persisted
-      // untrimmed / mixed-case handles, and a devtools edit could
-      // have slipped a whitespace-only entry past the write path.
-      // Without trim+lower+empty-guard here, a stale '  ' in storage
-      // would render an empty heart card in the wishlist grid, and
-      // a stale 'Hoodie' would double-render alongside 'hoodie'.
-      // Mirrors the normalization useRecentlyViewed applies.
-      const norm = x.trim().toLowerCase();
-      if (!norm || seen.has(norm)) continue;
-      seen.add(norm);
-      out.push(norm);
-      if (out.length >= MAX) break;
-    }
-    return out;
-  } catch {
-    return [];
+  // Route through the hardened storage.ts wrapper so a SecurityError
+  // on getItem (sandboxed iframe / Safari private mode that throws
+  // on access itself, not just on parse) doesn't escape this function
+  // — readStorage is used as useState's initializer, so an unguarded
+  // throw here would crash the entire heart-button tree on mount.
+  // readLS also evicts a corrupt blob automatically, so subsequent
+  // reads stop paying the parse-and-throw cost on every consumer.
+  // Plus an SSR guard via typeof localStorage === 'undefined'.
+  const raw = readLS<unknown>(KEY, []);
+  if (!Array.isArray(raw)) return [];
+  // Dedup + filter non-strings in one pass. A corrupted list with
+  // duplicate handles would otherwise render duplicate cards in the
+  // wishlist grid AND trigger React's list-key warning (the grid
+  // uses the handle as the key).
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const x of raw) {
+    if (typeof x !== 'string') continue;
+    // Normalize on read too — an older build could have persisted
+    // untrimmed / mixed-case handles, and a devtools edit could
+    // have slipped a whitespace-only entry past the write path.
+    // Without trim+lower+empty-guard here, a stale '  ' in storage
+    // would render an empty heart card in the wishlist grid, and
+    // a stale 'Hoodie' would double-render alongside 'hoodie'.
+    // Mirrors the normalization useRecentlyViewed applies.
+    const norm = x.trim().toLowerCase();
+    if (!norm || seen.has(norm)) continue;
+    seen.add(norm);
+    out.push(norm);
+    if (out.length >= MAX) break;
   }
+  return out;
 }
 
 /**
@@ -69,7 +74,7 @@ export function useWishlist() {
     setHandles(prev => {
       const without = prev.filter(h => h !== norm);
       const next = (without.length === prev.length ? [norm, ...prev] : without).slice(0, MAX);
-      try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
+      writeLS(KEY, next);
       // Broadcast to other useWishlist instances in the SAME tab.
       try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
       return next;
@@ -100,7 +105,7 @@ export function useWishlist() {
     setHandles(prev => {
       if (!prev.includes(norm)) return prev;
       const next = prev.filter(h => h !== norm);
-      try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* private mode */ }
+      writeLS(KEY, next);
       try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
       return next;
     });
@@ -115,7 +120,7 @@ export function useWishlist() {
   const clear = useCallback(() => {
     setHandles(prev => {
       if (prev.length === 0) return prev;
-      try { localStorage.removeItem(KEY); } catch { /* private mode */ }
+      removeLS(KEY);
       try { window.dispatchEvent(new CustomEvent(SAME_TAB_EVENT)); } catch { /* noop */ }
       return [];
     });
