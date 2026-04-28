@@ -13,6 +13,13 @@
  * uppercase), a copy-hex button next to the active swatch summary,
  * and a WCAG-luminance amber contrast hint when the pick is at the
  * extreme light or dark ends of the spectrum.
+ *
+ * 2026-04-27 e2e fix (Bug 6): the Récents row used to render the same
+ * swatches as the main grid, doubling each recent pick on screen. New
+ * users mistook the tiny duplicates for the picker and missed the full
+ * grid entirely. We now filter recent variantIds out of the main grid,
+ * so each colour appears exactly once. Memoized on `recent`/`colors`
+ * so arrow-key/hover renders don't redo the filter work.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Loader2, Check, Copy, AlertTriangle } from 'lucide-react';
@@ -199,12 +206,34 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
   // Only surface recents that map to a currently-available variant —
   // picking a hex that no longer corresponds to a live variant would be
   // a no-op and confuse users. Preserves order of the stored list.
-  const recentActionable = recent
-    .map((hex) => {
-      const match = colors.find((c) => normalizeHex(c.hex) === hex);
-      return match ? { hex, color: match } : null;
-    })
-    .filter((e): e is { hex: string; color: ShopifyVariantColor } => !!e);
+  // Memoized so that arrow-key nav / hover state changes don't recompute
+  // the recents lookup against `colors` on every render.
+  const recentActionable = useMemo(
+    () =>
+      recent
+        .map((hex) => {
+          const match = colors.find((c) => normalizeHex(c.hex) === hex);
+          return match ? { hex, color: match } : null;
+        })
+        .filter((e): e is { hex: string; color: ShopifyVariantColor } => !!e),
+    [recent, colors],
+  );
+
+  // Dedupe: any colour already surfaced in the Récents row is omitted
+  // from the main grid below. Previously the same swatch rendered twice
+  // (once tiny in Récents, once full-size in the grid) which made first-
+  // time users think the recent thumbnails WERE the picker and miss the
+  // full-size grid entirely. Match on variantId — that's the canonical
+  // identity Shopify gives us, more reliable than colorName collisions
+  // across products. Memoized to avoid re-filtering on every hover.
+  const recentVariantIds = useMemo(
+    () => new Set(recentActionable.map((r) => r.color.variantId)),
+    [recentActionable],
+  );
+  const gridColors = useMemo(
+    () => colors.filter((c) => !recentVariantIds.has(c.variantId)),
+    [colors, recentVariantIds],
+  );
 
   const copyHex = async () => {
     if (!selectedHex) return;
@@ -389,7 +418,7 @@ export function ColorPicker({ colors, loading, selectedColorName, onSelect, comp
         role="radiogroup"
         aria-label={lang === 'en' ? 'Colors' : 'Couleurs'}
       >
-        {colors.map((color) => {
+        {gridColors.map((color) => {
           const isSelected = color.colorName === selectedColorName;
           const unavailable = !color.availableForSale;
           const labelFr = color.colorName;
