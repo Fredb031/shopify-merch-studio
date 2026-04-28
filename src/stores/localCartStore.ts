@@ -258,27 +258,44 @@ export const useCartStore = create<CartStore>()(
       // or missing cartIds. React's list-key warning fires on the
       // duplicates, and downstream code that maps by cartId silently
       // operates on only the first match. Scrub at load time so the
-      // rest of the app sees a clean invariant.
+      // rest of the app sees a clean invariant — including numeric
+      // fields (NaN/Infinity totalQuantity or totalPrice from an older
+      // build poisons reduce() in getTotal/getItemCount) and a real
+      // productId (a null/empty productId would still pass the cartId
+      // dedupe but would silently break hasItem/getUniqueProductIds and
+      // any Shopify sync attempt).
       onRehydrateStorage: () => (state) => {
         if (!state) return;
         if (!Array.isArray(state.items)) { state.items = []; return; }
+        // Cap at MAX_CART_ITEMS too: a runaway pre-cap-fix persisted
+        // state could exceed it, and the cap is meaningless if hydrate
+        // restores more than addItem will ever allow.
         const seen = new Set<string>();
-        state.items = state.items.filter(it => {
-          if (!it || typeof it !== 'object') return false;
-          if (typeof it.cartId !== 'string' || !it.cartId) return false;
-          if (seen.has(it.cartId)) return false;
-          seen.add(it.cartId);
-          return true;
-        });
-        // Scrub blob: previewSnapshots — they were valid at persist
-        // time but don't survive a page reload. Replace with undefined
-        // so the img tag's onError path shows the container background
-        // instead of the native broken-image glyph.
+        const cleaned: typeof state.items = [];
         for (const it of state.items) {
-          if (typeof it.previewSnapshot === 'string' && it.previewSnapshot.startsWith('blob:')) {
-            it.previewSnapshot = '';
-          }
+          if (!it || typeof it !== 'object') continue;
+          if (typeof it.cartId !== 'string' || !it.cartId) continue;
+          if (seen.has(it.cartId)) continue;
+          if (typeof it.productId !== 'string' || !it.productId) continue;
+          // Coerce + sanity-check numerics. A NaN here used to leak
+          // through and was patched per-call-site; centralise the guard
+          // so getTotal/getItemCount/updateItemQuantity can trust the row.
+          const totalQuantity = Number.isFinite(it.totalQuantity) ? Math.max(0, Math.floor(it.totalQuantity)) : 0;
+          if (totalQuantity <= 0) continue;
+          const unitPrice = Number.isFinite(it.unitPrice) ? Math.max(0, it.unitPrice) : 0;
+          const totalPrice = Number.isFinite(it.totalPrice) ? Math.max(0, it.totalPrice) : parseFloat((unitPrice * totalQuantity).toFixed(2));
+          seen.add(it.cartId);
+          // Scrub blob: previewSnapshots — they were valid at persist
+          // time but don't survive a page reload. Replace with empty
+          // string so the img tag's onError path shows the container
+          // background instead of the native broken-image glyph.
+          const previewSnapshot = (typeof it.previewSnapshot === 'string' && it.previewSnapshot.startsWith('blob:'))
+            ? ''
+            : it.previewSnapshot;
+          cleaned.push({ ...it, totalQuantity, unitPrice, totalPrice, previewSnapshot });
+          if (cleaned.length >= MAX_CART_ITEMS) break;
         }
+        state.items = cleaned;
       },
     }
   )
