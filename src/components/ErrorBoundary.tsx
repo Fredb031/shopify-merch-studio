@@ -40,8 +40,28 @@ export class ErrorBoundary extends Component<Props, State> {
   // trigger a React warning.
   private copyTimer: ReturnType<typeof setTimeout> | null = null;
 
+  // Ref to the primary recovery button. When the error screen mounts (or
+  // a fresh error replaces a previous one), we shift focus here so keyboard
+  // and screen-reader users land on the actionable recovery path instead
+  // of being stranded on whatever element they were on when the tree blew up.
+  private retryButtonRef: HTMLButtonElement | null = null;
+
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error, copied: false };
+  }
+
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    // Focus the retry button on the transition into an error state, or when
+    // a new error replaces a previous one. Wrapped in try/catch + rAF because
+    // focus() can throw in detached-DOM edge cases and we must never re-throw
+    // from inside the boundary itself.
+    if (this.state.hasError && (!prevState.hasError || prevState.error !== this.state.error)) {
+      try {
+        requestAnimationFrame(() => {
+          try { this.retryButtonRef?.focus({ preventScroll: false }); } catch { /* never throw from error UI */ }
+        });
+      } catch { /* rAF unavailable — silent */ }
+    }
   }
 
   componentWillUnmount() {
@@ -198,6 +218,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="flex flex-col gap-2">
               <button
+                ref={el => { this.retryButtonRef = el; }}
                 type="button"
                 onClick={() => this.setState({ hasError: false, error: null })}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 transition-opacity"
