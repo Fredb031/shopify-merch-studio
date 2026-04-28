@@ -52,13 +52,13 @@ export interface CommissionTier {
   minSales: number;
 }
 
-export const COMMISSION_TIERS: readonly CommissionTier[] = [
-  { label: 'Starter', minSales: 0 },
-  { label: 'Bronze', minSales: 5_000 },
-  { label: 'Silver', minSales: 15_000 },
-  { label: 'Gold', minSales: 30_000 },
-  { label: 'Platinum', minSales: 60_000 },
-] as const;
+export const COMMISSION_TIERS: readonly Readonly<CommissionTier>[] = Object.freeze([
+  Object.freeze({ label: 'Starter', minSales: 0 }),
+  Object.freeze({ label: 'Bronze', minSales: 5_000 }),
+  Object.freeze({ label: 'Silver', minSales: 15_000 }),
+  Object.freeze({ label: 'Gold', minSales: 30_000 }),
+  Object.freeze({ label: 'Platinum', minSales: 60_000 }),
+] as const);
 
 /**
  * Resolve the tier label for a given sales amount. Clamps
@@ -105,7 +105,7 @@ export function nextTierDelta(
 // refreshed (see the comment at the top of shopifySnapshot.ts) the
 // admin can rebuild attribution through the override map without
 // having to edit this file.
-const SEED_ORDER_CREDITS: Record<string, string> = {
+const SEED_ORDER_CREDITS: Readonly<Record<string, string>> = Object.freeze({
   '7340967657587': '1', // Sophie Tremblay — #1570
   '7337444409459': '1', // Sophie — #1569
   '7336965210227': '2', // Marc-André — #1568
@@ -125,7 +125,7 @@ const SEED_ORDER_CREDITS: Record<string, string> = {
   '7294762745971': '2', // Marc-André — #1553
   '7294322376819': '3', // Julie — #1552
   '7294205755507': '1', // Sophie — #1551
-};
+});
 
 /** Pure commission calculation. Rounds to two decimals to avoid
  *  floating-point drift when summing many orders. */
