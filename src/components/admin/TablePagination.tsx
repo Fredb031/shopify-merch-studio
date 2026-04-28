@@ -70,7 +70,18 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
       aria-label="Pagination"
       className="flex items-center justify-between px-4 py-3 border-t border-zinc-100 text-xs text-zinc-500"
     >
-      <span>
+      {/*
+        Live region for screen readers: the compact "2 / 5" between the
+        prev/next buttons used to be the only `aria-live` target, which
+        announced a context-free "2 / 5" on every page change. Hoist
+        the announcement to the full counter ("1–10 sur 47 commandes ·
+        Page 1 de 5") so AT users hear the meaningful range, not a
+        bare ratio. Also drops the misused `aria-current="page"` which
+        ARIA reserves for the *active link* in a paged-link list — it
+        has no defined meaning on a static <span>, and combining it
+        with aria-live confuses screen readers.
+      */}
+      <span aria-live="polite" aria-atomic="true">
         {first}–{last} sur {safeTotal}
         {itemLabel ? ` ${itemLabel}` : ''}
         {' · '}
@@ -90,9 +101,7 @@ function TablePaginationInner({ page, pageSize, total, onPageChange, itemLabel }
         </button>
         <span
           className="px-2 font-semibold text-zinc-700"
-          aria-current="page"
-          aria-live="polite"
-          aria-atomic="true"
+          aria-hidden="true"
         >
           {safePage + 1} / {totalPages}
         </span>
