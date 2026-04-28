@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Star } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
@@ -6,9 +7,18 @@ import { categoryLabel } from '@/lib/productLabels';
 
 export function FeaturedProducts() {
   const { lang } = useLang();
-  const featured = FEATURED_SKUS
-    .map(sku => PRODUCTS.find(p => p.sku === sku))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p));
+  // Memoise the SKU→product resolution so toggling language (or any parent
+  // re-render) doesn't re-walk PRODUCTS once per FEATURED_SKU on every render.
+  // The inputs (FEATURED_SKUS, PRODUCTS) are module-level constants so the
+  // dependency array is empty — this collapses to a one-shot O(n*m) lookup
+  // for the lifetime of the mounted section.
+  const featured = useMemo(
+    () =>
+      FEATURED_SKUS
+        .map(sku => PRODUCTS.find(p => p.sku === sku))
+        .filter((p): p is NonNullable<typeof p> => Boolean(p)),
+    [],
+  );
 
   // Data drift guard: if every FEATURED_SKU has been renamed/retired in
   // PRODUCTS (e.g. catalogue refresh removes a hero SKU before this
