@@ -56,17 +56,38 @@ export const useCustomizerStore = create<CustomizerStore>()(
       /** Pick a product color by slug id (e.g. "black", "true-royal").
        * Rejects empty / non-string inputs so a bad UI wire-up can't
        * persist `colorId: ''` and silently break the "find color" lookup
-       * downstream in the canvas + cart. */
+       * downstream in the canvas + cart.
+       *
+       * Idempotent: skips the `set` when the colorId already matches —
+       * mirrors the uiStore pattern (2bb3791). Color swatches can fire
+       * the same id repeatedly (controlled-component re-render, double
+       * click, parent prop change), and every set wakes every subscriber
+       * (CanvasArea, ColorPicker, summary, cart preview) for a no-op. */
       setColor: (colorId) => {
         if (typeof colorId !== 'string' || !colorId) return;
+        if (get().colorId === colorId) return;
         set({ colorId });
       },
-      /** Set the front-side logo placement (null clears it). */
-      setLogoPlacement: (placement) => set({ logoPlacement: placement }),
-      /** Set the back-side logo placement (null clears it). */
-      setLogoPlacementBack: (placement) => set({ logoPlacementBack: placement }),
-      /** Choose which sides get printed ('none' | 'front' | 'back' | 'both'). */
-      setPlacementSides: (placementSides) => set({ placementSides }),
+      /** Set the front-side logo placement (null clears it). Idempotent
+       * on the null→null transition so a "clear logo" button that fires
+       * on every render of an empty state doesn't churn subscribers. */
+      setLogoPlacement: (placement) => {
+        if (placement === null && get().logoPlacement === null) return;
+        set({ logoPlacement: placement });
+      },
+      /** Set the back-side logo placement (null clears it). Same null→null
+       * idempotent guard as setLogoPlacement. */
+      setLogoPlacementBack: (placement) => {
+        if (placement === null && get().logoPlacementBack === null) return;
+        set({ logoPlacementBack: placement });
+      },
+      /** Choose which sides get printed ('none' | 'front' | 'back' | 'both').
+       * Idempotent — radio-style toggles in the UI re-fire the current
+       * value on every parent re-render. */
+      setPlacementSides: (placementSides) => {
+        if (get().placementSides === placementSides) return;
+        set({ placementSides });
+      },
       /** Replace the list of canvas text captions. */
       setTextAssets: (textAssets) => set({ textAssets }),
 
@@ -84,16 +105,26 @@ export const useCustomizerStore = create<CustomizerStore>()(
           return { sizeQuantities: existing };
         }),
 
-      /** Toggle the visible canvas face (front / back). */
-      setView: (activeView) => set({ activeView }),
+      /** Toggle the visible canvas face (front / back). Idempotent —
+       * the canvas tabs / front-back toggle re-render on every parent
+       * update and call this with the current value; without the guard
+       * every subscriber (canvas, sidebar, summary) re-runs its selector
+       * for a no-op. */
+      setView: (activeView) => {
+        if (get().activeView === activeView) return;
+        set({ activeView });
+      },
       /** Jump the wizard to a specific step (1..3). Clamps out-of-range
        * values rather than letting a stray caller (URL param, devtools,
        * untyped JS consumer) land step=0 or step=99 — same blank-modal
-       * failure mode that onRehydrateStorage already defends against. */
+       * failure mode that onRehydrateStorage already defends against.
+       * Idempotent: a Next/Back button that fires on a debounced effect
+       * can re-emit the current step. */
       setStep: (step) => {
         const n = Math.floor(Number(step));
         if (!Number.isFinite(n)) return;
         const clamped = Math.max(1, Math.min(3, n)) as 1 | 2 | 3;
+        if (get().step === clamped) return;
         set({ step: clamped });
       },
 
