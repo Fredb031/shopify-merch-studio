@@ -2,8 +2,21 @@
 // To refresh: re-call the Shopify Admin API via Zapier and replace the arrays.
 // Long-term: replace with a Supabase edge function that calls Shopify live
 // and caches in a Supabase table.
+//
+// The snapshot arrays and meta object are frozen on export so a stray
+// consumer can't mutate `SHOPIFY_ORDERS_SNAPSHOT[0].total = 0` (or similar)
+// mid-render and silently corrupt every subsequent admin metric, commission
+// row, or PDP price band in the SPA session. Variant minPrice/maxPrice,
+// order totals, and customer lifetime spend are the financial source of
+// truth surfaced by the admin dashboard, analytics page, and commissions
+// engine — promoting each row + array to Readonly surfaces the same
+// guarantee at compile time so a "let me just patch this row" attempt
+// fails the build instead of corrupting a live admin view. Mirrors the
+// pricing.ts (ba33680), caseStudies (7df2683), and orderLogos (cf26d4b)
+// freezing pattern. Existing consumers already copy via [...arr] / filter()
+// before sorting so they stay compatible with readonly arrays.
 
-export interface ShopifyOrderSnapshot {
+export type ShopifyOrderSnapshot = Readonly<{
   id: number;
   name: string;
   total: number;
@@ -14,9 +27,9 @@ export interface ShopifyOrderSnapshot {
   financialStatus: 'pending' | 'paid' | 'refunded' | 'partially_paid' | 'partially_refunded' | 'voided' | 'authorized' | null;
   fulfillmentStatus: 'fulfilled' | 'partial' | 'restocked' | null;
   itemsCount: number;
-}
+}>;
 
-export interface ShopifyProductSnapshot {
+export type ShopifyProductSnapshot = Readonly<{
   id: number;
   title: string;
   handle: string;
@@ -28,9 +41,9 @@ export interface ShopifyProductSnapshot {
   firstImage: string;
   minPrice: number;
   maxPrice: number;
-}
+}>;
 
-export interface ShopifyAbandonedCheckoutSnapshot {
+export type ShopifyAbandonedCheckoutSnapshot = Readonly<{
   id: number;
   total: number;
   currency: string;
@@ -39,9 +52,9 @@ export interface ShopifyAbandonedCheckoutSnapshot {
   createdAt: string;
   recoveryUrl: string;
   itemsCount: number;
-}
+}>;
 
-export interface ShopifyCustomerSnapshot {
+export type ShopifyCustomerSnapshot = Readonly<{
   id: number;
   firstName: string | null;
   lastName: string | null;
@@ -54,17 +67,17 @@ export interface ShopifyCustomerSnapshot {
   createdAt: string;
   city: string | null;
   province: string | null;
-}
+}>;
 
-export const SHOPIFY_SNAPSHOT_META = {
+export const SHOPIFY_SNAPSHOT_META = Object.freeze({
   syncedAt: '2026-04-18T02:06:47Z',
   shop: 'visionaffichage-com.myshopify.com',
   source: 'zapier-mcp-admin-api-2024-10',
-};
+});
 
 // ───────────── Orders (20 most recent) ─────────────
 
-export const SHOPIFY_ORDERS_SNAPSHOT: ShopifyOrderSnapshot[] = [
+export const SHOPIFY_ORDERS_SNAPSHOT: readonly ShopifyOrderSnapshot[] = Object.freeze([
   { id: 7340967657587, name: '#1570', total: 742.96,  currency: 'CAD', createdAt: '2026-04-17T11:55:01-04:00', email: 'gordonhughes@hotmail.fr',            customerName: 'Gordon Hughes',       financialStatus: 'pending', fulfillmentStatus: null,        itemsCount: 9 },
   { id: 7337444409459, name: '#1569', total: 1209.44, currency: 'CAD', createdAt: '2026-04-16T15:47:55-04:00', email: 'info@vitrexentretiens.ca',            customerName: 'Zack Landy',          financialStatus: 'paid',    fulfillmentStatus: null,        itemsCount: 3 },
   { id: 7336965210227, name: '#1568', total: 199.14,  currency: 'CAD', createdAt: '2026-04-16T13:42:46-04:00', email: 'czesthetique@gmail.com',              customerName: 'Zack Landry',         financialStatus: 'paid',    fulfillmentStatus: null,        itemsCount: 4 },
@@ -85,11 +98,11 @@ export const SHOPIFY_ORDERS_SNAPSHOT: ShopifyOrderSnapshot[] = [
   { id: 7294762745971, name: '#1553', total: 252.95,  currency: 'CAD', createdAt: '2026-04-05T19:59:00-04:00', email: 'info@renovationselites.com',          customerName: 'Michael Montigny',    financialStatus: 'paid',    fulfillmentStatus: 'fulfilled', itemsCount: 1 },
   { id: 7294322376819, name: '#1552', total: 429.39,  currency: 'CAD', createdAt: '2026-04-05T15:46:53-04:00', email: 'christian-justin-mathieu@live.com',   customerName: 'Christian Turgeon',   financialStatus: 'paid',    fulfillmentStatus: 'partial',   itemsCount: 8 },
   { id: 7294205755507, name: '#1551', total: 239.46,  currency: 'CAD', createdAt: '2026-04-05T14:45:17-04:00', email: 'christian-justin-mathieu@live.com',   customerName: 'Christian Turgeon',   financialStatus: 'paid',    fulfillmentStatus: 'fulfilled', itemsCount: 1 },
-];
+].map(o => Object.freeze(o)));
 
 // ───────────── Products (all 22 active) ─────────────
 
-export const SHOPIFY_PRODUCTS_SNAPSHOT: ShopifyProductSnapshot[] = [
+export const SHOPIFY_PRODUCTS_SNAPSHOT: readonly ShopifyProductSnapshot[] = Object.freeze([
   { id: 8149423325299, title: '6245CM',                        handle: '6245cm',     productType: 'Casquette',                vendor: '6245CM',          status: 'active', totalInventory: -12, variantsCount: 5,  firstImage: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/c7d01dfb7dac4c79bd82abffc68e043c_l_21bd6f74-2540-48fe-bdd9-6d337329a5b5.jpg?v=1763598101', minPrice: 11.54, maxPrice: 15.39 },
   { id: 8150618144883, title: 'ATC1000',                       handle: 'atc1000',    productType: 'T-shirt',                  vendor: 'ATC1000',         status: 'active', totalInventory: -19, variantsCount: 24, firstImage: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATC1000-Devant.jpg?v=1770866927', minPrice: 4.15,  maxPrice: 4.15 },
   { id: 8149420966003, title: 'ATC1000L',                      handle: 'atc1000l',   productType: 'T-shirt',                  vendor: 'ATC1000L',        status: 'active', totalInventory: -11, variantsCount: 9,  firstImage: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/ATC1000L-Devant.jpg?v=1770867419', minPrice: 6.65,  maxPrice: 6.65 },
@@ -112,11 +125,11 @@ export const SHOPIFY_PRODUCTS_SNAPSHOT: ShopifyProductSnapshot[] = [
   { id: 8149421195379, title: 'S445LS',                        handle: 's445ls-1',   productType: 'Polo et chemise',          vendor: 'S445LS',          status: 'active', totalInventory: -6,  variantsCount: 3,  firstImage: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/S445LS-Devant.jpg?v=1770866896', minPrice: 33.59, maxPrice: 33.59 },
   { id: 8149422538867, title: 'WERK250',                       handle: 'werk250-1',  productType: 'T-shirt',                  vendor: 'ATC Werk 250',    status: 'active', totalInventory: -11, variantsCount: 8,  firstImage: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Werk250-Devant.jpg?v=1770867038', minPrice: 16.09, maxPrice: 16.09 },
   { id: 8149422211187, title: 'Y350',                          handle: 'y350-1',     productType: 'T-shirt',                  vendor: 'Y350',            status: 'active', totalInventory: -1,  variantsCount: 13, firstImage: 'https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Y350-Devant.jpg?v=1770867079', minPrice: 13.98, maxPrice: 13.99 },
-];
+].map(p => Object.freeze(p)));
 
 // ───────────── Customers (30 most recent) ─────────────
 
-export const SHOPIFY_CUSTOMERS_SNAPSHOT: ShopifyCustomerSnapshot[] = [
+export const SHOPIFY_CUSTOMERS_SNAPSHOT: readonly ShopifyCustomerSnapshot[] = Object.freeze([
   { id: 9991913373811, firstName: 'Marc-Olivier',            lastName: 'Blais (MobFNBR)',  email: 'blaismarco12@gmail.com',        phone: null,             ordersCount: 0, totalSpent: 0.00,    currency: 'CAD', tags: 'Login with Shop, Shop',                             createdAt: '2026-04-17T08:13:49-04:00', city: null,                     province: null },
   { id: 9989076385907, firstName: 'Zack',                    lastName: 'Landry',           email: 'czesthetique@gmail.com',        phone: null,             ordersCount: 1, totalSpent: 199.14,  currency: 'CAD', tags: 'Login with Shop, Shop',                             createdAt: '2026-04-16T12:24:03-04:00', city: 'Lévis',                  province: 'Quebec' },
   { id: 9988154556531, firstName: 'ytemben',                 lastName: 'bruce',            email: 'bruceytemben@gmail.com',        phone: null,             ordersCount: 0, totalSpent: 0.00,    currency: 'CAD', tags: 'Login with Shop, Shop',                             createdAt: '2026-04-16T01:07:07-04:00', city: null,                     province: null },
@@ -147,11 +160,11 @@ export const SHOPIFY_CUSTOMERS_SNAPSHOT: ShopifyCustomerSnapshot[] = [
   { id: 9970615451763, firstName: 'Mélyna',                  lastName: 'Lebeau',           email: 'meli_9019@hotmail.com',         phone: '+14505855953',   ordersCount: 0, totalSpent: 0.00,    currency: 'CAD', tags: 'EcomSend, 10$ OFF',                                 createdAt: '2026-04-09T12:59:50-04:00', city: 'Terrebonne',             province: null },
   { id: 9970577506419, firstName: 'Laura',                   lastName: null,               email: 'laura@creatureatelier.ca',      phone: null,             ordersCount: 1, totalSpent: 1759.12, currency: 'CAD', tags: '',                                                  createdAt: '2026-04-09T12:40:33-04:00', city: 'Québec',                 province: 'Quebec' },
   { id: 9969780949107, firstName: 'Christian',               lastName: null,               email: 'cvien27@gmail.com',             phone: '+14383455824',   ordersCount: 0, totalSpent: 0.00,    currency: 'CAD', tags: 'EcomSend, 10$ OFF',                                 createdAt: '2026-04-09T08:07:54-04:00', city: 'Montreal',               province: null },
-];
+].map(c => Object.freeze(c)));
 
 // ───────────── Abandoned checkouts (20 most recent) ─────────────
 
-export const SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT: ShopifyAbandonedCheckoutSnapshot[] = [
+export const SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT: readonly ShopifyAbandonedCheckoutSnapshot[] = Object.freeze([
   { id: 33770452844659, total: 53.01,  currency: 'CAD', email: 'jordangoyette1999@hotmail.com', customerName: 'Jordan Goyette',           createdAt: '2026-03-02T09:57:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33770452844659/recover', itemsCount: 1 },
   { id: 33750630858867, total: 52.88,  currency: 'CAD', email: 'samuelcharland23@hotmail.com',  customerName: 'Samuel Charland',           createdAt: '2026-02-27T10:41:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33750630858867/recover', itemsCount: 1 },
   { id: 33734027411571, total: 680.59, currency: 'CAD', email: 'jeremy@visionaffichage.com',    customerName: 'Jeremy Marois',             createdAt: '2026-02-24T15:16:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33734027411571/recover', itemsCount: 1 },
@@ -172,7 +185,7 @@ export const SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT: ShopifyAbandonedCheckoutSnaps
   { id: 33592648335475, total: 78.63,  currency: 'CAD', email: 'magz.qc@gmail.com',             customerName: '',                          createdAt: '2026-01-27T22:31:33-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33592648335475/recover', itemsCount: 1 },
   { id: 33587354927219, total: 0.00,   currency: 'CAD', email: 'seifalila1@gmail.com',          customerName: 'Seif Alila',                createdAt: '2026-01-26T16:39:02-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33587354927219/recover', itemsCount: 2 },
   { id: 33578084040819, total: 377.45, currency: 'CAD', email: 'info@visionaffichage.com',      customerName: 'Vision Affichage',          createdAt: '2026-01-31T01:42:32-05:00', recoveryUrl: 'https://visionaffichage.com/57810387059/checkouts/ac/33578084040819/recover', itemsCount: 4 },
-];
+].map(c => Object.freeze(c)));
 
 // ───────────── Aggregated stats ─────────────
 
@@ -193,7 +206,7 @@ const recent = SHOPIFY_ORDERS_SNAPSHOT.filter(o => {
   return Number.isFinite(ts) && ts >= recentWindowStart.getTime();
 });
 
-export const SHOPIFY_STATS = {
+export const SHOPIFY_STATS = Object.freeze({
   ordersLast7Days: recent.length,
   revenueLast7Days: roundToCents(recent.reduce((s, o) => s + safeAmount(o.total), 0)),
   pendingPayments: SHOPIFY_ORDERS_SNAPSHOT.filter(o => o.financialStatus === 'pending').length,
@@ -210,4 +223,4 @@ export const SHOPIFY_STATS = {
   abandonedCheckoutsValue: roundToCents(
     SHOPIFY_ABANDONED_CHECKOUTS_SNAPSHOT.reduce((s, c) => s + safeAmount(c.total), 0),
   ),
-};
+});
