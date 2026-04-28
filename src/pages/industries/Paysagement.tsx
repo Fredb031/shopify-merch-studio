@@ -1,5 +1,7 @@
 import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
 
+const PAYSAGEMENT_PRODUCT_SKUS: string[] = ['S350', 'ATC1000', 'S445', 'ATC6606'];
+
 /**
  * Mega Blueprint §08.3 — Paysagement (landscaping) landing page.
  * Targets "vêtements paysagement Québec", "uniformes équipe paysagiste",
@@ -24,7 +26,7 @@ export default function Paysagement() {
       ctaLabel="Personnaliser pour mon équipe paysagement"
       productsHeading="Vêtements recommandés pour le paysagement"
       productsSubcopy="Notre sélection pour les paysagistes — léger, respirant, et conçu pour résister aux taches de gazon et de terre."
-      productSkus={['S350', 'ATC1000', 'S445', 'ATC6606']}
+      productSkus={PAYSAGEMENT_PRODUCT_SKUS}
       faqHeading="Questions fréquentes — Paysagement"
       faq={[
         {
