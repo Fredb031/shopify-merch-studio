@@ -16,6 +16,16 @@ interface LoginModalProps {
 
 type Mode = 'login' | 'signup';
 
+// RFC 5321 §4.5.3.1.3 caps a path (local@domain) at 254 octets. Mirrors
+// the SiteFooter newsletter guard (34c6f20): maxLength is the soft guard
+// for typed/pasted input, the runtime check in handleSubmit is the hard
+// guard against programmatic state mutation (devtools, paste-then-edit)
+// before the regex runs or the value is forwarded to Supabase. Without
+// this, a multi-MB paste feeds an unbounded string into isValidEmail's
+// regex (ReDoS-adjacent) AND ships to supabase.auth.signIn/Up which
+// rejects with a generic error users can't act on.
+const MAX_EMAIL_LENGTH = 254;
+
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const { lang } = useLang();
   const navigate = useNavigate();
@@ -107,7 +117,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     const trimmedEmail = email.trim();
     // Pre-validate so the user gets our friendly message instead of
     // Supabase's generic 'invalid credentials' when they typo a@b.
-    if (!isValidEmail(trimmedEmail)) {
+    // Hard length guard BEFORE isValidEmail so an oversized paste never
+    // reaches the regex engine and never ships to supabase.auth — RFC
+    // 5321 limits the full path to 254 octets. maxLength on the input
+    // is the soft guard; this is the hard guard against programmatic
+    // state mutation (devtools, paste-then-edit) bypassing it.
+    if (trimmedEmail.length > MAX_EMAIL_LENGTH || !isValidEmail(trimmedEmail)) {
       useAuthStore.getState().setError(
         lang === 'en' ? 'Please enter a valid email address' : 'Courriel invalide',
       );
@@ -277,6 +292,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     aria-describedby={showHint ? 'login-modal-email-hint' : undefined}
                     type="email"
                     autoComplete="email"
+                    maxLength={MAX_EMAIL_LENGTH}
                     value={email}
                     onChange={e => {
                       setEmail(e.target.value);
