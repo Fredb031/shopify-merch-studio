@@ -24,6 +24,48 @@ const API_URL = 'https://api.remove.bg/v1.0/removebg';
 // the canvas strategy and unblock the user.
 const REMOTE_BG_TIMEOUT_MS = 30_000;
 
+// Placeholder values commonly committed into .env.example or copied
+// blindly into a real .env when wiring the integration. If any of
+// these survive into VITE_REMOVE_BG_API_KEY at build time, the API
+// will reliably 401/403 — but only after we've burnt a real network
+// round-trip and ~30s of timeout window before falling back to the
+// canvas pass. Short-circuit them as if no key were configured at all
+// so the customizer drops straight into the in-browser fallback.
+// Kept lower-cased and trimmed so the comparison is invariant to the
+// usual copy-paste mishaps (whitespace, casing, surrounding quotes).
+const API_KEY_PLACEHOLDERS: ReadonlySet<string> = new Set([
+  'your_api_key_here',
+  'your-api-key',
+  'your-remove-bg-api-key',
+  'your_remove_bg_api_key',
+  'changeme',
+  'change-me',
+  'placeholder',
+  'todo',
+  'xxx',
+  'xxxxx',
+  'undefined',
+  'null',
+]);
+
+/**
+ * Returns true when the configured key is actually usable — non-empty,
+ * not a known placeholder, and shaped like a real remove.bg key (their
+ * keys are alphanumeric, ≥ 16 chars). Anything else falls through to the
+ * canvas pass without ever touching the network.
+ */
+function isUsableApiKey(raw: unknown): raw is string {
+  if (typeof raw !== 'string') return false;
+  const key = raw.trim().replace(/^['"]|['"]$/g, '');
+  if (key.length < 16) return false;
+  if (API_KEY_PLACEHOLDERS.has(key.toLowerCase())) return false;
+  // remove.bg keys are alphanumeric (no punctuation). A value containing
+  // spaces, angle brackets, or template syntax (`${...}`, `{{...}}`) is
+  // almost certainly an unfilled template, not a real credential.
+  if (/[\s<>${}]/.test(key)) return false;
+  return true;
+}
+
 /**
  * Stage labels emitted to the optional progress callback. Exported so callers
  * (e.g. LogoUploader) can narrow on specific stages if they want stage-aware
@@ -132,10 +174,14 @@ export async function removeBackground(
   // SVGs are already transparent
   if (file.type === 'image/svg+xml') return file;
 
-  const apiKey = import.meta.env.VITE_REMOVE_BG_API_KEY;
+  const rawApiKey = import.meta.env.VITE_REMOVE_BG_API_KEY;
 
   // ── Strategy 1: remove.bg API (best quality) ─────────────────────────────
-  if (apiKey && apiKey !== '') {
+  if (isUsableApiKey(rawApiKey)) {
+    // Trim and strip any accidental wrapping quotes the env loader passed
+    // through verbatim — matches the same normalization isUsableApiKey uses
+    // when validating, so we send to remove.bg exactly what we validated.
+    const apiKey = rawApiKey.trim().replace(/^['"]|['"]$/g, '');
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REMOTE_BG_TIMEOUT_MS);
     // Link the caller's AbortSignal to our internal controller so unmount /
