@@ -33,6 +33,25 @@ const QUEUE_CAP = 200;
  * attribution (see Volume II Section 08.1 brief).
  */
 const META_PIXEL_ID = 'YOUR_PIXEL_ID';
+const META_PIXEL_PLACEHOLDER = 'YOUR_PIXEL_ID';
+
+/**
+ * Single source of truth for "is the operator-supplied Pixel ID real?"
+ * Both the bootstrap (`ensurePixelInit`) and the per-event dispatch in
+ * `trackEvent` consult this — without the dispatch-site check, a stray
+ * `window.fbq` left behind by a previously-configured tenant or a
+ * browser extension could cause us to call `fbq('track', ...)` while
+ * the placeholder is still in the source, leaking event names to
+ * whatever pixel that fbq instance is bound to. Trim defends against
+ * accidental whitespace in a paste.
+ */
+function isPixelConfigured(): boolean {
+  return (
+    typeof META_PIXEL_ID === 'string' &&
+    META_PIXEL_ID.trim() !== '' &&
+    META_PIXEL_ID !== META_PIXEL_PLACEHOLDER
+  );
+}
 
 /**
  * Lazy one-shot init — `fbq('init', ...)` must run exactly once per
@@ -58,7 +77,7 @@ const META_PIXEL_ID = 'YOUR_PIXEL_ID';
  */
 function ensurePixelInit(): void {
   if (typeof window === 'undefined') return;
-  if (META_PIXEL_ID === 'YOUR_PIXEL_ID') return; // operator hasn't set the ID
+  if (!isPixelConfigured()) return; // operator hasn't set the ID
   const w = window as Window & { __vaPixelInitialized?: boolean };
   if (w.__vaPixelInitialized) return;
   // Mark initialized up-front so concurrent callers in the same tick
@@ -242,7 +261,7 @@ export function trackEvent(name: string, params?: Record<string, unknown>): void
     appendToDiagnosticQueue(entry);
   }
 
-  if (consent.marketing === true) {
+  if (consent.marketing === true && isPixelConfigured()) {
     // Meta Pixel dispatch. Nothing Pixel-related is on the page until
     // we get here — ensurePixelInit() installs the fbq queue stub,
     // injects fbevents.js, and fires `init` once the script onloads.
@@ -251,7 +270,11 @@ export function trackEvent(name: string, params?: Record<string, unknown>): void
     // idempotent; subsequent events skip straight to track. We only
     // forward events that map to a Meta standard event — unmapped
     // names are skipped (trackCustom would be a separate call shape
-    // we don't need yet).
+    // we don't need yet). The isPixelConfigured() guard ensures we
+    // never call `fbq('track', ...)` while the operator placeholder
+    // is still in source — a foreign `window.fbq` (browser extension,
+    // previously-configured tenant) would otherwise receive our
+    // events.
     ensurePixelInit();
     const pixelEvent = PIXEL_EVENT_MAP[name];
     if (pixelEvent) {
