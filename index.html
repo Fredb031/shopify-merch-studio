@@ -92,8 +92,13 @@
     <!-- Preload the LCP hero image so it kicks off in the same wave as
          the HTML parse instead of waiting for the React bundle to mount
          the <img>, shaving ~300-600ms off Largest Contentful Paint on
-         3G/4G first-paint. -->
-    <link rel="preload" as="image" href="/hero-team.webp">
+         3G/4G first-paint. The image is `hidden lg:block` (only painted
+         on viewports ≥1024px), so we gate the preload behind the same
+         `(min-width: 1024px)` media query — otherwise mobile / tablet
+         users would burn ~80KB on a desktop-only asset they never see
+         (which would actually *hurt* mobile LCP, the metric Lighthouse
+         scores). -->
+    <link rel="preload" as="image" href="/hero-team.webp" media="(min-width: 1024px)">
 
     <!-- Security headers (CSP) — Task 14.1.
          NOTE: this is a meta-level Content-Security-Policy. It's weaker
