@@ -67,7 +67,17 @@ export default function VendorProfile() {
   const { lang } = useLang();
 
   const profile = useMemo<VendorProfile | null>(
-    () => (vendorId && VENDOR_PROFILES[vendorId]) ? VENDOR_PROFILES[vendorId] : null,
+    () => {
+      // hasOwn guard — without it, a URL like /vendors/toString resolves
+      // VENDOR_PROFILES['toString'] to Object.prototype.toString (a truthy
+      // function), passes the falsy check, and slips a function into
+      // `profile`. Then the render reads .name / .specialtyFr / etc. and
+      // either crashes or paints garbage. Restrict the lookup to the
+      // map's own keys so unknown vendor ids cleanly fall through to the
+      // "Vendor not found" branch.
+      if (!vendorId || !Object.prototype.hasOwnProperty.call(VENDOR_PROFILES, vendorId)) return null;
+      return VENDOR_PROFILES[vendorId];
+    },
     [vendorId],
   );
 
