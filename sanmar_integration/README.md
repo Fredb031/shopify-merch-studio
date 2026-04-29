@@ -366,3 +366,72 @@ list), `Decimal` arithmetic preservation, bulk product + inventory
 delta parsing, the eight-service composition contract, the
 `sync_catalog_delta → persist_catalog` path, and order status
 transition detection (60 → 80).
+
+## Phase 6 — Operator surfaces
+
+Phase 6 ships the CLI, sync checkpointing, and a Streamlit ops
+dashboard so the integration is usable without writing Python.
+
+### Install
+
+```bash
+pip install -e ".[dev]"
+python -m sanmar --help
+```
+
+### CLI subcommands
+
+```bash
+# Catalog
+python -m sanmar sync-catalog --delta --since 2026-04-28
+python -m sanmar sync-catalog --full
+
+# Inventory
+python -m sanmar sync-inventory --limit 25         # smoke run
+python -m sanmar sync-inventory                    # full run
+
+# Orders
+python -m sanmar reconcile-orders                  # uses OrderRow.is_open
+
+# Lookups (single style / PO / invoice)
+python -m sanmar product NF0A529K
+python -m sanmar product NF0A529K --color Black --size L
+python -m sanmar inventory NF0A529K
+python -m sanmar pricing NF0A529K
+python -m sanmar track PO-2026-100
+python -m sanmar invoice INV-12345
+python -m sanmar open-invoices --days 30
+
+# Smoke / health (CI-safe — exits 0 with placeholder creds)
+python -m sanmar health
+```
+
+### Streamlit dashboard
+
+```bash
+pip install -e ".[ops]"
+streamlit run streamlit/ops.py
+```
+
+Three sections: last 10 sync runs (from `sync_state`), live counters
+(open orders + AR balance, sourced from local SQLite), and three
+manual trigger buttons (catalog delta / inventory / reconcile).
+
+### Recommended cron entry
+
+```
+# Nightly delta + inventory + order reconcile at 02:00 server time.
+0 2 * * * cd /opt/sanmar && python -m sanmar sync-catalog --delta && python -m sanmar sync-inventory && python -m sanmar reconcile-orders
+```
+
+### What Phase 6 added
+
+- `sanmar/cli.py` — Typer CLI with 10 subcommands (rich tables / progress)
+- `sanmar/__main__.py` — makes `python -m sanmar` work
+- `sanmar/models.py` — `SyncState` and `OrderRow` ORM models
+- `sanmar/orchestrator.py` — `reconcile_open_orders` now self-sources
+  from `OrderRow.is_open`, all four sync methods write `SyncState`
+  rows at start + finish in a `try/finally`
+- `streamlit/ops.py` — minimal operator dashboard (optional dep)
+- 11 new tests (71 → 82): `test_cli.py` (5 tests) +
+  `test_models_sync_state.py` (6 tests)
