@@ -10,6 +10,9 @@ import {
   ChevronUp,
   AlertCircle,
   CheckCircle2,
+  History,
+  XCircle,
+  Clock,
 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -47,10 +50,21 @@ interface SanmarCatalogRow {
   last_synced_at: string | null;
 }
 
+/**
+ * Mirrors the actual `public.sanmar_sync_log` schema (see migration
+ * 20260429132247_sanmar_catalog.sql). Earlier revisions of this page
+ * used `finished_at`/`total_styles`/`total_parts` which never existed
+ * on the table — the select silently returned `data: null` and the
+ * dashboard's "Last sync" cell stayed at "—" forever. Now we read the
+ * real columns and surface them honestly.
+ */
 interface SanmarSyncLogRow {
-  finished_at: string | null;
-  total_styles: number | null;
-  total_parts: number | null;
+  id?: string | null;
+  sync_type: 'catalog' | 'inventory' | 'order_status' | string;
+  total_processed: number | null;
+  errors: unknown | null;
+  duration_ms: number | null;
+  created_at: string | null;
 }
 
 const PAGE_SIZE = 50;
@@ -60,12 +74,19 @@ export default function AdminSanMar() {
   useDocumentTitle(lang === 'en' ? 'SanMar Canada — Admin' : 'SanMar Canada — Admin');
 
   // ── Sync status ─────────────────────────────────────────────────────────
+  // `recentRuns` holds the last 5 rows of sanmar_sync_log so the operator
+  // can see at a glance which sync ran (catalog/inventory/order_status),
+  // when, whether it succeeded, how long it took, and how many items it
+  // processed. `lastSync` + `totalParts` mirror the headline cards above
+  // and are derived from the same fetch — saves a round trip and keeps
+  // both views consistent.
   const [syncStatus, setSyncStatus] = useState<{
     lastSync: string | null;
-    totalStyles: number;
     totalParts: number;
     loading: boolean;
-  }>({ lastSync: null, totalStyles: 0, totalParts: 0, loading: true });
+  }>({ lastSync: null, totalParts: 0, loading: true });
+  const [recentRuns, setRecentRuns] = useState<SanmarSyncLogRow[]>([]);
+  const [recentRunsLoading, setRecentRunsLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
   // ── Catalogue table ────────────────────────────────────────────────────
@@ -100,45 +121,64 @@ export default function AdminSanMar() {
   // ── Effects ────────────────────────────────────────────────────────────
 
   /**
-   * Pull last sync metadata + total counts from `sanmar_sync_log` and
-   * `sanmar_catalog`. If the tables don't exist yet (Step 5 will create
-   * them) we surface a soft empty state instead of an exception. Same
-   * pattern as the catalogue + open-orders fetches below — the page
-   * must render in a half-deployed environment.
+   * Pull recent sync metadata from `sanmar_sync_log` (last 5 rows) and the
+   * row count from `sanmar_catalog`. If the tables don't exist yet we
+   * surface a soft empty state instead of an exception — same pattern as
+   * the catalogue + open-orders fetches below, the page must render in a
+   * half-deployed environment.
+   *
+   * Historical bug: the original implementation selected
+   * `finished_at,total_styles,total_parts` from `sanmar_sync_log`, but
+   * the actual schema only has `created_at,total_processed,duration_ms,
+   * errors,sync_type`. The select silently returned `null` and the
+   * "Last sync" headline stayed at "—" indefinitely. We now read the
+   * real columns and derive the latest run from the top of the page.
    */
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
+  const loadRecentRuns = useMemo(
+    () => async () => {
       if (!supabase) {
-        if (!cancelled) setSyncStatus(s => ({ ...s, loading: false }));
+        setSyncStatus(s => ({ ...s, loading: false }));
+        setRecentRunsLoading(false);
         return;
       }
+      setRecentRunsLoading(true);
       try {
         const [logRes, countRes] = await Promise.all([
           supabase
             .from('sanmar_sync_log')
-            .select('finished_at,total_styles,total_parts')
-            .order('finished_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+            .select('id,sync_type,total_processed,errors,duration_ms,created_at')
+            .order('created_at', { ascending: false })
+            .limit(5),
           supabase.from('sanmar_catalog').select('*', { count: 'exact', head: true }),
         ]);
-        if (cancelled) return;
-        const log = (logRes.data ?? null) as SanmarSyncLogRow | null;
+        const rows = ((logRes.data ?? []) as SanmarSyncLogRow[]) ?? [];
+        const latest = rows[0] ?? null;
+        setRecentRuns(rows);
         setSyncStatus({
-          lastSync: log?.finished_at ?? null,
-          totalStyles: log?.total_styles ?? 0,
-          totalParts: countRes.count ?? log?.total_parts ?? 0,
+          lastSync: latest?.created_at ?? null,
+          totalParts: countRes.count ?? 0,
           loading: false,
         });
       } catch {
-        if (!cancelled) setSyncStatus(s => ({ ...s, loading: false }));
+        setRecentRuns([]);
+        setSyncStatus(s => ({ ...s, loading: false }));
+      } finally {
+        setRecentRunsLoading(false);
       }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadRecentRuns();
+      if (cancelled) return;
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadRecentRuns]);
 
   /**
    * Page through `sanmar_catalog` 50 rows at a time. The query order
@@ -257,6 +297,9 @@ export default function AdminSanMar() {
         toast.success(
           lang === 'en' ? 'Sync completed' : 'Synchronisation terminée',
         );
+        // Refresh the recent-runs widget so the operator sees the row
+        // they just triggered without a hard reload.
+        await loadRecentRuns();
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -361,6 +404,40 @@ export default function AdminSanMar() {
     return d.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA');
   };
 
+  /** Pretty-print a duration in ms as "1.2 s" or "47 s" or "2 min 14 s".
+   * Returns "—" if the value is null or non-finite so a half-written log
+   * row never renders "NaN ms" on the dashboard. */
+  const formatDuration = (ms: number | null | undefined): string => {
+    if (ms == null || !Number.isFinite(ms)) return '—';
+    if (ms < 1000) return `${ms} ms`;
+    const totalSeconds = ms / 1000;
+    if (totalSeconds < 60) return `${totalSeconds.toFixed(1)} s`;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.round(totalSeconds - minutes * 60);
+    return `${minutes} min ${seconds.toString().padStart(2, '0')} s`;
+  };
+
+  /** Was the sync run successful? A run is "ok" when the `errors` JSONB
+   * column is null/empty AND something was processed. We treat an empty
+   * array `[]` and `null` as success — partial-success rows where
+   * `errors` is a non-empty array show as "fail" so the operator
+   * notices and follows up in the sanmar_sync_log table directly. */
+  const isSyncOk = (row: SanmarSyncLogRow): boolean => {
+    if (row.errors == null) return true;
+    if (Array.isArray(row.errors)) return row.errors.length === 0;
+    // Anything else (string, object) is treated as a problem — operators
+    // can dig into Supabase Studio for the full payload.
+    return false;
+  };
+
+  /** Bilingual label for a sync_type enum value. */
+  const formatSyncType = (t: string): string => {
+    if (t === 'catalog') return lang === 'en' ? 'Catalogue' : 'Catalogue';
+    if (t === 'inventory') return lang === 'en' ? 'Inventory' : 'Inventaire';
+    if (t === 'order_status') return lang === 'en' ? 'Order status' : 'Statut commandes';
+    return t;
+  };
+
   const envLabel = NEXT_GEN_ENABLED
     ? lang === 'en'
       ? 'PROD (next-gen edge functions enabled)'
@@ -435,10 +512,14 @@ export default function AdminSanMar() {
             </div>
             <div className="bg-va-bg-2 rounded-xl px-5 py-4">
               <div className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
-                {lang === 'en' ? 'Total styles' : 'Total styles'}
+                {lang === 'en' ? 'Last sync type' : 'Dernier type de synchro'}
               </div>
-              <div className="text-va-ink font-bold mt-1 text-2xl">
-                {syncStatus.loading ? '…' : syncStatus.totalStyles.toLocaleString()}
+              <div className="text-va-ink font-bold mt-1 text-base">
+                {recentRunsLoading
+                  ? '…'
+                  : recentRuns[0]
+                    ? formatSyncType(String(recentRuns[0].sync_type ?? ''))
+                    : '—'}
               </div>
             </div>
             <div className="bg-va-bg-2 rounded-xl px-5 py-4">
@@ -450,6 +531,133 @@ export default function AdminSanMar() {
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Last sync runs — last 5 rows of public.sanmar_sync_log so the
+            operator can see at a glance which sync ran (catalog /
+            inventory / order_status), when, success/fail (derived from
+            the JSONB `errors` column), and how long it took. The data
+            comes from the same fetch as the headline cards above so we
+            don't double-hit Supabase. Renders a soft empty state when
+            the table is missing or hasn't logged anything yet. */}
+        <section
+          aria-labelledby="sanmar-recent-runs-title"
+          className="bg-va-white border border-va-line rounded-2xl p-6"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2
+                id="sanmar-recent-runs-title"
+                className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+              >
+                <History size={20} aria-hidden="true" className="text-va-blue" />
+                {lang === 'en' ? 'Recent sync runs' : 'Dernières synchros'}
+              </h2>
+              <p className="text-va-muted text-sm mt-1">
+                {lang === 'en'
+                  ? 'Last 5 entries from sanmar_sync_log — type, when, success / fail, duration, items processed.'
+                  : 'Les 5 dernières entrées de sanmar_sync_log — type, quand, succès / échec, durée, items traités.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadRecentRuns()}
+              disabled={recentRunsLoading}
+              className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+            >
+              <RefreshCw
+                size={14}
+                aria-hidden="true"
+                className={recentRunsLoading ? 'animate-spin' : ''}
+              />
+              {lang === 'en' ? 'Refresh' : 'Actualiser'}
+            </button>
+          </div>
+          {recentRunsLoading && recentRuns.length === 0 ? (
+            <p className="text-va-muted text-sm py-6 text-center">
+              {lang === 'en' ? 'Loading…' : 'Chargement…'}
+            </p>
+          ) : recentRuns.length === 0 ? (
+            <p className="text-va-muted text-sm py-6 text-center">
+              {lang === 'en'
+                ? 'No sync runs yet. Trigger one above to populate the log.'
+                : 'Aucune synchro enregistrée. Lance-en une ci-dessus pour remplir le journal.'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto -mx-6 px-6">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-va-muted border-b border-va-line">
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Type' : 'Type'}</th>
+                    <th className="py-2 pr-4">{lang === 'en' ? 'When' : 'Quand'}</th>
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Status' : 'Statut'}</th>
+                    <th className="py-2 pr-4 text-right">
+                      {lang === 'en' ? 'Duration' : 'Durée'}
+                    </th>
+                    <th className="py-2 pr-4 text-right">
+                      {lang === 'en' ? 'Processed' : 'Traités'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentRuns.map((row, i) => {
+                    const ok = isSyncOk(row);
+                    const errCount = Array.isArray(row.errors) ? row.errors.length : 0;
+                    return (
+                      <tr
+                        key={row.id ?? `${row.created_at}-${i}`}
+                        className="border-b border-va-line/50 hover:bg-va-bg-2/50"
+                      >
+                        <td className="py-2 pr-4 text-va-ink font-bold">
+                          {formatSyncType(String(row.sync_type ?? ''))}
+                        </td>
+                        <td className="py-2 pr-4 text-va-dim text-xs">
+                          {formatTimestamp(row.created_at)}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {ok ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5">
+                              <CheckCircle2 size={12} aria-hidden="true" />
+                              {lang === 'en' ? 'Success' : 'Succès'}
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-2 py-0.5"
+                              title={
+                                errCount > 0
+                                  ? lang === 'en'
+                                    ? `${errCount} error(s) — see sanmar_sync_log.errors`
+                                    : `${errCount} erreur(s) — voir sanmar_sync_log.errors`
+                                  : undefined
+                              }
+                            >
+                              <XCircle size={12} aria-hidden="true" />
+                              {lang === 'en'
+                                ? errCount > 0
+                                  ? `Fail (${errCount})`
+                                  : 'Fail'
+                                : errCount > 0
+                                  ? `Échec (${errCount})`
+                                  : 'Échec'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4 text-right text-va-dim">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={12} aria-hidden="true" className="text-va-muted" />
+                            {formatDuration(row.duration_ms)}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 text-right text-va-ink font-bold">
+                          {(row.total_processed ?? 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         {/* Inventory table */}
