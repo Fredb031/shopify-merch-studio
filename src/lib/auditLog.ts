@@ -83,12 +83,18 @@ export function logAdminAction(
     // pollutes the trail and breaks group-by-action consumers). Drop
     // silently — same contract as the outer catch: the audit write
     // never interrupts the real action it's observing.
-    if (typeof action !== 'string' || action.trim() === '') return;
+    if (typeof action !== 'string') return;
+    // Trim once at the boundary so a stray copy-paste leaving whitespace
+    // around the verb (`'  order.mark_shipped  '`) doesn't fragment the
+    // group-by-action dashboard count and mismatch a caller filtering by
+    // the canonical 'order.mark_shipped' string.
+    const trimmedAction = action.trim();
+    if (trimmedAction === '') return;
     const list = readLS<AuditEntry[]>(STORAGE_KEY, []);
     const existing = Array.isArray(list) ? list : [];
     const entry: AuditEntry = {
       id: makeId(),
-      action,
+      action: trimmedAction,
       details,
       by: currentUserEmail(),
       at: new Date().toISOString(),
