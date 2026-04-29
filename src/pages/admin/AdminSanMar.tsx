@@ -14,6 +14,10 @@ import {
   XCircle,
   Clock,
   CalendarClock,
+  DollarSign,
+  FileText,
+  AlertTriangle,
+  Wallet,
 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -87,6 +91,54 @@ interface SanmarCronHealthRow {
   last_message: string | null;
 }
 
+/**
+ * Aggregated AR snapshot derived client-side from a single
+ * `sanmar_orders` query. We deliberately do the math in JS rather than
+ * exposing a server-side view because (a) RLS already locks the table
+ * to admins (commit 087b20a) so the row volume is operator-bounded,
+ * (b) keeping the per-status breakdown live in the closure means
+ * future widgets (pie chart, etc.) can be assembled without a second
+ * round trip. Mirrors the digest convention in
+ * `supabase/functions/_shared/sanmar/digest.ts`: status_id < 80 = open
+ * AR (10/11/41/44/60/75 typical), 80 = complete, 99 = cancelled.
+ * status_id IS NULL is also "open" — orders submitted but not yet
+ * acknowledged by SanMar.
+ */
+interface ArSummary {
+  /** Sum of every order's `order_data.totalAmount` (CAD) where
+   *  status_id IS NULL OR < 80. NaN/missing totals coerced to 0 so the
+   *  tile never renders "$NaN". */
+  openBalance: number;
+  /** Distinct order count over the same predicate. */
+  openCount: number;
+  /** Max age in days of the oldest still-open order (uses
+   *  `created_at` as the proxy for `submitted_at`; the migration
+   *  doesn't carry a separate submission timestamp). null when the
+   *  table is empty. */
+  oldestDays: number | null;
+  /** Per-status_id breakdown (10/11/41/44/60/75/null) for future
+   *  tile drilldown / pie chart. Not surfaced in this widget yet but
+   *  the summarise loop is one-pass so the cost is zero. */
+  byStatus: Map<string, number>;
+}
+
+/** Predicate the open-orders SanMar API table can filter on when the
+ * operator clicks an AR tile. The "all" sentinel is the default
+ * (no filter), "open" mirrors status_id < 80, "oldest" sorts the
+ * existing rows by ship date ascending so the oldest float to the
+ * top. The filter is purely client-side over rows already fetched —
+ * we never re-call the SanMar gateway just because a tile was clicked. */
+type OrderTableFilter = 'all' | 'open' | 'oldest';
+
+/** Threshold below which a sanmar_orders row is "open" (= contributing
+ * to AR). Mirrors the digest constant of the same name. */
+const OPEN_STATUS_CUTOFF = 80;
+
+/** Warn the operator when the oldest open order has aged past this many
+ * days. Two-week SLA is the internal default; bump here if accounting
+ * tightens policy. Used purely for tile colour, not for filtering. */
+const OLDEST_WARN_DAYS = 14;
+
 const PAGE_SIZE = 50;
 
 export default function AdminSanMar() {
@@ -118,6 +170,23 @@ export default function AdminSanMar() {
   const [cronHealth, setCronHealth] = useState<SanmarCronHealthRow[]>([]);
   const [cronHealthLoading, setCronHealthLoading] = useState(true);
 
+  // ── AR Summary ─────────────────────────────────────────────────────────
+  // Real-time mirror of what the daily digest computes (see
+  // supabase/functions/_shared/sanmar/digest.ts) so operators don't have
+  // to wait for the 08:00 ET Slack ping to know the open balance. One
+  // query → three tiles + a per-status map for future drilldown.
+  // `arUpdatedAt` powers the "Mise à jour il y a Xm" caption beneath
+  // each tile; null while loading or if the table is empty.
+  const [arStats, setArStats] = useState<ArSummary>({
+    openBalance: 0,
+    openCount: 0,
+    oldestDays: null,
+    byStatus: new Map(),
+  });
+  const [arLoading, setArLoading] = useState(true);
+  const [arUpdatedAt, setArUpdatedAt] = useState<Date | null>(null);
+  const [arError, setArError] = useState<string | null>(null);
+
   // ── Catalogue table ────────────────────────────────────────────────────
   const [catalogRows, setCatalogRows] = useState<SanmarCatalogRow[]>([]);
   const [catalogPage, setCatalogPage] = useState(0);
@@ -129,6 +198,11 @@ export default function AdminSanMar() {
   const [openOrdersLoading, setOpenOrdersLoading] = useState(false);
   const [openOrdersLastPoll, setOpenOrdersLastPoll] = useState<Date | null>(null);
   const [openOrdersError, setOpenOrdersError] = useState<string | null>(null);
+  // Click-to-filter bridge between the AR tiles and the open-orders
+  // table below. Pure UI state — when set to 'open' the table only
+  // shows detail rows whose statusId < 80; when 'oldest' it sorts by
+  // expectedShipDate ascending. Reset to 'all' clears the filter.
+  const [orderTableFilter, setOrderTableFilter] = useState<OrderTableFilter>('all');
 
   // ── Test order form ────────────────────────────────────────────────────
   const [testOrderOpen, setTestOrderOpen] = useState(false);
@@ -249,6 +323,123 @@ export default function AdminSanMar() {
       cancelled = true;
     };
   }, [loadCronHealth]);
+
+  /**
+   * Pull every `sanmar_orders` row that's still "open" (status_id IS
+   * NULL OR < 80) and aggregate three numbers + a per-status histogram
+   * client-side. We deliberately fetch only the columns we need —
+   * `total_amount_cad` does NOT exist as a column in the current
+   * migration (`sanmar_orders` stores the full `order_data` JSONB
+   * instead, see 20260429132247_sanmar_catalog.sql), so we read
+   * `order_data` and pull `totalAmount` out of it. Currency is always
+   * CAD per `SanmarOrderInput.currency` in src/lib/sanmar/types.ts.
+   *
+   * RLS gates this select to admins (policy from commit 087b20a) which
+   * is exactly the audience for this page; non-admin operators get
+   * zero rows back rather than an error and the widget renders the
+   * empty-state zeroes.
+   *
+   * On UAT (no orders submitted yet) the query returns an empty array
+   * and we surface 0 / 0 / "—" rather than crashing — verified
+   * manually by reading through the assembly loop with `rows = []`.
+   */
+  const loadArStats = useMemo(
+    () => async () => {
+      if (!supabase) {
+        setArLoading(false);
+        return;
+      }
+      setArLoading(true);
+      setArError(null);
+      try {
+        const { data, error } = await supabase
+          .from('sanmar_orders')
+          .select('status_id, created_at, order_data')
+          .or(`status_id.is.null,status_id.lt.${OPEN_STATUS_CUTOFF}`);
+        if (error) {
+          // Common cases here: table not present in early-deploy envs,
+          // or RLS denied (operator isn't admin). Both render the same
+          // empty-state tiles — surface a soft error caption rather
+          // than a banner so the page stays usable.
+          setArError(error.message);
+          setArStats({
+            openBalance: 0,
+            openCount: 0,
+            oldestDays: null,
+            byStatus: new Map(),
+          });
+          setArUpdatedAt(new Date());
+          return;
+        }
+        const rows = (data ?? []) as Array<{
+          status_id: number | null;
+          created_at: string | null;
+          order_data: unknown;
+        }>;
+        let openBalance = 0;
+        let openCount = 0;
+        let oldestMs: number | null = null;
+        const byStatus = new Map<string, number>();
+        const nowMs = Date.now();
+        for (const row of rows) {
+          openCount += 1;
+          // Pull totalAmount out of the JSONB blob defensively; missing
+          // / non-numeric values contribute 0 rather than NaN.
+          const od =
+            row.order_data && typeof row.order_data === 'object'
+              ? (row.order_data as Record<string, unknown>)
+              : {};
+          const total = Number(
+            (od as { totalAmount?: unknown }).totalAmount ?? 0,
+          );
+          if (Number.isFinite(total)) openBalance += total;
+          // Oldest open order — track the smallest created_at timestamp.
+          if (row.created_at) {
+            const t = new Date(row.created_at).getTime();
+            if (Number.isFinite(t) && (oldestMs == null || t < oldestMs)) {
+              oldestMs = t;
+            }
+          }
+          // Per-status histogram. NULL → "unsubmitted" per the digest
+          // convention; everything else stringified so the Map key is
+          // stable across renders.
+          const key = row.status_id == null ? 'null' : String(row.status_id);
+          byStatus.set(key, (byStatus.get(key) ?? 0) + 1);
+        }
+        const oldestDays =
+          oldestMs == null
+            ? null
+            : Math.floor((nowMs - oldestMs) / (1000 * 60 * 60 * 24));
+        setArStats({ openBalance, openCount, oldestDays, byStatus });
+        setArUpdatedAt(new Date());
+      } catch (e) {
+        // Network blips, JSON parse failures, etc. — never crash the
+        // page; surface as an inline error caption instead.
+        setArError(e instanceof Error ? e.message : String(e));
+        setArStats({
+          openBalance: 0,
+          openCount: 0,
+          oldestDays: null,
+          byStatus: new Map(),
+        });
+        setArUpdatedAt(new Date());
+      } finally {
+        setArLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadArStats();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadArStats]);
 
   /**
    * Page through `sanmar_catalog` 50 rows at a time. The query order
@@ -574,6 +765,50 @@ export default function AdminSanMar() {
   const isCronRunInFlight = (status: string | null): boolean =>
     status != null && status !== 'succeeded' && status !== 'failed';
 
+  /** Format a CAD amount for the AR balance tile. Two decimals, fr-CA
+   * grouping when in French, en-CA otherwise — matches the open-orders
+   * + catalogue tables' currency columns so the dashboard reads
+   * uniformly. Falls back to "0,00 $" / "$0.00" on non-finite input
+   * so a half-empty arStats never renders "$NaN". */
+  const formatCad = (n: number): string => {
+    const safe = Number.isFinite(n) ? n : 0;
+    return safe.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', {
+      style: 'currency',
+      currency: 'CAD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  /** "Mise à jour il y a 2 min" caption beneath each AR tile. We
+   * round to whole minutes (sub-minute → "à l'instant") because the
+   * widget refreshes on demand, not every second — a "12s ago" tag
+   * would only spook the operator. Reuses the same diff-now math as
+   * `formatRelativeTime` but renders the localised "Updated …"
+   * preamble inline. */
+  const formatUpdatedAgo = (d: Date | null): string => {
+    if (!d) return lang === 'en' ? 'Not loaded yet' : 'Pas encore chargé';
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) {
+      return lang === 'en' ? 'Updated just now' : 'Mise à jour à l’instant';
+    }
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) {
+      return lang === 'en' ? 'Updated just now' : 'Mise à jour à l’instant';
+    }
+    if (minutes < 60) {
+      return lang === 'en'
+        ? `Updated ${minutes} min ago`
+        : `Mise à jour il y a ${minutes} min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return lang === 'en' ? `Updated ${hours}h ago` : `Mise à jour il y a ${hours}h`;
+    }
+    const days = Math.floor(hours / 24);
+    return lang === 'en' ? `Updated ${days}d ago` : `Mise à jour il y a ${days}j`;
+  };
+
   /** Format last_duration_s (a Postgres double precision) for display. */
   const formatCronDuration = (s: number | null | undefined): string => {
     if (s == null || !Number.isFinite(s)) return '—';
@@ -583,6 +818,59 @@ export default function AdminSanMar() {
     const seconds = Math.round(s - minutes * 60);
     return `${minutes} min ${seconds.toString().padStart(2, '0')} s`;
   };
+
+  /**
+   * Apply the AR-tile click filter to the SanMar `openOrders` payload.
+   * The SanMar API call is unchanged (we don't want to re-hit the
+   * gateway just because the operator clicked a tile); instead we
+   * narrow / reorder client-side. 'all' = passthrough; 'open' drops
+   * detail rows whose statusId >= 80; 'oldest' sorts every detail
+   * row by `expectedShipDate` ascending so the longest-aged orders
+   * float to the top of the table. Invariant: the array shape stays
+   * `SanmarOrderStatus[]` so the existing flatMap render below works
+   * unchanged. */
+  const filteredOpenOrders = useMemo<SanmarOrderStatus[]>(() => {
+    if (orderTableFilter === 'all') return openOrders;
+    if (orderTableFilter === 'open') {
+      return openOrders
+        .map(o => ({
+          ...o,
+          orderStatusDetails: o.orderStatusDetails.filter(
+            d => d.statusId < OPEN_STATUS_CUTOFF,
+          ),
+        }))
+        // Drop orders that have no open detail rows so the table
+        // doesn't show "(no detail rows)" placeholders for completed
+        // POs the operator filtered away.
+        .filter(o => o.orderStatusDetails.length > 0);
+    }
+    // 'oldest' — same set, just sorted by ship date ascending. Empty /
+    // missing dates land at the end (Date NaN compares > anything).
+    const allDetails = openOrders
+      .flatMap(o =>
+        o.orderStatusDetails.map(d => ({ po: o.purchaseOrderNumber, d })),
+      )
+      .sort((a, b) => {
+        const ta = new Date(a.d.expectedShipDate).getTime();
+        const tb = new Date(b.d.expectedShipDate).getTime();
+        const sa = Number.isFinite(ta) ? ta : Number.MAX_SAFE_INTEGER;
+        const sb = Number.isFinite(tb) ? tb : Number.MAX_SAFE_INTEGER;
+        return sa - sb;
+      });
+    // Re-group by PO number preserving the new sort order; first
+    // occurrence wins so the parent PO row sits where its earliest
+    // detail row lives.
+    const groups = new Map<string, SanmarOrderStatus>();
+    for (const { po, d } of allDetails) {
+      const existing = groups.get(po);
+      if (existing) {
+        existing.orderStatusDetails.push(d);
+      } else {
+        groups.set(po, { purchaseOrderNumber: po, orderStatusDetails: [d] });
+      }
+    }
+    return [...groups.values()];
+  }, [openOrders, orderTableFilter]);
 
   const envLabel = NEXT_GEN_ENABLED
     ? lang === 'en'
@@ -954,6 +1242,179 @@ export default function AdminSanMar() {
           )}
         </section>
 
+        {/* AR Summary — comptes recevables / open AR balance.
+            Three click-to-filter tiles backed by one sanmar_orders
+            query (see loadArStats). Mirrors the digest computation in
+            supabase/functions/_shared/sanmar/digest.ts so the operator
+            doesn't have to wait for the 08:00 ET Slack ping to know
+            the open balance. Empty / UAT state: zeroes + "—" for the
+            oldest tile, no crash. */}
+        <section
+          aria-labelledby="sanmar-ar-title"
+          className="bg-va-white border border-va-line rounded-2xl p-6"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2
+                id="sanmar-ar-title"
+                className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+              >
+                <Wallet size={20} aria-hidden="true" className="text-va-blue" />
+                {lang === 'en'
+                  ? 'AR Summary / Comptes recevables'
+                  : 'Comptes recevables / AR Summary'}
+              </h2>
+              <p className="text-va-muted text-sm mt-1">
+                {lang === 'en'
+                  ? 'Live snapshot from sanmar_orders — open balance, count, oldest open age. Click a tile to filter the orders table below.'
+                  : 'Aperçu en direct de sanmar_orders — solde ouvert, nombre, âge de la plus ancienne. Clique sur une tuile pour filtrer la table de commandes ci-dessous.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadArStats()}
+              disabled={arLoading}
+              className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+            >
+              <RefreshCw
+                size={14}
+                aria-hidden="true"
+                className={arLoading ? 'animate-spin' : ''}
+              />
+              {lang === 'en' ? 'Refresh' : 'Actualiser'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Tile 1 — Open AR balance (CAD) */}
+            <button
+              type="button"
+              onClick={() => setOrderTableFilter('open')}
+              aria-pressed={orderTableFilter === 'open'}
+              aria-label={
+                lang === 'en'
+                  ? 'Filter open orders table by open status'
+                  : 'Filtrer la table des commandes par statut ouvert'
+              }
+              className={`text-left bg-va-bg-2 rounded-xl px-5 py-4 border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 hover:bg-va-bg-1 ${
+                orderTableFilter === 'open'
+                  ? 'border-va-blue ring-1 ring-va-blue/30'
+                  : 'border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                <DollarSign size={12} aria-hidden="true" />
+                {lang === 'en' ? 'Open AR balance (CAD)' : 'Solde ouvert (CAD)'}
+              </div>
+              <div className="text-va-ink font-black text-3xl mt-2 tabular-nums">
+                {arLoading ? '…' : formatCad(arStats.openBalance)}
+              </div>
+              <div className="text-va-muted text-xs mt-1">
+                {arError
+                  ? lang === 'en'
+                    ? '(query failed — see console)'
+                    : '(échec de la requête — voir console)'
+                  : formatUpdatedAgo(arUpdatedAt)}
+              </div>
+            </button>
+
+            {/* Tile 2 — Open orders count */}
+            <button
+              type="button"
+              onClick={() => setOrderTableFilter('open')}
+              aria-pressed={orderTableFilter === 'open'}
+              aria-label={
+                lang === 'en'
+                  ? 'Filter open orders table by open status'
+                  : 'Filtrer la table des commandes par statut ouvert'
+              }
+              className={`text-left bg-va-bg-2 rounded-xl px-5 py-4 border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 hover:bg-va-bg-1 ${
+                orderTableFilter === 'open'
+                  ? 'border-va-blue ring-1 ring-va-blue/30'
+                  : 'border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                <FileText size={12} aria-hidden="true" />
+                {lang === 'en' ? 'Open orders' : 'Commandes ouvertes'}
+              </div>
+              <div className="text-va-ink font-black text-3xl mt-2 tabular-nums">
+                {arLoading ? '…' : arStats.openCount.toLocaleString()}
+              </div>
+              <div className="text-va-muted text-xs mt-1">
+                {arError
+                  ? lang === 'en'
+                    ? '(query failed)'
+                    : '(échec de la requête)'
+                  : formatUpdatedAgo(arUpdatedAt)}
+              </div>
+            </button>
+
+            {/* Tile 3 — Oldest open order age. Warns past
+                OLDEST_WARN_DAYS (14) — accounting SLA. Click sorts
+                the orders table by ship date asc so the operator
+                can drill into the laggards. */}
+            <button
+              type="button"
+              onClick={() => setOrderTableFilter('oldest')}
+              aria-pressed={orderTableFilter === 'oldest'}
+              aria-label={
+                lang === 'en'
+                  ? 'Sort open orders table by oldest first'
+                  : 'Trier la table des commandes par les plus anciennes'
+              }
+              className={`text-left bg-va-bg-2 rounded-xl px-5 py-4 border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 hover:bg-va-bg-1 ${
+                orderTableFilter === 'oldest'
+                  ? 'border-va-blue ring-1 ring-va-blue/30'
+                  : arStats.oldestDays != null && arStats.oldestDays > OLDEST_WARN_DAYS
+                    ? 'border-amber-300 ring-1 ring-amber-200'
+                    : 'border-transparent'
+              }`}
+            >
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                {arStats.oldestDays != null &&
+                arStats.oldestDays > OLDEST_WARN_DAYS ? (
+                  <AlertTriangle
+                    size={12}
+                    aria-hidden="true"
+                    className="text-amber-700"
+                  />
+                ) : (
+                  <Clock size={12} aria-hidden="true" />
+                )}
+                {lang === 'en' ? 'Oldest open order' : 'Plus ancienne commande'}
+              </div>
+              <div
+                className={`font-black text-3xl mt-2 tabular-nums ${
+                  arStats.oldestDays != null &&
+                  arStats.oldestDays > OLDEST_WARN_DAYS
+                    ? 'text-amber-700'
+                    : 'text-va-ink'
+                }`}
+              >
+                {arLoading
+                  ? '…'
+                  : arStats.oldestDays == null
+                    ? '—'
+                    : lang === 'en'
+                      ? `${arStats.oldestDays}d`
+                      : `${arStats.oldestDays} j`}
+              </div>
+              <div className="text-va-muted text-xs mt-1">
+                {arError
+                  ? lang === 'en'
+                    ? '(query failed)'
+                    : '(échec de la requête)'
+                  : arStats.oldestDays != null &&
+                      arStats.oldestDays > OLDEST_WARN_DAYS
+                    ? lang === 'en'
+                      ? `Past ${OLDEST_WARN_DAYS}d SLA — investigate`
+                      : `Au-delà du SLA de ${OLDEST_WARN_DAYS} j — à investiguer`
+                    : formatUpdatedAgo(arUpdatedAt)}
+              </div>
+            </button>
+          </div>
+        </section>
+
         {/* Inventory table */}
         <section
           aria-labelledby="sanmar-catalog-title"
@@ -1065,13 +1526,41 @@ export default function AdminSanMar() {
           className="bg-va-white border border-va-line rounded-2xl p-6"
         >
           <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
-            <h2
-              id="sanmar-orders-title"
-              className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
-            >
-              <PackageSearch size={20} aria-hidden="true" className="text-va-blue" />
-              {lang === 'en' ? 'Open orders' : 'Commandes ouvertes'}
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2
+                id="sanmar-orders-title"
+                className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+              >
+                <PackageSearch size={20} aria-hidden="true" className="text-va-blue" />
+                {lang === 'en' ? 'Open orders' : 'Commandes ouvertes'}
+              </h2>
+              {orderTableFilter !== 'all' && (
+                // Active-filter chip + clear button. Surfaces *why*
+                // the operator might be staring at a smaller table than
+                // expected after clicking an AR tile, and gives them a
+                // one-click escape hatch back to the full list.
+                <span className="inline-flex items-center gap-2 text-xs font-bold text-va-blue bg-va-blue/10 border border-va-blue/30 rounded-full px-3 py-1">
+                  {orderTableFilter === 'open'
+                    ? lang === 'en'
+                      ? 'Filter: open only (status < 80)'
+                      : 'Filtre : ouvertes seulement (statut < 80)'
+                    : lang === 'en'
+                      ? 'Filter: oldest first'
+                      : 'Filtre : les plus anciennes d’abord'}
+                  <button
+                    type="button"
+                    onClick={() => setOrderTableFilter('all')}
+                    className="text-va-blue hover:text-va-blue-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 rounded"
+                    aria-label={
+                      lang === 'en' ? 'Clear filter' : 'Effacer le filtre'
+                    }
+                    title={lang === 'en' ? 'Clear filter' : 'Effacer le filtre'}
+                  >
+                    <XCircle size={14} aria-hidden="true" />
+                  </button>
+                </span>
+              )}
+            </div>
             <button
               type="button"
               onClick={fetchOpenOrders}
@@ -1131,7 +1620,7 @@ export default function AdminSanMar() {
                   </tr>
                 </thead>
                 <tbody>
-                  {openOrders.flatMap(o =>
+                  {filteredOpenOrders.flatMap(o =>
                     o.orderStatusDetails.length === 0
                       ? [
                           <tr
