@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/ProductDataService/2.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/ProductDataService/2.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetProductResponse>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>130</shar:code>
+          <shar:description>Product Id not found</shar:description>
+          <shar:severity>Error</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetProductResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

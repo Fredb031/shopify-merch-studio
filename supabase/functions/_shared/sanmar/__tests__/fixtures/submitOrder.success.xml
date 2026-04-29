@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/PromoStandardPOOrder/1.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/PromoStandardPOOrder/1.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:SendPOResponse>
+      <ns2:transactionId>371</ns2:transactionId>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Order accepted.</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:SendPOResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

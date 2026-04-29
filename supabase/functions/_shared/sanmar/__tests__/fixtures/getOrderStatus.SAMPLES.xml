@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/OrderStatusService/1.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/OrderStatusService/1.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetOrderStatusResponse>
+      <ns2:OrderStatusArray>
+        <shar:OrderStatus>
+          <shar:purchaseOrderNumber>SAMPLES</shar:purchaseOrderNumber>
+          <shar:OrderStatusDetailArray>
+            <shar:OrderStatusDetail>
+              <shar:factoryOrderNumber>SO1001</shar:factoryOrderNumber>
+              <shar:statusId>10</shar:statusId>
+              <shar:statusName>Received</shar:statusName>
+              <shar:expectedShipDate>2026-05-01</shar:expectedShipDate>
+              <shar:expectedDeliveryDate>2026-05-04</shar:expectedDeliveryDate>
+              <shar:additionalExplanation>Order received and queued for processing.</shar:additionalExplanation>
+              <shar:responseRequired>false</shar:responseRequired>
+              <shar:validTimestamp>2026-04-28T09:00:00Z</shar:validTimestamp>
+            </shar:OrderStatusDetail>
+            <shar:OrderStatusDetail>
+              <shar:factoryOrderNumber>SO1002</shar:factoryOrderNumber>
+              <shar:statusId>60</shar:statusId>
+              <shar:statusName>In Production</shar:statusName>
+              <shar:expectedShipDate>2026-05-05</shar:expectedShipDate>
+              <shar:expectedDeliveryDate>2026-05-08</shar:expectedDeliveryDate>
+              <shar:additionalExplanation>Production in progress.</shar:additionalExplanation>
+              <shar:responseRequired>false</shar:responseRequired>
+              <shar:validTimestamp>2026-04-28T09:00:00Z</shar:validTimestamp>
+            </shar:OrderStatusDetail>
+            <shar:OrderStatusDetail>
+              <shar:factoryOrderNumber>SO1003</shar:factoryOrderNumber>
+              <shar:statusId>75</shar:statusId>
+              <shar:statusName>Partial</shar:statusName>
+              <shar:expectedShipDate>2026-05-02</shar:expectedShipDate>
+              <shar:expectedDeliveryDate>2026-05-06</shar:expectedDeliveryDate>
+              <shar:additionalExplanation>Backorder pending Calgary stock.</shar:additionalExplanation>
+              <shar:responseRequired>true</shar:responseRequired>
+              <shar:validTimestamp>2026-04-28T09:00:00Z</shar:validTimestamp>
+            </shar:OrderStatusDetail>
+            <shar:OrderStatusDetail>
+              <shar:factoryOrderNumber>SO1004</shar:factoryOrderNumber>
+              <shar:statusId>80</shar:statusId>
+              <shar:statusName>Complete</shar:statusName>
+              <shar:expectedShipDate>2026-04-26</shar:expectedShipDate>
+              <shar:expectedDeliveryDate>2026-04-28</shar:expectedDeliveryDate>
+              <shar:additionalExplanation>Shipped via Purolator.</shar:additionalExplanation>
+              <shar:responseRequired>false</shar:responseRequired>
+              <shar:validTimestamp>2026-04-28T09:00:00Z</shar:validTimestamp>
+            </shar:OrderStatusDetail>
+          </shar:OrderStatusDetailArray>
+        </shar:OrderStatus>
+      </ns2:OrderStatusArray>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Success</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetOrderStatusResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

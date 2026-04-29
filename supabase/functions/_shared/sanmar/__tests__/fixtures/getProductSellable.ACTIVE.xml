@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/ProductDataService/2.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/ProductDataService/2.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetProductSellableResponse>
+      <ns2:ProductSellableArray>
+        <shar:ProductSellable>
+          <shar:productId>ATC1000(Black,M,)</shar:productId>
+          <shar:isSellable>true</shar:isSellable>
+        </shar:ProductSellable>
+        <shar:ProductSellable>
+          <shar:productId>ATC1000(Black,L,)</shar:productId>
+          <shar:isSellable>true</shar:isSellable>
+        </shar:ProductSellable>
+        <shar:ProductSellable>
+          <shar:productId>ATC1000(Navy,M,)</shar:productId>
+          <shar:isSellable>true</shar:isSellable>
+        </shar:ProductSellable>
+        <shar:ProductSellable>
+          <shar:productId>ATC1000(Red,XL,C)</shar:productId>
+          <shar:isSellable>false</shar:isSellable>
+        </shar:ProductSellable>
+        <shar:ProductSellable>
+          <shar:productId>ATC2000(White,S,)</shar:productId>
+          <shar:isSellable>true</shar:isSellable>
+        </shar:ProductSellable>
+      </ns2:ProductSellableArray>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Success</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetProductSellableResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

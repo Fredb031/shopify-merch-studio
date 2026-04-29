@@ -238,7 +238,15 @@ export async function submitOrder(orderData: SanmarOrderInput): Promise<SanmarOr
     body,
     parseResult: (parsed) => {
       const bodyParsed = unwrapBody(parsed);
-      const resp = (bodyParsed.SubmitPOOrderResponse ?? bodyParsed) as Record<string, unknown>;
+      // SanMar's gateway returns `<SendPOResponse>` (per PDF page 47 of
+      // the integration guide); the request element is named
+      // `SubmitPOOrderRequest` so the response *element* name is
+      // asymmetric. Accept either spelling so future PromoStandards
+      // version bumps that align the names don't silently break us.
+      const resp = (bodyParsed.SendPOResponse ??
+        bodyParsed.SubmitPOOrderResponse ??
+        bodyParsed.SubmitPOResponse ??
+        bodyParsed) as Record<string, unknown>;
 
       const transactionId = parseInt(String(resp.transactionId ?? '0'), 10) || 0;
 

@@ -106,7 +106,22 @@ export async function getInventoryLevels(productId: string): Promise<SanmarInven
           const locId = parseInt(String(l.inventoryLocationId ?? '0'), 10) || 0;
           const qtyContainer = (l.inventoryLocationQuantity ??
             l.InventoryLocationQuantity) as Record<string, unknown> | undefined;
-          const qty = parseInt(String(qtyContainer?.Quantity ?? qtyContainer?.value ?? '0'), 10) || 0;
+          // The wire shape is `<inventoryLocationQuantity><Quantity><value>N</value></Quantity></inventoryLocationQuantity>`.
+          // After namespace-stripping fast-xml-parser yields:
+          //   { inventoryLocationQuantity: { Quantity: { uom, value } } }
+          // We dig one level into Quantity to read `value` (or its lowercase
+          // alias). Some legacy stub responses inline `value` directly on
+          // the container, so we accept that as a fallback.
+          const innerQty = (qtyContainer?.Quantity ?? qtyContainer?.quantity) as
+            | Record<string, unknown>
+            | undefined;
+          const qtyRaw =
+            innerQty?.value ??
+            innerQty?.Value ??
+            qtyContainer?.value ??
+            qtyContainer?.Quantity ??
+            '0';
+          const qty = parseInt(String(qtyRaw), 10) || 0;
 
           const addr = (l.address ?? l.Address) as Record<string, unknown> | undefined;
           const postalCode = String(addr?.postalCode ?? '');
@@ -122,11 +137,20 @@ export async function getInventoryLevels(productId: string): Promise<SanmarInven
               )
             : [];
           const futureAvailability: SanmarFutureAvailability[] = futureNodes.map((f) => {
-            const fQtyContainer = (f.Quantity ?? f.quantity) as Record<string, unknown> | undefined;
-            const fQty = parseInt(
-              String(fQtyContainer?.value ?? fQtyContainer?.Quantity ?? f.quantity ?? '0'),
-              10,
-            ) || 0;
+            // Same `Quantity { value }` nesting as the live qty above —
+            // accept the inline `f.quantity` numeric form for legacy stubs.
+            const fQtyContainer = (f.Quantity ?? f.quantity) as
+              | Record<string, unknown>
+              | string
+              | number
+              | undefined;
+            const fQtyRaw =
+              typeof fQtyContainer === 'object' && fQtyContainer
+                ? ((fQtyContainer as Record<string, unknown>).value ??
+                    (fQtyContainer as Record<string, unknown>).Value ??
+                    '0')
+                : (fQtyContainer ?? '0');
+            const fQty = parseInt(String(fQtyRaw), 10) || 0;
             return {
               qty: fQty,
               availableOn: String(f.availableOn ?? f.AvailableOn ?? ''),

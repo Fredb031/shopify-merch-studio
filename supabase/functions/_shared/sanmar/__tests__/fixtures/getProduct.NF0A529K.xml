@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/ProductDataService/2.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/ProductDataService/2.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetProductResponse>
+      <ns2:Product>
+        <shar:productId>NF0A529K</shar:productId>
+        <shar:productName>The North Face Chest Logo Trail Crew</shar:productName>
+        <shar:description>A classic crewneck silhouette in soft midweight fleece for everyday wear.</shar:description>
+        <shar:productBrand>The North Face</shar:productBrand>
+        <shar:category>Sweatshirts/Fleece</shar:category>
+        <shar:ProductPartArray>
+          <shar:ProductPart>
+            <shar:partId>NF0A529K-BLK-S</shar:partId>
+            <shar:ColorArray>
+              <shar:Color>
+                <shar:standardColorName>TNF Black</shar:standardColorName>
+              </shar:Color>
+            </shar:ColorArray>
+            <shar:labelSize>S</shar:labelSize>
+            <shar:countryOfOrigin>VN</shar:countryOfOrigin>
+          </shar:ProductPart>
+          <shar:ProductPart>
+            <shar:partId>NF0A529K-BLK-M</shar:partId>
+            <shar:ColorArray>
+              <shar:Color>
+                <shar:standardColorName>TNF Black</shar:standardColorName>
+              </shar:Color>
+            </shar:ColorArray>
+            <shar:labelSize>M</shar:labelSize>
+            <shar:countryOfOrigin>VN</shar:countryOfOrigin>
+          </shar:ProductPart>
+          <shar:ProductPart>
+            <shar:partId>NF0A529K-BLK-L</shar:partId>
+            <shar:ColorArray>
+              <shar:Color>
+                <shar:standardColorName>TNF Black</shar:standardColorName>
+              </shar:Color>
+            </shar:ColorArray>
+            <shar:labelSize>L</shar:labelSize>
+            <shar:countryOfOrigin>VN</shar:countryOfOrigin>
+          </shar:ProductPart>
+          <shar:ProductPart>
+            <shar:partId>NF0A529K-NVY-S</shar:partId>
+            <shar:ColorArray>
+              <shar:Color>
+                <shar:standardColorName>Urban Navy</shar:standardColorName>
+              </shar:Color>
+            </shar:ColorArray>
+            <shar:labelSize>S</shar:labelSize>
+            <shar:countryOfOrigin>VN</shar:countryOfOrigin>
+          </shar:ProductPart>
+          <shar:ProductPart>
+            <shar:partId>NF0A529K-NVY-M</shar:partId>
+            <shar:ColorArray>
+              <shar:Color>
+                <shar:standardColorName>Urban Navy</shar:standardColorName>
+              </shar:Color>
+            </shar:ColorArray>
+            <shar:labelSize>M</shar:labelSize>
+            <shar:countryOfOrigin>VN</shar:countryOfOrigin>
+          </shar:ProductPart>
+          <shar:ProductPart>
+            <shar:partId>NF0A529K-NVY-L</shar:partId>
+            <shar:ColorArray>
+              <shar:Color>
+                <shar:standardColorName>Urban Navy</shar:standardColorName>
+              </shar:Color>
+            </shar:ColorArray>
+            <shar:labelSize>L</shar:labelSize>
+            <shar:countryOfOrigin>VN</shar:countryOfOrigin>
+          </shar:ProductPart>
+        </shar:ProductPartArray>
+      </ns2:Product>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Success</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetProductResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
