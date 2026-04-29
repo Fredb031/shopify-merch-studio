@@ -201,8 +201,12 @@ export function StickyProductCTA({
       aria-label={lang === 'en' ? 'Sticky purchase bar' : 'Barre d\'achat persistante'}
       aria-hidden={!visible}
       className={[
-        'md:hidden fixed bottom-0 left-0 right-0 z-40',
-        'bg-white border-t border-border shadow-lg',
+        // Phase 4 §2 — PDF spec calls for `bg-white border-t border-va-line
+        // shadow-lg` and z-40 so the bar sits below the cart drawer (z-490+)
+        // but above the page content. md:hidden keeps it mobile-only —
+        // desktop sidebars already keep the inline CTA in view.
+        'md:hidden fixed bottom-0 inset-x-0 z-40',
+        'bg-white border-t border-va-line shadow-lg',
         // Skip the transition entirely when reduce-motion is set —
         // applying `transition-none` short-circuits the slide/fade
         // pair so the bar pops in/out without animation. Otherwise
@@ -260,8 +264,12 @@ export function StickyProductCTA({
           aria-disabled={disabled || undefined}
           tabIndex={visible ? 0 : -1}
           aria-label={lang === 'en' ? 'Customize this product' : 'Personnaliser ce produit'}
-          className="shrink-0 px-4 py-2.5 gradient-navy-dark text-primary-foreground rounded-xl text-[13px] font-extrabold cursor-pointer flex items-center gap-1.5 transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ boxShadow: '0 4px 14px hsla(var(--navy), 0.3)' }}
+          // Phase 4 §2 — PDF spec calls for the va-blue token (the same
+          // primary shade used on the inline PDP CTA, ExitIntent, and
+          // CartDrawer footer). Keeps the brand-blue voice consistent
+          // across every conversion surface instead of mixing in the
+          // gradient-navy-dark drift that landed pre-Phase 4.
+          className="shrink-0 px-4 py-2.5 bg-va-blue hover:bg-va-blue-hover text-white rounded-xl text-[13px] font-extrabold cursor-pointer flex items-center gap-1.5 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Shirt size={14} aria-hidden="true" />
           <span>{lang === 'en' ? 'Customize' : 'Personnaliser'}</span>

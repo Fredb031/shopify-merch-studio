@@ -123,6 +123,11 @@ const Compare = lazy(() => import("./pages/Compare"));
 // race with the first card render.
 import { CompareBar } from "@/components/CompareBar";
 
+// Phase 4 §5 — desktop exit-intent recovery modal. Mounts at App root
+// so a single instance arms once per session across route changes;
+// internal route-prefix guard suppresses on /checkout, /merci, /admin.
+import { ExitIntent } from "@/components/ExitIntent";
+
 // Mega Blueprint §08.3 — industry-specific SEO landing pages. Each
 // targets a Quebec keyword cluster (uniformes construction Québec,
 // vêtements paysagement Québec, etc.) and reuses a shared
@@ -408,6 +413,7 @@ const App = () => (
               <AnimatedRoutes />
             </Suspense>
             <CompareBar />
+            <ExitIntent />
           </BrowserRouter>
         </ErrorBoundary>
     </LangProvider>
