@@ -40,8 +40,15 @@ export interface PlacementPreset {
  * Placement families keyed by garment category. Front placements are
  * listed before back so the UI's "Devant"/"Dos" sections render in the
  * intuitive order without re-sorting.
+ *
+ * Deep-frozen on export — same pattern as pricing.ts, caseStudies.ts,
+ * experiments.ts, and orderLogos.ts. The customizer renders dozens of
+ * positioned tiles per session; a stray consumer mutating
+ * `PLACEMENTS.tshirt[0].xPct = 0` mid-render would silently drift every
+ * subsequent canvas and corrupt the saved placement on order submit.
+ * `Readonly` types surface the same guarantee at compile time.
  */
-export const PLACEMENTS: Record<string, PlacementPreset[]> = {
+const PLACEMENTS_RAW: Record<string, PlacementPreset[]> = {
   // ── T-shirts (ATC1000, ATC1015, S445LS, etc.) ──────────────────────────
   tshirt: [
     {
@@ -298,12 +305,29 @@ export const PLACEMENTS: Record<string, PlacementPreset[]> = {
   ],
 };
 
+// Deep-freeze each family + each preset so a consumer can't write
+// `PLACEMENTS.tshirt[0].xPct = 0` and silently drift every subsequent
+// customizer canvas in the SPA session. Outer record + inner arrays +
+// each preset are all frozen so mutation throws in strict mode.
+export const PLACEMENTS: Readonly<Record<string, readonly Readonly<PlacementPreset>[]>> =
+  Object.freeze(
+    Object.fromEntries(
+      Object.entries(PLACEMENTS_RAW).map(([k, presets]) => [
+        k,
+        Object.freeze(presets.map((p) => Object.freeze({ ...p }))),
+      ]),
+    ),
+  );
+
 /**
  * Direct SKU → placement family lookup. Codes match Shopify variant SKUs
  * (case-sensitive). Update this map when adding new garments — falling
  * back to a sensible default on miss is the customizer's responsibility.
+ *
+ * Frozen for the same reason as PLACEMENTS — silent mutation of a SKU's
+ * mapped family would re-route a t-shirt's placements to the cap zones.
  */
-export const SKU_TO_PLACEMENT_TYPE: Record<string, keyof typeof PLACEMENTS> = {
+export const SKU_TO_PLACEMENT_TYPE: Readonly<Record<string, keyof typeof PLACEMENTS>> = Object.freeze({
   // T-shirts
   ATC1000: 'tshirt',
   ATC1015: 'tshirt',
@@ -318,4 +342,4 @@ export const SKU_TO_PLACEMENT_TYPE: Record<string, keyof typeof PLACEMENTS> = {
   C100: 'cap',
   // Tuques
   C105: 'tuque',
-};
+});
