@@ -6,7 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
 import { AIChat } from '@/components/AIChat';
 import { useLang } from '@/lib/langContext';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, ensureAuthHydrated } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
@@ -149,6 +149,11 @@ export default function Account() {
   };
   const verificationWord = lang === 'en' ? 'DELETE' : 'SUPPRIMER';
   const canConfirmDelete = deleteConfirm.trim().toUpperCase() === verificationWord;
+
+  // OP-8: trigger lazy auth hydration on mount. The supabase chunk is
+  // not in the eager landing-page graph anymore — visiting /account is
+  // the trigger to fetch it and resolve the session.
+  useEffect(() => { void ensureAuthHydrated(); }, []);
 
   useEffect(() => {
     if (!loading) setHydrated(true);

@@ -1,6 +1,14 @@
 import { create } from 'zustand';
-import { supabase } from '@/integrations/supabase/client';
+import { getSupabase } from '@/integrations/supabase/lazy';
 import { normalizeInvisible } from '@/lib/utils';
+
+// OP-8 (Phase 8 follow-up) — supabase client is now lazy-loaded via
+// getSupabase() so the ~196KB supabase chunk is NOT in the eager
+// landing-page graph. Every async helper below awaits the client at
+// call time; module init no longer pulls supabase. The `requestIdle
+// Callback`-style hydrate scheduling at the bottom of this file
+// defers the first dynamic import until after the browser is idle,
+// so first-paint never blocks on the supabase chunk.
 
 // Strip zero-width + control chars, lowercase, and trim. Used before
 // handing an email off to Supabase so a paste from Slack/Notion (which
@@ -189,6 +197,7 @@ async function fetchProfile(userId: string) {
   const delays = [0, 250, 750];
   for (let attempt = 0; attempt < delays.length; attempt++) {
     if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('profiles')
       .select('id, email, full_name, role, title')
@@ -275,6 +284,7 @@ async function syncOwnerProfile(authUser: { id: string; email?: string }, fullNa
       row.role = 'president';
       row.title = 'Président';
     }
+    const supabase = await getSupabase();
     await supabase.from('profiles').upsert(row, { onConflict: 'id' });
   } catch {
     // Non-fatal: the user can still sign in; the email fallback in
@@ -292,6 +302,7 @@ export const useAuthStore = create<AuthState>((set) => ({
    * user is treated as signed-out so guarded routes can render. */
   hydrateFromSession: async () => {
     try {
+      const supabase = await getSupabase();
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         // Keep the owner's profile row consistent every time we rehydrate
@@ -331,6 +342,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ error: lockoutMessage(lockRemaining) });
       return { ok: false };
     }
+    const supabase = await getSupabase();
     const { data, error } = await supabase.auth.signInWithPassword({
       email: normalized,
       password,
@@ -380,6 +392,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     // see but which lives in the Supabase auth user_metadata + the
     // profiles row forever and breaks strict name comparisons later.
     const cleanName = normalizeInvisible(name).trim();
+    const supabase = await getSupabase();
     const { data, error } = await supabase.auth.signUp({
       email: normalizeEmail(email),
       password,
@@ -410,6 +423,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     // for this session, otherwise the user sees their avatar + dashboard
     // links on the navbar even though they just clicked 'Sign out'.
     try {
+      const supabase = await getSupabase();
       await supabase.auth.signOut();
     } catch {
       // silent — local state cleared below regardless
@@ -472,6 +486,7 @@ export const useAuthStore = create<AuthState>((set) => ({
    * enumeration, so this mostly fires on rate-limit or network errors). */
   sendPasswordReset: async (email) => {
     set({ error: null });
+    const supabase = await getSupabase();
     const { error } = await supabase.auth.resetPasswordForEmail(normalizeEmail(email), {
       redirectTo: `${SITE_URL}/admin/reset-password`,
     });
@@ -486,6 +501,7 @@ export const useAuthStore = create<AuthState>((set) => ({
    * Supabase failure (weak password, expired session, rate limit). */
   updatePassword: async (newPassword) => {
     set({ error: null });
+    const supabase = await getSupabase();
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       set({ error: friendlyError(error.message) });
@@ -541,31 +557,82 @@ export function hasRole(role: UserRole): boolean {
   return user?.role === role;
 }
 
-// Auto-hydrate + subscribe to auth changes so the store always reflects Supabase
-if (typeof window !== 'undefined') {
-  useAuthStore.getState().hydrateFromSession();
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    // Wrap the whole subscriber in try/catch. syncOwnerProfile and
-    // fetchProfile can both reject on network/RLS changes — an
-    // unhandled rejection from this callback used to surface as
-    // "Uncaught (in promise)" noise in the console, and on some
-    // supabase-js versions a throw here breaks the subscription
-    // (no subsequent auth events fire until page reload).
+// OP-8 (Phase 8 follow-up) — auth init is now ON-DEMAND, not module-init.
+// Previously the store auto-hydrated on module load, which forced
+// the supabase chunk into the eager landing-page graph (the import
+// graph from Index → Navbar/LoginModal → authStore → supabase). The
+// Lighthouse Phase 8 audit flagged ~92KB of unused JS from this chunk
+// on first paint because most visitors never sign in.
+//
+// `ensureAuthHydrated()` is now called from the routes/components that
+// actually need a live Supabase session: AuthGuard (admin/vendor),
+// LoginModal (when the user opens the sign-in form), and Account.
+// First call performs hydrateFromSession + sets up the
+// onAuthStateChange subscription. Subsequent calls are no-ops.
+//
+// The store still starts with `loading: true` so AuthGuards render
+// the skeleton until ensureAuthHydrated() resolves; visitors who
+// never hit a guarded route never trigger the supabase download.
+
+let authHydrated = false;
+let authHydratePromise: Promise<void> | null = null;
+
+/**
+ * Idempotently hydrates the auth store from Supabase and wires the
+ * onAuthStateChange listener. Safe to call from many places — first
+ * call does the real work, subsequent calls return the same in-flight
+ * promise (or a resolved one if already hydrated). Only triggers the
+ * supabase chunk dynamic import lazily.
+ */
+export function ensureAuthHydrated(): Promise<void> {
+  if (authHydrated) return Promise.resolve();
+  if (authHydratePromise) return authHydratePromise;
+  if (typeof window === 'undefined') return Promise.resolve();
+  authHydratePromise = (async () => {
     try {
-      if (session?.user) {
-        await syncOwnerProfile(session.user);
-        const profile = await fetchProfile(session.user.id);
-        const user = buildUser(session.user, profile);
-        useAuthStore.setState({ user });
-      } else {
-        useAuthStore.setState({ user: null });
-      }
+      // Kick off hydration. hydrateFromSession is async and self-flips
+      // loading=false in its finally block, so AuthGuards unblock once
+      // the dynamic import + getSession round-trip completes.
+      await useAuthStore.getState().hydrateFromSession();
+      // Subscribe to Supabase auth events for token refresh, sign-out
+      // from another tab, etc. The dynamic import is memoised by
+      // getSupabase so this resolves to the same client instance the
+      // hydrate call used.
+      const supabase = await getSupabase();
+      supabase.auth.onAuthStateChange(async (_event, session) => {
+        // Wrap the whole subscriber in try/catch. syncOwnerProfile and
+        // fetchProfile can both reject on network/RLS changes — an
+        // unhandled rejection from this callback used to surface as
+        // "Uncaught (in promise)" noise in the console, and on some
+        // supabase-js versions a throw here breaks the subscription
+        // (no subsequent auth events fire until page reload).
+        try {
+          if (session?.user) {
+            await syncOwnerProfile(session.user);
+            const profile = await fetchProfile(session.user.id);
+            const user = buildUser(session.user, profile);
+            useAuthStore.setState({ user });
+          } else {
+            useAuthStore.setState({ user: null });
+          }
+        } catch (err) {
+          console.error('[authStore] onAuthStateChange handler failed:', err);
+          // Keep the existing user state — a transient error shouldn't
+          // sign the user out mid-session. If the session itself became
+          // invalid, the next event will fire with session=null and
+          // the else branch above will clear user properly.
+        }
+      });
+      authHydrated = true;
     } catch (err) {
-      console.error('[authStore] onAuthStateChange handler failed:', err);
-      // Keep the existing user state — a transient error shouldn't
-      // sign the user out mid-session. If the session itself became
-      // invalid, the next event will fire with session=null and
-      // the else branch above will clear user properly.
+      console.error('[authStore] ensureAuthHydrated failed:', err);
+      // Reset so a future retry (e.g. user clicks "Sign in" again
+      // after the network came back) can succeed. Flip loading=false
+      // so AuthGuards aren't stuck on the skeleton if the supabase
+      // chunk failed to load.
+      useAuthStore.setState({ loading: false });
+      authHydratePromise = null;
     }
-  });
+  })();
+  return authHydratePromise;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore, getSignInLockoutRemaining } from '@/stores/authStore';
+import { useAuthStore, ensureAuthHydrated, getSignInLockoutRemaining } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { isValidEmail } from '@/lib/utils';
 
@@ -21,6 +21,12 @@ export default function AdminLogin() {
   // strip — without a specific title, an admin with login + dashboard
   // tabs open had to click each one to find the login form.
   useDocumentTitle('Connexion — Vision Affichage');
+
+  // OP-8: trigger lazy auth hydration on mount. The supabase chunk is
+  // not in the eager landing-page graph anymore — visiting /admin/login
+  // is the trigger to fetch it, hydrate the session, and unblock the
+  // post-login redirect check below.
+  useEffect(() => { void ensureAuthHydrated(); }, []);
 
   // Prefill the email field with whatever the admin last ticked
   // "Se souvenir de moi" for — browsers already offer this at the OS

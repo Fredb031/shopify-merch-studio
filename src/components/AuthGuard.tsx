@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthStore, type UserRole } from '@/stores/authStore';
+import { useAuthStore, ensureAuthHydrated, type UserRole } from '@/stores/authStore';
 import { useLang } from '@/lib/langContext';
 
 interface AuthGuardProps {
@@ -22,6 +23,13 @@ export function AuthGuard({ children, requiredRole, redirectTo }: AuthGuardProps
   const loading = useAuthStore(s => s.loading);
   const location = useLocation();
   const { lang } = useLang();
+
+  // OP-8: trigger lazy auth hydration the first time AuthGuard mounts.
+  // The supabase chunk is no longer eagerly loaded with the landing
+  // page; it's only fetched once a guarded route requires a session.
+  useEffect(() => {
+    void ensureAuthHydrated();
+  }, []);
 
   const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
 

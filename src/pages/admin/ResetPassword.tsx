@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, CheckCircle2, AlertCircle, Eye, EyeOff } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, ensureAuthHydrated } from '@/stores/authStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -66,6 +66,13 @@ export default function ResetPassword() {
   // because the SDK hasn't processed the hash yet. Subscribe to
   // onAuthStateChange so the PASSWORD_RECOVERY / SIGNED_IN event flips
   // tokenReady true the moment the SDK is ready.
+  // OP-8: trigger lazy auth hydration on mount. Visiting the recovery
+  // link is the cue to fetch the supabase chunk + start the session
+  // listener (the supabase chunk is no longer in the eager landing
+  // graph). Idempotent — if AuthGuard or LoginModal already triggered
+  // it, this is a no-op.
+  useEffect(() => { void ensureAuthHydrated(); }, []);
+
   useEffect(() => {
     let alive = true;
     supabase.auth.getSession()

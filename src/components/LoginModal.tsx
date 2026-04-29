@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLang } from '@/lib/langContext';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, ensureAuthHydrated } from '@/stores/authStore';
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
@@ -85,6 +85,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setEmailTouched(false);
       setAccountType(null);
       setMode('login');
+    } else {
+      // OP-8: trigger lazy auth hydration the moment the user opens
+      // the login modal. The supabase chunk is no longer in the eager
+      // landing-page graph, so the first user who clicks "Sign in"
+      // is the trigger for fetching it. ensureAuthHydrated is
+      // idempotent — repeated opens are no-ops.
+      void ensureAuthHydrated();
     }
   }, [isOpen, error, clearError]);
 
