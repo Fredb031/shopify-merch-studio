@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/PricingAndConfiguration/1.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/PricingAndConfiguration/1.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetConfigurationAndPricingResponse>
+      <ns2:Configuration>
+        <shar:productId>PC54</shar:productId>
+        <shar:PartArray>
+          <shar:Part>
+            <shar:partId>PC54-NVY-M</shar:partId>
+            <shar:PartPriceArray>
+              <shar:PartPrice>
+                <shar:minQuantity>1</shar:minQuantity>
+                <shar:price>9.75</shar:price>
+                <shar:priceUom>EA</shar:priceUom>
+                <shar:currency>CAD</shar:currency>
+                <shar:priceEffectiveDate>2026-01-01T00:00:00Z</shar:priceEffectiveDate>
+                <shar:priceExpiryDate>2026-12-31T23:59:59Z</shar:priceExpiryDate>
+                <shar:FobPointArray>
+                  <shar:FobPoint>
+                    <shar:fobId>1</shar:fobId>
+                  </shar:FobPoint>
+                  <shar:FobPoint>
+                    <shar:fobId>2</shar:fobId>
+                  </shar:FobPoint>
+                </shar:FobPointArray>
+              </shar:PartPrice>
+            </shar:PartPriceArray>
+          </shar:Part>
+        </shar:PartArray>
+      </ns2:Configuration>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Success</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetConfigurationAndPricingResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

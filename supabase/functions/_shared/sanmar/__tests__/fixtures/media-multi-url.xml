@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/MediaService/1.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/MediaService/1.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetMediaContentResponse>
+      <ns2:MediaContentArray>
+        <shar:MediaContent>
+          <shar:productId>ATC1000</shar:productId>
+          <shar:partId>ATC1000-RED-L</shar:partId>
+          <shar:url>https://cdn.sanmarcanada.com/images/ATC1000/primary.jpg
+https://cdn.sanmarcanada.com/images/ATC1000/back.jpg
+https://cdn.sanmarcanada.com/images/ATC1000/side.jpg
+https://cdn.sanmarcanada.com/images/ATC1000/detail.jpg</shar:url>
+          <shar:description>Nom du produit = T-shirt ATC EverydayCotton
+Description du produit = Un t-shirt en coton de poids moyen idéal pour la broderie et l'impression.</shar:description>
+          <shar:mediaType>Image</shar:mediaType>
+          <shar:classTypeId>1006</shar:classTypeId>
+          <shar:changeTimeStamp>2026-03-01T09:15:00Z</shar:changeTimeStamp>
+        </shar:MediaContent>
+      </ns2:MediaContentArray>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Success</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetMediaContentResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>

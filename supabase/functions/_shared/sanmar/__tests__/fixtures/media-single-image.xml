@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ns2="http://www.promostandards.org/WSDL/MediaService/1.0.0/" xmlns:shar="http://www.promostandards.org/WSDL/MediaService/1.0.0/SharedObjects/">
+  <SOAP-ENV:Body>
+    <ns2:GetMediaContentResponse>
+      <ns2:MediaContentArray>
+        <shar:MediaContent>
+          <shar:productId>PC54</shar:productId>
+          <shar:partId>PC54-NVY-M</shar:partId>
+          <shar:url>https://cdn.sanmarcanada.com/images/PC54/primary.jpg</shar:url>
+          <shar:description>Product Name = Port Authority Core Cotton Tee
+Product Description = A reliable 5.4 oz 100% cotton tee with set-in sleeves, ideal for screen printing.</shar:description>
+          <shar:mediaType>Image</shar:mediaType>
+          <shar:classTypeId>1006</shar:classTypeId>
+          <shar:changeTimeStamp>2026-02-10T12:00:00Z</shar:changeTimeStamp>
+        </shar:MediaContent>
+      </ns2:MediaContentArray>
+      <ns2:ServiceMessageArray>
+        <shar:ServiceMessage>
+          <shar:code>200</shar:code>
+          <shar:description>Success</shar:description>
+          <shar:severity>Information</shar:severity>
+        </shar:ServiceMessage>
+      </ns2:ServiceMessageArray>
+    </ns2:GetMediaContentResponse>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>
