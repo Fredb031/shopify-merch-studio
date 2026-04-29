@@ -78,10 +78,14 @@ export function CartRecommendations() {
   // Master Prompt Vol. II — heading interpolates the FIRST cart item's
   // product name (lowercased). Trim guards against accidental whitespace
   // padding from upstream data and keeps the lowercased token clean.
-  const firstName = items[0]?.productName?.trim() ?? '';
-  const productLabel = firstName
-    ? firstName.toLowerCase()
-    : (lang === 'en' ? 'this' : 'ceci');
+  // Memoised on the first item's name + lang so a qty bump on a sibling
+  // line (which mutates `items` but leaves items[0]?.productName alone)
+  // doesn't re-do the trim/lowercase string allocation on every paint.
+  const productLabel = useMemo(() => {
+    const firstName = items[0]?.productName?.trim() ?? '';
+    if (firstName) return firstName.toLowerCase();
+    return lang === 'en' ? 'this' : 'ceci';
+  }, [items, lang]);
 
   return (
     <section
