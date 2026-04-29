@@ -1,4 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=Lora:ital,wght@0,400;0,600;1,400;1,600&display=swap');
+/* Vol I+III foundation: fonts are loaded via the <link> in index.html
+   (Syne + Inter + JetBrains Mono only). The previous Plus Jakarta Sans
+   + Lora @import was deleted per PDF brief (zero trace). */
 
 @tailwind base;
 @tailwind components;
@@ -78,7 +80,7 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground antialiased; font-family: 'Plus Jakarta Sans', sans-serif; }
+  body { @apply bg-background text-foreground antialiased; font-family: 'Inter', system-ui, sans-serif; }
 
   /* Global default focus-visible ring (Task 6.1).
      `:where()` keeps specificity at 0 so any component-level
@@ -135,7 +137,8 @@
   .gradient-navy-dark { background: linear-gradient(140deg, hsl(var(--navy)), hsl(var(--navydark))); }
   .shadow-navy { box-shadow: 0 8px 28px hsla(var(--navy), 0.35); }
   .shadow-navy-lg { box-shadow: 0 14px 36px hsla(var(--navy), 0.45); }
-  .font-lora { font-family: 'Lora', serif; }
+  /* .font-lora removed — Lora purged per PDF brief. Phase 7 sweep
+     will replace any remaining call sites with font-display / font-sans. */
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 }
@@ -369,4 +372,40 @@ a[role="button"] {
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 80px;
+}
+
+/* Vol III foundation block — additive pieces the earlier Master Prompt
+   layer didn't ship. Idempotent: every selector/keyframe below is unique
+   to this section and is not redefined elsewhere in the file.
+   Order matters — `.pb-safe` ships before the @media block so the mobile
+   `body` padding rule stays grouped with `env(safe-area-inset-bottom)`
+   logic for future maintainers. */
+.pb-safe {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Vol III canonical entrance keyframes (named per brief). The earlier
+   `va-fadein` / `fadeInUp` / `fadeInDown` are kept as legacy aliases for
+   already-shipped consumers; new components should use these. */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }

@@ -15,8 +15,6 @@ export default {
         display: ['Syne', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
-        outfit: ['Outfit', 'system-ui', 'sans-serif'],
-        lora: ['Lora', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -58,24 +56,33 @@ export default {
           warning: '#D97706',
         },
         va: {
-          black: '#0A0A0A',
-          white: '#FFFFFF',
-          offwhite: '#F8F7F4',
-          blue: '#0052CC',
-          'blue-h': '#003D99',
-          'blue-l': '#EBF2FF',
-          ink: '#0A0A0A',
-          dim: '#374151',
-          muted: '#6B7280',
-          ghost: '#9CA3AF',
-          line: '#E5E7EB',
-          'line-h': '#D1D5DB',
-          ok: '#059669',
-          warn: '#D97706',
-          err: '#DC2626',
-          'bg-1': '#FFFFFF',
-          'bg-2': '#F8F7F4',
-          'bg-3': '#F3F2EF',
+          // Vol I + Vol III PDF brief — canonical foundation tokens.
+          ink:           '#0A0A0A',
+          blue:          '#0047CC',
+          'blue-hover':  '#0035A8',
+          'blue-tint':   '#EBF0FF',
+          white:         '#FFFFFF',
+          sand:          '#F5F0E8',
+          stone:         '#F0EDE7',
+          dim:           '#374151',
+          muted:         '#6B7280',
+          ghost:         '#9CA3AF',
+          line:          '#E2E0DB',
+          ok:            '#059669',
+          warn:          '#D97706',
+          err:           '#DC2626',
+          // Deprecated aliases — kept until Phase 7 cleanup so already-shipped
+          // consumers (va-black / va-blue-h / va-blue-l / va-offwhite /
+          // va-bg-1/2/3 / va-line-h) keep compiling. Each alias points at
+          // the new PDF value above so the visual end state is correct.
+          black:         '#0A0A0A', // alias → ink
+          'blue-h':      '#0035A8', // alias → blue-hover
+          'blue-l':      '#EBF0FF', // alias → blue-tint
+          offwhite:      '#F5F0E8', // alias → sand
+          'line-h':      '#D1D5DB', // alias kept (no replacement)
+          'bg-1':        '#FFFFFF', // alias → white
+          'bg-2':        '#F5F0E8', // alias → sand
+          'bg-3':        '#F0EDE7', // alias → stone
         },
       },
       borderRadius: {
