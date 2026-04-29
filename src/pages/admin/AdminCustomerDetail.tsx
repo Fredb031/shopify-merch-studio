@@ -157,7 +157,7 @@ export default function AdminCustomerDetail() {
   );
 
   useDocumentTitle(
-    customer ? `${fullName(customer)} — Clients — Admin Vision Affichage` : 'Client introuvable',
+    customer ? `${fullName(customer)} · Clients · Admin · Vision Affichage` : 'Client introuvable · Admin · Vision Affichage',
   );
 
   /* ─── Notes state (persisted) ─── */

@@ -135,7 +135,7 @@ export default function QuoteBuilder() {
   const [searchParams] = useSearchParams();
   const isAdminPath = location.pathname.startsWith('/admin');
   const backHref = isAdminPath ? '/admin/quotes' : '/vendor';
-  useDocumentTitle('Nouvelle soumission — Vision Affichage');
+  useDocumentTitle('Nouvelle soumission · Vendeur · Vision Affichage');
   const user = useAuthStore(s => s.user);
   // Scope template bucket to the logged-in vendor when we have one —
   // falls back to a global list for admin/president flows or when

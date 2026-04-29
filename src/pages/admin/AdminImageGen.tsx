@@ -81,7 +81,7 @@ const PRESET_PROMPTS = [
 ];
 
 export default function AdminImageGen() {
-  useDocumentTitle('Génération d\'images — Admin Vision Affichage');
+  useDocumentTitle('Génération d\'images · Admin · Vision Affichage');
   const [provider, setProvider] = useState<ImageProvider>('none');
   const [apiKey, setApiKey] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);

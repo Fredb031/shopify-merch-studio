@@ -27,7 +27,7 @@ const COLUMNS: PortalColumn[] = [
 ];
 
 export default function AdminPortals() {
-  useDocumentTitle('Portails entreprises — Admin');
+  useDocumentTitle('Portails entreprises · Admin · Vision Affichage');
 
   return (
     <div>

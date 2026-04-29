@@ -54,7 +54,7 @@ function formatAbsolute(iso: string): string {
 
 /** Admin catalog of transactional automations with pause/resume toggles and a recent-runs drawer. */
 export default function AdminAutomations() {
-  useDocumentTitle('Automatisations — Admin Vision Affichage');
+  useDocumentTitle('Automatisations · Admin · Vision Affichage');
 
   // Merge localStorage overrides on top of seed defaults at mount.
   // Keep the merged list in state so the toggle renders instantly

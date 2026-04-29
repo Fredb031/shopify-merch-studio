@@ -755,7 +755,7 @@ function OnboardingTour({ lang, targets, onDone }: OnboardingTourProps) {
  *  live ticker, orders table, quick actions. Default landing page for
  *  the salesman role. */
 export default function VendorDashboard() {
-  useDocumentTitle('Tableau de bord — Vendeur Vision Affichage');
+  useDocumentTitle('Tableau de bord · Vendeur · Vision Affichage');
   const { lang } = useLang();
   const user = useAuthStore(s => s.user);
 

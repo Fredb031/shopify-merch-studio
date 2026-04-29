@@ -332,7 +332,7 @@ export default function AdminOrders() {
   // Also drop any cross-view stale selection — the admin expects the
   // bulk bar counter to reflect the rows they can actually see.
   useEffect(() => { setSelectedIds(new Set()); }, [query, statusFilter]);
-  useDocumentTitle('Commandes — Admin Vision Affichage');
+  useDocumentTitle('Commandes · Admin · Vision Affichage');
   // Cmd+K focuses the search input; Esc clears + blurs while focused.
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 

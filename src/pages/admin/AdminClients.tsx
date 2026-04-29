@@ -81,7 +81,7 @@ function deriveCompany(c: ShopifyCustomerSnapshot): string {
 }
 
 export default function AdminClients() {
-  useDocumentTitle('Clients — Admin');
+  useDocumentTitle('Clients · Admin · Vision Affichage');
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('ltv');
   const [sortDir, setSortDir] = useState<SortDir>('desc');

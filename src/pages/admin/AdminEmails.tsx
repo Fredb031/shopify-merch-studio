@@ -617,7 +617,7 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
 }
 
 export default function AdminEmails() {
-  useDocumentTitle('Modèles de courriels — Admin Vision Affichage');
+  useDocumentTitle('Modèles de courriels · Admin · Vision Affichage');
   const [active, setActive] = useState<TemplateId>('quote-sent');
   const [lang, setLang] = useState<Lang>('fr');
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle');

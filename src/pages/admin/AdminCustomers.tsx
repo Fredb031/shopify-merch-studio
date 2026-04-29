@@ -116,7 +116,7 @@ export default function AdminCustomers() {
   // Distinct admin tab title — admins routinely have multiple admin
   // tabs open and the bare 'Vision Affichage' from index.html made
   // them indistinguishable in the strip.
-  useDocumentTitle('Clients — Admin Vision Affichage');
+  useDocumentTitle('Clients · Admin · Vision Affichage');
 
   // Reset pagination when the filter or search changes — otherwise
   // filtering to 3 prospects while on page 5 shows an empty table.

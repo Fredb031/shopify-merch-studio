@@ -31,7 +31,7 @@ import {
 // implementation in src/lib/capacity.ts; this page can stay as-is.
 
 export default function AdminCapacity() {
-  useDocumentTitle('Capacité hebdomadaire — Admin');
+  useDocumentTitle('Capacité hebdomadaire · Admin · Vision Affichage');
 
   const [capacity, setCapacity] = useState<WeeklyCapacity>(() => getCurrentCapacity());
   // Track input-side state separately from the persisted capacity

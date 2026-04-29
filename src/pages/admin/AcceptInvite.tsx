@@ -42,7 +42,7 @@ export default function AcceptInvite() {
   const updatePassword = useAuthStore(s => s.updatePassword);
   // Auth-tab disambiguation so an invitee who revisits the magic link
   // (or has multiple admin tabs open) recognises this one in the strip.
-  useDocumentTitle('Activer mon compte — Vision Affichage');
+  useDocumentTitle('Activer mon compte · Vision Affichage');
 
   const [invite, setInvite] = useState<InviteRow | null>(null);
   const [loading, setLoading] = useState(true);

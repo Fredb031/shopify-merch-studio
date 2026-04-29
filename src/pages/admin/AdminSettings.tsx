@@ -236,7 +236,7 @@ function CollapsibleSection({ id, title, children }: { id: string; title: string
 }
 
 export default function AdminSettings() {
-  useDocumentTitle('Paramètres — Admin Vision Affichage');
+  useDocumentTitle('Paramètres · Admin · Vision Affichage');
   const [settings, setSettings] = useState<SettingsState>(DEFAULT_SETTINGS);
 
   // Hydrate from localStorage on mount. Done in an effect rather than

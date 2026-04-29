@@ -34,7 +34,7 @@ export default function ResetPassword() {
   const user = useAuthStore(s => s.user);
   // Auth-tab disambiguation — also helps the user spot this tab in
   // history if they revisit the recovery link.
-  useDocumentTitle('Nouveau mot de passe — Vision Affichage');
+  useDocumentTitle('Nouveau mot de passe · Vision Affichage');
 
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');

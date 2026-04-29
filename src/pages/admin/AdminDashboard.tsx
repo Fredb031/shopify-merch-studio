@@ -447,7 +447,7 @@ function TwoFaEnforcementBanner() {
 /** Admin home page — headline metrics, today's priorities, recent orders
  * + activity feed, Shopify sync status, low-stock nudge, and audit log. */
 export default function AdminDashboard() {
-  useDocumentTitle('Tableau de bord — Admin Vision Affichage');
+  useDocumentTitle('Tableau de bord · Admin · Vision Affichage');
   const currentUser = useAuthStore(s => s.user);
   // The dashboard pulls from static snapshots + localStorage-memoized
   // widgets, so "refresh" remounts the data-bearing section by bumping

@@ -76,7 +76,7 @@ function exportUsersCsv(rows: ProfileRow[], twoFa: Record<string, boolean>) {
 }
 
 export default function AdminUsers() {
-  useDocumentTitle('Comptes & accès — Admin Vision Affichage');
+  useDocumentTitle('Comptes & accès · Admin · Vision Affichage');
   // URL-backed search/filter — same pattern as the other admin tables.
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') ?? '';

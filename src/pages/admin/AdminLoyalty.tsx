@@ -74,7 +74,7 @@ function tierColor(tier: LoyaltyAccount['tier']): string {
 }
 
 export default function AdminLoyalty() {
-  useDocumentTitle('Programme de fidélité — Admin');
+  useDocumentTitle('Programme de fidélité · Admin · Vision Affichage');
 
   const [account, setAccount] = useState<LoyaltyAccount>(() => getLoyalty());
   const [transactions, setTransactions] = useState<LoyaltyTransaction[]>(() => readTransactions());

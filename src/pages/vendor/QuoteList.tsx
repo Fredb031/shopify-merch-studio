@@ -118,7 +118,7 @@ function readStatusParam(raw: string | null): Status | 'all' {
 }
 
 export default function QuoteList() {
-  useDocumentTitle('Mes soumissions — Vendeur Vision Affichage');
+  useDocumentTitle('Mes soumissions · Vendeur · Vision Affichage');
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Status | 'all'>(

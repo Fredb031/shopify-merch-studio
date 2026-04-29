@@ -231,7 +231,7 @@ export default function AdminAbandonedCarts() {
   const [page, setPage] = useState(0);
   const [reminders, setReminders] = useState<RemindersMap>(() => loadReminders());
   const [dialogCart, setDialogCart] = useState<ShopifyAbandonedCheckoutSnapshot | null>(null);
-  useDocumentTitle('Paniers abandonnés — Admin Vision Affichage');
+  useDocumentTitle('Paniers abandonnés · Admin · Vision Affichage');
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
   // Cancel the resync delay if the admin navigates away in the 400ms

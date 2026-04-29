@@ -243,7 +243,7 @@ export default function AdminQuotes() {
   const [convertTarget, setConvertTarget] = useState<QuoteRow | null>(null);
 
   useEffect(() => { setPage(0); }, [query, filter]);
-  useDocumentTitle('Soumissions — Admin Vision Affichage');
+  useDocumentTitle('Soumissions · Admin · Vision Affichage');
   const searchRef = useSearchHotkey({ onClear: () => setQuery('') });
 
   // State → URL sync; replace history so each keystroke doesn't pollute back-stack.

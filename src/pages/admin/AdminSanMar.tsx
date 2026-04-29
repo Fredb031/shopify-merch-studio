@@ -91,7 +91,7 @@ const PAGE_SIZE = 50;
 
 export default function AdminSanMar() {
   const { lang } = useLang();
-  useDocumentTitle(lang === 'en' ? 'SanMar Canada — Admin' : 'SanMar Canada — Admin');
+  useDocumentTitle(lang === 'en' ? 'SanMar Canada · Admin · Vision Affichage' : 'SanMar Canada · Admin · Vision Affichage');
 
   // ── Sync status ─────────────────────────────────────────────────────────
   // `recentRuns` holds the last 5 rows of sanmar_sync_log so the operator

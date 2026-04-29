@@ -84,11 +84,11 @@ export default function VendorProfile() {
   useDocumentTitle(
     profile
       ? (lang === 'en'
-        ? `${profile.name} — Vision Affichage`
-        : `${profile.name} — Vision Affichage`)
+        ? `${profile.name} · Vendeur · Vision Affichage`
+        : `${profile.name} · Vendeur · Vision Affichage`)
       : (lang === 'en'
-        ? 'Vendor profile — Vision Affichage'
-        : 'Profil vendeur — Vision Affichage'),
+        ? 'Vendor profile · Vendeur · Vision Affichage'
+        : 'Profil vendeur · Vendeur · Vision Affichage'),
     profile
       ? (lang === 'en'
         ? `${profile.name}, ${profile.specialtyEn} at Vision Affichage. Get in touch directly.`

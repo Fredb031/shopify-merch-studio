@@ -18,7 +18,7 @@ export default function ForgotPassword() {
   const error = useAuthStore(s => s.error);
   const clearError = useAuthStore(s => s.clearError);
   // Auth-tab disambiguation — same pattern as the other auth pages.
-  useDocumentTitle('Mot de passe oublié — Vision Affichage');
+  useDocumentTitle('Mot de passe oublié · Vision Affichage');
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

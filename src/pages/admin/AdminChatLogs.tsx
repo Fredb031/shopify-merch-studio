@@ -25,7 +25,7 @@ const COLUMNS: ChatLogColumn[] = [
 ];
 
 export default function AdminChatLogs() {
-  useDocumentTitle('Journaux de discussion — Admin');
+  useDocumentTitle('Journaux de discussion · Admin · Vision Affichage');
 
   return (
     <div>

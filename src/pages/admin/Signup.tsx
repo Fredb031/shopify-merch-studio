@@ -11,7 +11,7 @@ export default function Signup() {
   const error = useAuthStore(s => s.error);
   const clearError = useAuthStore(s => s.clearError);
   // Same auth-tab disambiguation as AdminLogin.
-  useDocumentTitle('Créer un compte — Vision Affichage');
+  useDocumentTitle('Créer un compte · Vision Affichage');
 
   // No hardcoded defaults — placeholder text in the inputs is enough.
   // Pre-filling Frederick's name leaked the owner's identity on a

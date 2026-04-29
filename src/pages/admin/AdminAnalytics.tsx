@@ -136,7 +136,7 @@ function parseDayKeyLocal(key: string): Date {
  * highlight; all sections expose CSV exports gated on `orders:read`.
  */
 export default function AdminAnalytics() {
-  useDocumentTitle('Analytique — Admin Vision Affichage');
+  useDocumentTitle('Analytique · Admin · Vision Affichage');
   // Gate the export buttons on the same permission used by the other
   // admin CSV exports (AdminVendors, VendorDashboard). A salesman who
   // lost orders:read via an override shouldn't walk away with a CSV of

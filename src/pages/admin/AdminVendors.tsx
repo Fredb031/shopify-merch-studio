@@ -153,7 +153,7 @@ function exportVendorsCsv(
 }
 
 export default function AdminVendors() {
-  useDocumentTitle('Vendeurs — Admin Vision Affichage');
+  useDocumentTitle('Vendeurs · Admin · Vision Affichage');
   // URL-backed sort so reload preserves the admin's chosen ranking and
   // shareable URLs jump straight to the right view.
   const [searchParams, setSearchParams] = useSearchParams();

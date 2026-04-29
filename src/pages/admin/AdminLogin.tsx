@@ -20,7 +20,7 @@ export default function AdminLogin() {
   // Distinguish auth tabs from the rest of the site in the browser tab
   // strip — without a specific title, an admin with login + dashboard
   // tabs open had to click each one to find the login form.
-  useDocumentTitle('Connexion — Vision Affichage');
+  useDocumentTitle('Connexion · Vision Affichage');
 
   // OP-8: trigger lazy auth hydration on mount. The supabase chunk is
   // not in the eager landing-page graph anymore — visiting /admin/login
