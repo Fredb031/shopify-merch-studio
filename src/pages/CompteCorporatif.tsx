@@ -78,8 +78,8 @@ export default function CompteCorporatif() {
   const { lang } = useLang();
   useDocumentTitle(
     lang === 'en'
-      ? 'Corporate account — Net 30 invoice billing | Vision Affichage'
-      : 'Compte corporatif — Paiement par facture (Net 30) | Vision Affichage',
+      ? 'Corporate account — Net 30 invoice billing · Vision Affichage'
+      : 'Compte corporatif — Paiement par facture (Net 30) · Vision Affichage',
     lang === 'en'
       ? 'Apply for a Vision Affichage corporate Net 30 account. For Quebec businesses, municipalities, and organisations. Reply within 48 hours.'
       : 'Demande de compte corporatif Vision Affichage avec paiement par facture (Net 30). Pour entreprises, villes et organismes du Québec. Réponse en 48 heures.',

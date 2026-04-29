@@ -70,8 +70,8 @@ export default function IndustriesHub() {
   const { lang } = useLang();
   useDocumentTitle(
     lang === 'en'
-      ? 'Industries we outfit — Vision Affichage'
-      : 'Industries que nous habillons — Vision Affichage',
+      ? 'Industries we outfit · Vision Affichage'
+      : 'Industries que nous habillons · Vision Affichage',
     lang === 'en'
       ? 'Custom apparel for Quebec construction, landscaping, plumbing, corporate and municipal teams. Local production in Saint-Hyacinthe.'
       : "Vêtements personnalisés pour équipes de construction, paysagement, plomberie-électricité, corporate et municipalités au Québec. Production locale à Saint-Hyacinthe.",

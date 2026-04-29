@@ -65,11 +65,11 @@ export default function CaseStudyDetail() {
   useDocumentTitle(
     cs
       ? lang === 'en'
-        ? `${cs.companyName} — case study — Vision Affichage`
-        : `${cs.companyName} — étude de cas — Vision Affichage`
+        ? `${cs.companyName} — case study · Vision Affichage`
+        : `${cs.companyName} — étude de cas · Vision Affichage`
       : lang === 'en'
-        ? 'Case study not found — Vision Affichage'
-        : 'Étude de cas introuvable — Vision Affichage',
+        ? 'Case study not found · Vision Affichage'
+        : 'Étude de cas introuvable · Vision Affichage',
     cs
       ? lang === 'en'
         ? `How Vision Affichage helped ${cs.companyName} (${cs.industry}, ${cs.location}) — challenge, solution, and measurable result.`

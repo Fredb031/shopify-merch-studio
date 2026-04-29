@@ -168,7 +168,7 @@ export default function Account() {
   useBodyScrollLock(deleteOpen);
   const deleteDialogRef = useFocusTrap<HTMLDivElement>(deleteOpen);
 
-  useDocumentTitle(lang === 'en' ? 'My account — Vision Affichage' : 'Mon compte — Vision Affichage');
+  useDocumentTitle(lang === 'en' ? 'My account · Vision Affichage' : 'Mon compte · Vision Affichage');
 
   if (hydrated && !user) {
     return (

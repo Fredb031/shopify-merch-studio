@@ -138,7 +138,7 @@ export default function Compare() {
   const [customizerProductId, setCustomizerProductId] = useState<string | null>(null);
 
   useDocumentTitle(
-    lang === 'en' ? 'Compare — Vision Affichage' : 'Comparer — Vision Affichage',
+    lang === 'en' ? 'Compare · Vision Affichage' : 'Comparer · Vision Affichage',
     lang === 'en'
       ? 'Compare Vision Affichage products side by side — material, weight, colors, sizes, fit, care, warranty.'
       : 'Comparez les produits Vision Affichage côte à côte — matière, poids, couleurs, tailles, coupe, lavage, garantie.',

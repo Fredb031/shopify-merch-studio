@@ -267,7 +267,7 @@ export default function TrackOrder() {
     return getOrderStatus(paramOrder);
   }, [order, paramOrder]);
 
-  useDocumentTitle(lang === 'en' ? 'Track an order — Vision Affichage' : 'Suivre une commande — Vision Affichage');
+  useDocumentTitle(lang === 'en' ? 'Track an order · Vision Affichage' : 'Suivre une commande · Vision Affichage');
 
   const currentStage: Stage | null = order ? deriveStage(order) : null;
   const currentIdx = currentStage ? STAGES.findIndex(s => s.id === currentStage) : -1;

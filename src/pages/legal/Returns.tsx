@@ -10,7 +10,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
  */
 export default function Returns() {
   const { lang } = useLang();
-  useDocumentTitle(lang === 'en' ? 'Return policy — Vision Affichage' : 'Politique de retour — Vision Affichage');
+  useDocumentTitle(lang === 'en' ? 'Return policy · Vision Affichage' : 'Politique de retour · Vision Affichage');
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

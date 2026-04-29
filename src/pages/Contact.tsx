@@ -35,7 +35,7 @@ export default function Contact() {
   // email, form) and the 24h response promise, instead of the generic
   // homepage pitch inherited from index.html.
   useDocumentTitle(
-    lang === 'en' ? 'Contact — Vision Affichage' : 'Contact — Vision Affichage',
+    lang === 'en' ? 'Contact · Vision Affichage' : 'Contact · Vision Affichage',
     lang === 'en'
       ? 'Contact Vision Affichage — Saint-Hyacinthe, QC. Phone, email, form. Response within 24h.'
       : 'Contactez Vision Affichage — Saint-Hyacinthe, QC. Phone, email, form. Réponse sous 24h.',

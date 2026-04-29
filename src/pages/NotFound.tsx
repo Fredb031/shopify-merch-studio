@@ -55,7 +55,7 @@ const NotFound = () => {
 
   // Browser tab + SERP label reflect the 404 state. Restore on unmount
   // is handled by useDocumentTitle.
-  useDocumentTitle(lang === 'en' ? 'Page not found (404) — Vision Affichage' : 'Page introuvable (404) — Vision Affichage');
+  useDocumentTitle(lang === 'en' ? 'Page not found (404) · Vision Affichage' : 'Page introuvable (404) · Vision Affichage');
 
   // Fetch the live Shopify catalog so the three popular ProductCards
   // render with real prices + images. Falls back to an empty array
