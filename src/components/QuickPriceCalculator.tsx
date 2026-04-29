@@ -38,8 +38,16 @@ export function QuickPriceCalculator() {
     return { unit: u, total: u * qty };
   }, [sku, qty]);
 
-  const fmt = (n: number) =>
-    lang === 'fr' ? n.toFixed(2).replace('.', ',') : n.toFixed(2);
+  const fmt = (n: number) => {
+    // NaN.toFixed(2) → "NaN", Infinity.toFixed(2) → "Infinity" — both
+    // would render as "NaN$" / "Infinity$" inside the hero card if a
+    // missing pricing tier or a divide-by-zero ever leaked through
+    // getPricePerUnit. Render an em-dash instead, matching fmtMoney's
+    // contract (src/lib/format.ts) so the hero's degraded state looks
+    // like every other money slot on the site rather than literal junk.
+    if (!Number.isFinite(n)) return '—';
+    return lang === 'fr' ? n.toFixed(2).replace('.', ',') : n.toFixed(2);
+  };
 
   return (
     <div
