@@ -9,7 +9,7 @@ export function useInView(
   options: { threshold?: number; rootMargin?: string } = {},
 ): boolean {
   const [inView, setInView] = useState(false);
-  const { threshold = 0.1, rootMargin = '0px' } = options;
+  const { threshold = 0.12, rootMargin = '0px' } = options;
 
   useEffect(() => {
     const el = ref.current;
