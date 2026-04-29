@@ -216,8 +216,28 @@ const DEFAULTS: Automation[] = [
   },
 ];
 
-/** Seed registry of automations with their ship-default status and mock recent-runs. */
-export const AUTOMATIONS: ReadonlyArray<Automation> = DEFAULTS;
+/** Seed registry of automations with their ship-default status and mock recent-runs.
+ *
+ * Deep-frozen on export so a stray consumer can't write
+ * `AUTOMATIONS[0].status = 'paused'` mid-render and silently rewrite
+ * the seed defaults for every other tab/component reading the same
+ * registry inside the SPA session — `ReadonlyArray` already blocks
+ * push/splice at compile time, but each row's fields stayed mutable
+ * because `Automation` itself isn't `Readonly`. The override map in
+ * localStorage is the supported way to flip a status; deep-freeze
+ * here closes the runtime mutation door without changing any consumer
+ * behaviour. Mirrors the freeze pattern in pricing.ts (ba33680),
+ * deliveryOptions (c48c04d), orderLogos (cf26d4b), industryProof
+ * (d46762e), experiments (5492998), and i18n.ts (5948294).
+ */
+export const AUTOMATIONS: ReadonlyArray<Readonly<Automation>> = Object.freeze(
+  DEFAULTS.map(a =>
+    Object.freeze({
+      ...a,
+      recentRuns: Object.freeze(a.recentRuns.map(r => Object.freeze({ ...r }))) as ReadonlyArray<AutomationRun>,
+    }),
+  ),
+);
 
 // Set of registered automation ids — used to drop stale flag entries on
 // read so renaming/removing an automation self-heals the override map
