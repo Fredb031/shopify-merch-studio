@@ -219,8 +219,18 @@ const AnimatedRoutes = () => {
         <Routes location={location}>
           <Route path="/" element={<Index />} />
           <Route path="/products" element={<Products />} />
+          {/* Master Prompt French aliases — /boutique mirrors /products
+              and /panier mirrors /cart so Navbar/BottomNav links
+              resolve without a 404 hop. Both originals stay live so
+              existing inbound links keep working. /customizer renders
+              Products because the customizer is launched as a modal
+              from the PDP (no standalone route); this gives users a
+              shopping surface to pick a product to customize. */}
+          <Route path="/boutique" element={<Products />} />
+          <Route path="/customizer" element={<Products />} />
           <Route path="/product/:handle" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/panier" element={<Cart />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/track" element={<TrackOrder />} />
           <Route path="/track/:orderNumber" element={<TrackOrder />} />
