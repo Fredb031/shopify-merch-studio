@@ -2,7 +2,15 @@ import type { Product } from '@/data/products';
 
 type Category = Product['category'];
 
-const FR: Record<Category, string> = {
+// Frozen so a stray consumer (or a future bug anywhere in the SPA)
+// can't write `FR.tshirt = 'gotcha'` mid-render and silently rewrite
+// every subsequent PDP / cart row label for the rest of the session.
+// The same labels feed alt text, aria-labels, and `document.title` —
+// any of those getting a hot-patch in flight is a hard-to-trace
+// regression. Mirrors the i18n.ts (5948294) / pricing (ba33680) /
+// caseStudies (7df2683) / experiments (5492998) freeze pattern; the
+// only consumer (categoryLabel below) does read-only lookups.
+const FR: Readonly<Record<Category, string>> = Object.freeze({
   tshirt: 'T-Shirt',
   hoodie: 'Hoodie',
   crewneck: 'Crewneck',
@@ -11,9 +19,9 @@ const FR: Record<Category, string> = {
   sport: 'Sport',
   cap: 'Casquette',
   toque: 'Tuque',
-};
+});
 
-const EN: Record<Category, string> = {
+const EN: Readonly<Record<Category, string>> = Object.freeze({
   tshirt: 'T-Shirt',
   hoodie: 'Hoodie',
   crewneck: 'Crewneck',
@@ -22,7 +30,7 @@ const EN: Record<Category, string> = {
   sport: 'Sport',
   cap: 'Cap',
   toque: 'Beanie',
-};
+});
 
 // Generic per-language fallback used when a category isn't in the
 // FR/EN map. Stale localStorage rows (Wishlist, RecentlyViewed, Cart)
@@ -33,10 +41,10 @@ const EN: Record<Category, string> = {
 // (e.g. "undefined ABC123 — Vision Affichage"). The fallback keeps the
 // surrounding copy grammatical and never produces the literal string
 // "undefined" in user-facing UI.
-const FALLBACK: Record<'fr' | 'en', string> = {
+const FALLBACK: Readonly<Record<'fr' | 'en', string>> = Object.freeze({
   fr: 'Article',
   en: 'Item',
-};
+});
 
 /** Resolve a localised category label.
  *
