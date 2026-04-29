@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sanmar-integration"
+version = "0.1.0"
+description = "Python wrapper around SanMar Canada PromoStandards SOAP services + local SQLite catalog cache."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Vision Affichage Quebec" },
+]
+license = { text = "Proprietary" }
+keywords = ["sanmar", "promostandards", "soap", "catalog", "b2b"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+]
+dependencies = [
+    "zeep>=4.2.1",
+    "pandas>=2.1.0",
+    "openpyxl>=3.1.2",
+    "sqlalchemy>=2.0.25",
+    "pydantic>=2.6.0",
+    "pydantic-settings>=2.2.0",
+    "python-dotenv>=1.0.1",
+    "tenacity>=8.2.3",
+    "requests>=2.31.0",
+    "rich>=13.7.0",
+    "loguru>=0.7.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+]
+
+[project.scripts]
+sanmar-load-catalog = "scripts.load_catalog:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["sanmar*", "scripts*"]
+exclude = ["tests*", "data*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
