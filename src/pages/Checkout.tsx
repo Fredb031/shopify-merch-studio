@@ -1367,6 +1367,52 @@ export default function Checkout() {
                   {lang === 'en' ? 'Payment' : 'Paiement'}
                 </h2>
 
+                {/* Master Prompt — urgency banner. Renders only on weekdays
+                    before 15:00 local Quebec time so a buyer outside the
+                    cutoff window doesn't see a promise we can't keep. The
+                    delivery date is computed as today + 5 business days
+                    (Mon-Fri only) and formatted in the user's locale. */}
+                {(() => {
+                  const now = new Date();
+                  // Quebec is America/Toronto; format-extract the local
+                  // weekday + hour so the banner respects the operator's
+                  // time zone regardless of where the buyer is browsing.
+                  const partsFmt = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Toronto',
+                    weekday: 'short',
+                    hour: 'numeric',
+                    hour12: false,
+                  });
+                  const parts = partsFmt.formatToParts(now);
+                  const weekdayPart = parts.find(p => p.type === 'weekday')?.value ?? '';
+                  const hourPart = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10);
+                  const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekdayPart);
+                  const beforeCutoff = Number.isFinite(hourPart) && hourPart < 15;
+                  if (!isWeekday || !beforeCutoff) return null;
+                  // Today + 5 business days, skipping Sat/Sun.
+                  const eta = new Date(now);
+                  let added = 0;
+                  while (added < 5) {
+                    eta.setDate(eta.getDate() + 1);
+                    const d = eta.getDay();
+                    if (d !== 0 && d !== 6) added++;
+                  }
+                  const dateLabel = new Intl.DateTimeFormat(
+                    lang === 'fr' ? 'fr-CA' : 'en-CA',
+                    { weekday: 'long', day: 'numeric', month: 'long' },
+                  ).format(eta);
+                  return (
+                    <div className="bg-va-warn/10 border border-va-warn/30 rounded-xl p-3 text-va-warn font-medium text-sm flex items-center gap-2">
+                      <span aria-hidden="true">⚡</span>
+                      <span>
+                        {lang === 'en'
+                          ? `Order before 3pm — guaranteed delivery ${dateLabel}`
+                          : `Commande avant 15h — livraison garantie le ${dateLabel}`}
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 {/* Tax breakdown card — province-aware (preserves b30b61f
                     math). Polished typography only; no logic changes. */}
                 <div className="bg-[#F9FAFB] rounded-xl p-4">
@@ -1513,25 +1559,26 @@ export default function Checkout() {
                     Replaces the earlier stacked urgency banner + payment-
                     icons strip + repeat trust line. 2x2 on mobile, single
                     horizontal grid above sm. */}
-                <div className="bg-[#F9FAFB] rounded-xl p-3 text-center">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-[#0A0A0A] font-semibold">
-                    <span className="inline-flex items-center justify-center gap-1.5">
-                      <span aria-hidden="true">🔒</span>
-                      {lang === 'en' ? 'SSL secure payment' : 'Paiement sécurisé SSL'}
-                    </span>
-                    <span className="inline-flex items-center justify-center gap-1.5">
-                      <span aria-hidden="true">💳</span>
-                      Visa/MC/Apple Pay
-                    </span>
-                    <span className="inline-flex items-center justify-center gap-1.5">
-                      <span aria-hidden="true">📦</span>
-                      {lang === 'en' ? 'Tracked delivery' : 'Livraison trackée'}
-                    </span>
-                    <span className="inline-flex items-center justify-center gap-1.5">
-                      <span aria-hidden="true">✅</span>
-                      {lang === 'en' ? 'Satisfied or refunded' : 'Satisfait ou remboursé'}
-                    </span>
-                  </div>
+                {/* Master Prompt — trust badges row above the primary
+                    CTA. Single horizontal flex strip in muted token
+                    colors so the eye lands on the CTA, not the badges. */}
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-va-muted text-xs">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">🔒</span>
+                    SSL
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">💳</span>
+                    Visa/MC/Apple Pay
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">📦</span>
+                    {lang === 'en' ? 'Tracked delivery' : 'Livraison trackée'}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true">✓</span>
+                    {lang === 'en' ? 'Refunded if unsatisfied' : 'Remboursé si insatisfait'}
+                  </span>
                 </div>
 
                 <button
@@ -1548,12 +1595,12 @@ export default function Checkout() {
                   )}
                   {processing
                     ? lang === 'en' ? 'Processing…' : 'Traitement…'
-                    : lang === 'en' ? `Confirm and pay ${fmtMoney(total)} $` : `Confirmer et payer ${fmtMoney(total)} $`}
+                    : lang === 'en' ? 'Confirm and pay' : 'Confirmer et payer'}
                 </button>
                 <p className="text-center text-[#374151] text-xs">
                   {lang === 'en'
-                    ? 'You can cancel within 2 hours if you change your mind'
-                    : 'Tu peux annuler dans les 2h si tu changes d\u2019id\u00E9e'}
+                    ? 'All transactions encrypted'
+                    : 'Toutes les transactions sont chiffrées'}
                 </p>
               </div>
             )}

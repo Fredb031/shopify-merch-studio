@@ -629,21 +629,21 @@ export default function Cart() {
         {items.length === 0 ? (
           <div className="text-center py-20 px-6 max-w-md mx-auto">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-[#F9FAFB] border border-[#E5E7EB] flex items-center justify-center" aria-hidden="true">
-              <ShoppingCart className="h-9 w-9 text-[#0A0A0A]" strokeWidth={1.5} />
+              <ShoppingCart className="h-9 w-9 text-va-ink" strokeWidth={1.5} />
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#0A0A0A] mb-3">
+            <h2 className="font-display font-bold text-2xl text-va-ink mb-3">
               {lang === 'en'
                 ? 'Your crew deserves better than blank shirts.'
                 : 'Ton équipe mérite mieux que des t-shirts sans logo.'}
             </h2>
-            <p className="text-sm text-[#6B7280] mb-7 leading-relaxed">
+            <p className="text-va-muted mb-7 leading-relaxed">
               {lang === 'en'
                 ? '500+ Quebec teams started with 5 shirts. Pick yours.'
                 : "500+ équipes au Québec ont commencé avec 5 t-shirts. Choisis les tiens."}
             </p>
             <Link
               to="/boutique"
-              className="inline-flex items-center gap-2 text-sm font-extrabold text-white bg-[#0052CC] hover:bg-[#003D99] px-8 py-3.5 rounded-xl transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 bg-va-blue text-white px-8 py-4 rounded-xl font-extrabold transition-colors hover:bg-va-blue-h focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2"
             >
               {lang === 'en' ? 'Browse products' : 'Parcourir les produits'} →
             </Link>
@@ -1088,6 +1088,18 @@ export default function Cart() {
                           {fmtMoney(grossSubtotal)} $
                         </span>
                       </div>
+                      {/* Master Prompt — free-shipping nudge. Renders only when
+                          the (post-discount) subtotal sits below the $300 threshold
+                          so high-cart buyers don't see a meaningless "$0 to free
+                          shipping" row. The X is clamped at 0 so a tiny float
+                          drift can't render "-0.00 $". */}
+                      {totalPrice < 300 && (
+                        <div className="bg-va-blue-l border border-va-blue/25 text-va-blue text-sm rounded-xl p-3">
+                          {lang === 'en'
+                            ? `Add ${fmtMoney(Math.max(0, 300 - totalPrice))}$ for free shipping`
+                            : `Ajoute ${fmtMoney(Math.max(0, 300 - totalPrice))}$ pour la livraison gratuite`}
+                        </div>
+                      )}
                       {discountApplied && discountCode ? (
                         <div className="flex justify-between items-center">
                           <span className="text-[#0A0A0A] flex items-baseline gap-1.5">

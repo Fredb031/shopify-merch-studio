@@ -65,6 +65,28 @@ export function CartRecommendations() {
   if (items.length === 0) return null;
   if (recs.length === 0) return null;
 
+  // Master Prompt — heading references the cart's dominant product so
+  // the cross-sell reads as "Teams that order [hoodies] often add:"
+  // instead of a generic "customers also ordered". Falls back to a
+  // sensible static label when we can't resolve a category.
+  const dominantCategory = (() => {
+    const counts = new Map<string, number>();
+    for (const it of items) {
+      const cat = PRODUCTS.find(p => p.id === it.productId)?.category;
+      if (!cat) continue;
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    }
+    let top: string | null = null;
+    let topN = 0;
+    for (const [c, n] of counts) {
+      if (n > topN) { top = c; topN = n; }
+    }
+    return top;
+  })();
+  const productLabel = dominantCategory
+    ? categoryLabel(dominantCategory as Parameters<typeof categoryLabel>[0], lang).toLowerCase()
+    : (lang === 'en' ? 'this' : 'ceci');
+
   return (
     <section
       className="bg-gradient-to-br from-secondary/50 to-background border border-border rounded-2xl p-4 md:p-5"
@@ -74,7 +96,9 @@ export function CartRecommendations() {
         <div className="flex items-center gap-2">
           <Sparkles size={14} className="text-[#E8A838]" aria-hidden="true" />
           <h3 className="text-sm font-extrabold text-foreground">
-            {lang === 'en' ? 'Customers also ordered' : 'Souvent commandé avec'}
+            {lang === 'en'
+              ? `Teams that order ${productLabel} often add:`
+              : `Les équipes qui commandent ${productLabel} ajoutent souvent :`}
           </h3>
         </div>
         <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
