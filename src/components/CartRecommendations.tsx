@@ -6,6 +6,15 @@ import { PRODUCTS } from '@/data/products';
 import { categoryLabel } from '@/lib/productLabels';
 import { useCartStore } from '@/stores/localCartStore';
 
+// Master Prompt Vol. II — heading interpolates the FIRST cart item's
+// product name lowercased so the cross-sell reads as "Teams that order
+// hoodie premium often add:" instead of a generic "customers also
+// bought". Picking by insertion order (first item in `items`) makes the
+// heading stable for the buyer's session — they see the same line they
+// just added cross-referenced, not a category they happened to add 3
+// items in. Falls back to a sensible static label when the cart is
+// empty (in which case the section is already gated below).
+
 // Maximum number of cross-sell cards rendered. Matches the md+ grid (4 cols)
 // so on desktop every rec is visible; on mobile users scroll horizontally.
 const MAX_RECS = 4;
@@ -65,26 +74,12 @@ export function CartRecommendations() {
   if (items.length === 0) return null;
   if (recs.length === 0) return null;
 
-  // Master Prompt — heading references the cart's dominant product so
-  // the cross-sell reads as "Teams that order [hoodies] often add:"
-  // instead of a generic "customers also ordered". Falls back to a
-  // sensible static label when we can't resolve a category.
-  const dominantCategory = (() => {
-    const counts = new Map<string, number>();
-    for (const it of items) {
-      const cat = PRODUCTS.find(p => p.id === it.productId)?.category;
-      if (!cat) continue;
-      counts.set(cat, (counts.get(cat) ?? 0) + 1);
-    }
-    let top: string | null = null;
-    let topN = 0;
-    for (const [c, n] of counts) {
-      if (n > topN) { top = c; topN = n; }
-    }
-    return top;
-  })();
-  const productLabel = dominantCategory
-    ? categoryLabel(dominantCategory as Parameters<typeof categoryLabel>[0], lang).toLowerCase()
+  // Master Prompt Vol. II — heading interpolates the FIRST cart item's
+  // product name (lowercased). Trim guards against accidental whitespace
+  // padding from upstream data and keeps the lowercased token clean.
+  const firstName = items[0]?.productName?.trim() ?? '';
+  const productLabel = firstName
+    ? firstName.toLowerCase()
     : (lang === 'en' ? 'this' : 'ceci');
 
   return (

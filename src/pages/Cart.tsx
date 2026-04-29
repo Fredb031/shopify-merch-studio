@@ -1095,17 +1095,42 @@ export default function Cart() {
                           {fmtMoney(grossSubtotal)} $
                         </span>
                       </div>
-                      {/* Master Prompt — free-shipping nudge. Renders only when
-                          the (post-discount) subtotal sits below the $300 threshold
-                          so high-cart buyers don't see a meaningless "$0 to free
-                          shipping" row. The X is clamped at 0 so a tiny float
-                          drift can't render "-0.00 $". */}
-                      {totalPrice < 300 && (
-                        <div className="bg-va-blue-l border border-va-blue/25 text-va-blue text-sm rounded-xl p-3">
-                          {lang === 'en'
-                            ? `Add ${fmtMoney(Math.max(0, 300 - totalPrice))}$ for free shipping`
-                            : `Ajoute ${fmtMoney(Math.max(0, 300 - totalPrice))}$ pour la livraison gratuite`}
+                      {/* Master Prompt Vol. II — free-shipping progress bar.
+                          When subtotal < 300 the bar fills proportionally toward
+                          the threshold and an above-bar caption tells the buyer
+                          how much more they need. At/above the threshold the
+                          whole block is replaced with a single confirmation row
+                          so the buyer sees their reward, not an empty bar.
+                          Subtotal here is the post-discount total (matches the
+                          rest of the summary), so a VISION10 buyer who lands at
+                          $295 still sees the right delta. */}
+                      {totalPrice < 300 ? (
+                        <div className="space-y-1.5">
+                          <p className="text-va-blue text-sm font-semibold">
+                            {lang === 'en'
+                              ? `${fmtMoney(Math.max(0, 300 - totalPrice))}$ to go for free shipping`
+                              : `Plus que ${fmtMoney(Math.max(0, 300 - totalPrice))}$ pour la livraison gratuite`}
+                          </p>
+                          <div
+                            role="progressbar"
+                            aria-label={lang === 'en' ? 'Free shipping progress' : 'Progression livraison gratuite'}
+                            aria-valuenow={Math.min(100, Math.round(totalPrice / 300 * 100))}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            className="bg-va-stone rounded-full h-2 w-full overflow-hidden"
+                          >
+                            <div
+                              className="bg-va-blue h-full transition-[width] duration-500 ease-out"
+                              style={{ width: `${Math.min(100, totalPrice / 300 * 100)}%` }}
+                            />
+                          </div>
                         </div>
+                      ) : (
+                        <p className="text-va-ok text-sm font-semibold">
+                          {lang === 'en'
+                            ? 'Free shipping included ✓'
+                            : 'Livraison gratuite incluse ✓'}
+                        </p>
                       )}
                       {discountApplied && discountCode ? (
                         <div className="flex justify-between items-center">

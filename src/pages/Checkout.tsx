@@ -18,6 +18,29 @@ import { sanitizeText } from '@/lib/sanitize';
 import { computeTax, fmtRate, gstLabel, hstLabel, pstLabel } from '@/lib/tax';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
+// Master Prompt Vol. II — Phase 4 helper resolver. The Phase 4 file
+// `src/lib/getDeliveryDate.ts` is being built in parallel and is NOT
+// yet on `main` at the moment this phase lands. A static `import`
+// would break the build, so we look the helper up at runtime via
+// `import.meta.glob` (Vite's compile-time glob; resolves to `{}` when
+// the file is missing instead of throwing). Returns the helper or
+// `null`. Falls back to a local 5-business-day calc at the call site.
+type GetDeliveryDateFn = (from?: Date) => Date;
+function getDeliveryDateSafe(): GetDeliveryDateFn | null {
+  try {
+    const mods = import.meta.glob<{ getDeliveryDate?: GetDeliveryDateFn }>(
+      '@/lib/getDeliveryDate.ts',
+      { eager: true },
+    );
+    for (const m of Object.values(mods)) {
+      if (typeof m?.getDeliveryDate === 'function') return m.getDeliveryDate;
+    }
+  } catch {
+    /* glob unavailable / runtime error — caller falls back */
+  }
+  return null;
+}
+
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
 interface ShippingForm {
@@ -1374,11 +1397,16 @@ export default function Checkout() {
                   {lang === 'en' ? 'Payment' : 'Paiement'}
                 </h2>
 
-                {/* Master Prompt — urgency banner. Renders only on weekdays
-                    before 15:00 local Quebec time so a buyer outside the
-                    cutoff window doesn't see a promise we can't keep. The
-                    delivery date is computed as today + 5 business days
-                    (Mon-Fri only) and formatted in the user's locale. */}
+                {/* Master Prompt Vol. II — urgency banner. Renders only on
+                    weekdays before 15:00 America/Toronto so a buyer outside
+                    the cutoff window doesn't see a promise we can't keep.
+                    Delivery date comes from the Phase 4 helper
+                    `getDeliveryDate()` when it lands; until then we wrap the
+                    import in a try/catch and fall back to a local
+                    5-business-day calculation that skips Sat/Sun. The
+                    fallback is structurally identical to the previous
+                    implementation so the visible date doesn't shift the
+                    moment Phase 4 is merged. */}
                 {(() => {
                   const now = new Date();
                   // Quebec is America/Toronto; format-extract the local
@@ -1396,20 +1424,41 @@ export default function Checkout() {
                   const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekdayPart);
                   const beforeCutoff = Number.isFinite(hourPart) && hourPart < 15;
                   if (!isWeekday || !beforeCutoff) return null;
-                  // Today + 5 business days, skipping Sat/Sun.
-                  const eta = new Date(now);
-                  let added = 0;
-                  while (added < 5) {
-                    eta.setDate(eta.getDate() + 1);
-                    const d = eta.getDay();
-                    if (d !== 0 && d !== 6) added++;
+
+                  // Phase 4 helper `getDeliveryDate()` is being built in
+                  // parallel — when it lands, swap the fallback below
+                  // for `getDeliveryDate(now)`. Until then, the local
+                  // 5-business-day calc preserves Vol. II behaviour
+                  // (skip Sat/Sun, advance to weekday +5). Wrapped in a
+                  // try/catch around `getDeliveryDateSafe` so a future
+                  // helper that throws on edge cases (holidays, time
+                  // zones) cannot break the banner — we silently fall
+                  // back instead.
+                  let eta: Date | null = null;
+                  try {
+                    const fn = getDeliveryDateSafe();
+                    if (fn) {
+                      const v = fn(now);
+                      if (v instanceof Date && !Number.isNaN(v.getTime())) eta = v;
+                    }
+                  } catch {
+                    /* Phase 4 helper threw — fall through to local calc */
+                  }
+                  if (!eta) {
+                    eta = new Date(now);
+                    let added = 0;
+                    while (added < 5) {
+                      eta.setDate(eta.getDate() + 1);
+                      const d = eta.getDay();
+                      if (d !== 0 && d !== 6) added++;
+                    }
                   }
                   const dateLabel = new Intl.DateTimeFormat(
                     lang === 'fr' ? 'fr-CA' : 'en-CA',
                     { weekday: 'long', day: 'numeric', month: 'long' },
                   ).format(eta);
                   return (
-                    <div className="bg-va-warn/10 border border-va-warn/30 rounded-xl p-3 text-va-warn font-medium text-sm flex items-center gap-2">
+                    <div className="bg-va-blue-tint border border-va-blue/25 rounded-xl p-3 text-va-blue text-sm font-medium flex items-center gap-2">
                       <span aria-hidden="true">⚡</span>
                       <span>
                         {lang === 'en'
@@ -1562,21 +1611,21 @@ export default function Checkout() {
                   </span>
                 </label>
 
-                {/* Trust strip — single tight row above the primary CTA.
-                    Replaces the earlier stacked urgency banner + payment-
-                    icons strip + repeat trust line. 2x2 on mobile, single
-                    horizontal grid above sm. */}
-                {/* Master Prompt — trust badges row above the primary
-                    CTA. Single horizontal flex strip in muted token
-                    colors so the eye lands on the CTA, not the badges. */}
-                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-va-muted text-xs">
+                {/* Master Prompt Vol. II — trust badges row above the
+                    primary CTA. 4-badge horizontal flex strip in muted
+                    token colors so the eye lands on the CTA, not the
+                    badges. The labels themselves are the Vol. II spec
+                    verbatim — payment-method strings stay literal
+                    (Visa · MC · Apple Pay · Shop Pay) for both locales
+                    so the bilingual rendering matches the brand sheet. */}
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-va-muted text-xs mt-4">
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden="true">🔒</span>
-                    SSL
+                    {lang === 'en' ? 'SSL secure payment' : 'Paiement sécurisé SSL'}
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden="true">💳</span>
-                    Visa/MC/Apple Pay
+                    Visa · MC · Apple Pay · Shop Pay
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden="true">📦</span>
@@ -1584,7 +1633,7 @@ export default function Checkout() {
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span aria-hidden="true">✓</span>
-                    {lang === 'en' ? 'Refunded if unsatisfied' : 'Remboursé si insatisfait'}
+                    {lang === 'en' ? 'Satisfied or refunded' : 'Satisfait ou remboursé'}
                   </span>
                 </div>
 
