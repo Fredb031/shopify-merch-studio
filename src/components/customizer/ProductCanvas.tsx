@@ -1634,6 +1634,7 @@ export function ProductCanvas({
         ref={containerRef}
         tabIndex={0}
         role="application"
+        data-customizer-canvas=""
         aria-label={lang === 'en'
           ? 'Product canvas. Use arrow keys to nudge the selected item (Shift = 5px, Ctrl/Cmd = 10px).'
           : "Canvas du produit. Utilise les flèches pour déplacer l'élément sélectionné (Maj = 5 px, Ctrl/Cmd = 10 px)."}

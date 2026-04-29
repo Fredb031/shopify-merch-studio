@@ -400,6 +400,7 @@ export function CartDrawer({ isOpen: isOpenProp, onClose: onCloseProp }: { isOpe
                 return (
                   <motion.div key={item.cartId} layout initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, x:40 }}
                     className="flex gap-3 p-3 border border-border rounded-xl bg-secondary/50"
+                    data-cart-item=""
                   >
                     {/* Product preview with logo */}
                     <CartItemPreview item={item} />

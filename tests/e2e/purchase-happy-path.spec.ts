@@ -1,18 +1,11 @@
-// Phase 8 — Purchase happy-path E2E test (scaffold).
+// Phase 8 — Purchase happy-path E2E test.
 //
-// Status: SCAFFOLD ONLY. Selectors below use `data-*` attribute hooks
-// (e.g. `[data-product-card]`, `[data-color-swatch]`, `[data-size-button]`,
-// `[data-customizer-canvas]`, `[data-cart-item]`) that DO NOT yet exist on
-// the source components. This test will FAIL on a real run until those
-// hooks are added to:
-//   - PDP / catalogue cards         → data-product-card
-//   - PDP variant pickers           → data-color-swatch, data-size-button
-//   - Customizer canvas wrapper     → data-customizer-canvas
-//   - Cart drawer / cart line item  → data-cart-item
-//
-// Adding those attributes to source components is intentionally OUT OF
-// SCOPE for this scaffold commit (separate follow-up). See
-// tests/e2e/README.md for operator instructions.
+// Selectors use `data-*` attribute hooks wired into the source
+// components: `[data-product-card]` (catalogue grid card root),
+// `[data-color-swatch]` + `[data-size-button]` (PDP variant pickers),
+// `[data-customizer-canvas]` (customizer canvas wrapper), and
+// `[data-cart-item]` (cart drawer line items). Keep these attributes
+// stable — they are the contract this E2E suite depends on.
 //
 // To run (Playwright + chromium are already installed in devDependencies):
 //   npx playwright install chromium   # first time only
@@ -33,33 +26,27 @@ test.describe('Purchase happy path', () => {
     await expect(page.locator('h1')).toBeVisible();
 
     // 2. Open product catalog
-    // TODO(data-attr): ensure header nav link to /produits has stable name.
     await page.getByRole('link', { name: /produits/i }).click();
     await expect(page).toHaveURL(/\/produits/);
 
     // 3. Click first product card
-    // TODO(data-attr): add `data-product-card` to product card root in catalogue grid.
     await page.locator('[data-product-card]').first().click();
     await expect(page).toHaveURL(/\/produit\//);
 
     // 4. Choose color + size
-    // TODO(data-attr): add `data-color-swatch` to each color option button on PDP.
     await page.locator('[data-color-swatch]').first().click();
-    // TODO(data-attr): add `data-size-button` to each size option button on PDP.
     await page.locator('[data-size-button]').first().click();
 
     // 5. Click "Personnaliser"
     await page.getByRole('button', { name: /personnaliser/i }).click();
 
     // 6. Customizer loads
-    // TODO(data-attr): add `data-customizer-canvas` to the customizer canvas wrapper.
     await expect(page.locator('[data-customizer-canvas]')).toBeVisible({ timeout: 10000 });
 
     // 7. Add to cart
     await page.getByRole('button', { name: /ajouter au panier/i }).click();
 
     // 8. Cart drawer opens with item
-    // TODO(data-attr): add `data-cart-item` to each cart line in drawer + cart page.
     await expect(page.locator('[data-cart-item]')).toBeVisible();
 
     // 9. Go to checkout

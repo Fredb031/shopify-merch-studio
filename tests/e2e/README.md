@@ -46,9 +46,9 @@ gitignored).
 
 ## Status
 
-**Scaffold only.** `purchase-happy-path.spec.ts` will FAIL on a real run
-until the `data-*` selector hooks it depends on are added to source
-components in a follow-up commit:
+**Wired.** The `data-*` selector hooks the suite depends on are now
+present on the source components listed below. Keep these attributes
+stable — they are the contract this E2E suite reads from.
 
 | Selector                  | Lives on                                              |
 | ------------------------- | ----------------------------------------------------- |
@@ -57,11 +57,6 @@ components in a follow-up commit:
 | `[data-size-button]`      | Each size option button on PDP                        |
 | `[data-customizer-canvas]`| The customizer canvas wrapper (after Personnaliser)   |
 | `[data-cart-item]`        | Each cart line in the drawer and on the cart page     |
-
-The test file marks each missing hook with a `TODO(data-attr):` comment
-so the follow-up PR knows exactly where to wire them in. Adding those
-attributes was deliberately kept OUT OF SCOPE for the scaffold commit —
-it touches a handful of components and deserves its own review.
 
 ## Why scaffolded vs. fully wired
 

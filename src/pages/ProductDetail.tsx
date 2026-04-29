@@ -1238,6 +1238,7 @@ export default function ProductDetail() {
                           aria-checked={isSelected}
                           aria-disabled={!isAvailable || undefined}
                           disabled={!isAvailable}
+                          data-color-swatch=""
                           onClick={() => {
                             if (!isAvailable) return;
                             userInteractedRef.current = true;
@@ -1446,6 +1447,7 @@ export default function ProductDetail() {
                             aria-checked={isSel}
                             aria-disabled={!isAvailable || undefined}
                             disabled={!isAvailable}
+                            data-size-button=""
                             onClick={() => {
                               if (!isAvailable) return;
                               userInteractedRef.current = true;

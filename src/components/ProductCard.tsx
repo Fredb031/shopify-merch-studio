@@ -484,11 +484,12 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
           onClick={handleCardClick}
           aria-label={cardAriaLabel}
           className={cardClassName}
+          data-product-card=""
         >
           {cardInner}
         </Link>
       ) : (
-        <div aria-label={cardAriaLabel} className={cardClassName}>
+        <div aria-label={cardAriaLabel} className={cardClassName} data-product-card="">
           {cardInner}
         </div>
       )}
