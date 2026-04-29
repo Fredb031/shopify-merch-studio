@@ -13,6 +13,7 @@ import {
   History,
   XCircle,
   Clock,
+  CalendarClock,
 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -67,6 +68,25 @@ interface SanmarSyncLogRow {
   created_at: string | null;
 }
 
+/**
+ * One row of `public.get_sanmar_cron_health()` — the SECURITY DEFINER
+ * function that joins `cron.job` and `cron.job_run_details` for jobs
+ * named `sanmar-*` (see migration 20260429170000_sanmar_cron_health.sql).
+ *
+ * Non-admin callers get zero rows back rather than an error, so the
+ * dashboard's empty state covers both "no admin" and "no cron jobs
+ * registered yet" without surfacing the difference to the operator.
+ */
+interface SanmarCronHealthRow {
+  jobname: string;
+  schedule: string;
+  active: boolean;
+  last_run_at: string | null;
+  last_status: string | null;
+  last_duration_s: number | null;
+  last_message: string | null;
+}
+
 const PAGE_SIZE = 50;
 
 export default function AdminSanMar() {
@@ -88,6 +108,15 @@ export default function AdminSanMar() {
   const [recentRuns, setRecentRuns] = useState<SanmarSyncLogRow[]>([]);
   const [recentRunsLoading, setRecentRunsLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+
+  // ── pg_cron health ─────────────────────────────────────────────────────
+  // Live state of the three sanmar-* scheduled jobs (catalog Sunday 03:00,
+  // inventory daily 05:15, order-status every 30min). Comes from the
+  // SECURITY DEFINER `get_sanmar_cron_health()` function which gates on
+  // is_admin(); rendered as a soft empty state if the function isn't
+  // present yet (early-deploy environments) or the operator lacks rights.
+  const [cronHealth, setCronHealth] = useState<SanmarCronHealthRow[]>([]);
+  const [cronHealthLoading, setCronHealthLoading] = useState(true);
 
   // ── Catalogue table ────────────────────────────────────────────────────
   const [catalogRows, setCatalogRows] = useState<SanmarCatalogRow[]>([]);
@@ -179,6 +208,47 @@ export default function AdminSanMar() {
       cancelled = true;
     };
   }, [loadRecentRuns]);
+
+  /**
+   * Pull live state of the sanmar-* pg_cron jobs from the
+   * `get_sanmar_cron_health()` RPC. Errors fall through to a soft empty
+   * state — the function is missing in pre-Wave-7 environments and
+   * non-admin callers get zero rows back by design, so we treat both
+   * cases identically rather than hassling the operator with a banner.
+   */
+  const loadCronHealth = useMemo(
+    () => async () => {
+      if (!supabase) {
+        setCronHealthLoading(false);
+        return;
+      }
+      setCronHealthLoading(true);
+      try {
+        const { data, error } = await supabase.rpc('get_sanmar_cron_health');
+        if (error) {
+          setCronHealth([]);
+        } else {
+          setCronHealth((data ?? []) as SanmarCronHealthRow[]);
+        }
+      } catch {
+        setCronHealth([]);
+      } finally {
+        setCronHealthLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadCronHealth();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadCronHealth]);
 
   /**
    * Page through `sanmar_catalog` 50 rows at a time. The query order
@@ -438,6 +508,82 @@ export default function AdminSanMar() {
     return t;
   };
 
+  /**
+   * Humanize a pg_cron jobname into something an operator wants to read.
+   * The three known jobs are:
+   *   - sanmar-sync-catalog       → Catalogue (hebdomadaire) / Catalogue (weekly)
+   *   - sanmar-sync-inventory     → Inventaire (quotidien)   / Inventory (daily)
+   *   - sanmar-reconcile-orders   → Statut commandes (30 min) / Order status (30 min)
+   * Anything else falls back to the raw jobname so newly-added jobs
+   * aren't silently mislabeled.
+   */
+  const formatJobName = (jobname: string): string => {
+    if (jobname === 'sanmar-sync-catalog') {
+      return lang === 'en' ? 'Catalogue (weekly)' : 'Catalogue (hebdomadaire)';
+    }
+    if (jobname === 'sanmar-sync-inventory') {
+      return lang === 'en' ? 'Inventory (daily)' : 'Inventaire (quotidien)';
+    }
+    if (jobname === 'sanmar-reconcile-orders') {
+      return lang === 'en' ? 'Order status (30 min)' : 'Statut commandes (30 min)';
+    }
+    return jobname;
+  };
+
+  /**
+   * Cheap relative-time formatter — "il y a 2h" / "2h ago". We keep
+   * this hand-rolled rather than dragging in date-fns because the dashboard
+   * already ships with three near-duplicates of toLocaleString and one
+   * more dependency would break the bundle budget. Rounds to the most
+   * useful unit; "just now" when under a minute.
+   */
+  const formatRelativeTime = (iso: string | null): string => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (!Number.isFinite(d.getTime())) return '—';
+    const diffMs = Date.now() - d.getTime();
+    if (diffMs < 0) {
+      // Future timestamp — rare (clock skew); just show absolute time.
+      return formatTimestamp(iso);
+    }
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return lang === 'en' ? 'just now' : "à l'instant";
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) {
+      return lang === 'en' ? `${minutes} min ago` : `il y a ${minutes} min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) {
+      return lang === 'en' ? `${hours}h ago` : `il y a ${hours}h`;
+    }
+    const days = Math.floor(hours / 24);
+    if (days < 7) {
+      return lang === 'en' ? `${days}d ago` : `il y a ${days}j`;
+    }
+    // Past a week, the absolute date is more useful than "12d ago".
+    return formatTimestamp(iso);
+  };
+
+  /**
+   * pg_cron writes one of: 'starting', 'running', 'sending', 'connecting',
+   * 'succeeded', 'failed'. We collapse the in-flight states to "running"
+   * for the badge but preserve the raw value as a tooltip so an operator
+   * debugging a stuck job can still see exactly what cron reported.
+   */
+  const isCronRunOk = (status: string | null): boolean => status === 'succeeded';
+  const isCronRunInFlight = (status: string | null): boolean =>
+    status != null && status !== 'succeeded' && status !== 'failed';
+
+  /** Format last_duration_s (a Postgres double precision) for display. */
+  const formatCronDuration = (s: number | null | undefined): string => {
+    if (s == null || !Number.isFinite(s)) return '—';
+    if (s < 1) return `${Math.round(s * 1000)} ms`;
+    if (s < 60) return `${s.toFixed(1)} s`;
+    const minutes = Math.floor(s / 60);
+    const seconds = Math.round(s - minutes * 60);
+    return `${minutes} min ${seconds.toString().padStart(2, '0')} s`;
+  };
+
   const envLabel = NEXT_GEN_ENABLED
     ? lang === 'en'
       ? 'PROD (next-gen edge functions enabled)'
@@ -650,6 +796,154 @@ export default function AdminSanMar() {
                         </td>
                         <td className="py-2 pr-4 text-right text-va-ink font-bold">
                           {(row.total_processed ?? 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        {/* pg_cron health — live state of the three sanmar-* scheduled
+            jobs (catalog Sunday 03:00, inventory daily 05:15, order-status
+            every 30min). Comes from the SECURITY DEFINER
+            get_sanmar_cron_health() RPC which gates on is_admin().
+            Renders soft-empty when the function isn't deployed yet or
+            the operator isn't admin — same pattern as recent runs. */}
+        <section
+          aria-labelledby="sanmar-cron-title"
+          className="bg-va-white border border-va-line rounded-2xl p-6"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2
+                id="sanmar-cron-title"
+                className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+              >
+                <CalendarClock size={20} aria-hidden="true" className="text-va-blue" />
+                {lang === 'en' ? 'Scheduled tasks (pg_cron)' : 'Tâches planifiées (pg_cron)'}
+              </h2>
+              <p className="text-va-muted text-sm mt-1">
+                {lang === 'en'
+                  ? 'Live state of every sanmar-* cron job — schedule, last run, duration.'
+                  : 'État en direct de chaque tâche cron sanmar-* — horaire, dernière exécution, durée.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadCronHealth()}
+              disabled={cronHealthLoading}
+              className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+            >
+              <RefreshCw
+                size={14}
+                aria-hidden="true"
+                className={cronHealthLoading ? 'animate-spin' : ''}
+              />
+              {lang === 'en' ? 'Refresh' : 'Actualiser'}
+            </button>
+          </div>
+          {cronHealthLoading && cronHealth.length === 0 ? (
+            <p className="text-va-muted text-sm py-6 text-center">
+              {lang === 'en' ? 'Loading…' : 'Chargement…'}
+            </p>
+          ) : cronHealth.length === 0 ? (
+            <p className="text-va-muted text-sm py-6 text-center">
+              {lang === 'en'
+                ? 'No sanmar-* cron jobs registered (or insufficient privileges).'
+                : 'Aucune tâche cron sanmar-* enregistrée (ou privilèges insuffisants).'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto -mx-6 px-6">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-va-muted border-b border-va-line">
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Job' : 'Tâche'}</th>
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Schedule' : 'Horaire'}</th>
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Active' : 'Active'}</th>
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Last run' : 'Dernière exécution'}</th>
+                    <th className="py-2 pr-4">{lang === 'en' ? 'Status' : 'Statut'}</th>
+                    <th className="py-2 pr-4 text-right">
+                      {lang === 'en' ? 'Duration' : 'Durée'}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cronHealth.map(row => {
+                    const ok = isCronRunOk(row.last_status);
+                    const inFlight = isCronRunInFlight(row.last_status);
+                    return (
+                      <tr
+                        key={row.jobname}
+                        className="border-b border-va-line/50 hover:bg-va-bg-2/50"
+                      >
+                        <td className="py-2 pr-4">
+                          <div className="text-va-ink font-bold">
+                            {formatJobName(row.jobname)}
+                          </div>
+                          <div className="text-va-muted text-[11px] font-mono">
+                            {row.jobname}
+                          </div>
+                        </td>
+                        <td className="py-2 pr-4 font-mono text-xs text-va-dim">
+                          {row.schedule}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {row.active ? (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5">
+                              {lang === 'en' ? 'Active' : 'Active'}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-va-muted bg-va-bg-2 border border-va-line rounded-md px-2 py-0.5">
+                              {lang === 'en' ? 'Paused' : 'En pause'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4 text-va-dim text-xs">
+                          {row.last_run_at ? (
+                            <span title={formatTimestamp(row.last_run_at)}>
+                              {formatRelativeTime(row.last_run_at)}
+                            </span>
+                          ) : (
+                            lang === 'en' ? 'never' : 'jamais'
+                          )}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {row.last_status == null ? (
+                            <span className="text-va-muted text-xs">—</span>
+                          ) : ok ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-0.5"
+                              title={row.last_message ?? undefined}
+                            >
+                              <CheckCircle2 size={12} aria-hidden="true" />
+                              {lang === 'en' ? 'Success' : 'Succès'}
+                            </span>
+                          ) : inFlight ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5"
+                              title={row.last_status}
+                            >
+                              <Clock size={12} aria-hidden="true" />
+                              {lang === 'en' ? 'Running' : 'En cours'}
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-2 py-0.5"
+                              title={row.last_message ?? row.last_status}
+                            >
+                              <XCircle size={12} aria-hidden="true" />
+                              {lang === 'en' ? 'Fail' : 'Échec'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-4 text-right text-va-dim">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={12} aria-hidden="true" className="text-va-muted" />
+                            {formatCronDuration(row.last_duration_s)}
+                          </span>
                         </td>
                       </tr>
                     );
