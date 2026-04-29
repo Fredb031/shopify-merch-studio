@@ -47,11 +47,19 @@ export function hasRealColorImage(sku: string, color: ProductColor): boolean {
  */
 export function getDisplayColors(sku: string, colors: ProductColor[] | undefined): ProductColor[] {
   if (!Array.isArray(colors) || colors.length === 0) return [];
+  // Pre-compute "does this SKU have any photography?" once instead of
+  // re-asking per-colour inside the filter. The doc above promises that
+  // the Black escape hatch is OFF when the SKU has zero photography —
+  // without this check the previous implementation kept Black on every
+  // brand-new SKU regardless, leaving a single isolated swatch on a
+  // product whose photo set hadn't landed yet (the customer thought
+  // black was the only stocked colour). Gate the escape hatch on the
+  // pre-computed flag so it only fires when at least one other colour
+  // has real imagery, matching the documented behaviour.
+  const hasAnyImage = colors.some(c => hasRealColorImage(sku, c));
   return colors.filter(c => {
     if (hasRealColorImage(sku, c)) return true;
-    // Black escape hatch — only when at least one other colour has a
-    // real image (i.e. the SKU has photography), so brand-new SKUs
-    // with no images still drop their full palette gracefully.
+    if (!hasAnyImage) return false;
     const isBlack = /^(black|noir)$/i.test(c.nameEn ?? '') || /^(black|noir)$/i.test(c.name ?? '');
     return isBlack;
   });
