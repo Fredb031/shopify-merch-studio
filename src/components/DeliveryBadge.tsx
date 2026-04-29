@@ -15,11 +15,19 @@ const STANDARD_BUSINESS_DAYS = 5;
 const PRODUCTION_CUTOFF_HOUR = 15;
 
 /** Compute today + N business days (skip Sat/Sun). Pure function so
- * it's cheap to call in any render. */
+ * it's cheap to call in any render.
+ *
+ * Defensive: a non-finite / negative `days` (a regression that hands
+ * NaN through after a divide-by-zero in some future caller, or a
+ * forgotten Math.max(0, …)) would otherwise spin the while loop
+ * forever — `added < NaN` is always false but `added < -1` is always
+ * true, and either way the badge would block the render thread. Floor
+ * to 0 so the worst case is "shows today" instead of a frozen tab. */
 function addBusinessDays(from: Date, days: number): Date {
   const out = new Date(from);
+  const safeDays = Number.isFinite(days) && days > 0 ? Math.floor(days) : 0;
   let added = 0;
-  while (added < days) {
+  while (added < safeDays) {
     out.setDate(out.getDate() + 1);
     const d = out.getDay();
     if (d !== 0 && d !== 6) added++;
