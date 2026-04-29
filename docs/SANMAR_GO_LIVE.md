@@ -165,6 +165,19 @@ If the values drift, the pg_cron jobs will fire but the edge functions will
 reject them with 401 and the dashboard's last-5-runs widget will show
 nothing but failures.
 
+**Optional:** set `SANMAR_ALERT_WEBHOOK_URL` to a Slack incoming webhook
+or Zapier catch URL to get alerts on sync failures. When this env var is
+configured, the three sync edge functions (`sanmar-sync-catalog`,
+`sanmar-sync-inventory`, `sanmar-reconcile-orders`) POST a Slack-compatible
+payload to the URL whenever a run finishes with one or more errors —
+operators no longer have to remember to check the dashboard. Leave it
+unset and alerting is a silent no-op (handy in dev / pre-go-live).
+
+```bash
+supabase secrets set SANMAR_ALERT_WEBHOOK_URL='https://hooks.slack.com/services/...'
+# or a Zapier "Catch Hook" URL: https://hooks.zapier.com/hooks/catch/...
+```
+
 ### 10. Smoke test (UAT)
 
 1. Open `https://visionaffichage.com/admin/sanmar` (the dashboard route).

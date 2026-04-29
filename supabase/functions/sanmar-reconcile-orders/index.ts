@@ -26,6 +26,7 @@ import {
   simplePool,
   summariseError,
 } from '../_shared/sanmar/sync.ts';
+import { notifySyncFailure } from '../_shared/sanmar/notify.ts';
 
 const CONCURRENCY = 4;
 const TERMINAL_STATUS_IDS = new Set([80, 99]);
@@ -171,6 +172,15 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - startedAtMs;
     await logSyncRun(supabase, 'order_status', { totalProcessed, errors, durationMs });
 
+    if (errors.length > 0) {
+      await notifySyncFailure({
+        sync_type: 'order_status',
+        error_count: errors.length,
+        errors,
+        duration_ms: durationMs,
+      });
+    }
+
     return jsonResponse({
       ok: true,
       totalProcessed,
@@ -182,6 +192,12 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - startedAtMs;
     errors.push(summariseError({ phase: 'fatal' }, e));
     await logSyncRun(supabase, 'order_status', { totalProcessed: 0, errors, durationMs });
+    await notifySyncFailure({
+      sync_type: 'order_status',
+      error_count: errors.length,
+      errors,
+      duration_ms: durationMs,
+    });
     console.error('[sanmar-reconcile-orders] fatal error:', e);
     return jsonResponse(
       {

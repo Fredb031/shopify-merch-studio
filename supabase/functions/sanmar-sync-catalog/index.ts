@@ -30,6 +30,7 @@ import {
   simplePool,
   summariseError,
 } from '../_shared/sanmar/sync.ts';
+import { notifySyncFailure } from '../_shared/sanmar/notify.ts';
 
 interface CatalogRow {
   style_id: string;
@@ -183,6 +184,16 @@ Deno.serve(async (req) => {
       durationMs,
     });
 
+    // ── Proactive alert when the run had errors (no-op if webhook unset).
+    if (errors.length > 0) {
+      await notifySyncFailure({
+        sync_type: 'catalog',
+        error_count: errors.length,
+        errors,
+        duration_ms: durationMs,
+      });
+    }
+
     return jsonResponse({
       ok: true,
       totalStyles: styleIds.length,
@@ -198,6 +209,13 @@ Deno.serve(async (req) => {
       totalProcessed: 0,
       errors,
       durationMs,
+    });
+    // Fatal path always has at least one error → always notify.
+    await notifySyncFailure({
+      sync_type: 'catalog',
+      error_count: errors.length,
+      errors,
+      duration_ms: durationMs,
     });
     console.error('[sanmar-sync-catalog] fatal error:', e);
     return jsonResponse(

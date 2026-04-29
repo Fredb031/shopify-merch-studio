@@ -20,6 +20,7 @@ import {
   simplePool,
   summariseError,
 } from '../_shared/sanmar/sync.ts';
+import { notifySyncFailure } from '../_shared/sanmar/notify.ts';
 
 const CONCURRENCY = 4;
 
@@ -106,6 +107,15 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - startedAtMs;
     await logSyncRun(supabase, 'inventory', { totalProcessed, errors, durationMs });
 
+    if (errors.length > 0) {
+      await notifySyncFailure({
+        sync_type: 'inventory',
+        error_count: errors.length,
+        errors,
+        duration_ms: durationMs,
+      });
+    }
+
     return jsonResponse({
       ok: true,
       totalStyles: styleIds.length,
@@ -117,6 +127,12 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - startedAtMs;
     errors.push(summariseError({ phase: 'fatal' }, e));
     await logSyncRun(supabase, 'inventory', { totalProcessed: 0, errors, durationMs });
+    await notifySyncFailure({
+      sync_type: 'inventory',
+      error_count: errors.length,
+      errors,
+      duration_ms: durationMs,
+    });
     console.error('[sanmar-sync-inventory] fatal error:', e);
     return jsonResponse(
       {
