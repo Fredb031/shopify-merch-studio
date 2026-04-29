@@ -137,7 +137,11 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
           // candidate on text-dominant hero pages (Index, Contact, etc.)
           // where no other <img> competes for viewport 1.
           loading="eager"
-          fetchPriority="high"
+          // React DOM 18.3.1 does not recognize the camelCase `fetchPriority`
+          // prop and emits a "does not recognize the prop" console warning.
+          // Spread the lowercase HTML attribute through `{...}` so React
+          // forwards it untouched and the LCP hint still reaches the browser.
+          {...({ fetchpriority: 'high' } as Record<string, string>)}
           decoding="async"
           // block + explicit h-6/w-auto strips the inline-image baseline gap
           // so the logo's optical center lines up pixel-for-pixel with the

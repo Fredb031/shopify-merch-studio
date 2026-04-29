@@ -724,7 +724,7 @@ export default function Index() {
                 </div>
                 <div>
                   <div className="flex gap-1 text-[#E8A838] text-xl mb-1" aria-hidden="true">
-                    <span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span>
+                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
                   </div>
                   <div className="text-[13px] font-semibold text-[#1B3A6B]">
                     {lang === 'en' ? '50+ verified Google reviews' : '50+ avis Google vérifiés'}
@@ -788,10 +788,10 @@ export default function Index() {
                   className="flex-shrink-0 w-[300px] md:w-[340px] snap-start bg-white rounded-2xl border border-border p-6"
                 >
                   <div className="flex gap-1 text-[#E8A838] text-sm mb-3" aria-hidden="true">
-                    <span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span>
+                    <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
                   </div>
                   <p className="text-foreground text-sm italic leading-relaxed mb-4">
-                    \u201c{r.q}\u201d
+                    “{r.q}”
                   </p>
                   <div className="font-semibold text-foreground text-sm">{r.name}</div>
                   <div className="text-muted-foreground text-xs mt-0.5">{r.co}</div>
@@ -1043,9 +1043,9 @@ export default function Index() {
             </p>
             <h2 className="font-display font-black text-white text-4xl md:text-6xl leading-[1.0] tracking-tight mb-7">
               {lang === 'en' ? (
-                <>Every week without a uniform<br /><span className="text-[#E8A838]">is an ad you didn\u2019t run.</span></>
+                <>Every week without a uniform<br /><span className="text-[#E8A838]">is an ad you didn’t run.</span></>
               ) : (
-                <>Chaque semaine sans uniforme,<br /><span className="text-[#E8A838]">c\u2019est de la publicit\u00e9 perdue.</span></>
+                <>Chaque semaine sans uniforme,<br /><span className="text-[#E8A838]">c’est de la publicité perdue.</span></>
               )}
             </h2>
             <p className="text-white/80 text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-10">
@@ -1136,8 +1136,8 @@ export default function Index() {
           the slide transform. */}
       <div
         aria-hidden={!showStickyCta}
-        className={`md:hidden fixed bottom-0 left-0 right-0 z-40 bg-primary text-primary-foreground shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${reducedMotion ? '' : 'transition-transform duration-300 ease-out'} ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className={`md:hidden fixed left-0 right-0 z-[445] bg-primary text-primary-foreground shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${reducedMotion ? '' : 'transition-transform duration-300 ease-out'} ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}
       >
         <div className="flex items-center justify-between gap-3 h-16 px-4">
           <div className="flex items-center gap-3 min-w-0">

@@ -311,13 +311,18 @@ export function SiteFooter() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-6">
           <div className="flex items-center gap-3">
             <img
-              src="https://visionaffichage.com/cdn/shop/files/Logo-vision-horizontal-blanc.png?height=135&v=1694121209"
+              // Use the Shopify CDN brand SVG (same asset the navbar pulls)
+              // because the apex-domain `visionaffichage.com/cdn/shop/files`
+              // path is blocked by the meta CSP `img-src` allowlist (only
+              // *.shopify.com / cdn.shopify.com are allowed). Brightness
+              // filter inverts the navy mark so it reads on the navy footer.
+              src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/Asset_1_d5d82510-0b83-4657-91b7-3ac1992ee697.svg?height=90&v=1769614651"
               alt="Vision Affichage"
               // Footer is always below the fold — lazy + async so it
               // never competes with hero/product images for bandwidth.
               loading="lazy"
               decoding="async"
-              className="h-5 opacity-70"
+              className="h-5 opacity-70 brightness-0 invert"
               onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
             />
           </div>

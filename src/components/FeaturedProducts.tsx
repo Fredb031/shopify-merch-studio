@@ -95,7 +95,10 @@ export function FeaturedProducts() {
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   /* First 2 cards above-the-fold on mobile → eager + high priority for faster LCP */
                   loading={i < 2 ? 'eager' : 'lazy'}
-                  fetchPriority={i === 0 ? 'high' : 'auto'}
+                  // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`,
+                  // so spread the lowercase HTML attribute to silence the dev
+                  // warning while still forwarding the LCP hint to the browser.
+                  {...({ fetchpriority: i === 0 ? 'high' : 'auto' } as Record<string, string>)}
                   decoding="async"
                   onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                 />

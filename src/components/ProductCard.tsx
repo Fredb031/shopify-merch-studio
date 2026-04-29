@@ -170,7 +170,10 @@ export function ProductCard({ product, eager = false, highlight }: ProductCardPr
                 // route change fires.
                 className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 motion-reduce:transform-none motion-reduce:transition-none ${backImage ? '[@media(hover:hover)]:group-hover:opacity-0' : ''}`}
                 loading={eager ? 'eager' : 'lazy'}
-                fetchPriority={eager ? 'high' : 'auto'}
+                // React DOM 18.3.1 doesn't recognize camelCase `fetchPriority`,
+                // so spread the lowercase HTML attribute to silence the dev
+                // warning while keeping the LCP priority hint.
+                {...({ fetchpriority: eager ? 'high' : 'auto' } as Record<string, string>)}
                 decoding="async"
                 // Hide on load failure so the secondary-coloured
                 // aspect-ratio container shows through instead of the
