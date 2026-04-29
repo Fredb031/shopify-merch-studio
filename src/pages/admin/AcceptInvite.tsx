@@ -87,10 +87,21 @@ export default function AcceptInvite() {
           setError('Cette invitation n\'existe pas ou a déjà été utilisée');
         } else if (data.used_at) {
           setError('Cette invitation a déjà été utilisée');
-        } else if (new Date(data.expires_at) < new Date()) {
-          setError('Cette invitation est expirée. Demande à un admin de t\'en envoyer une nouvelle.');
         } else {
-          setInvite(data as InviteRow);
+          // Treat an unparseable expires_at as already-expired rather
+          // than letting it slip through. `new Date('garbage') < now`
+          // evaluates to false (Invalid Date NaN comparisons always
+          // return false), so the previous check would have honoured a
+          // malformed timestamp from a manual Supabase edit / schema
+          // migration glitch as if it were still valid. Validate via
+          // Date.parse and bail with the same expired-message so the
+          // admin gets a clean reissue path.
+          const expiresMs = Date.parse(data.expires_at);
+          if (!Number.isFinite(expiresMs) || expiresMs < Date.now()) {
+            setError('Cette invitation est expirée. Demande à un admin de t\'en envoyer une nouvelle.');
+          } else {
+            setInvite(data as InviteRow);
+          }
         }
       } catch (err) {
         // Supabase client can reject on network / auth / RLS changes.
