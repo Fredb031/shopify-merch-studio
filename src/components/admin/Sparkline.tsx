@@ -132,7 +132,14 @@ export function Sparkline({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={ariaLabel ?? `Tendance ${safeData.length} points, min ${min}, max ${max}`}
+      aria-label={
+        ariaLabel ??
+        // Locale-format min/max so a screen reader announces "12,5" instead
+        // of the dot-decimal "12.5" — the rest of the admin shell speaks
+        // fr-CA, and the bare numbers here drift out of that contract for
+        // any non-integer trend (revenue, conversion %, etc.).
+        `Tendance ${safeData.length} points, min ${min.toLocaleString('fr-CA')}, max ${max.toLocaleString('fr-CA')}`
+      }
       className="overflow-visible"
     >
       <path d={areaPath} fill={stroke} fillOpacity={0.12} stroke="none" />
