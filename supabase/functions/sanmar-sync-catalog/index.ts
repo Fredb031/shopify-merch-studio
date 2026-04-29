@@ -30,7 +30,7 @@ import {
   simplePool,
   summariseError,
 } from '../_shared/sanmar/sync.ts';
-import { notifySyncFailure } from '../_shared/sanmar/notify.ts';
+import { notifySyncFailure, notifySyncRecovery } from '../_shared/sanmar/notify.ts';
 
 interface CatalogRow {
   style_id: string;
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
     const durationMs = Date.now() - startedAtMs;
 
     // ── Step 7: log the run ──────────────────────────────────────────────
-    await logSyncRun(supabase, 'catalog', {
+    const runId = await logSyncRun(supabase, 'catalog', {
       totalProcessed: rows.length,
       errors,
       durationMs,
@@ -197,6 +197,14 @@ Deno.serve(async (req) => {
         },
         supabase,
       );
+    } else if (runId) {
+      // Clean run — fire a recovery alert iff the previous run had errors.
+      // Helper handles the "no previous / previous-also-clean" cases.
+      await notifySyncRecovery({
+        sync_type: 'catalog',
+        current_run_id: runId,
+        supabase_admin: supabase,
+      });
     }
 
     return jsonResponse({

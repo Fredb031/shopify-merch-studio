@@ -20,7 +20,7 @@ import {
   simplePool,
   summariseError,
 } from '../_shared/sanmar/sync.ts';
-import { notifySyncFailure } from '../_shared/sanmar/notify.ts';
+import { notifySyncFailure, notifySyncRecovery } from '../_shared/sanmar/notify.ts';
 
 const CONCURRENCY = 4;
 
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     }
 
     const durationMs = Date.now() - startedAtMs;
-    await logSyncRun(supabase, 'inventory', { totalProcessed, errors, durationMs });
+    const runId = await logSyncRun(supabase, 'inventory', { totalProcessed, errors, durationMs });
 
     if (errors.length > 0) {
       await notifySyncFailure(
@@ -117,6 +117,12 @@ Deno.serve(async (req) => {
         },
         supabase,
       );
+    } else if (runId) {
+      await notifySyncRecovery({
+        sync_type: 'inventory',
+        current_run_id: runId,
+        supabase_admin: supabase,
+      });
     }
 
     return jsonResponse({

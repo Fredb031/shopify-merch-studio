@@ -41,6 +41,14 @@ export interface NotifySyncFailureInput {
   duration_ms: number;
 }
 
+export interface NotifySyncRecoveryInput {
+  sync_type: SyncType;
+  /** UUID of the row just inserted into sanmar_sync_log for the current
+   * (clean) run. Used as the anchor for the "previous run" lookup. */
+  current_run_id: string;
+  supabase_admin: SupabaseClient;
+}
+
 /** Bound how long we'll wait on the webhook before giving up. The sync
  * caller is `await`ing us, so we can't hang forever. 3s is plenty for a
  * Slack/Zapier ingest endpoint; anything slower is a receiver problem
@@ -293,4 +301,125 @@ export async function notifySyncFailure(
       result.body,
     );
   }
+}
+
+interface PreviousRunRow {
+  id: string;
+  errors: unknown;
+  created_at: string;
+}
+
+/**
+ * POST a recovery notification when a sync run for the given `sync_type`
+ * has just transitioned from FAILURE → SUCCESS.
+ *
+ * Detection: query `sanmar_sync_log` for the row immediately preceding
+ * `current_run_id` (same sync_type, ordered by created_at DESC). If that
+ * previous row had errors and the current run is clean (the caller is
+ * expected to invoke this only when errors.length === 0), fire a green
+ * Slack-format alert and write an `alert_kind='recovery'` row to
+ * `sanmar_alert_log`.
+ *
+ * Unlike the failure path, recoveries are NOT deduped: a state transition
+ * back to healthy is rare and operators want every one. They're also
+ * inherently self-limiting — you can only recover once per failure run.
+ *
+ * No-op when:
+ *   - the env var SANMAR_ALERT_WEBHOOK_URL is unset
+ *   - this is the first-ever run for the sync_type (no previous row)
+ *   - the previous run was also clean (no transition)
+ *
+ * @param input.sync_type        which sync type just succeeded
+ * @param input.current_run_id   uuid of the just-inserted sanmar_sync_log row
+ * @param input.supabase_admin   service-role client (RLS bypass for both
+ *                               the sync_log read and the alert_log write)
+ */
+export async function notifySyncRecovery(
+  input: NotifySyncRecoveryInput,
+): Promise<void> {
+  const { sync_type, current_run_id, supabase_admin } = input;
+
+  // Skip silently when no webhook is configured. We deliberately check
+  // this BEFORE the DB lookup so we don't spend a round-trip on a no-op
+  // in dev / pre-go-live environments.
+  const webhookUrl = Deno.env.get('SANMAR_ALERT_WEBHOOK_URL') ?? '';
+  if (!webhookUrl) return;
+
+  // Find the row immediately preceding the current run for the same
+  // sync_type. We anchor by created_at < (created_at of current row)
+  // rather than just "newest other row" so we tolerate a future enqueueing
+  // model where rows might land slightly out of order. Two queries: first
+  // fetch the current row's created_at, then fetch the preceding row.
+  const { data: currentRow, error: curErr } = await supabase_admin
+    .from('sanmar_sync_log')
+    .select('created_at')
+    .eq('id', current_run_id)
+    .maybeSingle<{ created_at: string }>();
+  if (curErr || !currentRow) {
+    if (curErr) {
+      console.error(
+        `[sanmar-notify] recovery: lookup of current run ${current_run_id} failed: ${curErr.message}`,
+      );
+    }
+    return;
+  }
+
+  const { data: prevRow, error: prevErr } = await supabase_admin
+    .from('sanmar_sync_log')
+    .select('id, errors, created_at')
+    .eq('sync_type', sync_type)
+    .lt('created_at', currentRow.created_at)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle<PreviousRunRow>();
+  if (prevErr) {
+    console.error(
+      `[sanmar-notify] recovery: previous-run lookup failed for ${sync_type}: ${prevErr.message}`,
+    );
+    return;
+  }
+
+  // First-ever run → nothing to recover from.
+  if (!prevRow) return;
+
+  // Previous run had no errors → no transition, no alert.
+  const prevErrors = prevRow.errors;
+  const previousHadErrors =
+    Array.isArray(prevErrors) ? prevErrors.length > 0 : prevErrors != null;
+  if (!previousHadErrors) return;
+
+  const payload = {
+    text: `🟢 SanMar sync RECOVERED: ${sync_type}`,
+    attachments: [
+      {
+        color: 'good',
+        fields: [
+          { title: 'Status', value: 'RECOVERED', short: true },
+          { title: 'Sync type', value: sync_type, short: true },
+          {
+            title: 'Previous run',
+            value: `${prevRow.id} (${prevRow.created_at})`,
+            short: false,
+          },
+        ],
+      },
+    ],
+  };
+
+  // Single attempt + standard 5xx retry, mirroring the failure path so
+  // recoveries are just as resilient to a transient receiver blip.
+  let result = await postWebhookOnce(webhookUrl, payload, sync_type);
+  if (result.retryable) {
+    await sleep(RETRY_BACKOFF_MS);
+    result = await postWebhookOnce(webhookUrl, payload, sync_type);
+  }
+
+  await recordAlert(
+    supabase_admin,
+    sync_type,
+    'recovery',
+    payload,
+    result.status,
+    result.body,
+  );
 }

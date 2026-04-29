@@ -250,3 +250,152 @@ describe("notifySyncFailure", () => {
     expect(inserted.webhook_status_code).toBe(404);
   });
 });
+
+// ────────────────────────────────────────────────────────────────────────
+// notifySyncRecovery — failure → success transition alerts
+// ────────────────────────────────────────────────────────────────────────
+
+/**
+ * Stub for notifySyncRecovery. The helper makes two distinct query chains:
+ *   1. .from('sanmar_sync_log').select('created_at').eq('id', current_run_id).maybeSingle()
+ *      → returns the current row's created_at
+ *   2. .from('sanmar_sync_log').select(...).eq('sync_type',...).lt('created_at',...).order(...).limit(...).maybeSingle()
+ *      → returns the row just before, if any
+ * And one insert chain on sanmar_alert_log.
+ *
+ * This stub keys its responses off whether the chain ever called `.lt()`
+ * (only the previous-row query does) so we can return the right shape
+ * for each lookup.
+ */
+function makeRecoverySupabaseStub(opts: {
+  /** created_at of the just-inserted current run row. */
+  currentCreatedAt: string;
+  /** Row returned by the previous-run query, or null if none exists. */
+  previousRow: { id: string; errors: unknown; created_at: string } | null;
+}) {
+  const insertSpy = vi.fn().mockResolvedValue({ error: null });
+
+  const fromSpy = vi.fn((_table: string) => {
+    let usedLt = false;
+    const chain: any = {};
+    chain.select = vi.fn(() => chain);
+    chain.eq = vi.fn(() => chain);
+    chain.lt = vi.fn(() => {
+      usedLt = true;
+      return chain;
+    });
+    chain.order = vi.fn(() => chain);
+    chain.limit = vi.fn(() => chain);
+    chain.maybeSingle = vi.fn(() => {
+      if (usedLt) {
+        // Previous-run query.
+        return Promise.resolve({ data: opts.previousRow, error: null });
+      }
+      // Current-row lookup.
+      return Promise.resolve({
+        data: { created_at: opts.currentCreatedAt },
+        error: null,
+      });
+    });
+    return {
+      select: chain.select,
+      insert: insertSpy,
+    };
+  });
+
+  return {
+    client: { from: fromSpy } as any,
+    spies: { fromSpy, insertSpy },
+  };
+}
+
+describe("notifySyncRecovery", () => {
+  it("POSTs a green recovery alert when previous run had errors and current is clean", async () => {
+    envOverrides.SANMAR_ALERT_WEBHOOK_URL = "https://hooks.slack.test/services/AAA/BBB/CCC";
+
+    const fetchMock = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const currentCreatedAt = "2026-04-29T18:00:00.000Z";
+    const { client, spies } = makeRecoverySupabaseStub({
+      currentCreatedAt,
+      previousRow: {
+        id: "00000000-0000-0000-0000-00000000aaaa",
+        errors: [{ message: "boom" }],
+        created_at: "2026-04-29T17:30:00.000Z",
+      },
+    });
+
+    const { notifySyncRecovery } = await loadNotify();
+    await notifySyncRecovery({
+      sync_type: "catalog",
+      current_run_id: "00000000-0000-0000-0000-00000000bbbb",
+      supabase_admin: client,
+    });
+
+    // Outbound POST happened exactly once.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://hooks.slack.test/services/AAA/BBB/CCC");
+    const body = JSON.parse((init as RequestInit).body as string);
+    expect(body.text).toBe("🟢 SanMar sync RECOVERED: catalog");
+    expect(body.attachments[0].color).toBe("good");
+
+    // Audit row written with alert_kind='recovery'.
+    expect(spies.insertSpy).toHaveBeenCalledTimes(1);
+    const inserted = spies.insertSpy.mock.calls[0][0] as Record<string, unknown>;
+    expect(inserted.sync_type).toBe("catalog");
+    expect(inserted.alert_kind).toBe("recovery");
+    expect(inserted.webhook_status_code).toBe(200);
+  });
+
+  it("does NOT alert when previous run was also clean (no transition)", async () => {
+    envOverrides.SANMAR_ALERT_WEBHOOK_URL = "https://hooks.slack.test/services/AAA/BBB/CCC";
+
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { client, spies } = makeRecoverySupabaseStub({
+      currentCreatedAt: "2026-04-29T18:00:00.000Z",
+      previousRow: {
+        id: "00000000-0000-0000-0000-00000000aaaa",
+        // null errors column = clean run (matches what logSyncRun writes).
+        errors: null,
+        created_at: "2026-04-29T17:30:00.000Z",
+      },
+    });
+
+    const { notifySyncRecovery } = await loadNotify();
+    await notifySyncRecovery({
+      sync_type: "inventory",
+      current_run_id: "00000000-0000-0000-0000-00000000bbbb",
+      supabase_admin: client,
+    });
+
+    // No transition → no webhook, no audit row.
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(spies.insertSpy).not.toHaveBeenCalled();
+  });
+
+  it("does NOT alert on the first-ever run for a sync_type (no previous row)", async () => {
+    envOverrides.SANMAR_ALERT_WEBHOOK_URL = "https://hooks.slack.test/services/AAA/BBB/CCC";
+
+    const fetchMock = vi.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    const { client, spies } = makeRecoverySupabaseStub({
+      currentCreatedAt: "2026-04-29T18:00:00.000Z",
+      previousRow: null,
+    });
+
+    const { notifySyncRecovery } = await loadNotify();
+    await notifySyncRecovery({
+      sync_type: "order_status",
+      current_run_id: "00000000-0000-0000-0000-00000000bbbb",
+      supabase_admin: client,
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(spies.insertSpy).not.toHaveBeenCalled();
+  });
+});

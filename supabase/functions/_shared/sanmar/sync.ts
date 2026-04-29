@@ -125,21 +125,33 @@ export interface SyncRunSummary {
  * Insert a row into `public.sanmar_sync_log`. We swallow insert failures
  * (logged to console) so an observability outage never tanks the actual
  * sync — the data has already been written to its target table.
+ *
+ * Returns the inserted row's `id` (uuid) so callers can pass it to the
+ * recovery-alert helper, which uses it as the anchor for "find the row
+ * just before this one for the same sync_type". Returns null on insert
+ * failure or if the database didn't echo a row back — in that case the
+ * recovery helper will skip cleanly rather than guess.
  */
 export async function logSyncRun(
   supabase: SupabaseClient,
   syncType: SyncType,
   summary: SyncRunSummary,
-): Promise<void> {
-  const { error } = await supabase.from('sanmar_sync_log').insert({
-    sync_type: syncType,
-    total_processed: summary.totalProcessed,
-    errors: summary.errors.length ? summary.errors : null,
-    duration_ms: summary.durationMs,
-  });
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('sanmar_sync_log')
+    .insert({
+      sync_type: syncType,
+      total_processed: summary.totalProcessed,
+      errors: summary.errors.length ? summary.errors : null,
+      duration_ms: summary.durationMs,
+    })
+    .select('id')
+    .single<{ id: string }>();
   if (error) {
     console.error(`[sanmar-sync] sanmar_sync_log insert failed for ${syncType}:`, error);
+    return null;
   }
+  return data?.id ?? null;
 }
 
 /** Normalise an unknown error into a structured `{ item, message }` row
