@@ -32,9 +32,17 @@ export function useCountUp(target: number, inView: boolean, duration = DEFAULT_D
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
       if (progress >= 1) {
-        // Snap to exact target to avoid floating-point drift leaving the
-        // final value one short (e.g. 99 instead of 100) on integer counts.
-        setCount(target);
+        // Snap to the rounded target so the final frame matches the
+        // integer-typed contract documented at the top of the hook (and
+        // matches every intermediate frame, which already runs through
+        // Math.round). Without the round, a fractional `target` like
+        // 4.9 (e.g. a Google rating count derived from a divide) would
+        // leave `count` at 4.9 on the final tick — the previous frames
+        // rounded to 5, so the displayed number bumped 4 → 5 → 4.9 in
+        // the last sub-second of the animation. Also matches the
+        // reduced-motion path's `Math.floor(target)` in spirit so every
+        // exit from the animation lands on an integer.
+        setCount(Math.round(target));
         return;
       }
       const eased = 1 - Math.pow(1 - progress, 3);
