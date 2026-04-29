@@ -1,4 +1,4 @@
-import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
+import { IndustryPageShell, type IndustryStat } from '@/components/industries/IndustryPageShell';
 import { useLang } from '@/lib/langContext';
 
 /**
@@ -11,9 +11,21 @@ import { useLang } from '@/lib/langContext';
 // Hoisted to module scope so the array reference is stable across
 // re-renders. The shell memoizes resolved products on `productSkus`
 // (d57851d / 8ec2d10); passing an inline literal would mint a new array
-// each render and defeat that memo. Module-scope const = same identity
-// for the lifetime of the page.
+// each render and defeat that memo.
 const CONSTRUCTION_PRODUCT_SKUS: string[] = ['ATC1000', 'ATCF2500', 'ATCF2400', 'ATC6606'];
+
+// Vol II §04 spec — three industry-specific numbers. Frozen tuple so the
+// array identity is stable across renders (defeats CountUp re-trigger).
+const CONSTRUCTION_STATS_FR: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 200, suffix: '+', label: 'équipes de construction au Québec' },
+  { value: 50000, suffix: '+', label: 'pièces livrées sur les chantiers' },
+  { value: 0, display: '5 jours', label: 'délai standard' },
+] as const;
+const CONSTRUCTION_STATS_EN: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 200, suffix: '+', label: 'Quebec construction crews' },
+  { value: 50000, suffix: '+', label: 'pieces shipped to sites' },
+  { value: 0, display: '5 days', label: 'standard turnaround' },
+] as const;
 
 export default function Construction() {
   const { lang } = useLang();
@@ -32,6 +44,9 @@ export default function Construction() {
           : "200+ entrepreneurs en construction commandent ici. Logo brodé, livré en 5 jours, à partir d'une pièce."
       }
       eyebrow={isEn ? 'Construction · Quebec' : 'Construction · Québec'}
+      heroImage="/industries/construction.webp"
+      industrySlug="construction"
+      stats={isEn ? CONSTRUCTION_STATS_EN : CONSTRUCTION_STATS_FR}
       heroLede={
         isEn
           ? '200+ Quebec contractors order their gear here. Embroidered logo, 5-day turnaround, single-piece minimum. Built in Saint-Hyacinthe, shipped Quebec-wide.'
@@ -56,7 +71,7 @@ export default function Construction() {
       }
       ctaLabel={isEn ? 'Browse products' : 'Voir les produits'}
       ctaHref="/boutique"
-      ctaClassName="bg-va-blue hover:bg-va-blue-h text-white"
+      ctaClassName="bg-va-blue hover:bg-va-blue-hover text-white"
       productsHeading={
         isEn ? 'Built for the site.' : 'Conçus pour le chantier.'
       }
@@ -82,29 +97,29 @@ export default function Construction() {
               },
               {
                 q: 'Hi-vis or CSA Z96 garments?',
-                a: 'Our catalogue runs on branded gear (tees, hoodies, polos, caps), not certified PPE. For CSA Z96 vests we source through partners and apply your logo. Ask for a combined quote.',
+                a: 'Our catalogue runs on branded gear (tees, hoodies, polos, caps), not certified PPE. For CSA Z96 vests we source through partners and apply your logo. Browse the catalogue and ask for a combined quote on checkout.',
               },
               {
                 q: 'Volume discount?',
-                a: '10% off automatically at 24 identical pieces. Recurring buyers get corporate accounts with preferred pricing — flag your annual volume on the first quote.',
+                a: '10% off automatically at 24 identical pieces. Recurring buyers get corporate accounts with preferred pricing — flag your annual volume on the first order.',
               },
             ]
           : [
               {
-                q: 'Pouvez-vous broder mon logo sur des vêtements de travail ?',
-                a: "Oui. La broderie est notre méthode par défaut pour le chantier — elle tient mieux que l'impression aux lavages industriels et aux frottements. Jusqu'à 12 couleurs de fil par logo, sur t-shirts, hoodies, polos, casquettes. Envoyez le vectoriel, on numérise sans frais à partir de 24 pièces.",
+                q: 'Peux-tu broder mon logo sur des vêtements de travail ?',
+                a: "Oui. La broderie est notre méthode par défaut pour le chantier — elle tient mieux que l'impression aux lavages industriels et aux frottements. Jusqu'à 12 couleurs de fil par logo, sur t-shirts, hoodies, polos, casquettes. Envoie ton vectoriel, on numérise sans frais à partir de 24 pièces.",
               },
               {
-                q: "Délai pour une commande d'équipe ?",
-                a: "5 jours ouvrables après approbation de la preuve. 7 à 10 jours pour 100+ pièces. Besoin lundi ? Demandez — on accommode des urgences 48h selon le stock.",
+                q: "C'est quoi le délai pour ma commande d'équipe ?",
+                a: "5 jours ouvrables après approbation de ta preuve. 7 à 10 jours pour 100 pièces et plus. Besoin pour lundi ? Dis-le — on accommode des urgences 48h selon le stock disponible.",
               },
               {
                 q: 'Vêtements haute visibilité ou CSA Z96 ?',
-                a: "Notre catalogue tourne autour du vêtement de marque (t-shirts, hoodies, polos, casquettes), pas l'EPI certifié. Pour les dossards CSA Z96, on les approvisionne via nos partenaires et on appose votre logo. Demandez une soumission combinée.",
+                a: "Notre catalogue tourne autour du vêtement de marque (t-shirts, hoodies, polos, casquettes), pas l'EPI certifié. Pour les dossards CSA Z96, on les approvisionne via nos partenaires et on appose ton logo. Commande maintenant le reste de ta tenue, on combine au paiement.",
               },
               {
-                q: 'Rabais volume ?',
-                a: "10 % de rabais automatique à 24 pièces identiques. Les clients récurrents passent en compte corporatif avec tarifs préférentiels — indiquez votre volume annuel à la première soumission.",
+                q: "Quel rabais pour le volume ?",
+                a: "10 % de rabais automatique dès 24 pièces identiques. Les clients récurrents passent en compte corporatif avec tarifs préférentiels — indique ton volume annuel à la première commande.",
               },
             ]
       }
@@ -115,11 +130,11 @@ export default function Construction() {
       }
       faqLdMarker="data-faq-construction-ld"
       serviceLdMarker="data-service-construction-ld"
-      finalHeading={isEn ? 'Outfit your crew this week.' : 'Habillez votre équipe cette semaine.'}
+      finalHeading={isEn ? 'Outfit your crew this week.' : 'Habille ton équipe cette semaine.'}
       finalSubcopy={
         isEn
           ? 'Browse the catalogue, pick the pieces, get a digital proof inside 24 hours.'
-          : 'Parcourez le catalogue, choisissez les pièces, recevez une preuve numérique en moins de 24h.'
+          : 'Parcours le catalogue, choisis les pièces, reçois une preuve numérique en moins de 24h.'
       }
     />
   );

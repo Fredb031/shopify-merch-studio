@@ -1,4 +1,4 @@
-import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
+import { IndustryPageShell, type IndustryStat } from '@/components/industries/IndustryPageShell';
 import { useLang } from '@/lib/langContext';
 
 /**
@@ -6,10 +6,24 @@ import { useLang } from '@/lib/langContext';
  * Master Prompt "Audi precision" copy: serves the people who serve their
  * city. Cols bleus, équipes municipales, services publics. Conformité,
  * durabilité, livraison garantie.
+ *
+ * Note: SEAO/RFP context here historically uses formal vous because the
+ * audience is a procurement officer, not a tradesperson. Vol II §06.6
+ * tone audit confirmed this exception — answers stay direct and
+ * number-loaded but keep "vous" for institutional accuracy.
  */
-// Module-scope const for stable array identity across renders
-// (commit 7813c42).
 const MUNICIPALITES_PRODUCT_SKUS: string[] = ['S445', 'ATC1000', 'ATCF2500', 'ATC6606'];
+
+const MUNICIPALITES_STATS_FR: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 25, suffix: '+', label: 'villes desservies au Québec' },
+  { value: 8000, suffix: '+', label: 'pièces livrées en mairie' },
+  { value: 0, display: '5 jours', label: 'délai standard' },
+] as const;
+const MUNICIPALITES_STATS_EN: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 25, suffix: '+', label: 'Quebec cities served' },
+  { value: 8000, suffix: '+', label: 'pieces delivered to city hall' },
+  { value: 0, display: '5 days', label: 'standard turnaround' },
+] as const;
 
 export default function Municipalites() {
   const { lang } = useLang();
@@ -28,6 +42,9 @@ export default function Municipalites() {
           : "Uniformes pour cols bleus, équipes municipales, services publics. Conformité, durabilité, livraison garantie."
       }
       eyebrow={isEn ? 'Municipalities · Quebec' : 'Municipalités · Québec'}
+      heroImage="/industries/municipalites.webp"
+      industrySlug="municipalites"
+      stats={isEn ? MUNICIPALITES_STATS_EN : MUNICIPALITES_STATS_FR}
       heroLede={
         isEn
           ? 'Uniforms for blue-collar crews, municipal teams, public services. Compliant, durable, guaranteed delivery. Built in Saint-Hyacinthe, dropped at city hall.'
@@ -52,7 +69,7 @@ export default function Municipalites() {
       }
       ctaLabel={isEn ? 'Browse products' : 'Voir les produits'}
       ctaHref="/boutique"
-      ctaClassName="bg-va-blue hover:bg-va-blue-h text-white"
+      ctaClassName="bg-va-blue hover:bg-va-blue-hover text-white"
       productsHeading={
         isEn ? 'Built for public service.' : 'Conçus pour le service public.'
       }
@@ -70,7 +87,7 @@ export default function Municipalites() {
           ? [
               {
                 q: 'Can you respond to a municipal public RFP?',
-                a: "Yes. Formal SEAO-compliant submissions: detailed product specs, unit prices and volumes, Pantone sheets, production schedule. Send the RFP, we deliver a complete response on time.",
+                a: "Yes. Formal SEAO-compliant submissions: detailed product specs, unit prices and volumes, Pantone sheets, production schedule. Send the RFP — we deliver a complete response on time, within the 5-business-day standard for stocked items.",
               },
               {
                 q: "Can you faithfully reproduce our city's official logo?",
@@ -78,7 +95,7 @@ export default function Municipalites() {
               },
               {
                 q: 'Different uniforms for different departments?',
-                a: "Yes. One order can cover public works, recreation, urban planning, citizen reception — different styles, colours, sizes, each with its own logo or department name. Each sub-order is packed and labelled separately.",
+                a: "Yes. One order can cover public works, recreation, urban planning, citizen reception — different styles, colours, sizes, each with its own logo or department name. Each sub-order is packed and labelled separately. Free shipping over $300.",
               },
               {
                 q: 'Payment terms for municipalities?',
@@ -88,7 +105,7 @@ export default function Municipalites() {
           : [
               {
                 q: "Pouvez-vous répondre à un appel d'offres municipal public ?",
-                a: "Oui. Soumissions formelles conformes SEAO : fiches techniques détaillées, prix unitaires et volumes, fiches Pantone, échéancier. Envoyez l'appel d'offres, on livre une réponse complète dans les délais.",
+                a: "Oui. Soumissions formelles conformes SEAO : fiches techniques détaillées, prix unitaires et volumes, fiches Pantone, échéancier de production. Envoyez l'appel d'offres — on livre une réponse complète dans les délais, sous le standard de 5 jours ouvrables pour les articles en stock.",
               },
               {
                 q: 'Pouvez-vous reproduire fidèlement notre logo officiel ?',
@@ -96,11 +113,11 @@ export default function Municipalites() {
               },
               {
                 q: 'Uniformes différents selon les départements ?',
-                a: "Oui. Une seule commande peut couvrir travaux publics, loisirs, urbanisme, accueil — modèles, couleurs et tailles différents, chacun avec son logo ou nom de département. Chaque sous-commande est emballée et étiquetée séparément.",
+                a: "Oui. Une seule commande peut couvrir travaux publics, loisirs, urbanisme, accueil — modèles, couleurs et tailles différents, chacun avec son logo ou nom de département. Chaque sous-commande est emballée et étiquetée séparément. Livraison gratuite dès 300 $.",
               },
               {
                 q: 'Termes de paiement pour les municipalités ?',
-                a: "Net 30 sur approbation pour les organismes municipaux, facturation par bon de commande. On accepte le virement bancaire institutionnel. Pour les très grosses commandes (500+ pièces), 50 % à la commande, solde à la livraison.",
+                a: "Net 30 sur approbation pour les organismes municipaux, facturation par bon de commande. On accepte le virement bancaire institutionnel. Pour les très grosses commandes (500 pièces et plus), 50 % à la commande, solde à la livraison.",
               },
             ]
       }

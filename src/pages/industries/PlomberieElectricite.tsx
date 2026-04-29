@@ -1,4 +1,4 @@
-import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
+import { IndustryPageShell, type IndustryStat } from '@/components/industries/IndustryPageShell';
 import { useLang } from '@/lib/langContext';
 
 /**
@@ -7,8 +7,18 @@ import { useLang } from '@/lib/langContext';
  * site. Embroidered uniforms your technicians wear with pride at the
  * client's door.
  */
-// Module-scope const for stable array identity (commit 228d794).
 const PLOMBERIE_ELEC_PRODUCT_SKUS: string[] = ['ATC1000', 'S445', 'ATCF2500', 'ATC1015'];
+
+const PLOMBERIE_ELEC_STATS_FR: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 180, suffix: '+', label: "entreprises de plomberie & électricité" },
+  { value: 40000, suffix: '+', label: 'pièces brodées sur les chantiers' },
+  { value: 0, display: '5 jours', label: 'délai standard' },
+] as const;
+const PLOMBERIE_ELEC_STATS_EN: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 180, suffix: '+', label: 'plumbing & electrical companies' },
+  { value: 40000, suffix: '+', label: 'pieces embroidered for trades' },
+  { value: 0, display: '5 days', label: 'standard turnaround' },
+] as const;
 
 export default function PlomberieElectricite() {
   const { lang } = useLang();
@@ -31,6 +41,9 @@ export default function PlomberieElectricite() {
           ? 'Plumbing & Electrical · Quebec'
           : 'Plomberie & Électricité · Québec'
       }
+      heroImage="/industries/plomberie-electricite.webp"
+      industrySlug="plomberie-electricite"
+      stats={isEn ? PLOMBERIE_ELEC_STATS_EN : PLOMBERIE_ELEC_STATS_FR}
       heroLede={
         isEn
           ? "The uniform your technicians wear with pride at the client's door. Embroidered, 5-day turnaround. Built in Saint-Hyacinthe for Quebec specialists."
@@ -49,13 +62,13 @@ export default function PlomberieElectricite() {
               "Coton épais et polycoton — résiste aux outils et aux frottements.",
               "Polos pour visites clients — plus net qu'un t-shirt sur le pas de la porte.",
               "Hoodies brodés pour le travail extérieur en saison froide.",
-              "Logos brodés qui passent 50+ lavages industriels.",
+              "Logos brodés qui passent 50 lavages industriels et plus.",
               "Ajout du numéro RBQ ou licence à côté du logo, sur demande.",
             ]
       }
       ctaLabel={isEn ? 'Browse products' : 'Voir les produits'}
       ctaHref="/boutique"
-      ctaClassName="bg-va-blue hover:bg-va-blue-h text-white"
+      ctaClassName="bg-va-blue hover:bg-va-blue-hover text-white"
       productsHeading={
         isEn ? 'Built for the trades.' : 'Conçus pour les métiers spécialisés.'
       }
@@ -75,7 +88,7 @@ export default function PlomberieElectricite() {
           ? [
               {
                 q: 'Can you embroider my RBQ number or certification?',
-                a: 'Yes. Alongside your main logo we embroider RBQ, CMEQ or CMMTQ numbers — usually on the sleeve or right chest. Flag it on the quote and we include it on the digital proof before production.',
+                a: 'Yes. Alongside your main logo we embroider RBQ, CMEQ or CMMTQ numbers — usually on the sleeve or right chest. Add it at checkout and we include it on the digital proof before production. 5-day turnaround.',
               },
               {
                 q: 'Best style for residential client visits?',
@@ -87,25 +100,25 @@ export default function PlomberieElectricite() {
               },
               {
                 q: 'Minimum order to start?',
-                a: 'No minimum. Start with one sample to validate quality, fit and embroidery before kitting the team. Most plumbing/electrical clients order 2-3 pieces first, then reorder 15-30 once happy. Volume discount kicks in at 24 identical units.',
+                a: 'No minimum. Start with one sample to validate quality, fit and embroidery before kitting the team. Most plumbing/electrical clients order 2-3 pieces first, then reorder 15-30 once happy. Volume discount kicks in at 24 identical units. Free shipping over $300.',
               },
             ]
           : [
               {
-                q: 'Pouvez-vous broder mon numéro RBQ ou ma certification ?',
-                a: "Oui. À côté de votre logo principal, on brode RBQ, CMEQ ou CMMTQ — habituellement sur la manche ou la poitrine droite. Indiquez-le à la soumission, on l'inclut sur la preuve numérique avant production.",
+                q: 'Peux-tu broder mon numéro RBQ ou ma certification ?',
+                a: "Oui. À côté de ton logo principal, on brode RBQ, CMEQ ou CMMTQ — habituellement sur la manche ou la poitrine droite. Ajoute-le au paiement, on l'inclut sur la preuve numérique avant production. Délai 5 jours.",
               },
               {
                 q: 'Quel modèle pour les visites résidentielles ?',
-                a: "Polos S445 (homme) et L445 (femme), notre recommandation no.1 pour le service à domicile. Polocol structuré, tissu polycoton — net sur le pas de la porte, confortable sous une ceinture à outils. Pour les chantiers commerciaux ou industriels, le t-shirt ATC1000 reste la référence.",
+                a: "Polos S445 (homme) et L445 (femme), notre recommandation no.1 pour le service à domicile. Col structuré, tissu polycoton — net sur le pas de la porte, confortable sous une ceinture à outils. Pour les chantiers commerciaux ou industriels, le t-shirt ATC1000 reste la référence.",
               },
               {
                 q: 'Mes vêtements prennent graisse, mastic, huile — vont-ils tenir ?',
-                a: "T-shirts en coton et polycoton supportent les lavages industriels à haute température (60-90°C) sans rétrécir significativement. Pour les taches tenaces, prélavage avec un dégraissant. Le logo brodé résiste aux détergents industriels — précisément pourquoi on le préfère à l'impression pour les métiers spécialisés.",
+                a: "T-shirts en coton et polycoton supportent les lavages industriels à haute température (60-90°C) sans rétrécir significativement. Pour les taches tenaces, prélave avec un dégraissant. Le logo brodé résiste aux détergents industriels — précisément pourquoi on le préfère à l'impression pour les métiers spécialisés.",
               },
               {
                 q: 'Combien de pièces minimum pour démarrer ?',
-                a: "Aucun minimum. Commencez par un seul échantillon pour valider qualité, taille et broderie avant d'équiper l'équipe. La plupart des clients en plomberie/électricité commandent 2-3 pièces d'abord, puis 15-30 quand ils sont satisfaits. Rabais volume à 24 pièces identiques.",
+                a: "Aucun minimum. Commence par un seul échantillon pour valider qualité, taille et broderie avant d'équiper ton équipe. La plupart des clients en plomberie/électricité commandent 2-3 pièces d'abord, puis 15-30 quand ils sont satisfaits. Rabais volume à 24 pièces identiques. Livraison gratuite dès 300 $.",
               },
             ]
       }
@@ -117,12 +130,12 @@ export default function PlomberieElectricite() {
       faqLdMarker="data-faq-plomberie-ld"
       serviceLdMarker="data-service-plomberie-ld"
       finalHeading={
-        isEn ? 'Suit up the technicians.' : 'Habillez les techniciens.'
+        isEn ? 'Suit up the technicians.' : 'Habille tes techniciens.'
       }
       finalSubcopy={
         isEn
           ? 'Browse the catalogue, send the logo, get a digital proof inside 24 hours.'
-          : 'Parcourez le catalogue, envoyez le logo, recevez une preuve numérique en moins de 24h.'
+          : 'Parcours le catalogue, envoie ton logo, reçois une preuve numérique en moins de 24h.'
       }
     />
   );

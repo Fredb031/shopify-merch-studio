@@ -1,4 +1,4 @@
-import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
+import { IndustryPageShell, type IndustryStat } from '@/components/industries/IndustryPageShell';
 import { useLang } from '@/lib/langContext';
 
 /**
@@ -6,8 +6,18 @@ import { useLang } from '@/lib/langContext';
  * Master Prompt "Audi precision" copy: holds the season. T-shirts,
  * polos, casquettes — fabrics that last, logo that lasts.
  */
-// Module-scope const for stable array identity (commit 1a988cc).
 const PAYSAGEMENT_PRODUCT_SKUS: string[] = ['S350', 'ATC1000', 'S445', 'ATC6606'];
+
+const PAYSAGEMENT_STATS_FR: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 150, suffix: '+', label: 'équipes terrain au Québec' },
+  { value: 30000, suffix: '+', label: 'pièces livrées en saison' },
+  { value: 0, display: '5 jours', label: 'délai standard' },
+] as const;
+const PAYSAGEMENT_STATS_EN: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 150, suffix: '+', label: 'Quebec field crews' },
+  { value: 30000, suffix: '+', label: 'in-season pieces shipped' },
+  { value: 0, display: '5 days', label: 'standard turnaround' },
+] as const;
 
 export default function Paysagement() {
   const { lang } = useLang();
@@ -26,6 +36,9 @@ export default function Paysagement() {
           : "T-shirts, polos et casquettes pour les équipes terrain. Matériaux qui tiennent, logo qui dure."
       }
       eyebrow={isEn ? 'Landscaping · Quebec' : 'Paysagement · Québec'}
+      heroImage="/industries/paysagement.webp"
+      industrySlug="paysagement"
+      stats={isEn ? PAYSAGEMENT_STATS_EN : PAYSAGEMENT_STATS_FR}
       heroLede={
         isEn
           ? 'T-shirts, polos and caps for field crews. Fabrics that last, logo that lasts. Built in Saint-Hyacinthe for Quebec landscapers, season after season.'
@@ -45,12 +58,12 @@ export default function Paysagement() {
               'Polos pour rencontres clients et soumissions sur place.',
               "Casquettes brodées — protection solaire et marque sur le terrain.",
               "Couleurs vives qui restent vives lavage après lavage.",
-              "Renouvellement annuel facile — votre historique est sauvegardé.",
+              "Renouvellement annuel facile — ton historique est sauvegardé.",
             ]
       }
       ctaLabel={isEn ? 'Browse products' : 'Voir les produits'}
       ctaHref="/boutique"
-      ctaClassName="bg-va-blue hover:bg-va-blue-h text-white"
+      ctaClassName="bg-va-blue hover:bg-va-blue-hover text-white"
       productsHeading={
         isEn ? 'Built for the field.' : 'Conçus pour le terrain.'
       }
@@ -68,7 +81,7 @@ export default function Paysagement() {
           ? [
               {
                 q: 'Best fabric for hot days in landscaping?',
-                a: 'Sport tees (S350, L350) in technical polyester wick fast and dry faster than cotton — built for long mowing or planting days. For client meetings, polo S445 in polycotton balances comfort and a sharp look.',
+                a: 'Sport tees (S350, L350) in technical polyester wick fast and dry faster than cotton — built for long mowing or planting days. For client meetings, polo S445 in polycotton balances comfort and a sharp look. Both ship in 5 business days.',
               },
               {
                 q: 'Will my logo survive the laundry cycle?',
@@ -76,29 +89,29 @@ export default function Paysagement() {
               },
               {
                 q: 'Can you outfit my whole crew across sizes and cuts?',
-                a: 'Yes. One order mixes sizes (S to 4XL), men/women/kids cuts, and styles (tee + polo + cap) at the same global unit rate. Tell us the breakdown on the quote, we fit production.',
+                a: 'Yes. One order mixes sizes (S to 4XL), men/women/kids cuts, and styles (tee + polo + cap) at the same global unit rate. Volume discount kicks in at 24 identical pieces. Free shipping over $300.',
               },
               {
                 q: 'High-vis option for roadside work?',
-                a: 'Bright orange or safety yellow tees on most ATC models. For CSA Z96 reflective vests, contact us — we source through partners and apply your logo.',
+                a: 'Bright orange or safety yellow tees on most ATC models. For CSA Z96 reflective vests, browse the catalogue and ask at checkout — we source through partners and apply your logo.',
               },
             ]
           : [
               {
                 q: 'Quels tissus pour les journées chaudes en paysagement ?',
-                a: "T-shirts sport (S350, L350) en polyester technique qui évacuent et sèchent plus vite que le coton — bâtis pour les longues journées de tonte ou de plantation. Pour les rencontres clients, le polo S445 en polycoton tient le confort et l'apparence soignée.",
+                a: "T-shirts sport (S350, L350) en polyester technique qui évacuent et sèchent plus vite que le coton — bâtis pour tes longues journées de tonte ou de plantation. Pour tes rencontres clients, le polo S445 en polycoton tient le confort et l'apparence soignée. Livrés en 5 jours ouvrables.",
               },
               {
                 q: 'Mon logo tient-il après plusieurs lavages ?',
-                a: "Oui. Broderie et impression DTF haute durabilité passent toutes deux 50+ lavages industriels sans craqueler ni se décolorer. Les couleurs vives (vert, jaune, orange sécurité) sont en encres pigmentées UV-stables.",
+                a: "Oui. Broderie et impression DTF haute durabilité passent toutes deux 50 lavages industriels et plus sans craqueler ni se décolorer. Les couleurs vives (vert, jaune, orange sécurité) sont en encres pigmentées UV-stables.",
               },
               {
                 q: 'Habiller toute mon équipe avec différentes tailles et coupes ?',
-                a: "Oui. Une même commande mélange tailles (S à 4XL), coupes hommes/femmes/enfants, et modèles (t-shirt + polo + casquette) au même tarif unitaire global. Indiquez la répartition à la soumission, on adapte la production.",
+                a: "Oui. Une même commande mélange tailles (S à 4XL), coupes hommes/femmes/enfants, et modèles (t-shirt + polo + casquette) au même tarif unitaire global. Rabais volume dès 24 pièces identiques. Livraison gratuite dès 300 $.",
               },
               {
                 q: 'Couleur sécurité haute visibilité pour le travail près de la route ?',
-                a: "T-shirts en orange vif ou jaune sécurité disponibles sur la plupart des modèles ATC. Pour les vêtements certifiés CSA Z96 (rétroréfléchissants), contactez-nous — on les approvisionne via nos partenaires et on appose votre logo.",
+                a: "T-shirts en orange vif ou jaune sécurité disponibles sur la plupart des modèles ATC. Pour les vêtements certifiés CSA Z96 (rétroréfléchissants), parcours le catalogue et demande au paiement — on les approvisionne via nos partenaires et on appose ton logo.",
               },
             ]
       }
@@ -110,12 +123,12 @@ export default function Paysagement() {
       faqLdMarker="data-faq-paysagement-ld"
       serviceLdMarker="data-service-paysagement-ld"
       finalHeading={
-        isEn ? "Dress the crew before the season starts." : "Habillez l'équipe avant le début de saison."
+        isEn ? "Dress the crew before the season starts." : "Habille ton équipe avant le début de saison."
       }
       finalSubcopy={
         isEn
           ? 'Browse the catalogue, lock in colours, get a digital proof inside 24 hours.'
-          : 'Parcourez le catalogue, fixez les couleurs, recevez une preuve numérique en moins de 24h.'
+          : 'Parcours le catalogue, fixe les couleurs, reçois une preuve numérique en moins de 24h.'
       }
     />
   );

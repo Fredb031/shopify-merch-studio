@@ -1,4 +1,4 @@
-import { IndustryPageShell } from '@/components/industries/IndustryPageShell';
+import { IndustryPageShell, type IndustryStat } from '@/components/industries/IndustryPageShell';
 import { useLang } from '@/lib/langContext';
 
 /**
@@ -6,10 +6,18 @@ import { useLang } from '@/lib/langContext';
  * Master Prompt "Audi precision" copy: short, declarative, ships to the
  * office. Polos, vestes, casquettes — embroidered, dropped at reception.
  */
-// Hoisted to module scope so the array reference is stable across
-// re-renders. Module-scope const = same identity for the lifetime of
-// the page (commit 73b7be5).
 const CORPORATE_PRODUCT_SKUS: string[] = ['S445', 'WERK250', 'ATCF2500', 'L445'];
+
+const CORPORATE_STATS_FR: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 300, suffix: '+', label: 'entreprises corporate au Québec' },
+  { value: 12000, suffix: '+', label: "pièces livrées au bureau" },
+  { value: 0, display: '5 jours', label: 'délai standard' },
+] as const;
+const CORPORATE_STATS_EN: readonly [IndustryStat, IndustryStat, IndustryStat] = [
+  { value: 300, suffix: '+', label: 'Quebec corporate clients' },
+  { value: 12000, suffix: '+', label: 'pieces delivered to offices' },
+  { value: 0, display: '5 days', label: 'standard turnaround' },
+] as const;
 
 export default function Corporate() {
   const { lang } = useLang();
@@ -28,6 +36,9 @@ export default function Corporate() {
           : "Polos, vestes et casquettes brodés au logo de ton entreprise. 5 jours, livré au bureau."
       }
       eyebrow={isEn ? 'Corporate · Quebec' : 'Corporate · Québec'}
+      heroImage="/industries/corporate.webp"
+      industrySlug="corporate"
+      stats={isEn ? CORPORATE_STATS_EN : CORPORATE_STATS_FR}
       heroLede={
         isEn
           ? 'Embroidered polos, jackets and caps with your company logo. 5 days, delivered to your office. Built in Saint-Hyacinthe, packed by employee.'
@@ -52,7 +63,7 @@ export default function Corporate() {
       }
       ctaLabel={isEn ? 'Browse products' : 'Voir les produits'}
       ctaHref="/boutique"
-      ctaClassName="bg-va-blue hover:bg-va-blue-h text-white"
+      ctaClassName="bg-va-blue hover:bg-va-blue-hover text-white"
       productsHeading={isEn ? 'Built for the office.' : 'Conçus pour le bureau.'}
       productsSubcopy={
         isEn
@@ -68,7 +79,7 @@ export default function Corporate() {
           ? [
               {
                 q: 'Can you handle onboarding kits for new hires?',
-                a: 'Yes. Standardised kits (e.g. polo + hoodie + tee + beanie, all embroidered) packed individually by name and size. Send the monthly list — we manage replenishment and ship to the office or directly to remote employees.',
+                a: 'Yes. Standardised kits (e.g. polo + hoodie + tee + beanie, all embroidered) packed individually by name and size. Send the monthly list — we manage replenishment and ship to the office or directly to remote employees within 5 business days.',
               },
               {
                 q: 'Can you match our exact corporate Pantone?',
@@ -76,29 +87,29 @@ export default function Corporate() {
               },
               {
                 q: 'Net 30 corporate billing?',
-                a: 'Net 30 terms on credit approval for recurring orders or guaranteed annual volume. Simplifies bookkeeping for uniform refresh and event runs. Ask your advisor for the form on your first quote.',
+                a: 'Net 30 terms on credit approval for recurring orders or guaranteed annual volume of 100+ pieces. Simplifies bookkeeping for uniform refresh and event runs. Ask for the form on your first order.',
               },
               {
                 q: 'Lead time for a corporate event?',
-                a: '5 business days after proof approval. For a fixed event date, send the quote at least 3 weeks ahead. Rushes possible at 48-72h on stock availability.',
+                a: '5 business days after proof approval. For a fixed event date, place the order at least 3 weeks ahead. Rushes possible at 48-72h on stock availability.',
               },
             ]
           : [
               {
-                q: "Pouvez-vous gérer les kits d'embauche ?",
-                a: "Oui. Kits standardisés (par exemple : polo + hoodie + t-shirt + tuque, tous brodés) emballés individuellement par nom et taille. Envoyez la liste mensuelle — on gère le ré-approvisionnement et la livraison au bureau ou directement à l'employé en télétravail.",
+                q: "Peux-tu gérer mes kits d'embauche ?",
+                a: "Oui. Kits standardisés (polo + hoodie + t-shirt + tuque, tous brodés) emballés individuellement par nom et taille. Envoie ta liste mensuelle — on gère le ré-approvisionnement et la livraison au bureau ou directement à ton employé en télétravail, livrés en 5 jours ouvrables.",
               },
               {
-                q: 'Match exact de notre code Pantone corporatif ?',
-                a: "Oui. Match Pantone (PMS) en sérigraphie ou broderie à partir d'un échantillon ou d'une charte. Petit frais de mise en couleur sur les séries < 12 pièces. Pour les couleurs de tissu, nos fournisseurs SanMar/ATC offrent la plupart des teintes corporate sans surcoût.",
+                q: 'Peux-tu matcher mon code Pantone corporatif exact ?',
+                a: "Oui. Match Pantone (PMS) en sérigraphie ou broderie à partir d'un échantillon ou de ta charte. Petit frais de mise en couleur sur les séries de moins de 12 pièces. Pour les couleurs de tissu, nos fournisseurs SanMar/ATC offrent la plupart des teintes corporate sans surcoût.",
               },
               {
                 q: 'Compte corporatif et facturation Net 30 ?',
-                a: "Termes Net 30 sur approbation pour les commandes récurrentes ou un volume annuel garanti. Simplifie la compta pour les renouvellements et les événements. Demandez le formulaire à votre conseiller à la première soumission.",
+                a: "Termes Net 30 sur approbation pour tes commandes récurrentes ou un volume annuel garanti de 100 pièces et plus. Simplifie ta compta pour les renouvellements et les événements. Demande le formulaire à ta première commande.",
               },
               {
                 q: 'Délai pour un événement corporatif ?',
-                a: "5 jours ouvrables après approbation de la preuve. Pour une date fixe, envoyez la soumission au moins 3 semaines à l'avance. Urgences 48-72h selon le stock.",
+                a: "5 jours ouvrables après approbation de ta preuve. Pour une date fixe, place ta commande au moins 3 semaines à l'avance. Urgences 48-72h selon le stock disponible.",
               },
             ]
       }
@@ -113,7 +124,7 @@ export default function Corporate() {
       finalSubcopy={
         isEn
           ? 'Pick the pieces, send the logo, we drop it at reception in 5 days.'
-          : 'Choisis les pièces, envoie le logo, on dépose à la réception en 5 jours.'
+          : 'Choisis les pièces, envoie ton logo, on dépose à la réception en 5 jours.'
       }
     />
   );
