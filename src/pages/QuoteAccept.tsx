@@ -98,8 +98,6 @@ export default function QuoteAccept() {
   const tax = (subtotal - discountAmount) * 0.14975;
   const total = subtotal - discountAmount + tax;
 
-  const canPay = logoFile !== null && acceptedTerms && !isExpired;
-
   // Expiration countdown: refresh "now" every 60s so the header stays live.
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 60_000);
@@ -112,6 +110,12 @@ export default function QuoteAccept() {
   }, []);
 
   const isExpired = expiresMs !== null && expiresMs - now <= 0;
+
+  // Declared AFTER isExpired — referencing it earlier (the previous
+  // ordering) hits the TDZ on every render where logoFile && acceptedTerms
+  // are both truthy and throws ReferenceError, which would crash the
+  // page the moment a buyer accepts the terms after uploading a logo.
+  const canPay = logoFile !== null && acceptedTerms && !isExpired;
 
   const expiryLabel = useMemo(() => {
     if (expiresMs === null) return null;
