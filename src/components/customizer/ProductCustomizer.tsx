@@ -1541,7 +1541,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               aria-label={lang === 'en'
                 ? 'Real preview, what you see is what you get'
                 : 'Aperçu réaliste, ce que vous voyez est ce que vous recevez'}
-              className="pointer-events-none absolute top-3 left-3 sm:left-auto sm:right-3 z-10 rounded-full bg-white/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold text-[#0052CC] shadow-sm border border-white/60 max-w-[60%] sm:max-w-none truncate"
+              className="pointer-events-none absolute top-3 left-3 sm:left-auto sm:right-3 z-10 rounded-full bg-white/92 backdrop-blur-sm px-3 py-1.5 text-[10px] font-medium text-[#374151] shadow-sm border border-[#E5E7EB] max-w-[60%] sm:max-w-none truncate"
             >
               {lang === 'en'
                 ? 'Real preview · what you see = what you get'
@@ -1555,18 +1555,18 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
                 operator's voice telling them it's fine. flex-shrink-0
                 on the wrapper anchors a stable height so the banner
                 doesn't reflow when fonts swap on first paint. */}
-            <div className="bg-[#EBF2FF] border border-[#0052CC]/30 rounded-xl p-4 flex items-start gap-3 mt-4 flex-shrink-0">
-              <span className="text-[#0052CC] text-xl flex-shrink-0 mt-0.5 leading-none" aria-hidden="true">🖌</span>
+            <div className="bg-[#EBF2FF] border border-[#0052CC]/25 rounded-2xl p-4 flex items-start gap-3 mt-4 flex-shrink-0">
+              <span className="text-[#0052CC] text-xl flex-shrink-0 mt-0.5 leading-none" aria-hidden="true">✦</span>
               <div>
                 <p className="font-semibold text-[#0052CC] text-sm">
                   {lang === 'en'
-                    ? "No need to be perfect!"
-                    : "Pas besoin d'être parfait!"}
+                    ? "No need to be perfect."
+                    : "Pas besoin d'être parfait."}
                 </p>
-                <p className="text-[#0052CC]/70 text-xs mt-1 leading-relaxed">
+                <p className="text-[#0052CC]/70 text-xs mt-0.5 leading-relaxed">
                   {lang === 'en'
                     ? 'Place your logo roughly — our team will reposition it to industry standards before printing. You can trust us.'
-                    : "Place ton logo approximativement — notre équipe va le repositionner selon les standards de l'industrie avant l'impression. Tu peux te fier à nous."}
+                    : "Place ton logo approximativement — notre équipe le repositionne selon les standards de l'industrie avant l'impression. Tu peux nous faire confiance."}
                 </p>
               </div>
             </div>
