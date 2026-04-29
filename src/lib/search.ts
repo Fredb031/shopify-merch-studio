@@ -157,7 +157,10 @@ function scoreEntry(entry: SearchIndexEntry, expandedTokens: string[], rawQuery:
     // Typo tolerance via Levenshtein 1 — only worth the cost on tokens
     // long enough that a single edit is meaningful (≥4 chars). Walk the
     // haystack words once; any close-enough match awards the partial
-    // score and breaks. Capped at 8 chars to keep the work bounded.
+    // score and breaks. Capped at 12 chars to keep the work bounded —
+    // the comment used to claim 8 chars but the code already used 12;
+    // 12 is the correct cap (catches longer brand/product tokens like
+    // "casquettes", 10 chars, which would otherwise miss typo matching).
     if (tok.length >= 4 && tok.length <= 12) {
       const words = entry.haystack.split(/\s+/);
       for (const w of words) {
