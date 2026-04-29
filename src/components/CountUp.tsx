@@ -143,8 +143,15 @@ export function CountUp({
   }, [to, durationMs]);
 
   // Format with locale-aware decimal separator so "4.9" reads as "4,9"
-  // in French (matches the rest of the hero strip copy).
-  const fixed = value.toFixed(decimals);
+  // in French (matches the rest of the hero strip copy). Number.toFixed
+  // throws RangeError when its argument is < 0 or > 100, and rejects
+  // non-finite values — clamp + sanitize so a caller passing a typo'd
+  // prop (`decimals={-1}` / `decimals={NaN}`) doesn't crash the hero
+  // strip and take down everything below the fold.
+  const safeDecimals = Number.isFinite(decimals)
+    ? Math.min(100, Math.max(0, Math.trunc(decimals)))
+    : 0;
+  const fixed = value.toFixed(safeDecimals);
   const formatted = lang === 'fr' ? fixed.replace('.', ',') : fixed;
 
   return (
