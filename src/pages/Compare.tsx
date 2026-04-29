@@ -21,7 +21,7 @@
  * commit 7a78b85 preserved verbatim.
  */
 import { useNavigate } from 'react-router-dom';
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Navbar } from '@/components/Navbar';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -144,9 +144,21 @@ export default function Compare() {
       : 'Comparez les produits Vision Affichage côte à côte — matière, poids, couleurs, tailles, coupe, lavage, garantie.',
   );
 
-  const products = items
-    .map(sku => PRODUCTS.find(p => p.sku === sku))
-    .filter((p): p is Product => Boolean(p));
+  // Memoise the items → products derivation so a parent state change
+  // (customizer open/close) doesn't re-walk PRODUCTS once per `items`
+  // entry on every render. The compare list is usually 2-3 SKUs but
+  // PRODUCTS.find is O(n) per lookup, so this becomes O(items × PRODUCTS)
+  // every paint without memoisation. items + PRODUCTS are both stable
+  // references between renders, so the memo cache hits on every
+  // unrelated re-render and the table's row computations downstream
+  // (extractMaterial / extractWeight / fitLabel) skip too.
+  const products = useMemo(
+    () =>
+      items
+        .map(sku => PRODUCTS.find(p => p.sku === sku))
+        .filter((p): p is Product => Boolean(p)),
+    [items],
+  );
 
   // Self-heal: if compareStore holds stale SKUs (retired catalogue entries
   // persisted in localStorage from a prior catalogue version), silently
