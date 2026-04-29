@@ -1,0 +1,72 @@
+groups:
+  - name: sanmar_slo_alerts
+    rules:
+      - alert: SanmarSyncStale
+        expr: sanmar:sync_freshness_seconds{sync_type="catalog_delta"} > 86400
+        for: 30m
+        labels:
+          severity: warning
+          service: sanmar
+        annotations:
+          summary: "SanMar catalog delta sync hasn't run in 24h+"
+          description: "Last sync was {{ $value | humanizeDuration }} ago"
+
+      - alert: SanmarSyncStaleCritical
+        expr: sanmar:sync_freshness_seconds{sync_type="catalog_delta"} > 172800
+        for: 30m
+        labels:
+          severity: critical
+          service: sanmar
+        annotations:
+          summary: "SanMar catalog delta sync hasn't run in 48h+"
+          description: "Last sync was {{ $value | humanizeDuration }} ago — paged for immediate response"
+
+      - alert: SanmarInventoryStale
+        expr: sanmar:sync_freshness_seconds{sync_type="inventory"} > 86400
+        for: 1h
+        labels:
+          severity: warning
+          service: sanmar
+        annotations:
+          summary: "Inventory sync stale > 24h"
+          description: "Last inventory sync was {{ $value | humanizeDuration }} ago"
+
+      - alert: SanmarSyncErrorBurst
+        expr: sanmar:sync_error_rate_5m > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          service: sanmar
+        annotations:
+          summary: "SanMar sync error rate >5% over last 5min"
+          description: "Sustained error rate {{ $value }} errors/sec for 10m — check journalctl -u sanmar-nightly"
+
+      - alert: SanmarOpenOrdersHigh
+        expr: sanmar_orders_open > 500
+        for: 1h
+        labels:
+          severity: info
+          service: sanmar
+        annotations:
+          summary: "Open SanMar orders > 500 — backlog growing"
+          description: "Open order count is {{ $value }} — investigate fulfilment pipeline"
+
+      - alert: SanmarOrderStuck
+        expr: sanmar_orders_by_status{status_id="60"} > 50
+        for: 24h
+        labels:
+          severity: warning
+          service: sanmar
+        annotations:
+          summary: "More than 50 SanMar orders stuck in status 60 (in-progress) for 24h+"
+          description: "{{ $value }} orders sitting in status 60 — possible carrier or warehouse delay"
+
+      - alert: SanmarExporterDown
+        expr: up{job="sanmar"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: sanmar
+        annotations:
+          summary: "SanMar Prometheus exporter is down"
+          description: "Health metrics not available — check sanmar-exporter.service"

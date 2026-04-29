@@ -1,0 +1,14 @@
+groups:
+  - name: sanmar_recording_rules
+    interval: 30s
+    rules:
+      - record: sanmar:sync_freshness_seconds
+        expr: time() - max by (sync_type) (sanmar_last_sync_timestamp_seconds)
+      - record: sanmar:sync_error_rate_5m
+        expr: rate(sanmar_sync_errors_total[5m])
+      - record: sanmar:sync_success_rate_5m
+        expr: rate(sanmar_sync_success_total[5m])
+      - record: sanmar:sync_total_runs_24h
+        expr: increase(sanmar_sync_success_total[24h]) + increase(sanmar_sync_errors_total[24h])
+      - record: sanmar:open_orders_change_1h
+        expr: deriv(sanmar_orders_open[1h])

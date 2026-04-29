@@ -592,3 +592,80 @@ each completed sync run.
 - `deploy/grafana/sanmar-ops.json` + README — 6-panel ops dashboard
 - `prometheus_client>=0.19` added to the `[ops]` extra
 - 10 new tests (95 → 105) in `test_exporter.py`
+
+## Phase 9 — Alertmanager rules + recording rules
+
+Phase 8 made the system observable. Phase 9 makes it noisy when things
+go sideways — pre-computed recording rules feed seven SLO alerts that
+page on stale syncs, exporter outages, error bursts, and stuck orders.
+
+### Install
+
+1. **Scrape config** — append `deploy/prometheus/scrape.yml` into
+   `prometheus.yml` under `scrape_configs:`. Defaults to
+   `localhost:9100` with `service: sanmar` label.
+
+2. **Rule files** — copy the recording + alert rules into the
+   directory listed under `rule_files:` in `prometheus.yml`:
+
+   ```bash
+   sudo mkdir -p /etc/prometheus/rules/sanmar
+   sudo cp deploy/prometheus/recording_rules.yml /etc/prometheus/rules/sanmar/
+   sudo cp deploy/prometheus/alerts.yml /etc/prometheus/rules/sanmar/
+   curl -X POST http://localhost:9090/-/reload
+   ```
+
+3. **Alertmanager** — merge `deploy/prometheus/alertmanager-receiver.yml`
+   into `alertmanager.yml`. The receiver reads `${SANMAR_ALERT_WEBHOOK_URL}`
+   from the environment — same Slack webhook the Phase 7 `SyncNotifier`
+   already uses, or a brand-new `#ops-sanmar` channel webhook.
+
+4. **Validate**:
+
+   ```bash
+   promtool check rules deploy/prometheus/recording_rules.yml \
+                        deploy/prometheus/alerts.yml
+   pytest -q tests/test_prometheus_rules.py
+   ```
+
+### The 7 alerts
+
+| Alert | Threshold | for | Severity |
+|-------|-----------|-----|----------|
+| `SanmarSyncStale` | catalog delta freshness > 24h | 30m | warning |
+| `SanmarSyncStaleCritical` | catalog delta freshness > 48h | 30m | critical |
+| `SanmarInventoryStale` | inventory freshness > 24h | 1h | warning |
+| `SanmarSyncErrorBurst` | sync error rate > 5% over 5m | 10m | warning |
+| `SanmarOpenOrdersHigh` | open orders > 500 | 1h | info |
+| `SanmarOrderStuck` | > 50 orders stuck in status 60 | 24h | warning |
+| `SanmarExporterDown` | `up{job="sanmar"} == 0` | 5m | critical |
+
+`SanmarSyncStale` warns at 24h; if it goes ignored,
+`SanmarSyncStaleCritical` pages at 48h. `SanmarExporterDown` fires
+fast (5m) so a dead exporter doesn't silently mask the data alerts.
+
+### The 5 recording rules
+
+| Rule | Expression |
+|------|------------|
+| `sanmar:sync_freshness_seconds` | `time() - max by (sync_type) (sanmar_last_sync_timestamp_seconds)` |
+| `sanmar:sync_error_rate_5m` | `rate(sanmar_sync_errors_total[5m])` |
+| `sanmar:sync_success_rate_5m` | `rate(sanmar_sync_success_total[5m])` |
+| `sanmar:sync_total_runs_24h` | `increase(sanmar_sync_success_total[24h]) + increase(sanmar_sync_errors_total[24h])` |
+| `sanmar:open_orders_change_1h` | `deriv(sanmar_orders_open[1h])` |
+
+Recording rules let the alerts (and the Phase 8 dashboard) reference
+short, named expressions instead of inlining `rate()` / `deriv()` /
+`time()` arithmetic everywhere. Cheaper to evaluate, easier to read.
+
+### What Phase 9 added
+
+- `deploy/prometheus/scrape.yml` — `scrape_configs` snippet
+- `deploy/prometheus/recording_rules.yml` — 5 pre-computed rules
+- `deploy/prometheus/alerts.yml` — 7 SLO alert rules
+- `deploy/prometheus/alertmanager-receiver.yml` — Slack receiver +
+  `service: sanmar` route
+- `deploy/prometheus/README.md` — install / reload / validate / test
+- `pyyaml>=6.0` added to the `[dev]` extra
+- 13 new tests (105 → 118) in `test_prometheus_rules.py` with an
+  optional `promtool` shell-out when the binary is on PATH
