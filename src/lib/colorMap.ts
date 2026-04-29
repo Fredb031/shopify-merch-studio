@@ -21,7 +21,16 @@
  */
 import { normalize as normaliseColorName } from '@/lib/normalize';
 
-export const COLOR_MAP: Record<string, string> = {
+// Frozen at module load so a stray consumer (or a future bug anywhere
+// in the SPA) cannot do `COLOR_MAP['Noir'] = '#fff'` mid-session and
+// silently flip every Noir/Black swatch to a different colour for the
+// rest of the user's visit. The variant→hex contract is referenced
+// from the customizer 3D preview, the PDP swatch row, and the email
+// templates' colour chips — drift between any of these would surface
+// as "the swatch shown in the cart doesn't match the swatch in the
+// preview". Mirrors the freeze pattern applied to pricing.ts, tax.ts,
+// productLabels.ts, and the data/ tree.
+export const COLOR_MAP: Readonly<Record<string, string>> = Object.freeze({
   // ── Blacks / charcoals ────────────────────────────────────────────────
   'Noir': '#0A0A0A',
   'Black': '#0A0A0A',
@@ -159,7 +168,7 @@ export const COLOR_MAP: Record<string, string> = {
   'Camel': '#C19A6B',
   'Café': '#6F4E37',
   'Coffee': '#6F4E37',
-};
+});
 
 /**
  * Pre-built diacritic-stripped lookup. Building this once at module load
