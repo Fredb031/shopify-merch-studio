@@ -39,7 +39,11 @@ def make_session_factory(engine: Engine) -> sessionmaker[Session]:
 def init_schema(engine: Engine) -> None:
     """Create all tables on the engine (idempotent)."""
     # Import models so they register on Base.metadata before create_all.
+    # ``sanmar.api.cache_pricing`` carries the Phase 10 ``CachedPricing``
+    # ORM model — imported here so init_schema is the one place that has
+    # to know about every table.
     from sanmar import models  # noqa: F401
+    from sanmar.api import cache_pricing  # noqa: F401
 
     Base.metadata.create_all(engine)
 

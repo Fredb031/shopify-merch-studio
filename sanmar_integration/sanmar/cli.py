@@ -467,5 +467,44 @@ def metrics_cmd(
     serve_forever(host=host, port=port)
 
 
+# ── Phase 10: read-only HTTP API ───────────────────────────────────────
+
+
+@app.command("serve-api")
+def serve_api(
+    host: str = typer.Option(
+        "0.0.0.0",
+        "--host",
+        help="Bind host (overridable via SANMAR_API_HOST).",
+    ),
+    port: int = typer.Option(
+        8000,
+        "--port",
+        help="Bind port (overridable via SANMAR_API_PORT).",
+    ),
+) -> None:
+    """Run the Phase 10 FastAPI app on the given host/port.
+
+    Long-running — designed to live under ``sanmar-api.service`` on
+    the production box. The app reads from the local SQLite cache so
+    it's safe to run alongside the nightly orchestrator + exporter.
+    """
+    import os
+
+    import uvicorn
+
+    from sanmar.api.app import app as fastapi_app
+
+    # Env vars take precedence so the systemd unit can override
+    # without the operator having to remember the CLI flag.
+    final_host = os.getenv("SANMAR_API_HOST", host)
+    final_port = int(os.getenv("SANMAR_API_PORT", str(port)))
+    console.print(
+        f"[green]API serving on http://{final_host}:{final_port}[/green] "
+        f"— docs at /docs"
+    )
+    uvicorn.run(fastapi_app, host=final_host, port=final_port, reload=False)
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

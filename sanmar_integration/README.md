@@ -669,3 +669,100 @@ short, named expressions instead of inlining `rate()` / `deriv()` /
 - `pyyaml>=6.0` added to the `[dev]` extra
 - 13 new tests (105 → 118) in `test_prometheus_rules.py` with an
   optional `promtool` shell-out when the binary is on PATH
+
+## Phase 10 — Read-only HTTP API
+
+Phase 10 ships a FastAPI service that turns the SQLite cache into a
+read-only HTTP surface the Vision Affichage front-end can hit instead
+of round-tripping SOAP for every product render. The API is
+intentionally `GET`-only and stateless beyond a 30-second in-process
+LRU cache, so it scales horizontally behind a load balancer.
+
+### Install
+
+```bash
+pip install -e ".[ops]"
+```
+
+`fastapi` and `uvicorn[standard]` are now in the main runtime
+dependencies — no extra needed beyond a working install.
+
+### Run
+
+```bash
+python -m sanmar serve-api --port 8080
+# or, equivalently:
+python -m sanmar.api
+```
+
+`SANMAR_API_HOST` / `SANMAR_API_PORT` env vars override the CLI
+flags, which is what the systemd unit at
+`deploy/systemd/sanmar-api.service` relies on.
+
+### Endpoints
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET`  | `/health` | 200/503 + last_sync timestamps + warnings |
+| `GET`  | `/products` | List + filter (`brand`, `category`, `q`) + paginate (`page`, `page_size` ≤ 100) |
+| `GET`  | `/products/{style_number}` | Single product with color/size axes; 404 on miss |
+| `GET`  | `/products/{style_number}/variants` | Color × size matrix with the unique axis lists |
+| `GET`  | `/inventory/{style_number}` | Aggregated warehouse stock; `?max_age_hours=24` |
+| `GET`  | `/inventory/{style_number}/{color}/{size}` | Per-SKU snapshot |
+| `GET`  | `/pricing/{style_number}` | Cached price ladder; optional `?color=&size=` filter |
+
+### Examples
+
+```bash
+# Health
+curl http://localhost:8080/health
+
+# List Port Authority polos, page 2
+curl "http://localhost:8080/products?brand=Port%20Authority&category=Polos&page=2&page_size=25"
+
+# Single product + variants
+curl http://localhost:8080/products/PC54
+curl http://localhost:8080/products/PC54/variants
+
+# Inventory (full style + per-SKU)
+curl http://localhost:8080/inventory/PC54
+curl http://localhost:8080/inventory/PC54/Black/L
+
+# Pricing
+curl "http://localhost:8080/pricing/PC54?color=Black"
+```
+
+### CORS
+
+Out of the box, the API accepts `GET` requests from
+`http://localhost:5173`, `https://visionaffichage.com`, and any
+`*.vercel.app` preview domain. Adjust `ALLOWED_ORIGINS` /
+`ALLOWED_ORIGIN_REGEX` in `sanmar/api/app.py` to broaden or pin.
+
+### Smoke test
+
+```bash
+python -m scripts.test_api_server
+```
+
+Spins the server up on port 8080, hits `/health` + `/products?page_size=5`,
+and tears down. Useful for ops verification on a fresh deploy.
+
+### What Phase 10 added
+
+- `sanmar/api/app.py` — FastAPI app + lifespan-managed engine + CORS / GZip
+- `sanmar/api/routes/{products,inventory,pricing,health}.py` — route modules
+- `sanmar/api/cache.py` — `@cache_response(ttl_seconds=30)` decorator (LRU + TTL)
+- `sanmar/api/models.py` — `ProductListResponse`, `VariantMatrixResponse`, `HealthResponse`
+- `sanmar/api/__main__.py` — `python -m sanmar.api` uvicorn entrypoint
+- `sanmar/cli.py` — new `serve-api` subcommand
+- `deploy/systemd/sanmar-api.service` — long-running unit
+- `scripts/test_api_server.py` — manual smoke CLI
+- `fastapi>=0.110.0` + `uvicorn[standard]>=0.27.0` in main deps;
+  `httpx>=0.27.0` in `[dev]` (powers `TestClient`)
+- 12 new tests (118 → 130) in `test_api.py`
+
+> **Future:** integrate this into `supabase/functions/_shared/sanmar/*.ts`
+> to replace per-request SOAP. Cache hit ratio + p95 latency are
+> already tracked via the Phase 8 Prometheus exporter — extending it
+> with HTTP-level metrics is the natural next milestone.
