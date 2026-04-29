@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Copy, Eraser, Megaphone, Star, Users } from 'lucide-react';
 import { Minus, Plus } from 'lucide-react';
 import type { Product } from '@/data/products';
@@ -108,10 +109,16 @@ export function MultiVariantPicker({ product, colors, activeColor, variants, onC
   // The colors we'll apply the preset across: the active color always,
   // plus any other color that already has quantities picked (so users
   // who are building a multi-color order get the preset mirrored).
-  const targetColorIds = Array.from(new Set([
-    activeColor?.variantId,
-    ...variants.filter(v => v.qty > 0).map(v => v.colorId),
-  ].filter((x): x is string => Boolean(x))));
+  // Memoised so a parent re-render (size stepper +/- click, hover, lang
+  // toggle) doesn't rebuild the Set + Array on every paint — the picker
+  // sits inside the customizer modal which re-renders on every keystroke.
+  const targetColorIds = useMemo(
+    () => Array.from(new Set([
+      activeColor?.variantId,
+      ...variants.filter(v => v.qty > 0).map(v => v.colorId),
+    ].filter((x): x is string => Boolean(x)))),
+    [activeColor?.variantId, variants],
+  );
 
   // A preset is available only if every (targetColor, size) combo in
   // the distribution exists and is in stock. This is the closest proxy
