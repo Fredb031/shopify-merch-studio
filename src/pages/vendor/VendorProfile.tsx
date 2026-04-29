@@ -81,8 +81,8 @@ export default function VendorProfile() {
         : 'Profil vendeur — Vision Affichage'),
     profile
       ? (lang === 'en'
-        ? `${profile.name}, ${profile.specialtyEn} at Vision Affichage. Request a quote directly.`
-        : `${profile.name}, ${profile.specialtyFr} chez Vision Affichage. Demandez une soumission directement.`)
+        ? `${profile.name}, ${profile.specialtyEn} at Vision Affichage. Get in touch directly.`
+        : `${profile.name}, ${profile.specialtyFr} chez Vision Affichage. Contacte-le directement.`)
       : undefined,
     {},
   );
@@ -227,7 +227,7 @@ export default function VendorProfile() {
             knows which salesperson to credit when the prospect fills
             the form. */}
         <section
-          aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'}
+          aria-label={lang === 'en' ? 'Order now' : 'Commander maintenant'}
           className="bg-[#FFF8E7] border border-[#E8A838]/30 rounded-2xl p-8 md:p-10 text-center"
         >
           <h2 className="text-2xl md:text-3xl font-extrabold text-[#0F2341] tracking-[-0.5px] mb-2">
@@ -235,14 +235,14 @@ export default function VendorProfile() {
           </h2>
           <p className="text-sm md:text-base text-zinc-700 mb-6 max-w-[540px] mx-auto">
             {lang === 'en'
-              ? 'Send your project details and they\u2019ll follow up with a free quote within one business day.'
-              : 'Envoyez les détails de votre projet et vous recevrez une soumission gratuite sous un jour ouvrable.'}
+              ? 'Send your project details and they\u2019ll follow up within one business day.'
+              : 'Envoie les détails de ton projet et tu recevras un suivi sous un jour ouvrable.'}
           </p>
           <Link
             to={`/contact?vendor=${encodeURIComponent(profile.id)}`}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#0052CC] text-white font-extrabold text-sm hover:bg-[#0041A6] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
           >
-            {lang === 'en' ? 'Request a quote' : 'Demander une soumission'}
+            {lang === 'en' ? 'Order now' : 'Commander maintenant'}
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </section>
