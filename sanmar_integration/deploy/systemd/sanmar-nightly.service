@@ -1,0 +1,15 @@
+[Unit]
+Description=SanMar nightly sync chain
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=sanmar
+WorkingDirectory=/opt/sanmar
+EnvironmentFile=/opt/sanmar/.env
+ExecStart=/opt/sanmar/.venv/bin/python -m sanmar sync-catalog --delta
+ExecStart=/opt/sanmar/.venv/bin/python -m sanmar sync-inventory
+ExecStart=/opt/sanmar/.venv/bin/python -m sanmar reconcile-orders
+StandardOutput=journal
+StandardError=journal

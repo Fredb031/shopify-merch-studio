@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 from dotenv import load_dotenv
 from pydantic import Field, computed_field
@@ -51,6 +51,13 @@ class Settings(BaseSettings):
     catalog_xlsx: Path = Field(
         default=Path("./data/master_catalog.xlsx"),
         description="Path to the SanMar master catalog XLSX",
+    )
+    alert_webhook_url: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional Slack/Zapier incoming-webhook URL for sync failure "
+            "and order transition alerts. Unset = no alerts (no-op)."
+        ),
     )
 
     @computed_field  # type: ignore[prop-decorator]

@@ -39,6 +39,7 @@ from sanmar.dto import (
     OrderStatusResponse,
 )
 from sanmar.exceptions import SanmarApiError
+from sanmar.notifier import SyncNotifier
 from sanmar.services.bulk_data import BulkDataService
 from sanmar.services.inventory import InventoryService
 from sanmar.services.invoice import InvoiceService
@@ -99,7 +100,12 @@ class SanmarOrchestrator:
     doesn't have to mock the other seven.
     """
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        notifier: Optional[SyncNotifier] = None,
+    ) -> None:
         self.settings = settings
         # Eager-build all eight so the spec test ("instantiates all 8
         # services") has something to assert against. None of them
@@ -112,6 +118,15 @@ class SanmarOrchestrator:
         self.shipment = ShipmentService(settings)
         self.invoice = InvoiceService(settings)
         self.bulk_data = BulkDataService(settings)
+
+        # Lazy-default the notifier from settings; callers can pass an
+        # explicit one (e.g. to inject a mock in tests, or to plug a
+        # different transport that conforms to SyncNotifier's surface).
+        self.notifier: SyncNotifier = (
+            notifier
+            if notifier is not None
+            else SyncNotifier(settings.alert_webhook_url)
+        )
 
     @property
     def services(self) -> dict[str, Any]:
@@ -509,6 +524,16 @@ class SanmarOrchestrator:
                                         "message": e.message,
                                     }
                                 )
+
+                        # Fire a transition alert for terminal states
+                        # (80=shipped, 99=cancelled). The notifier
+                        # itself filters non-terminal codes.
+                        try:
+                            self.notifier.notify_transition(
+                                row, prior_status, status.status_id
+                            )
+                        except Exception:  # noqa: BLE001 - never fail the sync
+                            pass
                 except SanmarApiError as e:
                     result.error_count += 1
                     result.errors.append(
@@ -631,8 +656,13 @@ class SanmarOrchestrator:
     ) -> None:
         """Stamp the SyncState row with final metrics + the (capped)
         error list. Silent on any failure for the same reason as
-        :meth:`_open_sync_state`."""
+        :meth:`_open_sync_state`. Fires the failure notifier when
+        ``error_count > 0`` (subject to its own dedup)."""
         if session is None or sync_row is None:
+            # No row to close — but we still want failure alerting on
+            # error-only paths. Caller will hit ``_alert_failure_only``
+            # explicitly when relevant. For the row-less path here just
+            # return.
             return
         try:
             sync_row.mark_finished(
@@ -650,3 +680,15 @@ class SanmarOrchestrator:
             session.flush()
         except Exception:  # noqa: BLE001 - mock sessions in tests
             return
+
+        # Best-effort alert dispatch — failures inside notifier are
+        # already swallowed there, but wrap one more time to ensure a
+        # wonky mock session can't blow up the orchestrator.
+        if error_count > 0:
+            try:
+                self.notifier.notify_failure(sync_row)
+                # notify_failure mutates sync_row.metadata_json with
+                # last_alert_at; flush so the dedup window persists.
+                session.flush()
+            except Exception:  # noqa: BLE001 - alerting must never fail sync
+                return

@@ -435,3 +435,84 @@ manual trigger buttons (catalog delta / inventory / reconcile).
 - `streamlit/ops.py` — minimal operator dashboard (optional dep)
 - 11 new tests (71 → 82): `test_cli.py` (5 tests) +
   `test_models_sync_state.py` (6 tests)
+
+## Phase 7 — operations spine
+
+Operating model: a systemd timer fires the orchestrator nightly; each
+sync writes a `SyncState` row; failures and terminal order transitions
+get pushed to a Slack/Zapier webhook.
+
+```
+systemd timer (02:00 + 5min jitter)
+    └─► oneshot service unit
+            ├─► python -m sanmar sync-catalog --delta
+            ├─► python -m sanmar sync-inventory
+            └─► python -m sanmar reconcile-orders
+                    └─► SyncState rows + SyncNotifier alerts
+```
+
+### systemd install
+
+```bash
+cd deploy/systemd
+sudo ./install.sh
+# verify
+systemctl list-timers sanmar-nightly.timer
+journalctl -u sanmar-nightly.service -n 200 --no-pager
+```
+
+See `deploy/systemd/README.md` for prerequisites and uninstall steps.
+
+### GitHub Actions
+
+`.github/workflows/sanmar-python-ci.yml` runs on every PR touching
+`sanmar_integration/**`:
+
+1. `lint-and-test` — `pip install -e ".[dev]"` + `pytest -q tests/` +
+   a CLI sanity check (`from sanmar.cli import app; ...`).
+2. `health-check` — runs `python -m sanmar health` against UAT *if*
+   the secrets are set, otherwise logs a skip and exits clean.
+
+Repo secrets to configure (Settings → Secrets and variables → Actions):
+
+- `SANMAR_CUSTOMER_ID_UAT`
+- `SANMAR_PASSWORD_UAT`
+- `SANMAR_MEDIA_PASSWORD_UAT`
+
+### Slack/Zapier alerting
+
+Create an incoming webhook (Slack: *Apps → Incoming Webhooks*; Zapier:
+*Webhooks by Zapier → Catch Hook*) and set the URL in `.env`:
+
+```bash
+SANMAR_ALERT_WEBHOOK_URL=https://hooks.slack.com/services/AAA/BBB/CCC
+```
+
+`SyncNotifier` posts:
+
+- **Failure alerts** — when a sync row closes with `error_count > 0`.
+  Deduped per `sync_type` for 30 minutes via
+  `metadata_json['last_alert_at']` so an outage doesn't flood the channel.
+- **Transition alerts** — when an order flips into status 80
+  (Complete / Shipped) or 99 (Cancelled), with PO number, customer
+  reference, quote id, and any tracking numbers.
+
+Both call paths use a 3-second timeout and swallow every exception —
+alerting is best-effort observability, never load-bearing for the
+sync. The webhook URL is never logged.
+
+### What Phase 7 added
+
+- `deploy/systemd/{sanmar-nightly.service,sanmar-nightly.timer,install.sh,README.md}`
+  — nightly sync chain at 02:00 + 5min jitter, journald logs
+- `.github/workflows/sanmar-python-ci.yml` — pytest + CLI gate on every
+  PR plus an optional UAT health check
+- `sanmar/notifier.py` — `SyncNotifier` with failure + transition
+  alerts, 30-min dedup, 3s timeout, never logs the URL
+- `sanmar/orchestrator.py` — accepts an optional `notifier=`, fires
+  `notify_failure` from `_close_sync_state` and `notify_transition`
+  from `reconcile_open_orders`
+- `sanmar/config.py` — new `alert_webhook_url` field on `Settings`
+  (`SANMAR_ALERT_WEBHOOK_URL`)
+- 13 new tests (82 → 95): `test_notifier.py` (8 tests) +
+  `test_orchestrator_alerts.py` (5 tests)
