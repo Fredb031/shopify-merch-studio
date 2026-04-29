@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Trash2, Copy, Check } from 'lucide-react';
+import { captureException } from '@/lib/errorReporter';
 
 interface Props {
   children: ReactNode;
@@ -76,7 +77,25 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('[ErrorBoundary]', error, info.componentStack);
+    // DEV console echo — preserved so local debugging keeps the same
+    // stack trace surface in the browser devtools console it always
+    // had. Gated on DEV so a production bundle stays quiet.
+    if (import.meta.env.DEV) {
+      console.error('[ErrorBoundary]', error, info.componentStack);
+    }
+    // Forward to the pluggable error reporter. By default this is a
+    // noop in production (see src/lib/errorReporter.ts); operators
+    // wire Sentry/Datadog/LogRocket by calling setErrorReporter()
+    // once at app boot. Wrapped in try/catch because a reporter that
+    // throws inside componentDidCatch would kill the boundary itself.
+    try {
+      captureException(error, {
+        component: 'ErrorBoundary',
+        metadata: { componentStack: info.componentStack },
+      });
+    } catch {
+      /* never throw from inside componentDidCatch */
+    }
   }
 
   // Hard reset: wipe both storages then reload. Catches the "bad persisted

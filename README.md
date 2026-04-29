@@ -33,6 +33,15 @@ src/
 
 Static sitemap.xml is generated pre-build by `scripts/generate-sitemap.ts`.
 
+### Error reporting
+
+Runtime exceptions flow through a single choke point at
+`src/lib/errorReporter.ts` so the operator can wire Sentry, Datadog,
+LogRocket, etc. with a one-file change instead of editing every call
+site. The default impl is a noop (DEV-only console echo) — the bundle
+stays lean until a real monitor is chosen. Wire-up recipes for Sentry /
+Datadog / LogRocket live in [`docs/ERROR_REPORTING.md`](./docs/ERROR_REPORTING.md).
+
 ## Quick start
 
 ```bash
