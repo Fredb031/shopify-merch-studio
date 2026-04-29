@@ -22,16 +22,23 @@ type Order = {
   item: string;
 };
 
-const RECENT_ORDERS: ReadonlyArray<Order> = [
-  { name: "Pierre", city: "Laval", qty: 12, item: "t-shirts" },
-  { name: "Marc", city: "Blainville", qty: 6, item: "hoodies" },
-  { name: "Sophie", city: "Montréal", qty: 24, item: "polos" },
-  { name: "Jean-Philippe", city: "Québec", qty: 8, item: "vestes" },
-  { name: "Kevin", city: "Longueuil", qty: 18, item: "casquettes" },
-  { name: "Annie", city: "Brossard", qty: 5, item: "t-shirts" },
-  { name: "Patrick", city: "Trois-Rivières", qty: 36, item: "t-shirts" },
-  { name: "Luc", city: "Sherbrooke", qty: 10, item: "hoodies" },
-];
+// Deep-frozen so a stray consumer (or a future bug) can't write
+// `RECENT_ORDERS[0].qty = 9999` mid-session and silently flip the
+// social-proof copy to a value the marketing team never approved.
+// Mirrors the freeze pattern applied in pricing.ts (ba33680),
+// tax.ts (20d0b05), deliveryOptions.ts (c48c04d), caseStudies.ts
+// (7df2683), industryProof.ts (d46762e), experiments.ts (5492998),
+// and orderLogos.ts.
+const RECENT_ORDERS: ReadonlyArray<Order> = Object.freeze([
+  Object.freeze({ name: "Pierre", city: "Laval", qty: 12, item: "t-shirts" }),
+  Object.freeze({ name: "Marc", city: "Blainville", qty: 6, item: "hoodies" }),
+  Object.freeze({ name: "Sophie", city: "Montréal", qty: 24, item: "polos" }),
+  Object.freeze({ name: "Jean-Philippe", city: "Québec", qty: 8, item: "vestes" }),
+  Object.freeze({ name: "Kevin", city: "Longueuil", qty: 18, item: "casquettes" }),
+  Object.freeze({ name: "Annie", city: "Brossard", qty: 5, item: "t-shirts" }),
+  Object.freeze({ name: "Patrick", city: "Trois-Rivières", qty: 36, item: "t-shirts" }),
+  Object.freeze({ name: "Luc", city: "Sherbrooke", qty: 10, item: "hoodies" }),
+]);
 
 const MAX_PER_SESSION = 3;
 const MIN_DELAY_MS = 45_000;
