@@ -1132,6 +1132,7 @@ export default function ProductDetail() {
                   `}</style>
                 </button>
                 <button
+                  type="button"
                   onClick={async () => {
                     // Task 3.18 — Prefer the native Web Share sheet on mobile
                     // (iOS Safari, Chrome Android) so users can ping the page

@@ -741,6 +741,7 @@ export default function Cart() {
                 <div className="flex flex-col items-end justify-between flex-shrink-0">
                   <div className="flex items-center gap-1.5">
                     <button
+                      type="button"
                       onClick={() => handleSaveForLater(item.cartId)}
                       className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 bg-transparent cursor-pointer transition-colors"
                       aria-label={lang === 'en' ? `Save ${item.productName} for later` : `Sauvegarder ${item.productName} pour plus tard`}
@@ -749,6 +750,7 @@ export default function Cart() {
                       <BookmarkPlus className="h-4 w-4" aria-hidden="true" />
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleRemoveItem(item.cartId)}
                       className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-destructive/40 bg-transparent cursor-pointer transition-colors"
                       aria-label={lang === 'en' ? `Remove ${item.productName}` : `Retirer ${item.productName}`}
@@ -1229,6 +1231,7 @@ export default function Cart() {
                         (full-width, fixed-bottom). lg+ keeps it inline so
                         the desktop card is self-contained. */}
                     <button
+                      type="button"
                       onClick={handleCheckout}
                       className="hidden lg:flex w-full py-3.5 bg-[#0052CC] hover:bg-[#003D99] text-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-colors disabled:opacity-50 items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
                       disabled={checkingOut}
@@ -1279,6 +1282,7 @@ export default function Cart() {
           aria-label={lang === 'en' ? 'Checkout' : 'Passer à la caisse'}
         >
           <button
+            type="button"
             onClick={handleCheckout}
             className="w-full py-3.5 bg-[#0052CC] hover:bg-[#003D99] text-white border-none rounded-xl text-[15px] font-extrabold cursor-pointer transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2"
             disabled={checkingOut}
