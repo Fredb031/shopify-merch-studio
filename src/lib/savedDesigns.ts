@@ -91,7 +91,14 @@ function isSavedDesign(v: unknown): v is SavedDesign {
     isPlacement(d.placement) &&
     isSizeQty(d.sizeQty) &&
     (d.canvasPreviewDataUrl === null || typeof d.canvasPreviewDataUrl === 'string') &&
-    typeof d.createdAt === 'number'
+    // Reject NaN / ±Infinity — `typeof NaN === 'number'` so the bare
+    // typeof check above lets a corrupted blob through with createdAt =
+    // NaN, after which `b.createdAt - a.createdAt` yields NaN inside the
+    // listSavedDesigns sort and Array#sort with a NaN comparator returns
+    // entries in unspecified order. The dashboard would then render a
+    // shuffled grid with no obvious cause. Force a finite stamp so sort
+    // and FIFO-eviction stay well-defined.
+    typeof d.createdAt === 'number' && Number.isFinite(d.createdAt)
   );
 }
 
