@@ -680,7 +680,7 @@ export default function ProductDetail() {
               <button
                 type="button"
                 onClick={() => refetch()}
-                className="text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2"
+                className="text-sm font-bold text-primary-foreground gradient-navy px-6 py-2.5 rounded-full transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/50 focus-visible:ring-offset-2"
               >
                 {lang === 'en' ? 'Retry' : 'Réessayer'}
               </button>
@@ -1006,7 +1006,7 @@ export default function ProductDetail() {
                   </div>
                 )}
                 {/* 3. Product name — Syne display, 3xl/4xl, brand-ink. */}
-                <h1 className="font-display font-black text-3xl md:text-4xl text-va-ink mt-1 tracking-tight leading-tight">
+                <h1 className="font-display font-black text-3xl md:text-4xl text-va-ink mt-1 tracking-[-0.02em] leading-tight">
                   {localProduct ? categoryLabel(localProduct.category, lang) : product.title}
                 </h1>
                 {/* 4. Identity hook — italic muted quote with brand-blue
@@ -1289,13 +1289,23 @@ export default function ProductDetail() {
               </button>
             )}
 
-            {/* 8. Price card — soft offwhite frame, display-mono headline,
-                4 volume-pricing pills sourced from getPricePerUnit at
-                qty 1 / 25 / 100 / 250 (pricing.ts is the single source
-                of truth for tiered pricing). */}
-            <div className="bg-va-offwhite rounded-2xl p-5">
-              <div className="font-mono text-3xl font-bold text-va-ink tabular-nums">
-                {lang === 'en' ? `Starting at $${price}/piece` : `À partir de ${price}$/pièce`}
+            {/* 8. Price card — Vol. III §06 sand frame. "À partir de"
+                12px grey label, big mono headline price with "/pièce"
+                inline-grey, sub-line trust, then 4 volume-pricing pills
+                sourced from getPricePerUnit at qty 1 / 25 / 100 / 250
+                (pricing.ts is the single source of truth for tiered
+                pricing). */}
+            <div className="bg-va-sand rounded-2xl p-5">
+              <p className="text-va-muted text-xs">
+                {lang === 'en' ? 'Starting at' : 'À partir de'}
+              </p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="font-mono font-bold text-3xl md:text-4xl text-va-ink tracking-[-0.02em] tabular-nums">
+                  {lang === 'en' ? `$${price}` : `${price}$`}
+                </span>
+                <span className="text-va-muted text-sm">
+                  {lang === 'en' ? '/piece' : '/pièce'}
+                </span>
               </div>
               <p className="text-va-muted text-xs mt-2">
                 {lang === 'en'
@@ -1507,7 +1517,7 @@ export default function ProductDetail() {
             <button
               ref={inlineCtaRef}
               type="button"
-              className="w-full bg-va-blue hover:bg-va-blue-h text-white font-semibold px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(0,82,204,0.25)] flex items-center justify-center gap-2 transition-colors cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-va-blue hover:bg-va-blue-hover text-white font-semibold px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(0,71,204,0.25)] flex items-center justify-center gap-2 transition-colors cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setCustomizerOpen(true)}
               disabled={isVariantSoldOut}
               aria-disabled={isVariantSoldOut || undefined}
@@ -1688,7 +1698,7 @@ export default function ProductDetail() {
                       (see useRevealOnScroll). */}
                   <RevealBlock className="pt-3 border-t border-border">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[10px] font-bold text-[#0052CC] uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-va-blue uppercase tracking-wider">
                         {categoryLabel(localProduct.category, lang)}
                       </span>
                       <DeliveryBadge size="sm" variant="inline" />
@@ -1701,7 +1711,7 @@ export default function ProductDetail() {
                     {/* Sec 11/02 — identityHook quote in italic gray
                         with brand-blue left border, matching homepage
                         c08e02e and Products 5625e4c language. */}
-                    <p className="text-[#6B7280] text-base italic mb-3 border-l-2 border-[#0052CC] pl-4">
+                    <p className="text-[#6B7280] text-base italic mb-3 border-l-2 border-va-blue pl-4">
                       {desc.tagline}
                     </p>
                     {/* Reciprocity lever — free fabric swatches were
@@ -1712,7 +1722,7 @@ export default function ProductDetail() {
                       {lang === 'en' ? (
                         <>
                           Want to feel the fabric first?{' '}
-                          <Link to="/contact" className="font-semibold text-[#0052CC] underline underline-offset-2 decoration-dotted hover:no-underline">
+                          <Link to="/contact" className="font-semibold text-va-blue underline underline-offset-2 decoration-dotted hover:no-underline">
                             Free swatches on 25+ orders
                           </Link>{' '}
                           — refundable on smaller runs.
@@ -1720,7 +1730,7 @@ export default function ProductDetail() {
                       ) : (
                         <>
                           Tu veux toucher le tissu avant ?{' '}
-                          <Link to="/contact" className="font-semibold text-[#0052CC] underline underline-offset-2 decoration-dotted hover:no-underline">
+                          <Link to="/contact" className="font-semibold text-va-blue underline underline-offset-2 decoration-dotted hover:no-underline">
                             Échantillons gratuits dès 25 pièces
                           </Link>{' '}
                           — remboursable sur les plus petites.
@@ -1830,7 +1840,7 @@ export default function ProductDetail() {
                   </RevealBlock>
 
                   <div className="pt-3 border-t border-border bg-secondary/40 -mx-4 md:mx-0 px-4 md:px-4 py-3 md:rounded-xl">
-                    <div className="text-[11px] font-bold text-[#0052CC] uppercase tracking-wider mb-1">
+                    <div className="text-[11px] font-bold text-va-blue uppercase tracking-wider mb-1">
                       {lang === 'en' ? 'Best for' : 'Idéal pour'}
                     </div>
                     <p className="text-sm text-foreground leading-relaxed">{desc.useCase}</p>
@@ -2452,8 +2462,8 @@ function BulkCalculator({ sku, basePrice, unitWithPrint, discountedUnit, lang, v
     <div className="bg-gradient-to-br from-secondary/60 to-background border border-border rounded-xl p-4">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Calculator size={14} className="text-[#0052CC]" aria-hidden="true" />
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#0052CC]">
+          <Calculator size={14} className="text-va-blue" aria-hidden="true" />
+          <span className="text-[11px] font-extrabold uppercase tracking-wider text-va-blue">
             {lang === 'en' ? 'Quick price estimate' : 'Estimation rapide'}
           </span>
         </div>
@@ -2463,7 +2473,7 @@ function BulkCalculator({ sku, basePrice, unitWithPrint, discountedUnit, lang, v
           type="button"
           onClick={() => setQty(1)}
           aria-label={lang === 'en' ? 'Test with 1 sample' : 'Tester avec 1 échantillon'}
-          className="text-[10px] font-bold uppercase tracking-wider text-[#0A0A0A] bg-white border border-border hover:border-[#0052CC]/40 hover:text-[#0052CC] px-2.5 py-1 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1"
+          className="text-[10px] font-bold uppercase tracking-wider text-va-ink bg-white border border-border hover:border-va-blue/40 hover:text-va-blue px-2.5 py-1 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1"
         >
           {lang === 'en' ? 'Test with 1 sample' : 'Tester avec 1 échantillon'}
         </button>
@@ -2809,7 +2819,7 @@ function DesktopStickyCTA({
           />
         )}
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-[#0A0A0A] truncate leading-tight">
+          <div className="text-sm font-bold text-va-ink truncate leading-tight">
             {displayTitle}
           </div>
           <div className="text-xs text-[#6B7280] truncate leading-tight mt-0.5">
@@ -2817,10 +2827,10 @@ function DesktopStickyCTA({
               <>
                 <span>{selectedColor}</span>
                 <span aria-hidden="true" className="mx-1.5 opacity-50">·</span>
-                <span className="font-semibold text-[#0A0A0A]">{priceLabel}</span>
+                <span className="font-semibold text-va-ink">{priceLabel}</span>
               </>
             ) : (
-              <span className="font-semibold text-[#0A0A0A]">{priceLabel}</span>
+              <span className="font-semibold text-va-ink">{priceLabel}</span>
             )}
           </div>
         </div>
@@ -2829,7 +2839,7 @@ function DesktopStickyCTA({
           onClick={onClick}
           disabled={disabled}
           aria-disabled={disabled || undefined}
-          className="shrink-0 inline-flex items-center gap-1.5 bg-[#0052CC] hover:bg-[#003D99] text-white font-extrabold text-sm rounded-lg px-5 py-3 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="shrink-0 inline-flex items-center gap-1.5 bg-va-blue hover:bg-va-blue-hover text-white font-extrabold text-sm rounded-lg px-5 py-3 transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Shirt size={16} aria-hidden="true" />
           <span>{lang === 'en' ? 'Customize' : 'Personnaliser'}</span>

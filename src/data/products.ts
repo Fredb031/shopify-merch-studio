@@ -273,8 +273,8 @@ export const PRODUCTS: Product[] = [
     description: 'Crewneck unisexe en French Terry 3 épaisseurs avec col rond côtelé et finitions en côte aux poignets et à la taille. Son look épuré sans capuche offre une silhouette professionnelle et polyvalente. Excellent choix pour les tenues corporatives et les cadeaux d\'entreprise.',
     features: ['French Terry 3 épaisseurs','Col rond côtelé','Poignets et taille en côte'],
     identityHook: {
-      fr: 'Le zip des équipes qui travaillent même par grand froid.',
-      en: 'The zip-up for crews who work in deep cold.',
+      fr: 'Le crewneck que les équipes portent par grand froid.',
+      en: 'The crewneck crews wear in deep cold.',
     },
   },
 
@@ -350,8 +350,8 @@ export const PRODUCTS: Product[] = [
     description: 'T-shirt manches longues en coton ringspun avec col côtelé 1x1, offrant une protection supplémentaire pour les saisons fraîches. Sa coupe classique et ses coutures renforcées garantissent confort et longévité. Idéal pour les chantiers, événements extérieurs et tenues d\'équipe automne-hiver.',
     features: ['100% coton ringspun','Manches longues','Col côtelé 1×1','OEKO-TEX®'],
     identityHook: {
-      fr: 'Le polo performance pour les équipes qui bougent.',
-      en: 'The performance polo for teams on the move.',
+      fr: 'Le t-shirt manches longues que les équipes portent en mi-saison.',
+      en: 'The long-sleeve tee teams wear through shoulder seasons.',
     },
   },
 
@@ -390,8 +390,8 @@ export const PRODUCTS: Product[] = [
     description: 'Polo femme coupe ajustée à manches courtes avec col polo et placket 3 boutons, offrant une silhouette élégante et professionnelle. Son tissu léger et respirant garantit un confort toute la journée. Idéal pour les équipes mixtes, réceptions et uniformes corporatifs.',
     features: ['Coupe ajustée femme','Col polo','Placket 3 boutons'],
     identityHook: {
-      fr: 'La veste légère préférée des équipes corporate.',
-      en: 'The lightweight jacket corporate teams pick.',
+      fr: 'Le polo classique des équipes corporate.',
+      en: 'The classic polo corporate teams pick.',
     },
   },
   {
