@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { SizeGuide } from '@/components/SizeGuide';
 import { findProductByHandle, findColorImage, PRINT_PRICE, BULK_DISCOUNT_RATE, BULK_DISCOUNT_THRESHOLD } from '@/data/products';
 import { getDisplayColors } from '@/lib/colorFilter';
-import { PRICING } from '@/data/pricing';
+import { PRICING, getPricePerUnit } from '@/data/pricing';
 import { fmtMoney } from '@/lib/format';
 import { getDescription } from '@/data/productDescriptions';
 import { categoryLabel } from '@/lib/productLabels';
@@ -852,110 +852,10 @@ export default function ProductDetail() {
       <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
 
       <div className="max-w-[1100px] mx-auto px-6 md:px-10 pt-16 md:pt-24 pb-24">
-        {/* Breadcrumb (§3.10): Home → Products → Category → Product.
-            Mirrors the JSON-LD BreadcrumbList fed to Google so the
-            visible trail and the structured-data trail agree. Each
-            non-terminal crumb is a link; the final crumb is marked
-            aria-current so screen readers announce "current page".
-            Falls back to product.title when a handle isn't in the
-            local catalogue (new Shopify product not yet synced).
-
-            Also keeps the Back-to-products affordance for thumb-reach
-            mobile users — rendered on its own row under the crumbs so
-            the chevron chain isn't polluted by a leading arrow. */}
-        {(() => {
-          // Map Product.category → Products.tsx filter slug so the
-          // category crumb actually lands on the right filtered grid
-          // (see matchesCategory in /src/pages/Products.tsx).
-          const categorySlug = (() => {
-            if (!localProduct) return null;
-            const c = localProduct.category;
-            if (c === 'hoodie' || c === 'crewneck') return 'chandails';
-            if (c === 'tshirt' || c === 'longsleeve' || c === 'sport') return 'tshirts';
-            if (c === 'polo') return 'polos';
-            if (c === 'cap' || c === 'toque') return 'headwear';
-            return null;
-          })();
-          const categoryCrumbLabel = (() => {
-            // Use the same EN/FR category tab labels the Products page
-            // uses, not categoryLabel() (which is the singular garment
-            // label: "T-Shirt"). Breadcrumbs read as plural sections.
-            switch (categorySlug) {
-              case 'chandails': return lang === 'en' ? 'Sweaters' : 'Chandails';
-              case 'tshirts':   return 'T-Shirts';
-              case 'polos':     return 'Polos';
-              case 'headwear':  return lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques';
-              default: return null;
-            }
-          })();
-          const productCrumb = localProduct
-            ? categoryLabel(localProduct.category, lang)
-            : product.title;
-          const homeLabel = lang === 'en' ? 'Home' : 'Accueil';
-          const productsLabel = lang === 'en' ? 'Products' : 'Produits';
-          return (
-            <nav
-              aria-label={lang === 'en' ? 'Breadcrumb' : "Fil d'Ariane"}
-              className="mb-2"
-            >
-              <ol className="flex items-center flex-wrap gap-1.5 text-sm text-muted-foreground">
-                <li>
-                  <Link
-                    to="/"
-                    className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-                  >
-                    {homeLabel}
-                  </Link>
-                </li>
-                <li aria-hidden="true" className="text-muted-foreground/50">
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </li>
-                <li>
-                  <Link
-                    to="/products"
-                    className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-                  >
-                    {productsLabel}
-                  </Link>
-                </li>
-                {categorySlug && categoryCrumbLabel && (
-                  <>
-                    <li aria-hidden="true" className="text-muted-foreground/50">
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </li>
-                    <li>
-                      <Link
-                        to={`/products?cat=${categorySlug}`}
-                        className="hover:text-foreground transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-                      >
-                        {categoryCrumbLabel}
-                      </Link>
-                    </li>
-                  </>
-                )}
-                <li aria-hidden="true" className="text-muted-foreground/50">
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </li>
-                <li
-                  aria-current="page"
-                  className="text-foreground font-medium truncate max-w-[55vw] sm:max-w-none"
-                  title={productCrumb}
-                >
-                  {productCrumb}
-                </li>
-              </ol>
-            </nav>
-          );
-        })()}
-        <Link
-          to="/products"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-        >
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          {lang === 'en' ? 'Back to products' : 'Retour aux produits'}
-        </Link>
-
-        <div className="grid md:grid-cols-[1.1fr_1fr] gap-8 lg:gap-14 items-start">
+        {/* Master Prompt PDP layout — desktop 55% image / 45% info,
+            mobile stacks (image then info). Right column rebuilt per
+            the 10-step ladder spec (Master Prompt §11/02). */}
+        <div className="grid md:grid-cols-[55%_45%] gap-8 lg:gap-14 items-start">
           {/* Images — main photo + thumbnail strip; main swaps when a color option is picked */}
           {(() => {
             const pickedColor = (() => {
@@ -1021,52 +921,108 @@ export default function ProductDetail() {
             return <ProductGallery shots={shots} lang={lang} />;
           })()}
 
-          {/* Info */}
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  {/* Sec 11/02 — Category + SKU tag in monospace upper-case
-                      micro-caption. Brand-blue/black palette parity with
-                      Cart (d66a19a) and Products (5625e4c). */}
-                  {localProduct && (
-                    <div
-                      className="text-[#6B7280] text-xs font-mono uppercase tracking-widest mb-1"
-                      data-sku={localProduct.sku}
+          {/* Info — Master Prompt 10-step right-column ladder
+              (1 Breadcrumb · 2 SKU · 3 Name · 4 Identity hook ·
+               5 Stars · 6 Color picker · 7 Size guide ·
+               8 Price card · 9 Primary CTA · 10 Trust line).
+              Existing tabs/accordion sections (description,
+              specs, "Best for") sit BELOW the ladder so the
+              primary purchase path stays unchanged in flow. */}
+          <div className="space-y-5">
+            {/* 1. Breadcrumb — Accueil / Boutique / [Category] · current
+                page. Mirrors the JSON-LD BreadcrumbList fed to Google so
+                the visible trail and the structured-data trail agree. */}
+            {(() => {
+              const categorySlug = (() => {
+                if (!localProduct) return null;
+                const c = localProduct.category;
+                if (c === 'hoodie' || c === 'crewneck') return 'chandails';
+                if (c === 'tshirt' || c === 'longsleeve' || c === 'sport') return 'tshirts';
+                if (c === 'polo') return 'polos';
+                if (c === 'cap' || c === 'toque') return 'headwear';
+                return null;
+              })();
+              const categoryCrumbLabel = (() => {
+                switch (categorySlug) {
+                  case 'chandails': return lang === 'en' ? 'Sweaters' : 'Chandails';
+                  case 'tshirts':   return 'T-Shirts';
+                  case 'polos':     return 'Polos';
+                  case 'headwear':  return lang === 'en' ? 'Caps & Beanies' : 'Casquettes & Tuques';
+                  default: return null;
+                }
+              })();
+              const productCrumb = localProduct
+                ? categoryLabel(localProduct.category, lang)
+                : product.title;
+              const homeLabel = lang === 'en' ? 'Home' : 'Accueil';
+              const shopLabel = lang === 'en' ? 'Shop' : 'Boutique';
+              return (
+                <nav aria-label={lang === 'en' ? 'Breadcrumb' : "Fil d'Ariane"}>
+                  <ol className="flex items-center flex-wrap gap-1 text-va-muted text-xs">
+                    <li>
+                      <Link to="/" className="hover:text-va-ink transition-colors">{homeLabel}</Link>
+                    </li>
+                    <li aria-hidden="true" className="text-va-muted/60">/</li>
+                    <li>
+                      <Link to="/products" className="hover:text-va-ink transition-colors">{shopLabel}</Link>
+                    </li>
+                    {categorySlug && categoryCrumbLabel && (
+                      <>
+                        <li aria-hidden="true" className="text-va-muted/60">/</li>
+                        <li>
+                          <Link to={`/products?cat=${categorySlug}`} className="hover:text-va-ink transition-colors">
+                            {categoryCrumbLabel}
+                          </Link>
+                        </li>
+                      </>
+                    )}
+                    <li aria-hidden="true" className="text-va-muted/60">/</li>
+                    <li
+                      aria-current="page"
+                      className="text-va-ink font-medium truncate max-w-[55vw] sm:max-w-none"
+                      title={productCrumb}
                     >
-                      {categoryLabel(localProduct.category, lang)} · {localProduct.sku}
-                    </div>
-                  )}
-                  {/* Product name h1 — brand-black display weight. */}
-                  <h1 className="font-display font-black text-3xl md:text-4xl text-[#0A0A0A] mb-3 tracking-tight leading-tight">
-                    {localProduct ? categoryLabel(localProduct.category, lang) : product.title}
-                  </h1>
-                  {/* Garment-fit line in muted gray. */}
-                  {localProduct && localProduct.gender !== 'unisex' && (
-                    <div className="text-xs text-[#6B7280] mt-1 capitalize">
-                      {lang === 'en' ? localProduct.gender : `Coupe ${localProduct.gender}`}
-                    </div>
-                  )}
-                  {/* Phase 3.4 — star rating + Google review count below H1.
-                      Hard-coded 5.0 / 50+ until a live aggregate-rating
-                      feed lands; the visual band carries the social-proof
-                      weight regardless of whether the number ticks up over
-                      time. text-yellow-400 keeps swatch parity with the
-                      rest of the brand-trust pills. JSON-LD AggregateRating
-                      isn't injected here yet — once Google Reviews API is
-                      wired in we should feed `aggregateRating` into
-                      buildProductSchema rather than hand-roll a script.
-                      Operator TODO: replace with live data when available. */}
+                      {productCrumb}
+                    </li>
+                  </ol>
+                </nav>
+              );
+            })()}
+
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                {/* 2. SKU — monospace uppercase widetracked micro-caption. */}
+                {localProduct && (
                   <div
-                    className="flex items-center gap-1.5 mt-2"
-                    aria-label={lang === 'en' ? 'Rated 5 out of 5 from over 50 Google reviews' : 'Note 5 sur 5 selon plus de 50 avis Google'}
+                    className="font-mono text-xs text-va-muted uppercase tracking-widest"
+                    data-sku={localProduct.sku}
                   >
-                    <span className="text-yellow-400 text-sm leading-none" aria-hidden="true">{'\u2605\u2605\u2605\u2605\u2605'}</span>
-                    <span className="text-xs text-[#374151] font-medium">
-                      {lang === 'en' ? '5.0 · 50+ Google reviews' : '5.0 · 50+ avis Google'}
-                    </span>
+                    {categoryLabel(localProduct.category, lang)} · {localProduct.sku}
                   </div>
+                )}
+                {/* 3. Product name — Syne display, 3xl/4xl, brand-ink. */}
+                <h1 className="font-display font-black text-3xl md:text-4xl text-va-ink mt-1 tracking-tight leading-tight">
+                  {localProduct ? categoryLabel(localProduct.category, lang) : product.title}
+                </h1>
+                {/* 4. Identity hook — italic muted quote with brand-blue
+                    left border. Bilingual via product.identityHook (8
+                    SKUs seeded in d310680); silent on rows without one. */}
+                {localProduct?.identityHook && (
+                  <p className="border-l-2 border-va-blue pl-4 italic text-va-muted text-base mt-3">
+                    {localProduct.identityHook[lang]}
+                  </p>
+                )}
+                {/* 5. Stars row — 5.0 · "Notre produit le plus commandé". */}
+                <div
+                  className="flex items-center gap-2 mt-3"
+                  aria-label={lang === 'en' ? 'Rated 5 out of 5, our most-ordered product' : 'Note 5 sur 5, notre produit le plus commandé'}
+                >
+                  <span className="text-yellow-400 text-base leading-none" aria-hidden="true">{'\u2605\u2605\u2605\u2605\u2605'}</span>
+                  <span className="text-va-dim text-sm">
+                    {lang === 'en' ? '5.0 · Our most-ordered product' : '5.0 · Notre produit le plus commandé'}
+                  </span>
                 </div>
+              </div>
                 <div className="flex items-center gap-2 mt-1 flex-shrink-0">
                 <button
                   type="button"
@@ -1219,42 +1175,149 @@ export default function ProductDetail() {
                 >
                   <Share2 size={16} aria-hidden="true" />
                 </button>
-                </div>
               </div>
-              {/* Sec 11/02 — price block in soft-gray frame. Display-black
-                  numerals, brand-black ink, single trust-strip caption
-                  ("Livraison gratuite dès 300 $ · Garantie 1 an") below
-                  the price. Replaces the bare price line + the trust grid
-                  that previously stacked beneath the CTA. */}
-              <div className="bg-[#F9FAFB] rounded-xl p-5 mb-6 mt-4">
-                {/* Phase 8 copy — "À partir de X $ / pièce" anchor label
-                    sits above the bare price so the visitor sees the
-                    expectation framing before the number. The next row
-                    keeps the original /unité, avant impression caption
-                    so the BulkCalculator tier table downstream still
-                    reads consistently. */}
-                <div className="text-[11px] uppercase tracking-wider font-bold text-[#6B7280] mb-1">
-                  {lang === 'en' ? `Starting at $${price} / piece` : `À partir de ${price}$ / pièce`}
-                </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-display font-black text-3xl text-[#0A0A0A] tabular-nums">
-                    {price} {currency}
-                  </span>
-                  <span className="text-xs text-[#6B7280]">
-                    {lang === 'en' ? '/ unit, before print' : '/ unité, avant impression'}
-                  </span>
-                </div>
-                {/* Volume tier pills removed — the BulkCalculator
-                    ("Estimation rapide") below is the single source of
-                    truth for qty-based pricing. The pills duplicated
-                    that surface as a static, less-useful preview. */}
-                <p className="text-xs text-[#6B7280] mt-3">
-                  {lang === 'en'
-                    ? 'Free shipping over $300 · 1-year warranty'
-                    : 'Livraison gratuite dès 300 $ · Garantie 1 an'}
-                </p>
-              </div>
+            </div>
 
+            {/* 6. Color picker — 32px swatches sourced from the same
+                getDisplayColors helper that feeds the customizer's
+                ColorPicker (Bug 6 dedupe c9ad047). Selected swatch
+                gets ring-2 ring-va-blue ring-offset-2; below the
+                grid, a small confirmation row reads
+                "✓ [COLOR] sélectionné" once the user picks. */}
+            {(() => {
+              const colorOpt = options.find((o: { name: string; values: string[] }) => /color|colour|couleur/i.test(o.name));
+              if (!colorOpt || !localProduct) return null;
+              const optValues = colorOpt.values ?? [];
+              if (optValues.length <= 1 && getDisplayColors(localProduct.sku, localProduct.colors).length <= 1) return null;
+              const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+              const localNames = getDisplayColors(localProduct.sku, localProduct.colors).map(c => c.name);
+              const extra = optValues.filter(v => !localNames.some(n => norm(n) === norm(v)));
+              const entries = [...localNames, ...extra];
+              entries.sort((a, b) => {
+                const ab = /^(noir|black)/i.test(a.trim()) ? 0 : 1;
+                const bb = /^(noir|black)/i.test(b.trim()) ? 0 : 1;
+                return ab - bb;
+              });
+              const localizedColorLabel = lang === 'en' ? 'Color' : 'Couleur';
+              const pickedRaw = currentOptions[colorOpt.name];
+              return (
+                <div>
+                  <label className="text-sm font-bold block text-va-ink mb-2">
+                    {localizedColorLabel}
+                    {pickedRaw && (
+                      <span className="font-normal text-va-muted ml-1">: {pickedRaw}</span>
+                    )}
+                  </label>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedColorLabel}>
+                    {entries.map((value: string) => {
+                      const match = localProduct.colors.find(
+                        c => norm(c.name) === norm(value) || norm(c.nameEn) === norm(value),
+                      );
+                      const hex = match?.hex ?? colorNameToHex(value);
+                      const shopifyValueForMatch = optValues.find(v => norm(v) === norm(value)) ?? value;
+                      const isSelected = norm(currentOptions[colorOpt.name] ?? '') === norm(shopifyValueForMatch);
+                      const isInShopify = optValues.some(v => norm(v) === norm(value));
+                      const isAvailable = !isInShopify || isOptionValueAvailable(colorOpt.name, shopifyValueForMatch);
+                      const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
+                      const hexTooltip = hex ? `${value} (${hex.toUpperCase()})` : value;
+                      const hexAriaLabel = hex
+                        ? (lang === 'en' ? `${value}, color code ${hex.toUpperCase()}` : `${value}, code couleur ${hex.toUpperCase()}`)
+                        : value;
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={isSelected}
+                          aria-disabled={!isAvailable || undefined}
+                          disabled={!isAvailable}
+                          onClick={() => {
+                            if (!isAvailable) return;
+                            userInteractedRef.current = true;
+                            setSelectedOptions(prev => ({ ...prev, [colorOpt.name]: shopifyValueForMatch }));
+                          }}
+                          className={`relative w-8 h-8 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 ${
+                            isSelected
+                              ? 'ring-2 ring-va-blue ring-offset-2'
+                              : 'ring-1 ring-va-line hover:ring-va-blue/50'
+                          } ${!isAvailable ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                          style={{ background: hex }}
+                          aria-label={isAvailable ? hexAriaLabel : `${hexAriaLabel} — ${soldOutTitle}`}
+                          title={isAvailable ? hexTooltip : `${hexTooltip} — ${soldOutTitle}`}
+                        >
+                          {isSelected && (
+                            <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                              <Check size={12} className="text-white drop-shadow" strokeWidth={3} />
+                            </span>
+                          )}
+                          {!isAvailable && (
+                            <span className="absolute inset-0 flex items-center justify-center pointer-events-none" aria-hidden="true">
+                              <svg width="100%" height="100%" viewBox="0 0 32 32" className="text-va-ink/70">
+                                <line x1="5" y1="27" x2="27" y2="5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {pickedRaw && (
+                    <p className="text-va-ok text-xs mt-2" aria-live="polite">
+                      <span aria-hidden="true">{'\u2713'}</span> {pickedRaw}{' '}
+                      {lang === 'en' ? 'selected' : 'sélectionné'}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* 7. Size guide link — opens existing SizeGuide modal. */}
+            {localProduct && (
+              <button
+                type="button"
+                onClick={() => setSizeGuideOpen(true)}
+                aria-haspopup="dialog"
+                aria-expanded={sizeGuideOpen}
+                className="text-va-blue text-xs underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1 rounded self-start"
+              >
+                {lang === 'en' ? 'Size guide' : 'Guide des tailles'}
+              </button>
+            )}
+
+            {/* 8. Price card — soft offwhite frame, display-mono headline,
+                4 volume-pricing pills sourced from getPricePerUnit at
+                qty 1 / 25 / 100 / 250 (pricing.ts is the single source
+                of truth for tiered pricing). */}
+            <div className="bg-va-offwhite rounded-2xl p-5">
+              <div className="font-mono text-3xl font-bold text-va-ink tabular-nums">
+                {lang === 'en' ? `Starting at $${price}/piece` : `À partir de ${price}$/pièce`}
+              </div>
+              <p className="text-va-muted text-xs mt-2">
+                {lang === 'en'
+                  ? 'Free shipping over $300 · 1-year warranty'
+                  : 'Livraison gratuite dès 300$ · Garantie 1 an'}
+              </p>
+              {/* Volume tier pills — 4 quantities (1, 25, 100, 250).
+                  pricing.ts handles unknown SKUs with an ATC1000 fallback. */}
+              {(() => {
+                const sku = localProduct?.sku ?? 'ATC1000';
+                const tiers = [1, 25, 100, 250] as const;
+                return (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {tiers.map((qty) => {
+                      const unit = getPricePerUnit(sku, qty);
+                      return (
+                        <span
+                          key={qty}
+                          className="bg-white border border-va-line rounded-full px-3 py-1 text-xs font-medium text-va-ink tabular-nums"
+                        >
+                          {qty}+ · ${unit.toFixed(2)}{lang === 'en' ? '/ea' : '/pc'}
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Live quantity calculator (replaces static pricing tier table) */}
@@ -1331,246 +1394,66 @@ export default function ProductDetail() {
               </span>
             </div>
 
-            {/* Options — Color shown as swatches in header above; render Color here too with FR label, hide if a single value */}
+            {/* Size + other non-color options — kept slim. Color picker
+                lives in step 6 of the ladder above so this loop now just
+                renders the Size pills (and any rare extra options). */}
             {options
               .filter((opt: { name: string; values: string[] }) => (opt.values ?? []).length > 1)
+              .filter((opt: { name: string }) => !/color|colour|couleur/i.test(opt.name))
               .map((option: { name: string; values: string[] }) => {
-                const isColor = /color|colour|couleur/i.test(option.name);
                 const localizedName = (() => {
                   if (lang === 'fr') {
-                    if (isColor) return 'Couleur';
                     if (/size/i.test(option.name)) return 'Taille';
                     return option.name;
                   }
-                  if (isColor) return 'Color';
                   return option.name;
                 })();
-
                 return (
                   <div key={option.name}>
-                    <div className="flex items-baseline justify-between gap-3 mb-2">
-                      <label className="text-sm font-bold block text-[#0A0A0A]">
-                        {localizedName}
-                        {currentOptions[option.name] && (
-                          <span className="font-normal text-[#6B7280] ml-1">
-                            : {currentOptions[option.name]}
-                          </span>
-                        )}
-                      </label>
-                      {/* Phase 3.4 §4 — size guide affordance next to the
-                          color/size label. Brand-blue underline, opens the
-                          existing SizeGuide modal. /guide-tailles route
-                          isn't built yet — operator TODO — but the
-                          aria-controls hooks the modal so keyboard / SR
-                          users still reach the same content the route
-                          would eventually serve. */}
-                      {isColor && (
-                        <button
-                          type="button"
-                          onClick={() => setSizeGuideOpen(true)}
-                          aria-haspopup="dialog"
-                          aria-expanded={sizeGuideOpen}
-                          className="text-[#0052CC] text-xs font-medium underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-1 rounded shrink-0"
-                        >
-                          {lang === 'en' ? 'Size guide \u2192' : 'Guide des tailles \u2192'}
-                        </button>
+                    <label className="text-sm font-bold block text-va-ink mb-2">
+                      {localizedName}
+                      {currentOptions[option.name] && (
+                        <span className="font-normal text-va-muted ml-1">: {currentOptions[option.name]}</span>
                       )}
+                    </label>
+                    <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
+                      {(option.values ?? []).map((value: string) => {
+                        const isSel = currentOptions[option.name] === value;
+                        const isAvailable = isOptionValueAvailable(option.name, value);
+                        const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            role="radio"
+                            aria-checked={isSel}
+                            aria-disabled={!isAvailable || undefined}
+                            disabled={!isAvailable}
+                            onClick={() => {
+                              if (!isAvailable) return;
+                              userInteractedRef.current = true;
+                              setSelectedOptions(prev => ({ ...prev, [option.name]: value }));
+                            }}
+                            title={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
+                            aria-label={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
+                            className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 ${
+                              isSel
+                                ? 'bg-va-ink text-white border-transparent shadow-sm'
+                                : 'bg-white text-va-ink border-va-line hover:border-va-blue'
+                            } ${!isAvailable ? 'line-through opacity-50 hover:border-va-line cursor-not-allowed pointer-events-none' : ''}`}
+                          >
+                            {value}
+                          </button>
+                        );
+                      })}
                     </div>
-
-                    {isColor && localProduct ? (
-                      /* Color swatches. Source of truth = `getDisplayColors`
-                         from @/lib/colorFilter — the SAME helper the Merge
-                         customizer's ColorPicker consumes, so the two
-                         surfaces can't drift on which swatches exist for
-                         a given product. Shopify's option.values are
-                         appended afterwards for anything extra (e.g. a
-                         freshly-added Shopify variant we haven't yet
-                         photographed). */
-                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
-                        {(() => {
-                          const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                          const localNames = getDisplayColors(localProduct.sku, localProduct.colors)
-                            .map(c => c.name);
-                          const extra = (option.values ?? []).filter(v => !localNames.some(n => norm(n) === norm(v)));
-                          const entries = [...localNames, ...extra];
-                          // Put Black first.
-                          entries.sort((a, b) => {
-                            const ab = /^(noir|black)/i.test(a.trim()) ? 0 : 1;
-                            const bb = /^(noir|black)/i.test(b.trim()) ? 0 : 1;
-                            return ab - bb;
-                          });
-                          return entries.map((value: string) => {
-                            const match = localProduct.colors.find(
-                              c => norm(c.name) === norm(value) || norm(c.nameEn) === norm(value),
-                            );
-                            const hex = match?.hex ?? colorNameToHex(value);
-                            // Select by whichever NAME Shopify uses if it's there,
-                            // else by the local name — stays consistent.
-                            const shopifyValueForMatch = (option.values ?? []).find(v => norm(v) === norm(value)) ?? value;
-                            const isSelected = norm(currentOptions[option.name] ?? '') === norm(shopifyValueForMatch);
-                            // Only run availability check against Shopify values;
-                            // a local-catalog-only colour (not in option.values)
-                            // is treated as available so we don't strike colours
-                            // that Shopify just hasn't listed yet.
-                            const isInShopify = (option.values ?? []).some(v => norm(v) === norm(value));
-                            const isAvailable = !isInShopify || isOptionValueAvailable(option.name, shopifyValueForMatch);
-                            // Task 3.2 — show unavailable colours as struck-through/
-                            // disabled rather than hiding them. Users were asking
-                            // "did I imagine that they had Navy earlier?" — keeping
-                            // the swatch visible answers that. pointer-events-none
-                            // makes the state unambiguous (no silent no-op click +
-                            // toast), and the title surfaces the reason on hover.
-                            const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
-                            // Task 3.6 — surface the hex in the tooltip + aria-label
-                            // next to the human-readable name. Before this, a
-                            // colour-blind or uncertain shopper hovering "Bleu
-                            // marine" had to guess whether that meant royal or
-                            // navy; the hex gives a deterministic second signal.
-                            // `hex` is already normalised to #RRGGBB via the
-                            // local-catalog/colorNameToHex chain a few lines up
-                            // so we can splice it straight into the title.
-                            // Screen-reader output reads "Bleu marine, code
-                            // couleur #1B3A6B" because aria-label sits on the
-                            // button and the SR announces it before `title`.
-                            const hexTooltip = hex ? `${value} (${hex.toUpperCase()})` : value;
-                            const hexAriaLabel = hex
-                              ? (lang === 'en'
-                                  ? `${value}, color code ${hex.toUpperCase()}`
-                                  : `${value}, code couleur ${hex.toUpperCase()}`)
-                              : value;
-                            return (
-                              <button
-                                key={value}
-                                type="button"
-                                role="radio"
-                                aria-checked={isSelected}
-                                aria-disabled={!isAvailable || undefined}
-                                disabled={!isAvailable}
-                                onClick={() => {
-                                  if (!isAvailable) return;
-                                  // Task 3.19 — this tap is the user's
-                                  // pick, so freeze hydration and start
-                                  // persisting via the effect below.
-                                  userInteractedRef.current = true;
-                                  setSelectedOptions(prev => ({ ...prev, [option.name]: shopifyValueForMatch }));
-                                }}
-                                className={`relative w-11 h-11 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                                  isSelected
-                                    ? 'ring-2 ring-primary ring-offset-2 scale-110'
-                                    : 'ring-1 ring-border hover:ring-primary/50'
-                                } ${!isAvailable ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
-                                style={{ background: hex }}
-                                aria-label={isAvailable ? hexAriaLabel : `${hexAriaLabel} — ${soldOutTitle}`}
-                                title={isAvailable ? hexTooltip : `${hexTooltip} — ${soldOutTitle}`}
-                              >
-                                {isSelected && (
-                                  <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <Check size={14} className="text-white drop-shadow" strokeWidth={3} />
-                                  </span>
-                                )}
-                                {!isAvailable && (
-                                  /* Diagonal strikethrough line for the circular
-                                     swatch — <hr> / text-decoration:line-through
-                                     doesn't visually read on an empty round
-                                     button, so draw an SVG slash instead. */
-                                  <span
-                                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                                    aria-hidden="true"
-                                  >
-                                    <svg width="100%" height="100%" viewBox="0 0 44 44" className="text-foreground/70">
-                                      <line x1="6" y1="38" x2="38" y2="6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                    </svg>
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          });
-                        })()}
-                      </div>
-                    ) : (
-                      /* Size + others: text pills */
-                      <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={localizedName}>
-                        {(option.values ?? []).map((value: string) => {
-                          const isSel = currentOptions[option.name] === value;
-                          const isAvailable = isOptionValueAvailable(option.name, value);
-                          // Task 3.2 — unavailable sizes stay visible (line-through
-                          // + dimmed + pointer-events-none). Hiding them used to
-                          // cause "I swear M was there 10 minutes ago" confusion.
-                          const soldOutTitle = lang === 'en' ? 'Out of stock' : 'Pas en stock';
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              role="radio"
-                              aria-checked={isSel}
-                              aria-disabled={!isAvailable || undefined}
-                              disabled={!isAvailable}
-                              onClick={() => {
-                                if (!isAvailable) return;
-                                // Task 3.19 — same interaction-gate as
-                                // the colour swatch click: mark this
-                                // as a user pick so the persist effect
-                                // picks it up and hydration won't run.
-                                userInteractedRef.current = true;
-                                setSelectedOptions(prev => ({ ...prev, [option.name]: value }));
-                              }}
-                              title={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
-                              aria-label={isAvailable ? undefined : `${value} — ${soldOutTitle}`}
-                              className={`px-3.5 py-1.5 rounded-lg text-sm font-semibold border transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                                isSel
-                                  ? 'gradient-navy-dark text-primary-foreground border-transparent shadow-sm'
-                                  : 'bg-background text-foreground border-border hover:border-primary'
-                              } ${!isAvailable ? 'line-through opacity-50 hover:border-border cursor-not-allowed pointer-events-none' : ''}`}
-                            >
-                              {value}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Phase 3.4 §3 — color commitment micro-copy.
-                        Renders only after the user has actually picked a
-                        color (currentOptions has a value for the color
-                        option). Hard-coded "popular" set covers the
-                        canonical brand-trust colourways; if the picked
-                        colour normalises to one of those we tack on
-                        " — populaire" to push the conversion nudge.
-                        Kept tiny + brand-blue so it reads as a confidence
-                        cue, not another CTA fighting the primary button. */}
-                    {isColor && currentOptions[option.name] && (() => {
-                      const picked = currentOptions[option.name];
-                      const norm = (s: string) => s.toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-                      const POPULAR = ['noir', 'marine', 'charbon', 'black', 'navy', 'charcoal'];
-                      const isPopular = POPULAR.some(p => norm(picked).includes(p));
-                      return (
-                        <p
-                          className="text-[#0052CC] text-xs mt-2 font-medium"
-                          aria-live="polite"
-                        >
-                          <span aria-hidden="true">{'\u2713'}</span>{' '}
-                          {lang === 'en'
-                            ? `${picked} selected`
-                            : `${picked} sélectionné`}
-                          {isPopular && (
-                            <span className="text-[#6B7280] font-normal">
-                              {' '}{lang === 'en' ? '— popular' : '— populaire'}
-                            </span>
-                          )}
-                        </p>
-                      );
-                    })()}
                   </div>
                 );
               })}
 
-            {/* Task 3.2 — inline "this combo is sold out" notice.
-                If a user had a variant selected and it later went
-                out of stock (or they deliberately clicked through a
-                struck-through combination), don't silently de-select
-                for them — keep their pick visible and explain it
-                here. Scoped to both color+size being picked + Shopify
-                marking the variant unavailable. */}
+            {/* Sold-out / low-stock pill cluster — keeps the inventory
+                signals (Task 3.2 / 3.17) right above the CTA so the
+                purchase nudge lands where the decision is made. */}
             {shopifySoldOut && !!selectedColor && !!selectedSize && (
               <div
                 role="status"
@@ -1585,17 +1468,9 @@ export default function ProductDetail() {
                 </span>
               </div>
             )}
-
-            {/* Task 3.17 — low-stock / out-of-stock warning pill.
-                Sits right above the CTA so the nudge lands exactly where
-                the purchase decision is made. role=status + aria-live
-                polite so screen readers announce "Only 3 left in Navy XL"
-                when the user changes color/size without stealing focus.
-                Never rendered when SanMar hasn't loaded or the user hasn't
-                picked both color+size — we never show stale numbers. */}
             <div role="status" aria-live="polite" aria-atomic="true">
               {isVariantSoldOut && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-red-600 text-xs font-bold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 border border-red-200 text-va-err text-xs font-bold">
                   <PackageX size={13} aria-hidden="true" />
                   {lang === 'en' ? 'Out of stock' : 'Rupture de stock'}
                 </span>
@@ -1609,7 +1484,7 @@ export default function ProductDetail() {
                 </span>
               )}
               {isVariantInStock && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-va-ok text-xs font-bold">
                   <CheckCircle size={13} aria-hidden="true" />
                   {lang === 'en' ? 'In stock · Ships fast' : 'En stock · Livraison rapide'}
                 </span>
@@ -1622,29 +1497,27 @@ export default function ProductDetail() {
                 out of view. Stays semantically silent (aria-hidden +
                 empty) so it doesn't pollute the a11y tree. */}
             <div ref={ctaSentinelRef} aria-hidden="true" className="h-px" />
-            {/* Sec 11/02 — primary CTA, full-width brand-blue. Matches
-                the Cart "Procéder au paiement" button (d66a19a) and the
-                Products "Personnaliser" pills (5625e4c). Customizer
-                wiring untouched. */}
+            {/* 9. Primary CTA — full-width brand-blue with the Master
+                Prompt blue glow shadow. Customizer wiring untouched. */}
             <button
               ref={inlineCtaRef}
               type="button"
-              className="w-full bg-[#0052CC] text-white py-4 text-base rounded-lg hover:bg-[#003D99] border-none font-extrabold cursor-pointer transition-colors flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-va-blue hover:bg-va-blue-h text-white font-semibold px-6 py-4 rounded-xl shadow-[0_0_30px_rgba(0,82,204,0.25)] flex items-center justify-center gap-2 transition-colors cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-va-blue/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setCustomizerOpen(true)}
               disabled={isVariantSoldOut}
               aria-disabled={isVariantSoldOut || undefined}
             >
-              <Shirt size={18} aria-hidden="true" />
               {isVariantSoldOut
                 ? (lang === 'en' ? 'Out of stock' : 'Rupture de stock')
                 : (lang === 'en' ? 'Customize and order \u2192' : 'Personnaliser et commander \u2192')}
             </button>
 
-            {/* Sec 11/02 — single trust line within 100px of the CTA. */}
-            <p className="text-[#6B7280] text-xs text-center -mt-2">
+            {/* 10. Trust line — centered, muted, sits under the CTA per
+                Master Prompt §11/02. */}
+            <p className="text-center text-va-muted text-xs mt-4">
               {lang === 'en'
-                ? '🔒 Satisfied or refunded · Delivered in 5 business days guaranteed'
-                : '🔒 Satisfait ou remboursé · Livré en 5 jours ouvrables garanti'}
+                ? '🔒 Satisfied or refunded · 5-day guarantee · Secure SSL'
+                : '🔒 Satisfait ou remboursé · 5 jours garantis · SSL sécurisé'}
             </p>
 
             {/* Volume II §09 — inline WhatsApp CTA right under the
