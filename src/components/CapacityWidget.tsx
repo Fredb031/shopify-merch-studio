@@ -54,14 +54,12 @@ export function CapacityWidget({ variant = 'hero', className = '' }: CapacityWid
     setCapacity(getCurrentCapacity());
   }, []);
 
-  if (!capacity) return null;
-
-  const remaining = getRemainingSlots(capacity);
-  // Authentic-scarcity gate. Above the threshold the widget is
-  // invisible — shoppers don't see the badge until it's true.
-  // At zero we also hide: "Only 0 slots left" reads as broken UI
-  // and contradicts the "order now to guarantee delivery" CTA.
-  if (remaining <= 0 || remaining >= SCARCITY_THRESHOLD) return null;
+  // Compute remaining up-front (0 when capacity hasn't hydrated yet) so
+  // the useMemo below can safely run before the early-return gates —
+  // calling it after `if (!capacity) return null;` would skip a hook on
+  // the first render and trigger React's "rendered fewer hooks than
+  // expected" runtime error every time the widget mounts.
+  const remaining = capacity ? getRemainingSlots(capacity) : 0;
 
   // Memoize derived display strings: parents (homepage hero,
   // PDP right column) re-render on unrelated state (lang toggle
@@ -88,6 +86,13 @@ export function CapacityWidget({ variant = 'hero', className = '' }: CapacityWid
         : 'flex-col items-start text-left',
     };
   }, [remaining, lang, variant]);
+
+  if (!capacity) return null;
+  // Authentic-scarcity gate. Above the threshold the widget is
+  // invisible — shoppers don't see the badge until it's true.
+  // At zero we also hide: "Only 0 slots left" reads as broken UI
+  // and contradicts the "order now to guarantee delivery" CTA.
+  if (remaining <= 0 || remaining >= SCARCITY_THRESHOLD) return null;
 
   return (
     <div
