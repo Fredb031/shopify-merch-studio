@@ -9,16 +9,14 @@ const MoleGame = lazy(() => import('@/components/MoleGame').then(m => ({ default
 const IntroAnimation = lazy(() => import('@/components/IntroAnimation').then(m => ({ default: m.IntroAnimation })));
 import { LoginModal } from '@/components/LoginModal';
 import { TrustSignalsBar } from '@/components/TrustSignalsBar';
-import { StepsTimeline } from '@/components/StepsTimeline';
 import { DeliveryBadge } from '@/components/DeliveryBadge';
 import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
 import { CountUp } from '@/components/CountUp';
-import { SHOPIFY_STATS } from '@/data/shopifySnapshot';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Shirt, Brush, PackageCheck, Lock, ChevronDown } from 'lucide-react';
+import { Shirt, Lock, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useCartStore } from '@/stores/localCartStore';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -169,7 +167,6 @@ export default function Index() {
   // would stay invisible forever (`opacity-0 translate-y-[18px]`).
   // Default to true so the hero just renders on mount.
   const [heroStaggered, setHeroStaggered] = useState(true);
-  const [playingVideo, setPlayingVideo] = useState<number | null>(null);
 
   // Sticky bottom CTA (mobile only) — Task 1.11. The sentinel sits at
   // the bottom of the hero section; when it leaves the viewport we
@@ -588,222 +585,217 @@ export default function Index() {
       {/* Featured products — grab attention right after trust */}
       <FeaturedProducts />
 
-      {/* Steps timeline — gamified delivery journey */}
-      <StepsTimeline />
-
-      {/* Steps */}
+      {/* How it works — Master-Prompt-style 3-step block in the
+          classic palette. Replaces the old StepsTimeline + gradient
+          steps section with a single confident statement: three
+          actions, one uniform. Giant ghost numerals (01/02/03) read
+          as editorial typography rather than icon clutter. */}
       <FadeIn>
-        <section className="scroll-mt-20 gradient-navy-dark py-12 px-6 md:px-10">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-primary-foreground/[0.07] rounded-[18px] overflow-hidden">
-              {[
-                { n: '01', Icon: Shirt,         key: 'step1' as const },
-                { n: '02', Icon: Brush,         key: 'step2' as const },
-                { n: '03', Icon: PackageCheck,  key: 'step3' as const },
-              ].map((step, i) => {
-                const Icon = step.Icon;
-                return (
-                  <div key={i} className="bg-primary-foreground/[0.04] text-center py-10 px-7 transition-colors hover:bg-primary-foreground/[0.07]">
-                    <div className="mx-auto mb-4 w-12 h-12 rounded-xl bg-primary-foreground/[0.08] flex items-center justify-center">
-                      <Icon className="text-primary-foreground/80" size={22} strokeWidth={1.75} aria-hidden="true" />
-                    </div>
-                    <div className="text-[11px] font-extrabold tracking-[3px] text-primary-foreground/30 mb-2">{lang === 'en' ? 'STEP' : 'ÉTAPE'} {step.n}</div>
-                    <div className="text-[18px] md:text-[22px] font-extrabold text-primary-foreground tracking-[-0.3px]">{t(step.key)}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Stats Bar */}
-      <FadeIn>
-        <section className="scroll-mt-20 border-b border-border">
-          <div className="max-w-[1060px] mx-auto grid grid-cols-2 md:grid-cols-4">
-            {[
-              // Thin NBSP between '33' and '000+' so the number never
-              // wraps mid-digit-group (French typography rule).
-              { num: '33\u202F000+', key: 'produitLivres' as const },
-              { num: lang === 'en' ? '5 days' : '5 jours',  key: 'delaiLivraison' as const },
-              { num: '500+',     key: 'entreprisesSatisfaites' as const },
-              { num: '5,0',      key: 'noteGoogle' as const },
-            ].map((item, i) => (
-              <div key={i} className="py-7 text-center border-r border-border last:border-r-0">
-                <div className="text-[28px] font-extrabold text-primary">{item.num}</div>
-                <div className="text-[12px] text-muted-foreground mt-1">{t(item.key)}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Sam's Story */}
-      <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 max-w-[1060px] mx-auto">
-          <div className="grid md:grid-cols-2 gap-[72px] items-center">
-            <div>
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-3">
-                {lang === 'en' ? 'Our story' : 'Notre histoire'}
-              </div>
-              <h2 className="text-[clamp(26px,3vw,38px)] font-extrabold tracking-[-0.5px] text-foreground leading-tight mb-[18px]">
-                {lang === 'en' ? 'Why I founded Vision in 2021' : "Pourquoi j'ai fondé Vision en 2021"}
+        <section className="scroll-mt-20 py-20 md:py-28 px-6 md:px-10 bg-background">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-14">
+              <p className="text-[#E8A838] text-xs font-semibold uppercase tracking-[0.15em] mb-4">
+                {lang === 'en' ? 'The process' : 'Le processus'}
+              </p>
+              <h2 className="font-display font-black text-foreground text-4xl md:text-5xl tracking-tight">
+                {lang === 'en' ? 'Three actions. One uniform.' : 'Trois actions. Un uniforme.'}
               </h2>
-              <p className="text-[15px] text-muted-foreground leading-[1.8] mb-3.5">
-                {lang === 'en'
-                  ? <>I saw too many great businesses lose clients — not because they lacked talent, but because they <strong className="text-foreground">didn't project the image</strong> they deserved.</>
-                  : <>{"J'ai vu trop souvent de bonnes entreprises perdre des clients — pas parce qu'elles manquaient de talent, mais parce qu'elles "}<strong className="text-foreground">{"ne donnaient pas l'image"}</strong>{" qu'elles méritaient."}</>}
-              </p>
-              <p className="text-[15px] text-muted-foreground leading-[1.8] mb-3.5">
-                {lang === 'en'
-                  ? "A poorly dressed team is a missed opportunity at every meeting. I created Vision so every entrepreneur can show up with confidence, from the very first glance."
-                  : "Une équipe mal habillée, c'est une occasion manquée à chaque rencontre. J'ai créé Vision pour que chaque entrepreneur puisse se présenter avec confiance, dès le premier regard."}
-              </p>
-              <p className="text-[15px] text-muted-foreground leading-[1.8]">
-                {lang === 'en'
-                  ? <>{`Today, we've dressed over 500 teams. And with every order, it's the same conviction: `}<strong className="text-foreground">the image you project builds the reputation you deserve.</strong></>
-                  : <>{"Aujourd'hui, on a habillé plus de 500 équipes. Et à chaque commande, c'est la même conviction : "}<strong className="text-foreground">{"l'image que tu projettes construit la réputation que tu mérites."}</strong></>}
-              </p>
-              <div className="font-lora text-[22px] italic text-primary mt-6">— Samuel</div>
-              <div className="text-[12px] text-muted-foreground mt-[3px]">
-                {lang === 'en' ? 'Founder, Vision Affichage' : 'Fondateur, Vision Affichage'}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {[
+                {
+                  n: '01',
+                  fr: { title: 'Tu envoies ton logo.', body: 'PNG, SVG ou JPEG. On accepte tout. Pas de brief. Pas de call. Juste ton fichier.' },
+                  en: { title: 'You send your logo.', body: 'PNG, SVG or JPEG. We accept everything. No brief. No call. Just your file.' },
+                  cta: null as null | { fr: string; en: string },
+                },
+                {
+                  n: '02',
+                  fr: { title: 'On imprime. Tu approuves rien.', body: "Notre équipe positionne ton logo selon les standards de l'industrie. Tu n'as pas besoin d'être graphiste." },
+                  en: { title: "We print. You don't approve anything.", body: 'Our team positions your logo to industry standards. You don\u2019t need to be a designer.' },
+                  cta: null as null | { fr: string; en: string },
+                },
+                {
+                  n: '03',
+                  fr: { title: 'Tu reçois en 5 jours.', body: 'Livré partout au Québec. Si c\u2019est en retard d\u2019une seule journée, on te rembourse. Aucune exception.' },
+                  en: { title: 'You receive it in 5 days.', body: 'Delivered anywhere in Quebec. If it\u2019s a single day late, we refund you. No exceptions.' },
+                  cta: { fr: 'Commander maintenant \u2192', en: 'Order now \u2192' },
+                },
+              ].map((step, i) => (
+                <div key={i} className="relative pt-6">
+                  {/* Ghost numeral — sits behind the heading at low
+                      opacity so it reads as editorial typography
+                      rather than a heavy block of color. */}
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -top-4 -left-2 font-mono font-bold text-[120px] leading-none text-[#1B3A6B]/[0.08] select-none"
+                  >
+                    {step.n}
+                  </span>
+                  <div className="relative">
+                    <h3 className="font-display font-extrabold text-foreground text-2xl md:text-[26px] tracking-tight mb-3">
+                      {lang === 'en' ? step.en.title : step.fr.title}
+                    </h3>
+                    <p className="text-muted-foreground text-[15px] leading-relaxed">
+                      {lang === 'en' ? step.en.body : step.fr.body}
+                    </p>
+                    {step.cta && (
+                      <Link
+                        to="/products"
+                        className="inline-flex items-center gap-2 text-[#E8A838] font-semibold mt-4 hover:gap-3 transition-all"
+                      >
+                        {lang === 'en' ? step.cta.en : step.cta.fr}
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* Stats — navy band with three keystone numbers. Replaces the
+          old 4-tile stats bar with a tighter 3-tile premium block in
+          the navy/gold/off-white palette. CountUp animates each number
+          on first intersection. */}
+      <FadeIn>
+        <section className="scroll-mt-20 bg-[#1B3A6B] py-20 px-6 md:px-10">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/10 rounded-2xl overflow-hidden">
+              {/* Tile 1 — pieces delivered. */}
+              <div className="bg-[#1B3A6B] px-12 py-10">
+                <div className="font-mono font-bold text-5xl text-[#E8A838] tracking-tight mb-2 tabular-nums">
+                  <CountUp to={33000} suffix="+" />
+                </div>
+                <div className="text-white text-[15px] font-semibold mb-1">
+                  {lang === 'en' ? 'pieces delivered' : 'pièces livrées'}
+                </div>
+                <div className="text-white/60 text-xs">
+                  {lang === 'en' ? 'since 2021' : 'depuis 2021'}
+                </div>
+              </div>
+              {/* Tile 2 — companies served. */}
+              <div className="bg-[#1B3A6B] px-12 py-10">
+                <div className="font-mono font-bold text-5xl text-[#E8A838] tracking-tight mb-2 tabular-nums">
+                  <CountUp to={500} suffix="+" />
+                </div>
+                <div className="text-white text-[15px] font-semibold mb-1">
+                  {lang === 'en' ? 'companies served' : 'entreprises'}
+                </div>
+                <div className="text-white/60 text-xs">
+                  {lang === 'en'
+                    ? 'construction \u00b7 landscaping \u00b7 corporate'
+                    : 'construction \u00b7 paysagement \u00b7 corporate'}
+                </div>
+              </div>
+              {/* Tile 3 — guaranteed delivery. */}
+              <div className="bg-[#1B3A6B] px-12 py-10">
+                <div className="font-mono font-bold text-5xl text-[#E8A838] tracking-tight mb-2 tabular-nums">
+                  <CountUp to={5} suffix={lang === 'en' ? ' days' : ' jours'} />
+                </div>
+                <div className="text-white text-[15px] font-semibold mb-1">
+                  {lang === 'en' ? 'guaranteed delivery' : 'délai garanti'}
+                </div>
+                <div className="text-white/60 text-xs">
+                  {lang === 'en'
+                    ? 'or refunded \u2014 no conditions'
+                    : 'ou remboursé \u2014 sans condition'}
+                </div>
               </div>
             </div>
-            <div className="relative">
-              <img
-                src="https://cdn.shopify.com/s/files/1/0578/1038/7059/files/c85663f5-e0c1-43ce-a427-00852120bc46.jpg?v=1763532442&width=800"
-                alt={lang === 'en' ? 'Samuel, founder of Vision Affichage' : 'Samuel, fondateur de Vision Affichage'}
-                width={800}
-                height={1000}
-                loading="lazy"
-                decoding="async"
-                className="w-full rounded-[22px] aspect-[4/5] object-cover"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-              />
-              <div className="absolute bottom-[18px] left-[18px] right-[18px] bg-card/95 backdrop-blur-[10px] rounded-xl p-3.5 flex items-center gap-3">
-                <div className="w-[38px] h-[38px] gradient-navy-dark rounded-[10px] flex items-center justify-center flex-shrink-0">
-                  <svg className="w-[18px] h-[18px] stroke-primary-foreground fill-none" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* Reviews — off-white card row with a giant 5.0 hero rating
+          and 6 testimonial cards in a horizontally-scrollable rail.
+          Replaces both the old Reviews section and the Video
+          Testimonials block; quotes are punchier, sourced from the
+          same Google review pool. */}
+      <FadeIn>
+        <section className="scroll-mt-20 bg-[#FFF8E7] py-20 px-6 md:px-10">
+          <div className="max-w-7xl mx-auto">
+            {/* Header row — 5.0 hero rating on the left, copy on the right. */}
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+              <div className="flex items-center gap-5">
+                <div className="font-mono font-black text-7xl md:text-8xl text-[#1B3A6B] tracking-tight leading-none">
+                  5.0
                 </div>
                 <div>
-                  <div className="text-[12px] font-bold text-foreground">{lang === 'en' ? '+33,000 products delivered' : '+33\u202F000 produits livrés'}</div>
-                  <div className="text-[11px] text-muted-foreground">{lang === 'en' ? 'Since 2021' : 'Depuis 2021'}</div>
+                  <div className="flex gap-1 text-[#E8A838] text-xl mb-1" aria-hidden="true">
+                    <span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span>
+                  </div>
+                  <div className="text-[13px] font-semibold text-[#1B3A6B]">
+                    {lang === 'en' ? '50+ verified Google reviews' : '50+ avis Google vérifiés'}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Video Testimonials */}
-      <FadeIn>
-        <section className="scroll-mt-20 bg-secondary border-t border-border py-[68px] px-6 md:px-10">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="text-[11px] font-bold tracking-[2px] uppercase text-primary mb-2.5">
-              {lang === 'en' ? 'Testimonials' : 'Témoignages'}
-            </div>
-            <h2 className="text-[clamp(24px,3vw,36px)] font-extrabold tracking-[-0.5px] text-foreground mb-8">
-              {lang === 'en' ? 'They speak better than we do.' : 'Ils parlent mieux que nous.'}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {[
-                { name: 'Anthony Ouellet', co: 'Sous Pression', img: `${CDN}/preview_images/f95a004374be46dba55baf59721ce807.thumbnail.0000000000.jpg?v=1770475023&width=600`, video: `${CDN}/f95a004374be46dba55baf59721ce807.HD-1080p-4.8Mbps-52069500.mp4` },
-                { name: 'Hubert Cazes',    co: 'Perfocazes',   img: `${CDN}/preview_images/72a54f824d3d4139b646cc3e21e1371c.thumbnail.0000000000.jpg?v=1770474993&width=600`, video: `${CDN}/72a54f824d3d4139b646cc3e21e1371c.HD-1080p-4.8Mbps-52069480.mp4` },
-                { name: 'Luca Jalbert',   co: "L'univers de Luca Jalbert", img: `${CDN}/preview_images/40a1dafa21da49eaa892ab5ed9929163.thumbnail.0000000000.jpg?v=1770579609&width=600`, video: `${CDN}/40a1dafa21da49eaa892ab5ed9929163.HD-1080p-4.8Mbps-52075605.mp4` },
-              ].map((v, i) => {
-                const isPlaying = playingVideo === i;
-                return (
-                  <div key={i} className="bg-card border border-border rounded-[18px] overflow-hidden transition-all hover:-translate-y-[3px] hover:shadow-[0_16px_40px_rgba(0,0,0,0.09)] group">
-                    <div className="aspect-[9/12] relative bg-foreground overflow-hidden">
-                      {isPlaying ? (
-                        <video
-                          src={v.video}
-                          poster={v.img}
-                          controls
-                          autoPlay
-                          playsInline
-                          onEnded={() => setPlayingVideo(null)}
-                          className="w-full h-full object-cover bg-black"
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => setPlayingVideo(i)}
-                          className="absolute inset-0 w-full h-full border-none p-0 cursor-pointer group/play focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC] focus-visible:ring-inset"
-                          aria-label={lang === 'en' ? `Play video testimonial from ${v.name}` : `Lire le témoignage vidéo de ${v.name}`}
-                        >
-                          <img src={v.img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover opacity-[0.85] transition-opacity group-hover:opacity-100" onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-[56px] h-[56px] bg-white/95 rounded-full flex items-center justify-center transition-transform group-hover/play:scale-110 shadow-xl">
-                              <svg className="w-[20px] h-[20px] fill-primary ml-[3px]" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                            </div>
-                          </div>
-                        </button>
-                      )}
-                    </div>
-                    <div className="p-3.5 px-4">
-                      <div className="text-[13px] font-bold text-foreground">{v.name}</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">{v.co}</div>
-                      <div className="flex gap-0.5 mt-[7px]" role="img" aria-label={lang === 'en' ? '5 out of 5 stars' : '5 étoiles sur 5'}>
-                        {[...Array(5)].map((_, j) => <StarSvg key={j} />)}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Reviews */}
-      <FadeIn>
-        <section className="scroll-mt-20 py-[68px] px-6 md:px-10 border-t border-border">
-          <div className="max-w-[1060px] mx-auto">
-            <div className="flex items-center gap-[22px] mb-[26px] flex-wrap">
-              <div className="text-center">
-                <div className="text-[48px] font-extrabold text-primary leading-none">5,0</div>
-                <div className="flex gap-[3px] justify-center my-1">{[...Array(5)].map((_, i) => <StarSvg key={i} />)}</div>
-                <div className="text-[11px] text-muted-foreground">{lang === 'en' ? '41 reviews' : '41 avis'}</div>
-              </div>
-              <div className="w-px h-14 bg-border" />
-              <div>
-                <h3 className="text-xl font-extrabold text-foreground">
-                  {lang === 'en' ? 'What our clients say' : 'Ce que nos clients disent'}
-                </h3>
-                <p className="text-[13px] text-muted-foreground mt-0.5">
-                  {lang === 'en' ? 'Quebec entrepreneurs · Real reviews' : 'Entrepreneurs québécois · Avis réels'}
+              <div className="md:text-right">
+                <h2 className="font-display font-bold text-3xl text-[#1B3A6B] tracking-tight">
+                  {lang === 'en' ? 'What contractors say' : 'Ce que les entrepreneurs disent'}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  {lang === 'en'
+                    ? 'Landscapers, contractors, plumbers, corporate firms.'
+                    : 'Paysagistes, contracteurs, plombiers, firmes corporate.'}
                 </p>
-                <div className="flex items-center gap-1.5 mt-[7px]">
-                  <GoogleIcon />
-                  <span className="text-[12px] font-bold text-primary">
-                    {lang === 'en' ? 'Verified Google reviews' : 'Avis Google vérifiés'}
-                  </span>
-                </div>
               </div>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-hide md:grid md:grid-cols-3 md:overflow-visible">
+
+            {/* Horizontally-scrollable rail of 6 testimonial cards. */}
+            <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory pb-2 -mx-6 px-6 md:mx-0 md:px-0 scrollbar-hide">
               {[
-                { init: 'SL', name: 'Samuel Lacroix',           date: lang === 'en' ? '2 months ago' : 'Il y a 2 mois', color: '#1B3A6B', txt: lang === 'en' ? '"Amazing service! Great quality and super fast. Highly recommend for any business wanting to look professional."' : '"Super service! Très bonne qualité et super rapide! Je recommande fortement à toutes les entreprises qui veulent avoir l\'air professionnel."' },
-                { init: 'WB', name: 'William Barry',             date: lang === 'en' ? '3 months ago' : 'Il y a 3 mois', color: '#1a3d2e', txt: lang === 'en' ? '"I highly recommend Vision Affichage! Fast, courteous service. A true professional who understands SMB needs."' : '"Je recommande fortement Vision Affichage! Service très rapide, courtois. Un vrai professionnel qui comprend les besoins d\'une PME."' },
-                { init: 'JP', name: 'Jean-Philippe N.-L.',       date: lang === 'en' ? '4 months ago' : 'Il y a 4 mois', color: '#5f1f1f', txt: lang === 'en' ? '"Great service, dynamic team. Just as good for custom orders as large corporate orders. I recommend!"' : '"Super bon service, équipe dynamique. Aussi bon pour les commandes custom que les grosses commandes entreprises. Je recommande!"' },
-                { init: 'MC', name: 'Marie-Claude Tremblay',     date: lang === 'en' ? '5 months ago' : 'Il y a 5 mois', color: '#4C1D95', txt: lang === 'en' ? '"We ordered hoodies for our whole team and the result was impeccable. Fast delivery, premium quality. Will reorder!"' : '"On a commandé des hoodies pour toute notre équipe et le résultat était impeccable. Livraison rapide, qualité premium. On recommande!"' },
-                { init: 'PD', name: 'Patrick Dubois',            date: lang === 'en' ? '6 months ago' : 'Il y a 6 mois', color: '#0F2341', txt: lang === 'en' ? '"Excellent experience from A to Z. The customizer tool is brilliant and the final product exceeded expectations."' : '"Excellente expérience du début à la fin. L\'outil de personnalisation est génial et le produit final a dépassé nos attentes."' },
-                { init: 'AB', name: 'Audrey Bergeron',           date: lang === 'en' ? '7 months ago' : 'Il y a 7 mois', color: '#6B1B1B', txt: lang === 'en' ? '"Perfect for our construction company. Tough quality, quick turnaround, competitive prices. Our go-to for all our merch."' : '"Parfait pour notre compagnie de construction. Qualité solide, délai rapide, prix compétitifs. Notre référence pour tout notre merch."' },
+                {
+                  q: lang === 'en'
+                    ? 'Amazing service. Great quality and super fast. Highly recommend for any business that wants to look professional.'
+                    : 'Super service. Très bonne qualité et super rapide. Je recommande fortement à toute entreprise qui veut avoir l\u2019air professionnel.',
+                  name: 'Samuel Lacroix', co: 'Construction Lacroix',
+                },
+                {
+                  q: lang === 'en'
+                    ? 'Fast, courteous service. A real pro who understands SMB needs.'
+                    : 'Service rapide, courtois. Un vrai pro qui comprend les besoins d\u2019une PME.',
+                  name: 'William Barry', co: 'Barry Excavation',
+                },
+                {
+                  q: lang === 'en'
+                    ? 'Dynamic team. Just as good for custom orders as for big corporate runs.'
+                    : 'Équipe dynamique. Aussi bon pour les commandes custom que pour les grosses commandes corporate.',
+                  name: 'Jean-Philippe N.-L.', co: 'Paysagement JP',
+                },
+                {
+                  q: lang === 'en'
+                    ? 'Hoodies for our whole team came out impeccable. Premium quality, fast delivery. We\u2019ll reorder.'
+                    : 'Hoodies pour toute notre équipe sortis impeccables. Qualité premium, livraison rapide. On va recommander.',
+                  name: 'Marie-Claude Tremblay', co: 'Tremblay & Associés',
+                },
+                {
+                  q: lang === 'en'
+                    ? 'A-to-Z experience was excellent. The customizer is brilliant and the final product beat expectations.'
+                    : 'Expérience A à Z excellente. L\u2019outil de personnalisation est génial et le produit final a dépassé mes attentes.',
+                  name: 'Patrick Dubois', co: 'Plomberie Dubois',
+                },
+                {
+                  q: lang === 'en'
+                    ? 'Perfect for our construction crew. Tough quality, quick turnaround, fair prices. Our go-to.'
+                    : 'Parfait pour notre équipe de construction. Qualité solide, délai rapide, prix justes. Notre référence.',
+                  name: 'Audrey Bergeron', co: 'Bergeron Construction',
+                },
               ].map((r, i) => (
-                <div key={i} className="min-w-[280px] md:min-w-0 snap-start bg-secondary border border-border rounded-2xl p-[18px] px-5 flex-shrink-0">
-                  <div className="flex items-center gap-2.5 mb-2.5">
-                    <div className="w-[36px] h-[36px] rounded-full flex items-center justify-center text-[12px] font-extrabold text-primary-foreground flex-shrink-0" style={{ background: r.color }}>{r.init}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-bold text-foreground truncate">{r.name}</div>
-                      <div className="text-[11px] text-muted-foreground mt-px">{r.date}</div>
-                    </div>
-                    <GoogleIcon />
+                <article
+                  key={i}
+                  className="flex-shrink-0 w-[300px] md:w-[340px] snap-start bg-white rounded-2xl border border-border p-6"
+                >
+                  <div className="flex gap-1 text-[#E8A838] text-sm mb-3" aria-hidden="true">
+                    <span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span><span>\u2605</span>
                   </div>
-                  <div className="flex gap-0.5 mb-2">{[...Array(5)].map((_, j) => <StarSvg key={j} />)}</div>
-                  <p className="text-[13px] text-muted-foreground leading-relaxed">{r.txt}</p>
-                </div>
+                  <p className="text-foreground text-sm italic leading-relaxed mb-4">
+                    \u201c{r.q}\u201d
+                  </p>
+                  <div className="font-semibold text-foreground text-sm">{r.name}</div>
+                  <div className="text-muted-foreground text-xs mt-0.5">{r.co}</div>
+                </article>
               ))}
             </div>
           </div>
@@ -822,39 +814,6 @@ export default function Index() {
             </div>
             <div className="text-xs tracking-wider uppercase text-muted-foreground/90">
               Sous Pression · Perfocazes · Lacasse Sports · Restaurant Le Beaujolais · Brasserie Mille-Îles · Garage Morin · Salon Aura
-            </div>
-          </div>
-        </section>
-      </FadeIn>
-
-      {/* Logo Marquee — after reviews */}
-      <FadeIn>
-        <section className="scroll-mt-20 border-t border-b border-border py-7 overflow-hidden bg-background">
-          <div className="text-center text-[11px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-5">
-            {lang === 'en' ? 'Companies that trust us' : 'Des entreprises qui nous font confiance'}
-          </div>
-          <div
-            className="overflow-hidden relative"
-            style={{
-              maskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 80px, black calc(100% - 80px), transparent)',
-            }}
-          >
-            <div className="flex gap-0 w-max" style={{ animation: 'marqueeScroll 40s linear infinite' }}>
-              {[...HERO_LOGOS, ...HERO_LOGOS].map((logo, i) => (
-                <div key={i} className="px-10 flex items-center justify-center h-[88px]">
-                  <img
-                    src={logo.src}
-                    alt={logo.alt}
-                    width={128}
-                    height={64}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-[64px] w-auto object-contain grayscale opacity-[0.40] hover:grayscale-0 hover:opacity-100 transition-all"
-                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                  />
-                </div>
-              ))}
             </div>
           </div>
         </section>
@@ -1015,56 +974,6 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Mid-page CTA band — Task 1.10. A slim navy strip punctuating
-          the shift from social-proof (testimonials + logos) to FAQ.
-          Sits at ~120px desktop height so it reads as a breath-break
-          rather than a competing section. Gold eyebrow + gold CTA keep
-          the brand palette consistent with the hero and footer CTAs.
-          Abstract diagonal gold stripe (SVG) adds movement without
-          clutter — inherits opacity from the pattern itself so it
-          doesn't need a second wrapper to tone down. Stacks on mobile,
-          side-by-side from md: up. */}
-      <FadeIn>
-        <section aria-label={lang === 'en' ? 'Request a quote' : 'Demander une soumission'} className="scroll-mt-20 relative overflow-hidden bg-[#1B3A6B] text-primary-foreground">
-          {/* Top hairline gold accent — 2px band reads as a brand-strip
-              without pulling focus from the CTA. */}
-          <div aria-hidden="true" className="absolute top-0 left-0 right-0 h-[2px] bg-[#E8A838]" />
-          {/* Diagonal stripe accent — faint gold pattern angled across
-              the band. pointer-events-none so it never intercepts the
-              button. Low opacity so the navy stays dominant. */}
-          <svg
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-[0.08]"
-            preserveAspectRatio="none"
-            viewBox="0 0 1200 120"
-          >
-            <defs>
-              <pattern id="ctabandStripes" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
-                <rect width="60" height="60" fill="transparent" />
-                <rect x="0" y="0" width="2" height="60" fill="#E8A838" />
-              </pattern>
-            </defs>
-            <rect width="1200" height="120" fill="url(#ctabandStripes)" />
-          </svg>
-          <div className="relative max-w-[1060px] mx-auto px-6 md:px-10 py-7 md:py-0 md:h-[120px] flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6 text-center md:text-left">
-            <div>
-              <div className="text-[11px] font-bold tracking-[2px] uppercase text-[#E8A838] mb-1.5">
-                {lang === 'en' ? '24h guaranteed response' : '24h réponse garantie'}
-              </div>
-              <h2 className="text-[clamp(20px,2.4vw,26px)] font-extrabold tracking-[-0.3px] leading-tight text-primary-foreground">
-                {lang === 'en' ? 'Need a quote?' : "Besoin d'une soumission\u00A0?"}
-              </h2>
-            </div>
-            <Link
-              to="/contact"
-              className="self-center md:self-auto flex-shrink-0 inline-flex items-center justify-center px-8 h-[46px] rounded-full bg-[#E8A838] text-[#1B3A6B] text-[14px] font-extrabold tracking-[-0.2px] shadow-[0_6px_18px_rgba(232,168,56,0.35)] transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(232,168,56,0.5)] focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B]"
-            >
-              {lang === 'en' ? 'Request now' : 'Demander maintenant'}
-            </Link>
-          </div>
-        </section>
-      </FadeIn>
-
       {/* FAQ — native <details><summary> accordion. One-at-a-time open
           behaviour is enforced by the toggle listener in the component
           body; everything else (keyboard nav, aria-expanded, SR
@@ -1121,26 +1030,36 @@ export default function Index() {
         </section>
       </FadeIn>
 
-      {/* Footer CTA */}
+      {/* Loss Aversion — final navy push before the trust-badges row.
+          Replaces both the old Footer CTA and the Sam\u2019s Story
+          emotional anchor. The headline frames the cost of inaction
+          (an ad you\u2019re not running) so the gold CTA reads as the
+          relief, not just a button. */}
       <FadeIn>
-        <section className="scroll-mt-20 py-20 px-6 md:px-10 text-center">
-          <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[1.5px] uppercase border rounded-full px-[18px] py-[7px] mb-[18px]" style={{ color: 'hsl(var(--gold))', background: 'hsla(var(--gold), 0.12)', borderColor: 'hsla(var(--gold), 0.2)' }}>
-            <svg className="w-3.5 h-3.5 stroke-accent fill-none" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L3 14h8l-1 8 10-12h-8l1-8z"/></svg>
-            {lang === 'en' ? 'Delivered in 5 business days' : 'Livré en 5 jours ouvrables'}
+        <section className="scroll-mt-20 bg-[#1B3A6B] py-20 md:py-28 px-6 md:px-10">
+          <div className="max-w-5xl mx-auto text-center">
+            <p className="text-[#E8A838] text-xs font-semibold uppercase tracking-[0.15em] mb-5">
+              {lang === 'en' ? 'The invisible cost' : 'Le co\u00fbt invisible'}
+            </p>
+            <h2 className="font-display font-black text-white text-4xl md:text-6xl leading-[1.0] tracking-tight mb-7">
+              {lang === 'en' ? (
+                <>Every week without a uniform<br /><span className="text-[#E8A838]">is an ad you didn\u2019t run.</span></>
+              ) : (
+                <>Chaque semaine sans uniforme,<br /><span className="text-[#E8A838]">c\u2019est de la publicit\u00e9 perdue.</span></>
+              )}
+            </h2>
+            <p className="text-white/80 text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+              {lang === 'en'
+                ? 'Your crew drives past 100 homes a week. If nobody knows who they work for \u2014 you don\u2019t exist. 500+ Quebec contractors fixed that. Most started with 5 t-shirts.'
+                : 'Tes gars passent devant 100 maisons par semaine. Si personne sait c\u2019est qui \u2014 tu n\u2019existes pas. 500+ entrepreneurs qu\u00e9b\u00e9cois ont r\u00e9gl\u00e9 \u00e7a. La plupart ont commenc\u00e9 avec 5 t-shirts.'}
+            </p>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-2 bg-[#E8A838] hover:bg-[#d18d2d] text-[#1B3A6B] font-semibold px-10 py-5 rounded-xl text-lg shadow-[0_0_40px_rgba(232,168,56,0.35)] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#1B3A6B]"
+            >
+              {lang === 'en' ? 'Order now \u2192' : 'Commander maintenant \u2192'}
+            </Link>
           </div>
-          <h2 className="text-[clamp(34px,5vw,58px)] font-extrabold tracking-[-2px] text-foreground mb-[13px] leading-none">
-            {lang === 'en' ? <>Your brand image<br />starts here.</> : <>{"L'image de ta marque"}<br />commence ici.</>}
-          </h2>
-          <p className="text-[15px] text-muted-foreground mb-[34px]">
-            {lang === 'en' ? 'No minimum · 1-year quality guarantee · 5 business days' : 'Aucun minimum · Qualité garantie 1 an · 5 jours ouvrables'}
-          </p>
-          <Link
-            to="/products"
-            className="text-[17px] font-extrabold text-primary-foreground gradient-navy-dark border-none px-14 py-[18px] rounded-full cursor-pointer transition-all hover:-translate-y-0.5 inline-block focus:outline-none focus-visible:ring-4 focus-visible:ring-[#E8A838]/60 focus-visible:ring-offset-2"
-            style={{ boxShadow: '0 10px 32px hsla(var(--navy), 0.38)' }}
-          >
-            {t('heroCta')}
-          </Link>
         </section>
       </FadeIn>
 
