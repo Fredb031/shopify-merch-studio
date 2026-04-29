@@ -441,5 +441,31 @@ def health() -> None:
         raise typer.Exit(code=1)
 
 
+# ── observability ──────────────────────────────────────────────────────
+
+
+@app.command("metrics")
+def metrics_cmd(
+    host: Optional[str] = typer.Option(
+        None,
+        "--host",
+        help="Bind host (default 0.0.0.0, overridable via EXPORTER_HOST).",
+    ),
+    port: Optional[int] = typer.Option(
+        None,
+        "--port",
+        help="Bind port (default 9100, overridable via EXPORTER_PORT).",
+    ),
+) -> None:
+    """Start the Prometheus exporter on the configured port (Phase 8).
+
+    Long-running — designed to live under ``sanmar-exporter.service``
+    on the production box. Ctrl-C or SIGTERM stops it cleanly.
+    """
+    from sanmar.exporter_app import serve_forever
+
+    serve_forever(host=host, port=port)
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

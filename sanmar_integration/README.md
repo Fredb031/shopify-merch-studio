@@ -516,3 +516,79 @@ sync. The webhook URL is never logged.
   (`SANMAR_ALERT_WEBHOOK_URL`)
 - 13 new tests (82 → 95): `test_notifier.py` (8 tests) +
   `test_orchestrator_alerts.py` (5 tests)
+
+## Phase 8 — Observability spine
+
+The integration ships a Prometheus exporter that turns the SQLite
+cache into scrapable metrics, plus a Grafana dashboard JSON that
+visualises sync health, open orders, and inventory throughput.
+
+### Install
+
+```bash
+pip install -e ".[ops]"
+```
+
+The `[ops]` extra pulls `prometheus_client` (and `streamlit` for the
+operator dashboard).
+
+### Run the exporter
+
+```bash
+python -m sanmar metrics              # → http://localhost:9100/metrics
+python -m sanmar metrics --port 8080  # custom port
+```
+
+`EXPORTER_HOST` / `EXPORTER_PORT` env vars override the defaults.
+Under systemd, install the unit at
+`deploy/systemd/sanmar-exporter.service` — it runs the same command
+as a long-running service with `Restart=on-failure`.
+
+### Metrics exposed
+
+| Metric                                  | Type      | Labels             |
+|-----------------------------------------|-----------|--------------------|
+| `sanmar_sync_duration_seconds`          | Histogram | sync_type, outcome |
+| `sanmar_sync_errors_total`              | Counter   | sync_type          |
+| `sanmar_sync_success_total`             | Counter   | sync_type          |
+| `sanmar_orders_open`                    | Gauge     | —                  |
+| `sanmar_orders_by_status`               | Gauge     | status_id          |
+| `sanmar_inventory_snapshots_24h`        | Counter   | —                  |
+| `sanmar_last_sync_timestamp_seconds`    | Gauge     | sync_type          |
+
+Every metric is recomputed from SQLite on each scrape, so the
+exporter is fully stateless and can crash/restart freely.
+
+### Prometheus scrape config
+
+```yaml
+scrape_configs:
+  - job_name: sanmar
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['sanmar-host:9100']
+```
+
+### Import the Grafana dashboard
+
+1. Grafana → **Dashboards** → **New** → **Import**.
+2. Upload `deploy/grafana/sanmar-ops.json`.
+3. Set the `DS_PROMETHEUS` datasource variable to your Prometheus
+   instance (UID is usually `prometheus`).
+
+The dashboard has 6 panels: 24h sync runs, sync duration p50/p95,
+open orders by status, inventory snapshots/hour, time since last
+sync (red >24h), and recent error rate. A vertical annotation marks
+each completed sync run.
+
+### What Phase 8 added
+
+- `sanmar/exporter.py` — `SanmarMetricsCollector` exposing 7 metrics
+  recomputed from SQLite on each scrape
+- `sanmar/exporter_app.py` — minimal `http.server`-based `/metrics`
+  endpoint with SIGTERM/SIGINT graceful shutdown
+- `python -m sanmar metrics` CLI subcommand
+- `deploy/systemd/sanmar-exporter.service` — long-running unit
+- `deploy/grafana/sanmar-ops.json` + README — 6-panel ops dashboard
+- `prometheus_client>=0.19` added to the `[ops]` extra
+- 10 new tests (95 → 105) in `test_exporter.py`
