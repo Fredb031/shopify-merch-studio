@@ -115,10 +115,10 @@ function tierLabel(productSku: string, qty: number, lang: 'fr' | 'en'): string {
 export default function QuoteRequest() {
   const { lang } = useLang();
   useDocumentTitle(
-    lang === 'en' ? 'Bulk quote request — Vision Affichage' : 'Demande de soumission — Vision Affichage',
+    lang === 'en' ? 'Express quote · Vision Affichage' : 'Devis express · Vision Affichage',
     lang === 'en'
-      ? 'Request a bulk quote from Vision Affichage. Three quick steps, response within 2 hours on business days.'
-      : 'Demandez une soumission en gros à Vision Affichage. Trois étapes rapides, réponse sous 2h en jours ouvrables.',
+      ? 'Get a bulk quote in 3 quick steps. Response within 2 hours on business days. Production in 5 business days. Starting at 1 piece for samples.'
+      : 'Obtiens un devis en 3 étapes rapides. Réponse sous 2h en jours ouvrables. Production en 5 jours ouvrables. À partir d\u2019une pièce pour échantillons.',
     {},
   );
 

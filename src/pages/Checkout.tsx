@@ -16,6 +16,7 @@ import { trackEvent } from '@/lib/analytics';
 import { readLS, writeLS } from '@/lib/storage';
 import { sanitizeText } from '@/lib/sanitize';
 import { computeTax, fmtRate, gstLabel, hstLabel, pstLabel } from '@/lib/tax';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 type Step = 'info' | 'shipping' | 'payment' | 'done';
 
@@ -370,17 +371,23 @@ export default function Checkout() {
     });
   }, [user]);
 
-  useEffect(() => {
-    const prev = document.title;
-    const labels: Record<Step, { en: string; fr: string }> = {
-      info:     { en: 'Checkout · Info',     fr: 'Caisse · Informations' },
-      shipping: { en: 'Checkout · Shipping', fr: 'Caisse · Livraison' },
-      payment:  { en: 'Checkout · Payment',  fr: 'Caisse · Paiement' },
-      done:     { en: 'Order confirmed',     fr: 'Commande confirmée' },
-    };
-    document.title = `${lang === 'en' ? labels[step].en : labels[step].fr} — Vision Affichage`;
-    return () => { document.title = prev; };
-  }, [lang, step]);
+  // Step-aware checkout title — keeps the tab badge in sync with where
+  // the buyer is in the funnel so a backgrounded tab still says "Caisse
+  // · Paiement" not just "Caisse". Routed through useDocumentTitle so
+  // OG/Twitter card metadata is set on the route too (a /checkout link
+  // pasted into a chat won't show stale PDP previews).
+  const checkoutLabels: Record<Step, { en: string; fr: string }> = {
+    info:     { en: 'Checkout · Info',     fr: 'Commande · Informations' },
+    shipping: { en: 'Checkout · Shipping', fr: 'Commande · Livraison' },
+    payment:  { en: 'Checkout · Payment',  fr: 'Commande · Paiement' },
+    done:     { en: 'Order confirmed',     fr: 'Commande confirmée' },
+  };
+  useDocumentTitle(
+    `${lang === 'en' ? checkoutLabels[step].en : checkoutLabels[step].fr} · Vision Affichage`,
+    lang === 'en'
+      ? 'Secure checkout for your custom apparel order. Logo printed in Quebec, delivered in 5 business days. Starting at 1 piece for samples.'
+      : 'Paiement sécurisé pour ta commande de vêtements personnalisés. Logo imprimé au Québec, livré en 5 jours ouvrables. À partir d’une pièce.',
+  );
   // Rehydrate previous shipping-method choice from localStorage so a
   // refresh mid-checkout doesn't silently reset the buyer back to
   // Standard and re-surcharge them (or undo a pickup choice). Falls
@@ -1837,13 +1844,17 @@ function DoneState({
   // Announce success to screen readers the moment the view mounts so
   // non-sighted buyers get the same "Commande confirmée" reassurance as
   // the big check icon provides sighted users.
-  useEffect(() => {
-    const prev = document.title;
-    document.title = lang === 'en'
-      ? `Order confirmed — Vision Affichage`
-      : `Commande confirmée — Vision Affichage`;
-    return () => { document.title = prev; };
-  }, [lang]);
+  // Routed through useDocumentTitle so OG/Twitter previews refresh too
+  // (a confirmation link pasted into Slack shows the branded card, not
+  // the previous step's metadata). Cleanup on unmount restores SPA nav.
+  useDocumentTitle(
+    lang === 'en'
+      ? 'Order confirmed · Vision Affichage'
+      : 'Commande confirmée · Vision Affichage',
+    lang === 'en'
+      ? 'Order confirmed. Track your production and delivery in real time. Logo printed in Quebec and shipped in 5 business days.'
+      : 'Commande confirmée. Suis ta production et ta livraison en temps réel. Logo imprimé au Québec, livré en 5 jours ouvrables.',
+  );
 
   // Pre-compute 24 confetti pieces with varied left position, delay,
   // duration, color, and rotation so the animation feels organic

@@ -10,7 +10,12 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
  */
 export default function Privacy() {
   const { lang } = useLang();
-  useDocumentTitle(lang === 'en' ? 'Privacy policy — Vision Affichage' : 'Politique de confidentialité — Vision Affichage');
+  useDocumentTitle(
+    lang === 'en' ? 'Privacy · Vision Affichage' : 'Confidentialité · Vision Affichage',
+    lang === 'en'
+      ? 'How Vision Affichage collects, uses and protects your data when you order custom apparel, request a quote or browse our shop.'
+      : 'Comment Vision Affichage recueille, utilise et protège tes données lors d\u2019une commande, d\u2019une demande de devis ou d\u2019une visite sur la boutique.',
+  );
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

@@ -61,11 +61,11 @@ export default function Index() {
   const { lang } = useLang();
   useDocumentTitle(
     lang === 'en'
-      ? 'Vision Affichage — Custom corporate apparel printed in 5 days | Quebec'
-      : 'Vision Affichage — Vêtements d’entreprise imprimés en 5 jours | Québec',
+      ? 'Your team. Your image. 5 days. · Vision Affichage'
+      : 'Ton équipe. Ton image. 5 jours. · Vision Affichage',
     lang === 'en'
-      ? 'Print your logo on t-shirts, polos, hoodies and caps. Guaranteed 5 business day delivery across Quebec. Starting from one piece.'
-      : 'Imprimez votre logo sur t-shirts, polos, hoodies et casquettes. Livraison garantie en 5 jours ouvrables partout au Québec. À partir d’une pièce.',
+      ? 'Logo printed on t-shirts, hoodies, polos. Guaranteed 5 business day delivery. Starting at 1 piece. 500+ teams across Quebec trust Vision Affichage.'
+      : 'Logo imprimé sur t-shirts, hoodies, polos. Livraison garantie en 5 jours ouvrables. À partir d\u2019une pièce. 500+ équipes au Québec.',
     {},
   );
   const cart = useCartStore();

@@ -36,17 +36,31 @@ type ChangeFreq = 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly
 type StaticRoute = readonly [path: string, changefreq: ChangeFreq, priority: string];
 
 // Static routes — keep in sync with src/App.tsx. Priorities follow
-// the task spec: home 1.0 daily, products 0.9 weekly, legal 0.3
-// monthly, rest 0.5 monthly.
+// the task spec: home 1.0 daily, products 0.9 weekly, conversion-
+// driving content 0.7-0.8 weekly/monthly, legal 0.3 monthly, the rest
+// 0.5 monthly. Cart / checkout / track / account / admin / vendor /
+// quote-accept / merci / suivi are intentionally omitted — they're
+// behind auth, transactional, or already `Disallow`d in robots.txt
+// so they don't belong in the public crawl index.
 const staticRoutes: readonly StaticRoute[] = [
-  ['/',              'daily',   '1.0'],
-  ['/products',      'weekly',  '0.9'],
-  ['/about',         'monthly', '0.5'],
-  ['/contact',       'monthly', '0.5'],
-  ['/privacy',       'monthly', '0.3'],
-  ['/terms',         'monthly', '0.3'],
-  ['/returns',       'monthly', '0.3'],
-  ['/accessibility', 'monthly', '0.3'],
+  ['/',                                  'daily',   '1.0'],
+  ['/products',                          'weekly',  '0.9'],
+  ['/devis',                             'weekly',  '0.8'],
+  ['/histoires-de-succes',               'weekly',  '0.7'],
+  ['/industries',                        'weekly',  '0.7'],
+  ['/industries/construction',           'monthly', '0.6'],
+  ['/industries/paysagement',            'monthly', '0.6'],
+  ['/industries/plomberie-electricite',  'monthly', '0.6'],
+  ['/industries/corporate',              'monthly', '0.6'],
+  ['/industries/municipalites',          'monthly', '0.6'],
+  ['/comparer',                          'monthly', '0.5'],
+  ['/compte-corporatif',                 'monthly', '0.5'],
+  ['/about',                             'monthly', '0.5'],
+  ['/contact',                           'monthly', '0.5'],
+  ['/privacy',                           'monthly', '0.3'],
+  ['/terms',                             'monthly', '0.3'],
+  ['/returns',                           'monthly', '0.3'],
+  ['/accessibility',                     'monthly', '0.3'],
 ];
 
 // Extract every `shopifyHandle: '...'` from products.ts. The
@@ -65,6 +79,15 @@ if (handles.length === 0) {
   throw new Error('generate-sitemap: no product handles found in src/data/products.ts');
 }
 
+// Case study slugs — same regex-extraction strategy as the product
+// handles above. /histoires-de-succes/:slug pages render real customer
+// stories that deserve their own SERP entry (they target buyer-intent
+// queries like "construction company uniforms quebec").
+const caseStudiesSrc: string = readFileSync(resolve(ROOT, 'src/data/caseStudies.ts'), 'utf8');
+const slugRe = /slug:\s*'([^']+)'/g;
+const caseStudySlugs: string[] = [];
+for (const m of caseStudiesSrc.matchAll(slugRe)) caseStudySlugs.push(m[1]);
+
 const esc = (s: string): string =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -81,6 +104,7 @@ const parts: string[] = [
   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ...staticRoutes.map(([p, cf, pr]) => urlEntry(p, cf, pr)),
   ...handles.map((h) => urlEntry(`/product/${h}`, 'weekly', '0.8')),
+  ...caseStudySlugs.map((s) => urlEntry(`/histoires-de-succes/${s}`, 'monthly', '0.6')),
   '</urlset>',
   '',
 ];
@@ -89,6 +113,6 @@ const outPath = resolve(ROOT, 'public/sitemap.xml');
 writeFileSync(outPath, parts.join('\n'), 'utf8');
 
 console.log(
-  `generate-sitemap: wrote ${staticRoutes.length + handles.length} URLs ` +
-  `(${staticRoutes.length} static + ${handles.length} products) -> public/sitemap.xml`,
+  `generate-sitemap: wrote ${staticRoutes.length + handles.length + caseStudySlugs.length} URLs ` +
+  `(${staticRoutes.length} static + ${handles.length} products + ${caseStudySlugs.length} case studies) -> public/sitemap.xml`,
 );

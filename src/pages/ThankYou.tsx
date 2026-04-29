@@ -79,12 +79,10 @@ export default function ThankYou() {
   const { lang } = useLang();
 
   useDocumentTitle(
+    lang === 'fr' ? 'Merci! · Vision Affichage' : 'Thanks! · Vision Affichage',
     lang === 'fr'
-      ? 'Commande confirmée — Vision Affichage'
-      : 'Order confirmed — Vision Affichage',
-    lang === 'fr'
-      ? 'Merci pour ta commande. Suis ta production et ta livraison en temps réel sur Vision Affichage.'
-      : 'Thanks for your order. Track production and delivery in real time on Vision Affichage.',
+      ? 'Commande confirmée. Suis ta production et ta livraison en temps réel. Logo imprimé et livré en 5 jours ouvrables au Québec.'
+      : 'Order confirmed. Track production and delivery in real time. Logo printed and shipped in 5 business days across Quebec.',
   );
 
   const [params] = useSearchParams();

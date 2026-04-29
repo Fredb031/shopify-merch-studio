@@ -52,10 +52,10 @@ export default function CaseStudies() {
   const { lang } = useLang();
 
   useDocumentTitle(
-    lang === 'en' ? 'Case Studies — Vision Affichage' : 'Études de cas — Vision Affichage',
+    lang === 'en' ? 'Case studies · Vision Affichage' : 'Études de cas · Vision Affichage',
     lang === 'en'
-      ? 'Real Quebec teams, real results — construction, landscaping, corporate, and municipal case studies from Vision Affichage.'
-      : "Vraies équipes du Québec, vrais résultats — études de cas en construction, paysagement, corporatif et municipal chez Vision Affichage.",
+      ? 'Real Quebec teams, real results. Construction, landscaping, corporate and municipal case studies. Logo printed and shipped in 5 business days.'
+      : 'Vraies équipes du Québec, vrais résultats. Études de cas en construction, paysagement, corporatif et municipal. Livré en 5 jours ouvrables.',
   );
 
   return (

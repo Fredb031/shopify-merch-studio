@@ -17,6 +17,7 @@ import { categoryLabel } from '@/lib/productLabels';
 import { readLS, writeLS } from '@/lib/storage';
 import { plural } from '@/lib/plural';
 import type { CartItemCustomization } from '@/types/customization';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 // Task 5.2 — match-style cross-sell. Generic "also bought" rows are
 // noise for a merch cart: what actually helps a company putting
@@ -361,14 +362,20 @@ export default function Cart() {
       maximumFractionDigits: 2,
     });
 
-  useEffect(() => {
-    const prev = document.title;
-    const count = totalQty > 0 ? ` (${totalQty})` : '';
-    document.title = lang === 'en'
-      ? `Cart${count} — Vision Affichage`
-      : `Panier${count} — Vision Affichage`;
-    return () => { document.title = prev; };
-  }, [lang, totalQty]);
+  // Cart title carries the live item count so the tab badge keeps the
+  // shopper anchored even when they've tabbed away. Routes through
+  // useDocumentTitle so OG/Twitter card metadata stays consistent with
+  // the rest of the site (a /cart link pasted in Slack still shows the
+  // branded preview rather than inheriting whatever was last set).
+  const cartCount = totalQty > 0 ? ` (${totalQty})` : '';
+  useDocumentTitle(
+    lang === 'en'
+      ? `Cart${cartCount} · Vision Affichage`
+      : `Panier${cartCount} · Vision Affichage`,
+    lang === 'en'
+      ? 'Review your custom apparel order. Logo printed in Quebec, delivered in 5 business days. Starting at 1 piece for samples.'
+      : 'Revois ta commande de vêtements personnalisés. Logo imprimé au Québec, livré en 5 jours ouvrables. À partir d’une pièce pour échantillons.',
+  );
 
   // Track the safety-net timer so the normal path (navigate unmounts
   // this component within a few ms) doesn't fire setCheckingOut on a

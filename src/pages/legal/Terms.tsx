@@ -10,7 +10,12 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
  */
 export default function Terms() {
   const { lang } = useLang();
-  useDocumentTitle(lang === 'en' ? 'Terms of service — Vision Affichage' : "Conditions d'utilisation — Vision Affichage");
+  useDocumentTitle(
+    lang === 'en' ? 'Terms · Vision Affichage' : 'Termes · Vision Affichage',
+    lang === 'en'
+      ? 'Vision Affichage terms of service. Ordering, production, 5 business day delivery guarantee, payment, returns and intellectual property.'
+      : 'Conditions d\u2019utilisation de Vision Affichage. Commande, production, garantie de livraison en 5 jours ouvrables, paiement, retours et propriété intellectuelle.',
+  );
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

@@ -11,7 +11,12 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
  */
 export default function Accessibility() {
   const { lang } = useLang();
-  useDocumentTitle(lang === 'en' ? 'Accessibility — Vision Affichage' : 'Accessibilité — Vision Affichage');
+  useDocumentTitle(
+    lang === 'en' ? 'Accessibility · Vision Affichage' : 'Accessibilité · Vision Affichage',
+    lang === 'en'
+      ? 'Vision Affichage accessibility statement. Our commitment to inclusive ordering, browsing and communication for every team across Quebec.'
+      : 'Énoncé d\u2019accessibilité de Vision Affichage. Notre engagement pour une commande, une navigation et des communications inclusives partout au Québec.',
+  );
 
   return (
     <div className="min-h-screen bg-white flex flex-col">

@@ -14,10 +14,11 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 export default function About() {
   const { lang } = useLang();
   useDocumentTitle(
-    lang === 'en' ? 'About — Vision Affichage' : 'À propos — Vision Affichage',
+    lang === 'en' ? 'About · Vision Affichage' : 'À propos · Vision Affichage',
     lang === 'en'
       ? "Quebec's merch studio for serious crews. 33,000+ pieces delivered since 2021. 5 business days, no minimum, no mandatory call."
       : "Le studio de merch des entrepreneurs québécois. 33 000+ pièces livrées depuis 2021. 5 jours ouvrables, sans minimum, sans appel obligatoire.",
+    // Task 8.5 — OG overrides; /about uses the default branded image.
     {},
   );
 

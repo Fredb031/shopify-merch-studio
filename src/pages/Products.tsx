@@ -83,13 +83,16 @@ export default function Products() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // Catalog-specific meta description. Bilingual swap on EN toggle.
+  // Master Prompt SEO: 50-60 char title with category bouquet, outcome-
+  // first description mentioning the 5-day SLA + 1-piece minimum.
   useDocumentTitle(
     lang === 'en'
-      ? 'Shop — T-shirts, Polos, Hoodies, Jackets | Vision Affichage'
-      : 'Boutique — T-shirts, Polos, Hoodies, Vestes | Vision Affichage',
+      ? 'Shop uniforms · Vision Affichage'
+      : 'Boutique uniformes · Vision Affichage',
     lang === 'en'
-      ? 'Choose your product and customize it with your logo online.'
-      : 'Choisissez votre produit et personnalisez-le avec votre logo en ligne.',
+      ? 'Browse t-shirts, polos, hoodies and jackets. Customize with your logo, printed in Quebec, delivered in 5 business days. Starting at 1 piece.'
+      : 'Parcours t-shirts, polos, hoodies et vestes. Personnalise avec ton logo, imprimé au Québec, livré en 5 jours ouvrables. À partir d\u2019une pièce.',
     {},
   );
 

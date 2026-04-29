@@ -66,8 +66,11 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
   // via useDocumentTitle's unmount cleanup, so SPA nav can't leak.
   useDocumentTitle(
     lang === 'en'
-      ? 'Customize my product | Vision Affichage'
-      : 'Personnaliser mon produit | Vision Affichage',
+      ? 'Customize your uniform · Vision Affichage'
+      : 'Personnaliser ton uniforme · Vision Affichage',
+    lang === 'en'
+      ? 'Drop your logo, pick your colours, see it on the garment. Quote in seconds, ship in 5 business days. Starting at 1 piece.'
+      : 'Dépose ton logo, choisis tes couleurs, vois-le sur le vêtement. Devis en quelques secondes, livraison en 5 jours ouvrables. À partir d\u2019une pièce.',
   );
 
   // ─── ALL HOOKS MUST STAY ABOVE ANY EARLY RETURN ───────────────────

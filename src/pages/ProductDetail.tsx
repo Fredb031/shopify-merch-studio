@@ -464,20 +464,25 @@ export default function ProductDetail() {
   // + category label (e.g. "Hoodies unisexe ATCF2500 — personnalise ton
   // logo. Livré en 5 jours au Québec."). Falls back to the product
   // title when the local catalog doesn't know this handle yet.
+  // Master Prompt SEO format:
+  //   Title: "[Product] · [Outcome blurb] · Vision Affichage"
+  //   Description: outcome-first, mentions 5 business days + starting
+  //   at 1 piece. Falls back to a generic "[Product] · Vision Affichage"
+  //   when the catalogue lookup hasn't resolved yet.
   const pdpTitle = product
     ? (() => {
         const typeName = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
         return lang === 'en'
-          ? `${typeName} Customized with Your Logo | Vision Affichage`
-          : `${typeName} Personnalisé avec Votre Logo | Vision Affichage`;
+          ? `${typeName} · Logo printed in 5 days · Vision Affichage`
+          : `${typeName} · Logo brodé en 5 jours · Vision Affichage`;
       })()
-    : lang === 'en' ? 'Product — Vision Affichage' : 'Produit — Vision Affichage';
+    : lang === 'en' ? 'Product · Vision Affichage' : 'Produit · Vision Affichage';
   const pdpDescription = product
     ? (() => {
         const label = localProduct ? categoryLabel(localProduct.category, lang) : product.title;
         return lang === 'en'
-          ? `${product.title} — ${label}. Customize with your logo, printed in Québec, delivered in 5 business days.`
-          : `${product.title} — ${label}. Personnalise avec ton logo, imprimé au Québec, livré en 5 jours ouvrables.`;
+          ? `${product.title} (${label}). Customize with your logo, printed in Quebec, delivered in 5 business days. Starting at 1 piece for samples.`
+          : `${product.title} (${label}). Personnalise avec ton logo, imprimé au Québec, livré en 5 jours ouvrables. À partir d\u2019une pièce pour échantillons.`;
       })()
     : undefined;
   // Task 8.5 — OG + Twitter card image points at the actual product
