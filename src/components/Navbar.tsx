@@ -1,10 +1,18 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutDashboard, LogOut, User } from 'lucide-react';
 import { useCartStore } from '@/stores/localCartStore';
 import { useLang, LangToggle } from '@/lib/langContext';
 import { useAuthStore } from '@/stores/authStore';
-import { LoginModal } from '@/components/LoginModal';
+// LoginModal weighs ~14 KB (482 lines: dual-mode auth UI, focus
+// trap, password visibility, supabase signin/up plumbing). It's gated
+// behind a click on the user-icon in Navbar, so lazy-loading it pulls
+// the LoginModal chunk out of the eager `index` bundle that lands on
+// every page. Suspense fallback is null because the modal is hidden
+// until the user opens it — there's nothing visible to fall back to.
+const LoginModal = lazy(() =>
+  import('@/components/LoginModal').then((m) => ({ default: m.LoginModal })),
+);
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface NavbarProps {
@@ -317,9 +325,14 @@ export function Navbar({ onOpenCart, onOpenLogin }: NavbarProps) {
         </Link>
       </div>
 
-      {/* Internal LoginModal — every page that uses Navbar gets login for free */}
-      {!user && !onOpenLogin && (
-        <LoginModal isOpen={internalLoginOpen} onClose={() => setInternalLoginOpen(false)} />
+      {/* Internal LoginModal — every page that uses Navbar gets login for free.
+          Wrapped in Suspense because it's lazy-loaded; the modal mount itself
+          is gated by `internalLoginOpen` so the chunk only fetches once the
+          user actually opens the modal (clicks the user icon). */}
+      {!user && !onOpenLogin && internalLoginOpen && (
+        <Suspense fallback={null}>
+          <LoginModal isOpen={internalLoginOpen} onClose={() => setInternalLoginOpen(false)} />
+        </Suspense>
       )}
     </nav>
   );

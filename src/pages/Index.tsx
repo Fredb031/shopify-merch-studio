@@ -13,7 +13,16 @@ const IntroAnimation = lazy(() => import('@/components/IntroAnimation').then(m =
 const CartDrawer = lazy(() =>
   import('@/components/CartDrawer').then((m) => ({ default: m.CartDrawer }))
 );
-import { LoginModal } from '@/components/LoginModal';
+// Phase 8 perf — LoginModal is ~14 KB of auth UI that only mounts
+// after the user clicks the navbar user-icon (or the "Connectez-vous"
+// CTA in the QuickPriceCalculator). Eagerly importing it dragged
+// LoginModal + its lucide icons + email-validation helpers into the
+// home-page eager `index` chunk that every visitor pays for at first
+// paint. Lazy import + a gated mount keeps the modal off the critical
+// path entirely on cold visits.
+const LoginModal = lazy(() =>
+  import('@/components/LoginModal').then((m) => ({ default: m.LoginModal })),
+);
 import { AIChat } from '@/components/AIChat';
 import { FeaturedProducts } from '@/components/FeaturedProducts';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -396,7 +405,11 @@ export default function Index() {
         {showLoader && <IntroAnimation onComplete={handleLoaderComplete} />}
         {showGame && <MoleGame isOpen={showGame} onClose={handleGameClose} />}
       </Suspense>
-      <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+      {loginOpen && (
+        <Suspense fallback={null}>
+          <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
+        </Suspense>
+      )}
       <Navbar onOpenCart={() => setCartOpen(true)} onOpenLogin={() => setLoginOpen(true)} />
       <Suspense fallback={null}>
         <CartDrawer isOpen={cartOpen} onClose={() => setCartOpen(false)} />
