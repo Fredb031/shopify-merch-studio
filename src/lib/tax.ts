@@ -86,7 +86,14 @@ export function computeTax(
   province: string | undefined,
 ): TaxBreakdown {
   const code = (province ?? '').toUpperCase() as ProvinceCode;
-  const resolved: ProvinceCode = code in TAX_RATES_BY_PROVINCE ? code : 'QC';
+  // hasOwn guard rather than `in`: the latter walks the prototype chain,
+  // so `province="__proto__"` (or "toString", "hasOwnProperty", …) would
+  // resolve to Object.prototype and `rates.gst * subtotal` then yields
+  // NaN tax on an otherwise-valid order. Restrict to own properties so
+  // every fallback path lands cleanly on QC.
+  const resolved: ProvinceCode = Object.prototype.hasOwnProperty.call(TAX_RATES_BY_PROVINCE, code)
+    ? code
+    : 'QC';
   const rates = TAX_RATES_BY_PROVINCE[resolved];
   // Clamp to non-negative: a negative subtotal would yield a negative tax
   // line, which is never a legal Canadian tax result. Treat it as 0.
