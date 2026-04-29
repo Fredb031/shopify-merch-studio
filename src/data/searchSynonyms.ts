@@ -92,15 +92,14 @@ const SYNONYMS_RAW: Record<string, string[]> = {
 
 /**
  * Normalise a token the same way the consumer (search.ts) does: NFD decompose,
- * strip combining marks, lowercase, trim. Kept inline here so this module has
- * zero runtime deps and the contract check below can't drift from the consumer.
+ * strip combining marks, lowercase, trim. The diacritic strip + case fold is
+ * delegated to the canonical `normalize()` helper in src/lib/normalize.ts so
+ * the contract check below can't drift from the consumer; we add `.trim()`
+ * ourselves to mirror search.ts's `normalise()`.
  */
+import { normalize as canonicalNormalize } from '@/lib/normalize';
 function normaliseKey(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .trim();
+  return canonicalNormalize(s).trim();
 }
 
 /**

@@ -38,6 +38,7 @@
  *    re-renders for an unrelated state change.
  */
 import { useMemo } from 'react';
+import { normalizeChar } from '@/lib/normalize';
 
 interface HighlightProps {
   text: string;
@@ -53,11 +54,6 @@ const MAX_TEXT_LEN = 10_000;
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-
-// Combining diacritic mark range — same U+0300-U+036F predicate used
-// by src/lib/search.ts and src/lib/colorMap.ts. Pulled into a constant
-// so the regex isn't re-compiled per call.
-const COMBINING_MARK = /[̀-ͯ]/;
 
 /**
  * Strip diacritics + lowercase `text`, AND emit a parallel `posMap`
@@ -81,21 +77,21 @@ function buildNormalized(text: string): { norm: string; posMap: number[] } {
   const posMap: number[] = [];
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
-    // Decompose this single char and strip its combining marks. Most
-    // Latin chars are 1:1; precomposed accented letters become base+
-    // mark(s) and we keep only the base.
-    const decomposed = ch.normalize('NFD');
-    let base = '';
-    for (const dch of decomposed) {
-      if (!COMBINING_MARK.test(dch)) base += dch;
-    }
-    if (base.length === 0) {
+    // Decompose this single char, strip combining marks, and lowercase
+    // via the canonical helper in src/lib/normalize.ts so this module
+    // shares a source of truth with searchIndex.ts / search.ts /
+    // colorMap.ts. Most Latin chars are 1:1; precomposed accented
+    // letters become base+mark(s) and we keep only the base. The shape
+    // of the per-codepoint walk is preserved: we still emit one posMap
+    // entry per produced output char so a slice of the ORIGINAL string
+    // by stripped index lands on the right boundary.
+    const lower = normalizeChar(ch);
+    if (lower.length === 0) {
       // Pure combining mark in the original (rare — would happen if
       // upstream data is already decomposed). Skip; it folds into the
       // previous base char's normalised representation.
       continue;
     }
-    const lower = base.toLowerCase();
     for (let j = 0; j < lower.length; j++) {
       norm += lower[j];
       posMap.push(i);

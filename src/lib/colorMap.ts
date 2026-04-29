@@ -9,24 +9,17 @@
  */
 
 /**
- * Strip diacritics + lowercase. Mirrors the `normaliseIndexText()` helper
- * in searchIndex.ts (2a831fb) and the `normalise()` in search.ts so the
- * three modules share one character-space contract: a query typed as
- * "vert foret" / "bleu pale" / "creme" / "cafe" lands on the same key
- * the customizer rendered with "Vert forêt" / "Bleu pâle" / "Crème" /
- * "Café". Without this, Tier 2's case-insensitive compare alone leaves
- * every accented FR colour name (≈12 of the ~80 catalogue entries:
- * Crème, Noir chiné, Gris pâle, Gris foncé, Gris chiné, Bleu pâle,
- * Bleu pétrole, Vert forêt, Vert armée, Orange brûlé, Bourgogne, Café)
- * silently falling through to the Tier 4 hash — producing a muted hue
- * instead of the actual swatch on every customizer render.
+ * Strip diacritics + lowercase. Aliased to the canonical `normalize()`
+ * helper in src/lib/normalize.ts so this module shares one character-space
+ * contract with searchIndex.ts (2a831fb), search.ts, and every other
+ * producer/matcher pair. Without this, Tier 2's case-insensitive compare
+ * alone leaves every accented FR colour name (≈12 of the ~80 catalogue
+ * entries: Crème, Noir chiné, Gris pâle, Gris foncé, Gris chiné, Bleu
+ * pâle, Bleu pétrole, Vert forêt, Vert armée, Orange brûlé, Bourgogne,
+ * Café) silently falling through to the Tier 4 hash — producing a muted
+ * hue instead of the actual swatch on every customizer render.
  */
-function normaliseColorName(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-}
+import { normalize as normaliseColorName } from '@/lib/normalize';
 
 export const COLOR_MAP: Record<string, string> = {
   // ── Blacks / charcoals ────────────────────────────────────────────────

@@ -15,22 +15,18 @@
  * product the moment a teammate forgot a field.
  */
 import { PRODUCTS, type Product } from '@/data/products';
+import { normalize as normaliseIndexText } from '@/lib/normalize';
 
 /**
- * Strip diacritics + lowercase. Mirrors the `normalise()` helper in
- * search.ts so the haystack we scan and the query we receive live in the
- * same character space. searchSynonyms.ts (8797ad5) already enforces
- * normalised keys for the same reason — without this the haystack
- * contained "vert forêt" / "bleu pâle" / "gris foncé chiné" while
- * incoming queries arrived as "foret" / "pale" / "fonce", causing every
- * accented colour name to silently miss substring + Levenshtein scoring.
+ * Index-side text normaliser. Aliased to the canonical `normalize()` helper
+ * in src/lib/normalize.ts so the haystack we scan here, the query we get in
+ * search.ts, and every other producer/matcher pair share one source of
+ * truth. searchSynonyms.ts (8797ad5) already enforces normalised keys for
+ * the same reason — without this the haystack contained "vert forêt" /
+ * "bleu pâle" / "gris foncé chiné" while incoming queries arrived as
+ * "foret" / "pale" / "fonce", causing every accented colour name to
+ * silently miss substring + Levenshtein scoring.
  */
-function normaliseIndexText(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
-}
 
 export interface SearchIndexEntry {
   /** Lowercase SKU, used as stable id */

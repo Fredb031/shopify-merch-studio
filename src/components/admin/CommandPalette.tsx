@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { normalize } from '@/lib/normalize';
 
 /**
  * Admin command palette — Cmd/Ctrl+K from anywhere inside the admin
@@ -120,8 +121,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     // would miss the "parametres" keyword on Settings, "génération"
     // would miss "generation" on Images, etc. — French admins routinely
     // type the accented form and expect a hit.
-    const norm = (s: string) =>
-      s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    // Use the canonical `normalize()` helper imported from src/lib/normalize.ts
+    // so this palette shares the project-wide search contract with search.ts,
+    // colorMap.ts, aiKnowledgeBase.ts, AdminClients, QuoteList, etc.
+    const norm = normalize;
     const q = norm(query.trim());
     if (!q) {
       // When no query, the "Pages" section excludes anything already

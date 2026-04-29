@@ -17,6 +17,7 @@
  */
 import { SEARCH_INDEX, type SearchIndexEntry } from '@/lib/searchIndex';
 import { SYNONYMS } from '@/data/searchSynonyms';
+import { normalize as canonicalNormalize } from '@/lib/normalize';
 
 /**
  * Centralised tuning knobs for the search engine. Lifted out of the body so
@@ -44,11 +45,15 @@ export const SEARCH_TUNING = {
  * unicode-correct way to do this without an external lib.
  */
 function normalise(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
+  // Diacritic strip + lowercase delegated to the shared `normalize()` helper
+  // in src/lib/normalize.ts so this module shares one character-space
+  // contract with searchIndex.ts, colorMap.ts, etc. \u2014 drift between producer
+  // and matcher silently breaks every accented hit. The `.trim()` stays here
+  // because callers feed raw <input value> strings and we don't want stray
+  // whitespace to derail the tokenizer regex below; the canonical helper
+  // deliberately doesn't trim so consumers that don't want trim (Highlight,
+  // colorMap) keep working.
+  return canonicalNormalize(s).trim();
 }
 
 /**

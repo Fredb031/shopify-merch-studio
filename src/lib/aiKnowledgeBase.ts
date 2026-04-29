@@ -15,6 +15,8 @@
  * Update this file when a business fact changes.
  */
 
+import { normalize as canonicalNormalize } from '@/lib/normalize';
+
 export type Lang = 'fr' | 'en';
 
 export type KBEntry = {
@@ -489,7 +491,13 @@ export const KB_TOPICS: ReadonlyArray<Readonly<KBTopic>> = Object.freeze(
 
 /** Strip accents + lowercase so "déLAi" matches "delai". */
 function normalize(s: string): string {
-  return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Aliased to the canonical `normalize()` helper in src/lib/normalize.ts so
+  // this module shares one character-space contract with the search index,
+  // color map, and admin tables. NOTE: the previous local implementation
+  // lowercased BEFORE normalize/strip; the canonical helper does it after.
+  // For all FR/EN text in the KB the output is identical (combining marks
+  // have no case and Latin lower/upper round-trip cleanly through NFD).
+  return canonicalNormalize(s);
 }
 
 /** Tokenize a query into meaningful terms (≥3 chars, no stopwords). */

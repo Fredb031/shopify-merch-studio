@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Plus, Copy, Send, Eye, Download, FileText } from 'lucide-react';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { normalizeInvisible } from '@/lib/utils';
+import { normalize as normaliseSearch } from '@/lib/normalize';
 import { downloadCsv } from '@/lib/csv';
 
 type Status = 'draft' | 'sent' | 'viewed' | 'accepted' | 'paid' | 'expired';
@@ -102,12 +103,9 @@ function coerceStatus(raw: unknown): Status {
 // (ZWSP strip) we cover both invisible and accent mismatches in one
 // pass; both sides of the comparison must live in the same character
 // space or .includes() returns false.
-function normaliseSearch(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
+// `normaliseSearch` above is the canonical `normalize()` helper from
+// src/lib/normalize.ts, shared with AdminClients (3a536ec) and
+// CommandPalette (2906d98). See comment block.
 
 // Accepts either `?status=` (what VendorDashboard's quick-links emit)
 // or `?filter=` (mirror of the admin URL scheme) as the initial filter

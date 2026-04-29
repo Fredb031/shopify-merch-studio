@@ -7,6 +7,7 @@ import {
 } from '@/data/shopifySnapshot';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 import { fmtMoney } from '@/lib/format';
+import { normalize as normaliseSearch } from '@/lib/normalize';
 
 // Volume II §22 — Admin Clients (B2B-aware customer roster).
 //
@@ -55,19 +56,13 @@ function formatDate(iso: string | null): string {
 // group sensibly.
 const CONSUMER_DOMAINS = new Set(['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'live.com', 'me.com']);
 
-// Strip diacritics + lowercase so French queries match French data.
-// Mirrors the NFD-strip contract used by src/lib/searchIndex.ts (2a831fb)
-// and src/lib/colorMap.ts (1e7268d): the haystack here is full of
-// Quebec names/cities ("Lévis", "Québec", "Marc-André", "Frédérick",
-// "Saint-Jean-sur-Richelieu") so a query like "levis"/"andre"/"frederick"
-// would silently miss every accented row without normalisation. Both
-// sides of the comparison must live in the same character space.
-function normaliseSearch(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
+// Strip diacritics + lowercase so French queries match French data — the
+// `normaliseSearch` import above is the canonical `normalize()` helper from
+// src/lib/normalize.ts. The haystack here is full of Quebec names/cities
+// ("Lévis", "Québec", "Marc-André", "Frédérick", "Saint-Jean-sur-Richelieu")
+// so a query like "levis"/"andre"/"frederick" would silently miss every
+// accented row without normalisation. Both sides of the comparison must
+// live in the same character space, hence the shared helper.
 
 function deriveCompany(c: ShopifyCustomerSnapshot): string {
   const tagHint = c.tags
