@@ -249,3 +249,33 @@ nothing else reads from them.
 - Admin dashboard: `src/pages/admin/AdminSanMar.tsx`
 - Customer-facing tracking: `src/pages/TrackOrder.tsx` (`/suivi/:orderNumber`)
 - Tests: `supabase/functions/_shared/sanmar/__tests__/`
+
+---
+
+## Optional but recommended: daily digest
+
+The SanMar TS layer ships proactive failure alerts (red) and recovery
+alerts (green) via `notify.ts`. Those tell operators when something
+breaks or just healed — but on a quiet day, silence is ambiguous: did
+the syncs run cleanly, or has cron stopped firing entirely?
+
+The `sanmar-daily-digest` edge function fills that gap with a
+once-per-day "all is well" heartbeat at **08:00 ET** (12:00 UTC, with
+±1 h DST drift we accept). The Slack-format message contains:
+
+- **Sync stats (last 24 h)**: total runs, successes vs failures, broken
+  down per sync type (catalog / inventory / order_status). Plus
+  aggregate totals: products synced and inventory snapshots taken.
+- **Open orders** grouped by status name.
+- **Open AR balance** in CAD — sum of `total_amount_cad` across rows
+  with `status_id < 80` (or NULL).
+
+**No additional config**: the digest reuses the same
+`SANMAR_ALERT_WEBHOOK_URL` env var as the failure / recovery alerts.
+Once the digest migrations (`20260429190000_sanmar_alert_log_digest.sql`
+and `20260429191000_sanmar_digest_cron.sql`) are applied and the
+function is deployed, it runs automatically. Each run records an audit
+row in `sanmar_alert_log` with `alert_kind='digest'`.
+
+To disable: `SELECT cron.unschedule('sanmar-daily-digest');` — the
+edge function and audit table stay in place, just no longer triggered.
