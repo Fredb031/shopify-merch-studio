@@ -444,3 +444,18 @@ Running list — each bug = 1 fix commit:
 - If a task turns out unnecessary, mark `[-]` with a one-line reason.
 
 **Current shipped commits:** 100+ on main this session (see git log).
+
+---
+
+## OPERATOR FOLLOW-UPS — Phase 8 (Performance + QA)
+
+These items require human/operator action and cannot be safely automated by the agent.
+
+- [ ] **OP-1: `/public/hero-team.webp` real asset** — current file is a 34-byte 1x1 placeholder WebP committed by the agent so the `<link rel="preload" as="image">` in `index.html` and `<img src="/hero-team.webp">` in `src/pages/Index.tsx:428` don't 404. Replace with a real ~800x600 dark-tone team photograph (target < 80 KB, quality 80-85).
+- [ ] **OP-2: Convert oversized product JPGs to WebP** — `find /public/products -size +150k -name '*.jpg'` returned ~140 files ranging 150-364 KB. `cwebp` is not available on the dev machine; image conversion deferred to operator. Operator: `brew install webp && for f in public/products/*.jpg; do cwebp -q 80 "$f" -o "${f%.jpg}.webp"; done`, then update product imageDevant URLs (or add a Vite transform / use `<picture>` fallbacks). Estimated savings: ~12 MB total / 50 % per file.
+- [ ] **OP-3: `META_PIXEL_ID = 'YOUR_PIXEL_ID'`** placeholder in `src/lib/analytics.ts:35` — guarded by 5febab1 so it no-ops in prod, but a real ID is needed before marketing tracking lights up. Set the constant or wire `import.meta.env.VITE_META_PIXEL_ID`.
+- [ ] **OP-4: Real client-logo SVGs for hero marquee** — currently text pills in `src/pages/Index.tsx`. Provide `/public/logos/clients/*.svg` (mono, ~80x30 px) and swap the marquee to `<img>` tags.
+- [ ] **OP-5: Apply Supabase migrations (Step 3 + 5 + 6)** — `sanmar_catalog`, sync indexes, `pg_cron` schedule. Without these the `sanmar-product` edge function returns non-2xx on preflight (the only console.error encountered during the Phase 8 E2E customizer flow).
+- [ ] **OP-6: Set Supabase secrets for SanMar + CRON_SECRET** — `SANMAR_USER`, `SANMAR_PWD`, `SANMAR_CUSTOMER_NUMBER`, `CRON_SECRET`. Configure via `supabase secrets set`.
+- [ ] **OP-7: Submit Supabase egress IPs to SanMar for whitelisting** — SanMar SOAP endpoint requires source-IP allowlist.
+- [ ] **OP-8: Lighthouse mobile score 77 (target 85)** — production-build LCP is 4.0 s (target < 2.5 s) and FCP 3.5 s (target < 1.5 s). Largest single win is the `supabase` chunk: 196 KB raw / 92 KB unused JS per Lighthouse `unused-javascript`. Suggested next steps: (a) lazy-import `@supabase/supabase-js` only on routes that need it (admin, customizer, account) instead of treating it as an eager vendor chunk; (b) consider a postgrest-direct-fetch shim for read-only product lookups; (c) replace the placeholder hero-team.webp (OP-1) — Lighthouse currently LCPs against the gradient backdrop.
