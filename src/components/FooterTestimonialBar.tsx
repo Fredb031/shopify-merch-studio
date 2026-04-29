@@ -11,14 +11,23 @@ import { Star } from 'lucide-react';
 // Source data is inline because src/data/reviews.ts hasn't been
 // created in the homepage rebuild yet — when it lands, this list can
 // be swapped for an import without touching the rotation logic.
-const REVIEW_LINES = [
-  { name: 'Samuel L.', industry: 'Paysagement', text: 'Reçu en 4 jours. Qualité parfaite.' },
-  { name: 'William B.', industry: 'Construction', text: 'Le meilleur fournisseur d\u2019uniformes au Québec.' },
-  { name: 'Marie-Eve T.', industry: 'Services', text: 'Mon équipe adore les nouveaux uniformes.' },
-  { name: 'Jean-Philippe R.', industry: 'Plomberie', text: 'Commande de 20 pièces livrée en seulement 4 jours.' },
-  { name: 'Alexandre D.', industry: 'Rénovation', text: 'Super facile à commander, résultat parfait à chaque fois.' },
-  { name: 'Maxime L.', industry: '\u00c9lectrique', text: 'Le meilleur fournisseur d\u2019uniformes au Québec. Point final.' },
-] as const;
+//
+// Frozen at the array AND per-entry level so a stray consumer (or a
+// future bug anywhere in the SPA) cannot do `REVIEW_LINES[0].text =
+// '…'` mid-session and silently rewrite a review for every subsequent
+// rotation. `as const` already enforces compile-time readonly, but a
+// plain assignment with a `// @ts-expect-error` would still succeed at
+// runtime — freezing makes that mutation throw in strict mode. Mirrors
+// the freeze pattern applied to RECENT_ORDERS, AUTOMATIONS, COLOR_MAP,
+// productLabels, etc.
+const REVIEW_LINES = Object.freeze([
+  Object.freeze({ name: 'Samuel L.', industry: 'Paysagement', text: 'Reçu en 4 jours. Qualité parfaite.' }),
+  Object.freeze({ name: 'William B.', industry: 'Construction', text: 'Le meilleur fournisseur d’uniformes au Québec.' }),
+  Object.freeze({ name: 'Marie-Eve T.', industry: 'Services', text: 'Mon équipe adore les nouveaux uniformes.' }),
+  Object.freeze({ name: 'Jean-Philippe R.', industry: 'Plomberie', text: 'Commande de 20 pièces livrée en seulement 4 jours.' }),
+  Object.freeze({ name: 'Alexandre D.', industry: 'Rénovation', text: 'Super facile à commander, résultat parfait à chaque fois.' }),
+  Object.freeze({ name: 'Maxime L.', industry: 'Électrique', text: 'Le meilleur fournisseur d’uniformes au Québec. Point final.' }),
+] as const);
 
 const ROTATION_MS = 6000;
 const FADE_MS = 400;
