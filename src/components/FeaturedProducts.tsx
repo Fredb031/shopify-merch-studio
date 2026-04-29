@@ -119,7 +119,18 @@ export function FeaturedProducts() {
                   {categoryLabel(p.category, lang)}
                 </div>
                 <div className="text-xs text-[#0052CC] font-bold mt-1">
-                  {lang === 'en' ? 'From' : 'À partir de'} {priceFmt} $
+                  {/* Locale-aware money: en-CA renders "$27.54" with the
+                      dollar sign as a prefix, fr-CA renders "27,54 $" as
+                      a suffix. The previous template hard-coded a
+                      trailing " $" regardless of lang, so the EN side of
+                      the card showed the French convention ("From 27.54 $")
+                      next to the en-CA dot decimal — visibly out of step
+                      with every other price on the storefront. The
+                      aria-label above already used the correct prefix
+                      placement, which made this the only surface that
+                      drifted. */}
+                  {lang === 'en' ? 'From' : 'À partir de'}{' '}
+                  {lang === 'en' ? `$${priceFmt}` : `${priceFmt} $`}
                 </div>
               </div>
             </Link>
