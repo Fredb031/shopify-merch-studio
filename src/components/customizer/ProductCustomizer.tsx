@@ -680,7 +680,7 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
     { id: 3, label: 'Zone',     labelEn: 'Zone'     },
     { id: 4, label: 'Logo',     labelEn: 'Logo'     },
     { id: 5, label: 'Quantité', labelEn: 'Quantity' },
-    { id: 6, label: 'Résumé',   labelEn: 'Resume'   },
+    { id: 6, label: 'Résumé',   labelEn: 'Review'   },
   ];
 
   // Task 17.5 — Stepper tick animation.
@@ -1268,71 +1268,105 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
               checklist so the user sees at a glance how much of the
               full configuration they've covered. State derives from
               existing flags — no new state machinery. */}
-          {/* Mobile: compact "Étape X / 6 — <label>" line above the
-              bubble row. Saves vertical space on small phones where the
-              individual step labels don't fit. Hidden on sm+ where the
-              full bubbled labels render. */}
-          <div className="sm:hidden px-5 pt-3 pb-1 text-[11px] font-bold text-[#0052CC] flex items-center justify-between">
-            <span>
-              {lang === 'en' ? 'Step' : 'Étape'} {fiveStepStatus.currentIndex + 1}/{FIVE_STEPS.length}
-              <span className="ml-1.5 text-foreground/80">·</span>
-              <span className="ml-1.5 text-foreground">
-                {lang === 'en'
-                  ? FIVE_STEPS[fiveStepStatus.currentIndex].labelEn
-                  : FIVE_STEPS[fiveStepStatus.currentIndex].label}
-              </span>
-            </span>
-            <span className="text-muted-foreground font-medium">
-              {fiveStepStatus.completed.filter(Boolean).length}/{FIVE_STEPS.length} ✓
-            </span>
-          </div>
-          <ol
-            className="flex items-center gap-1.5 px-5 pt-3 sm:pt-3 pb-2"
-            aria-label={lang === 'en' ? 'Customizer checklist' : 'Liste de personnalisation'}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={FIVE_STEPS.length}
-            aria-valuenow={fiveStepStatus.currentIndex + 1}
-            aria-valuetext={`${lang === 'en' ? 'Step' : 'Étape'} ${fiveStepStatus.currentIndex + 1} / ${FIVE_STEPS.length}`}
-          >
-            {FIVE_STEPS.map((s, idx) => {
-              const isDone = fiveStepStatus.completed[idx] && idx !== fiveStepStatus.currentIndex;
+          {/* Master Prompt 6-step indicator — Produit · Couleur · Zone ·
+              Logo · Quantité · Résumé. Per-dot tokens come from va.*:
+              done = bg-va-blue + check, current = bg-va-ink with blue
+              ring, future = bg-va-line + va-muted. Connector lines bridge
+              dots horizontally; va-blue between two done dots, va-line
+              elsewhere. The dots row uses items-center so connectors
+              cross through each dot's midpoint. */}
+          {(() => {
+            const dotState = (idx: number) => {
               const isCurrent = idx === fiveStepStatus.currentIndex;
-              const stateSr = isDone
-                ? (lang === 'en' ? 'completed' : 'complété')
-                : isCurrent
-                  ? (lang === 'en' ? 'current step' : 'étape courante')
-                  : (lang === 'en' ? 'upcoming' : 'à venir');
-              return (
-                <li
-                  key={s.id}
-                  className="flex-1 min-w-0 flex flex-col items-center gap-1"
-                  aria-current={isCurrent ? 'step' : undefined}
-                  aria-label={`${s.id}. ${lang === 'en' ? s.labelEn : s.label} — ${stateSr}`}
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-black transition-all ${
-                      isDone
-                        ? 'bg-[#0052CC] text-white'
-                        : isCurrent
-                          ? 'bg-white text-[#0052CC] ring-2 ring-[#0052CC] scale-110'
-                          : 'bg-[#E5E7EB] text-muted-foreground'
-                    }`}
-                  >
-                    {isDone ? <Check size={11} strokeWidth={4} /> : s.id}
-                  </span>
-                  <span
-                    className={`hidden sm:block text-[9px] leading-none truncate w-full text-center ${
-                      isCurrent ? 'font-black text-[#0052CC]' : isDone ? 'font-bold text-[#0052CC]/70' : 'font-medium text-muted-foreground'
-                    }`}
-                  >
-                    {lang === 'en' ? s.labelEn : s.label}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
+              const isDone = fiveStepStatus.completed[idx] && !isCurrent;
+              return { isCurrent, isDone, isFuture: !isCurrent && !isDone };
+            };
+            return (
+              <div
+                className="px-5 pt-4 pb-3"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={FIVE_STEPS.length}
+                aria-valuenow={fiveStepStatus.currentIndex + 1}
+                aria-valuetext={`${lang === 'en' ? 'Step' : 'Étape'} ${fiveStepStatus.currentIndex + 1} / ${FIVE_STEPS.length}`}
+                aria-label={lang === 'en' ? 'Customizer checklist' : 'Liste de personnalisation'}
+              >
+                {/* Row of dots + connectors — items-center makes the
+                    connector lines hit each dot's vertical midpoint. */}
+                <ol className="flex items-center">
+                  {FIVE_STEPS.map((s, idx) => {
+                    const { isDone, isCurrent } = dotState(idx);
+                    const stateSr = isDone
+                      ? (lang === 'en' ? 'completed' : 'complété')
+                      : isCurrent
+                        ? (lang === 'en' ? 'current step' : 'étape courante')
+                        : (lang === 'en' ? 'upcoming' : 'à venir');
+                    const isLast = idx === FIVE_STEPS.length - 1;
+                    const next = isLast ? null : dotState(idx + 1);
+                    // Master Prompt rule: connector is va-blue ONLY when
+                    // both endpoints are done; any future-dot involvement
+                    // (current counts as non-done here) drops to va-line.
+                    const connectorBlue = next ? isDone && next.isDone : false;
+                    return (
+                      <li
+                        key={s.id}
+                        className="flex items-center flex-shrink-0"
+                        style={isLast ? undefined : { flex: '1 1 0%' }}
+                        aria-current={isCurrent ? 'step' : undefined}
+                        aria-label={`${s.id}. ${lang === 'en' ? s.labelEn : s.label} — ${stateSr}`}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold transition-all flex-shrink-0 ${
+                            isDone
+                              ? 'bg-va-blue text-white'
+                              : isCurrent
+                                ? 'bg-va-ink text-white ring-2 ring-va-blue ring-offset-2 ring-offset-white'
+                                : 'bg-va-line text-va-muted'
+                          }`}
+                        >
+                          {isDone ? <Check className="w-4 h-4" strokeWidth={3} /> : s.id}
+                        </span>
+                        {!isLast && (
+                          <span
+                            aria-hidden="true"
+                            className={`h-0.5 flex-1 mx-2 ${connectorBlue ? 'bg-va-blue' : 'bg-va-line'}`}
+                          />
+                        )}
+                      </li>
+                    );
+                  })}
+                </ol>
+                {/* Labels row — tracks the dots above so each label
+                    sits below its dot. Same flex skeleton; the trailing
+                    spacer mirrors the missing connector after the last
+                    dot to keep label centering aligned. */}
+                <ol className="flex items-start mt-2" aria-hidden="true">
+                  {FIVE_STEPS.map((s, idx) => {
+                    const { isFuture } = dotState(idx);
+                    const isLast = idx === FIVE_STEPS.length - 1;
+                    return (
+                      <li
+                        key={`label-${s.id}`}
+                        className="flex items-start flex-shrink-0"
+                        style={isLast ? undefined : { flex: '1 1 0%' }}
+                      >
+                        <span
+                          className={`font-medium text-xs w-8 text-center leading-tight whitespace-nowrap ${
+                            isFuture ? 'text-va-muted' : 'text-va-ink'
+                          }`}
+                          style={{ marginLeft: '-12px', marginRight: '-12px' }}
+                        >
+                          {lang === 'en' ? s.labelEn : s.label}
+                        </span>
+                        {!isLast && <span className="flex-1 mx-2" />}
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            );
+          })()}
 
           <div className="px-5 py-3 flex items-center gap-3">
           <div className="flex-shrink-0">
@@ -1379,96 +1413,10 @@ export function ProductCustomizer({ productId, onClose }: { productId: string; o
             }
           `}</style>
 
-          {/* Horizontal progress bar — each step is a segment that
-              brightens as the user advances. A thick fill underneath the
-              labels makes the current step unambiguous at a glance, and
-              completed segments go full primary so the user sees how
-              much is left. Semantic ol preserved so screen readers still
-              announce "step X of 3" with aria-current on the live step. */}
-          <ol
-            className="flex-1 flex items-stretch gap-1.5 px-1"
-            aria-label={lang === 'en' ? 'Customizer progress' : 'Progression du personnalisateur'}
-          >
-            {STEPS.map((s) => {
-              const isActive = store.step === s.id;
-              const isDone = store.step > s.id;
-              const isClickable = (isDone || s.done) && s.id < store.step;
-              const stateSr = isDone
-                ? (lang === 'en' ? 'completed' : 'complété')
-                : isActive
-                  ? (lang === 'en' ? 'current step' : 'étape courante')
-                  : (lang === 'en' ? 'upcoming' : 'à venir');
-              return (
-                <li
-                  key={s.id}
-                  className="flex-1 min-w-0 flex flex-col gap-1"
-                  aria-current={isActive ? 'step' : undefined}
-                >
-                  <button
-                    type="button"
-                    onClick={() => isClickable && store.setStep(s.id)}
-                    disabled={!isClickable && !isActive}
-                    aria-label={`${s.id}. ${s.label} — ${stateSr}`}
-                    className={`group flex items-center gap-1.5 text-[11px] font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded px-1 ${
-                      isActive
-                        ? 'text-[#1B3A6B]'
-                      : isDone
-                        ? 'text-primary cursor-pointer hover:text-primary/80'
-                      : 'text-muted-foreground cursor-default'
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`inline-flex items-center justify-center w-4 h-4 rounded-full flex-shrink-0 text-[9px] font-black ${
-                        isActive ? 'bg-[#1B3A6B] text-white'
-                        : isDone ? 'bg-primary text-primary-foreground'
-                        : 'bg-border text-muted-foreground'
-                      }`}
-                    >
-                      {isDone ? (
-                        // Task 17.5 — keyed remount + CSS keyframe so the
-                        // tick fades + scales in each time a step flips
-                        // to done. `tickAnimKeys[s.id]` bumps only on the
-                        // transition; the first-mount render of an
-                        // already-done step has no entry in the map so
-                        // it paints statically (no flash). Reduced-motion
-                        // variant skips the scale via a media query.
-                        <span
-                          key={`tick-${s.id}-${tickAnimKeys[s.id] ?? 0}`}
-                          className={
-                            tickAnimKeys[s.id]
-                              ? 'customizer-step-tick'
-                              : 'inline-flex'
-                          }
-                        >
-                          <Check size={9} strokeWidth={4} />
-                        </span>
-                      ) : (
-                        s.id
-                      )}
-                    </span>
-                    <span className="truncate">
-                      <span className="sm:hidden">{s.shortLabel}</span>
-                      <span className="hidden sm:inline">{s.label}</span>
-                    </span>
-                  </button>
-                  {/* Segment fill — the load-bearing "what step am I on"
-                      signal. Active = gold accent (matches the primary
-                      CTA). Done = solid navy. Pending = faint border. */}
-                  <span
-                    aria-hidden="true"
-                    className={`h-1 rounded-full transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-r from-[#1B3A6B] to-[#E8A838] shadow-[0_1px_4px_rgba(232,168,56,0.45)]'
-                      : isDone
-                        ? 'bg-[#1B3A6B]'
-                      : 'bg-border/60'
-                    }`}
-                  />
-                </li>
-              );
-            })}
-          </ol>
+          {/* Spacer — pushes the close button to the right edge now
+              that the old 3-step Récap pill row has been replaced by the
+              top-of-modal Master Prompt 6-step indicator above. */}
+          <div className="flex-1" />
 
           {/* Task 6.13 — sr-only live region that announces step
               completion transitions to screen-reader users. Sighted users
