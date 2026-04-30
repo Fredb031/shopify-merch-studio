@@ -24,6 +24,7 @@ import {
   fetchProductFromCache,
 } from './cache_api.ts';
 import type { CacheApiConfig } from './cache_api.ts';
+import { classifyCacheError, recordCacheOutcome } from './cache_metrics.ts';
 import {
   getAllActiveParts as getAllActivePartsSoap,
   getProduct as getProductSoap,
@@ -90,14 +91,21 @@ export async function getProduct(
   opts: GetProductOptions = {},
 ): Promise<WithSource<SanmarProduct> | WithSource<Record<string, unknown>>> {
   const cache = readCacheConfig();
-  if (cache && cache.routes.has('products')) {
+  if (!cache) {
+    recordCacheOutcome('products', 'miss', 'disabled');
+  } else if (!cache.routes.has('products')) {
+    recordCacheOutcome('products', 'miss', 'route_off');
+  } else {
     try {
       const cached = await fetchProductFromCache(cache.config, style_number);
       if (cached) {
+        recordCacheOutcome('products', 'hit', null);
         return { ...(cached as Record<string, unknown>), _source: 'cache' };
       }
       // Cache returned 404 → falls through to SOAP without an error log.
+      recordCacheOutcome('products', 'miss', 'not_found');
     } catch (e) {
+      recordCacheOutcome('products', 'miss', classifyCacheError(e));
       logCacheFallback('products', style_number, (e as Error).message);
     }
   }
@@ -135,13 +143,20 @@ export async function getInventory(
   style_number: string,
 ): Promise<WithSource<SanmarInventoryPart[]> | WithSource<Record<string, unknown>>> {
   const cache = readCacheConfig();
-  if (cache && cache.routes.has('inventory')) {
+  if (!cache) {
+    recordCacheOutcome('inventory', 'miss', 'disabled');
+  } else if (!cache.routes.has('inventory')) {
+    recordCacheOutcome('inventory', 'miss', 'route_off');
+  } else {
     try {
       const cached = await fetchInventoryFromCache(cache.config, style_number);
       if (cached) {
+        recordCacheOutcome('inventory', 'hit', null);
         return { ...(cached as Record<string, unknown>), _source: 'cache' };
       }
+      recordCacheOutcome('inventory', 'miss', 'not_found');
     } catch (e) {
+      recordCacheOutcome('inventory', 'miss', classifyCacheError(e));
       logCacheFallback('inventory', style_number, (e as Error).message);
     }
   }
@@ -160,13 +175,20 @@ export async function getPricing(
   partId?: string,
 ): Promise<WithSource<SanmarPricingRow[]> | WithSource<Record<string, unknown>>> {
   const cache = readCacheConfig();
-  if (cache && cache.routes.has('pricing')) {
+  if (!cache) {
+    recordCacheOutcome('pricing', 'miss', 'disabled');
+  } else if (!cache.routes.has('pricing')) {
+    recordCacheOutcome('pricing', 'miss', 'route_off');
+  } else {
     try {
       const cached = await fetchPricingFromCache(cache.config, style_number);
       if (cached) {
+        recordCacheOutcome('pricing', 'hit', null);
         return { ...(cached as Record<string, unknown>), _source: 'cache' };
       }
+      recordCacheOutcome('pricing', 'miss', 'not_found');
     } catch (e) {
+      recordCacheOutcome('pricing', 'miss', classifyCacheError(e));
       logCacheFallback('pricing', style_number, (e as Error).message);
     }
   }

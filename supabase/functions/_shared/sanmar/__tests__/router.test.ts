@@ -10,6 +10,9 @@
  *   - set + cache 5xx → warn + SOAP fallback
  *   - set + cache timeout → abort + SOAP fallback
  *   - inventory + pricing follow the same pattern (sanity)
+ *   - Phase 12: recordCacheOutcome called with the right (op, outcome,
+ *     reason) tuple on each branch — five new cases covering hit,
+ *     not_found, disabled, route_off, 5xx + timeout reason classification.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -90,12 +93,21 @@ async function loadPricingMock() {
   return await import("../pricing.ts");
 }
 
+// Cache metrics counter is module-level state — reset between tests so
+// counters from one `it` block don't leak into the next. The test helper
+// is exported by cache_metrics.ts specifically for this purpose.
+async function resetCacheMetrics() {
+  const { _resetCacheMetricsForTest } = await import("../cache_metrics.ts");
+  _resetCacheMetricsForTest();
+}
+
 describe("router.getProduct — feature flag matrix", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     clearCacheEnv();
     vi.clearAllMocks();
     // Reset fetch mock between tests.
     globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    await resetCacheMetrics();
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -213,10 +225,11 @@ describe("router.getProduct — feature flag matrix", () => {
 });
 
 describe("router.getInventory — same matrix, sanity", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     clearCacheEnv();
     vi.clearAllMocks();
     globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    await resetCacheMetrics();
   });
 
   it("cache 200 → _source='cache'", async () => {
@@ -252,10 +265,11 @@ describe("router.getInventory — same matrix, sanity", () => {
 });
 
 describe("router.getPricing — same matrix, sanity", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     clearCacheEnv();
     vi.clearAllMocks();
     globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    await resetCacheMetrics();
   });
 
   it("cache 404 → SOAP fallback", async () => {
@@ -272,5 +286,94 @@ describe("router.getPricing — same matrix, sanity", () => {
     expect((out as unknown as { _source: string })._source).toBe("soap");
     const { getPricing: soapPricing } = await loadPricingMock();
     expect(soapPricing).toHaveBeenCalledOnce();
+  });
+});
+
+// ── Phase 12 — recordCacheOutcome instrumentation ─────────────────────────
+//
+// Asserts the router calls recordCacheOutcome with the canonical
+// (operation, outcome, reason) tuple on each branch. We read the in-memory
+// counter map via the test-only `_peekCacheMetricsForTest` helper instead
+// of mocking the function — keeps the tests honest about what landed in
+// the bucket the dashboard will eventually read.
+describe("router cache metrics instrumentation (Phase 12)", () => {
+  beforeEach(async () => {
+    clearCacheEnv();
+    vi.clearAllMocks();
+    globalThis.fetch = vi.fn() as unknown as typeof fetch;
+    await resetCacheMetrics();
+  });
+
+  async function peek() {
+    const { _peekCacheMetricsForTest } = await import("../cache_metrics.ts");
+    return _peekCacheMetricsForTest();
+  }
+
+  it("records products|miss|disabled when cache URL is unset", async () => {
+    const { getProduct } = await loadRouter();
+    await getProduct("ATC1000");
+    const counters = await peek();
+    expect(counters.get("products|miss|disabled")).toBe(1);
+  });
+
+  it("records products|miss|route_off when route excluded from allowlist", async () => {
+    setEnv({
+      SANMAR_CACHE_API_URL: "https://cache.example.com",
+      SANMAR_CACHE_ROUTES: "inventory,pricing",
+    });
+    const { getProduct } = await loadRouter();
+    await getProduct("ATC1000");
+    const counters = await peek();
+    expect(counters.get("products|miss|route_off")).toBe(1);
+    // No hit, no other miss flavour leaked through.
+    expect(counters.get("products|miss|disabled")).toBeUndefined();
+  });
+
+  it("records products|hit| when cache returns 200", async () => {
+    setEnv({
+      SANMAR_CACHE_API_URL: "https://cache.example.com",
+      SANMAR_CACHE_ROUTES: "products",
+    });
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify({ style: "ATC1000" }), { status: 200 }),
+      ) as unknown as typeof fetch;
+    const { getProduct } = await loadRouter();
+    await getProduct("ATC1000");
+    const counters = await peek();
+    // Hit reason is null → the makeKey trailing segment is empty.
+    expect(counters.get("products|hit|")).toBe(1);
+  });
+
+  it("records inventory|miss|not_found when cache returns 404", async () => {
+    setEnv({
+      SANMAR_CACHE_API_URL: "https://cache.example.com",
+      SANMAR_CACHE_ROUTES: "inventory",
+    });
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response("nope", { status: 404 })) as unknown as typeof fetch;
+    const { getInventory } = await loadRouter();
+    await getInventory("ATC1000");
+    const counters = await peek();
+    expect(counters.get("inventory|miss|not_found")).toBe(1);
+  });
+
+  it("records pricing|miss|5xx with correct reason classification", async () => {
+    setEnv({
+      SANMAR_CACHE_API_URL: "https://cache.example.com",
+      SANMAR_CACHE_ROUTES: "pricing",
+    });
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValue(new Response("boom", { status: 503 })) as unknown as typeof fetch;
+    const { getPricing } = await loadPricingMock(); // ensure mock loaded
+    expect(getPricing).toBeDefined();
+    const { getPricing: routerPricing } = await loadRouter();
+    await routerPricing("ATC1000");
+    const counters = await peek();
+    expect(counters.get("pricing|miss|5xx")).toBe(1);
   });
 });

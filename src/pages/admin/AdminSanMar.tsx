@@ -19,6 +19,7 @@ import {
   FileText,
   AlertTriangle,
   Wallet,
+  Gauge,
 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
@@ -361,6 +362,27 @@ export default function AdminSanMar() {
   const [arLoading, setArLoading] = useState(true);
   const [arUpdatedAt, setArUpdatedAt] = useState<Date | null>(null);
   const [arError, setArError] = useState<string | null>(null);
+
+  // ── Cache hit ratio (24h) ──────────────────────────────────────────────
+  // Per-operation cache health derived from `sanmar_cache_metrics` (Phase
+  // 12 migration). Reads the last 24 h of bucketed counters and folds
+  // them into a {hit, total} pair per operation so the widget can render
+  // a hit ratio + a tiny progress bar (no recharts dependency in this
+  // tree, so we draw the bars by hand). Empty / RLS-denied state: zeroes
+  // for every operation, no banner.
+  const [cacheRatio, setCacheRatio] = useState<Record<
+    'products' | 'inventory' | 'pricing' | 'orders',
+    { hit: number; total: number }
+  >>({
+    products: { hit: 0, total: 0 },
+    inventory: { hit: 0, total: 0 },
+    pricing: { hit: 0, total: 0 },
+    orders: { hit: 0, total: 0 },
+  });
+  const [cacheRatioLoading, setCacheRatioLoading] = useState(true);
+  const [cacheRatioUpdatedAt, setCacheRatioUpdatedAt] = useState<Date | null>(
+    null,
+  );
 
   // ── Catalogue table ────────────────────────────────────────────────────
   const [catalogRows, setCatalogRows] = useState<SanmarCatalogRow[]>([]);
@@ -794,6 +816,95 @@ export default function AdminSanMar() {
       cancelled = true;
     };
   }, [loadArStats]);
+
+  /**
+   * Load the last 24 h of `sanmar_cache_metrics` rows and aggregate per
+   * operation. The TS-layer router (Phase 12) records one (operation,
+   * outcome, reason) tuple per dispatch, batched in-process and flushed
+   * every minute via UPSERT, so a 24 h window has at most ~5760 rows
+   * (4 ops × 6 reasons × 240 buckets) — small enough to fold client-side
+   * without paginating.
+   *
+   * Failure modes:
+   *   - Table missing (pre-Phase-12 environments) → zero counters, no
+   *     banner. The widget renders "—" hit ratios and a "no data yet"
+   *     caption, mirroring how the AR / sync-runs widgets degrade.
+   *   - RLS denies non-admins → zero rows back, same empty-state path.
+   */
+  const loadCacheRatio = useMemo(
+    () => async () => {
+      if (!supabase) {
+        setCacheRatioLoading(false);
+        return;
+      }
+      setCacheRatioLoading(true);
+      try {
+        const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data, error } = await supabase
+          .from('sanmar_cache_metrics')
+          .select('operation,outcome,count')
+          .gte('bucket_at', sinceIso);
+        if (error) {
+          // Table missing or RLS denied — render zeroes.
+          setCacheRatio({
+            products: { hit: 0, total: 0 },
+            inventory: { hit: 0, total: 0 },
+            pricing: { hit: 0, total: 0 },
+            orders: { hit: 0, total: 0 },
+          });
+          setCacheRatioUpdatedAt(new Date());
+          return;
+        }
+        const acc: Record<string, { hit: number; total: number }> = {
+          products: { hit: 0, total: 0 },
+          inventory: { hit: 0, total: 0 },
+          pricing: { hit: 0, total: 0 },
+          orders: { hit: 0, total: 0 },
+        };
+        for (const row of (data ?? []) as Array<{
+          operation: string;
+          outcome: string;
+          count: number | null;
+        }>) {
+          const op = row.operation;
+          if (!(op in acc)) continue;
+          const c = Number(row.count ?? 0);
+          if (!Number.isFinite(c)) continue;
+          acc[op].total += c;
+          if (row.outcome === 'hit') acc[op].hit += c;
+        }
+        setCacheRatio(
+          acc as Record<
+            'products' | 'inventory' | 'pricing' | 'orders',
+            { hit: number; total: number }
+          >,
+        );
+        setCacheRatioUpdatedAt(new Date());
+      } catch {
+        setCacheRatio({
+          products: { hit: 0, total: 0 },
+          inventory: { hit: 0, total: 0 },
+          pricing: { hit: 0, total: 0 },
+          orders: { hit: 0, total: 0 },
+        });
+        setCacheRatioUpdatedAt(new Date());
+      } finally {
+        setCacheRatioLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await loadCacheRatio();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadCacheRatio]);
 
   /**
    * Page through `sanmar_catalog` 50 rows at a time. The query order
@@ -1857,6 +1968,135 @@ export default function AdminSanMar() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Cache hit ratio (24h) — Phase 12 observability widget.
+            Reads aggregated counters from sanmar_cache_metrics (router
+            instrumentation in supabase/functions/_shared/sanmar/router.ts).
+            Four stat tiles, one per cache-able operation: products,
+            inventory, pricing, orders. Each tile shows hit ratio %, raw
+            counts, and a horizontal progress bar drawn with plain CSS
+            (recharts isn't in the bundle). Empty state when the table
+            hasn't accumulated rows yet — neutral "—" + "no data yet"
+            caption rather than 0% (which would imply a cache outage). */}
+        <section
+          aria-labelledby="sanmar-cache-ratio-title"
+          className="bg-va-white border border-va-line rounded-2xl p-6"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <div>
+              <h2
+                id="sanmar-cache-ratio-title"
+                className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+              >
+                <Gauge size={20} aria-hidden="true" className="text-va-blue" />
+                {lang === 'en'
+                  ? 'Cache hit ratio (24h)'
+                  : 'Taux de cache (24 h)'}
+              </h2>
+              <p className="text-va-muted text-sm mt-1">
+                {lang === 'en'
+                  ? 'Per-operation cache health from sanmar_cache_metrics. Higher is better — every hit is one less SOAP round-trip.'
+                  : 'Santé du cache par opération depuis sanmar_cache_metrics. Plus c’est haut, mieux c’est — chaque hit évite un aller-retour SOAP.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => loadCacheRatio()}
+              disabled={cacheRatioLoading}
+              className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+            >
+              <RefreshCw
+                size={14}
+                aria-hidden="true"
+                className={cacheRatioLoading ? 'animate-spin' : ''}
+              />
+              {lang === 'en' ? 'Refresh' : 'Actualiser'}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {(['products', 'inventory', 'pricing', 'orders'] as const).map(op => {
+              const stats = cacheRatio[op];
+              const hasData = stats.total > 0;
+              const ratio = hasData ? stats.hit / stats.total : 0;
+              const pct = Math.round(ratio * 100);
+              // Three-tier health colour. ≥ 70% = green (the PromQL alert
+              // threshold), 40–70% = amber, < 40% = rose. Empty buckets
+              // render neutral grey so the operator doesn't read "danger"
+              // into "no traffic yet".
+              const tier = !hasData
+                ? 'neutral'
+                : ratio >= 0.7
+                  ? 'good'
+                  : ratio >= 0.4
+                    ? 'warn'
+                    : 'bad';
+              const barClass =
+                tier === 'good'
+                  ? 'bg-emerald-500'
+                  : tier === 'warn'
+                    ? 'bg-amber-500'
+                    : tier === 'bad'
+                      ? 'bg-rose-500'
+                      : 'bg-va-line';
+              const labels: Record<typeof op, { en: string; fr: string }> = {
+                products: { en: 'Products', fr: 'Produits' },
+                inventory: { en: 'Inventory', fr: 'Inventaire' },
+                pricing: { en: 'Pricing', fr: 'Tarification' },
+                orders: { en: 'Orders', fr: 'Commandes' },
+              };
+              return (
+                <div
+                  key={op}
+                  className="bg-va-bg-2 rounded-xl px-5 py-4 border border-transparent"
+                >
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                    {lang === 'en' ? labels[op].en : labels[op].fr}
+                  </div>
+                  <div className="text-va-ink font-black text-3xl mt-2 tabular-nums">
+                    {cacheRatioLoading
+                      ? '…'
+                      : hasData
+                        ? `${pct}%`
+                        : '—'}
+                  </div>
+                  <div
+                    className="mt-3 h-2 w-full rounded-full bg-va-line/60 overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={hasData ? pct : 0}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={
+                      lang === 'en'
+                        ? `${labels[op].en} cache hit ratio: ${hasData ? pct : 0}%`
+                        : `Taux de hit ${labels[op].fr.toLowerCase()} : ${hasData ? pct : 0} %`
+                    }
+                  >
+                    <div
+                      className={`h-full rounded-full transition-all ${barClass}`}
+                      style={{ width: hasData ? `${pct}%` : '0%' }}
+                    />
+                  </div>
+                  <div className="text-va-muted text-xs mt-2 tabular-nums">
+                    {hasData
+                      ? lang === 'en'
+                        ? `${stats.hit.toLocaleString()} / ${stats.total.toLocaleString()} req.`
+                        : `${stats.hit.toLocaleString()} / ${stats.total.toLocaleString()} req.`
+                      : lang === 'en'
+                        ? 'No data yet'
+                        : 'Aucune donnée'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-va-muted text-xs mt-4">
+            {cacheRatioUpdatedAt
+              ? lang === 'en'
+                ? `Updated ${formatUpdatedAgo(cacheRatioUpdatedAt)}`
+                : `Mis à jour ${formatUpdatedAgo(cacheRatioUpdatedAt)}`
+              : null}
           </div>
         </section>
 
