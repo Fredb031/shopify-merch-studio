@@ -7,6 +7,15 @@ test('Purchase happy path: home -> PDP -> cart -> checkout -> confirmation', asy
   await page.goto('/fr-ca');
   await expect(page.locator('h1').first()).toBeVisible();
 
+  // Dismiss the Loi 25 cookie banner so it doesn't intercept clicks on the
+  // cart drawer that opens later in the flow.
+  const acceptAll = page.getByRole('button', {
+    name: /Accepter tout|Accept all/i,
+  });
+  if (await acceptAll.isVisible({ timeout: 2000 }).catch(() => false)) {
+    await acceptAll.click();
+  }
+
   // 2. Open a featured product. Featured grid is inside an article element.
   // Click the first article anchor.
   const firstProductLink = page.locator('article a').first();
@@ -29,20 +38,26 @@ test('Purchase happy path: home -> PDP -> cart -> checkout -> confirmation', asy
     .click();
 
   // PDP CTA was split in wave 3 into two CTAs: "Personnaliser le logo"
-  // (routes to /customiser) and "Ajouter sans logo" (routes to /panier).
-  // Use the secondary CTA to preserve the original happy-path intent.
+  // (routes to /customiser) and "Ajouter sans logo". As of wave 8 the
+  // secondary CTA opens the slide-in cart drawer rather than navigating
+  // straight to /panier; jump to the full cart from the drawer to keep
+  // the original happy-path intent.
   await page
     .getByRole('button', { name: /Ajouter sans logo|Add without logo/i })
     .first()
     .click();
 
-  // 4. Cart
+  // 4. Cart drawer → click "Voir le panier complet" to land on /panier.
+  await page
+    .getByRole('link', { name: /Voir le panier complet|View full cart/i })
+    .click();
   await expect(page).toHaveURL(/\/fr-ca\/panier/);
   await expect(page.getByText(/Sous-total/i).first()).toBeVisible();
 
   // 5. Checkout
   await page
     .getByRole('link', { name: /Passer au paiement/i })
+    .first()
     .click();
   await expect(page).toHaveURL(/\/fr-ca\/checkout/);
 

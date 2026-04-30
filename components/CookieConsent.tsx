@@ -219,7 +219,7 @@ export function CookieConsent() {
                 <button
                   type="button"
                   onClick={openSettings}
-                  className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md bg-transparent px-3 text-body-md font-medium text-canvas-000 underline underline-offset-2 hover:text-canvas-000/80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canvas-000"
+                  className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md bg-transparent px-3 text-body-md font-medium text-canvas-000 underline underline-offset-2 hover:bg-canvas-000/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-canvas-000"
                 >
                   {t('buttons.customize')}
                 </button>
@@ -230,11 +230,9 @@ export function CookieConsent() {
             @keyframes va-consent-slide-up {
               from {
                 transform: translateY(100%);
-                opacity: 0;
               }
               to {
                 transform: translateY(0);
-                opacity: 1;
               }
             }
           `}</style>
