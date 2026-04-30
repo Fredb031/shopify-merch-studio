@@ -1622,5 +1622,20 @@
         }
       }
     }
+  },
+  "notFound": {
+    "heading": "Page introuvable",
+    "subhead": "404",
+    "body": "Cette page n'existe pas ou a été déplacée. Voici quelques pistes utiles :",
+    "helper": "Tu cherches quelque chose en particulier ?",
+    "links": {
+      "shop": "Magasiner les uniformes",
+      "quote": "Demander une soumission",
+      "industries": "Découvrir les industries",
+      "contact": "Nous contacter"
+    },
+    "mailto": {
+      "cta": "Écris-nous"
+    }
   }
 }

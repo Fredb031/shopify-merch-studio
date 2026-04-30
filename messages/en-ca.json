@@ -1622,5 +1622,20 @@
         }
       }
     }
+  },
+  "notFound": {
+    "heading": "Page not found",
+    "subhead": "404",
+    "body": "This page does not exist or has been moved. Here are a few useful directions:",
+    "helper": "Looking for something specific?",
+    "links": {
+      "shop": "Shop uniforms",
+      "quote": "Request a quote",
+      "industries": "Explore industries",
+      "contact": "Contact us"
+    },
+    "mailto": {
+      "cta": "Email us"
+    }
   }
 }
