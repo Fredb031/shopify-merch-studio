@@ -1,6 +1,7 @@
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Container } from './Container';
+import { NewsletterSignup } from './NewsletterSignup';
 import { siteConfig } from '@/lib/site';
 import type { Locale } from '@/i18n/routing';
 
@@ -8,6 +9,7 @@ export function Footer() {
   const locale = useLocale() as Locale;
   const tFooter = useTranslations('footer');
   const tNav = useTranslations('nav');
+  const tNewsletter = useTranslations('newsletter.inline');
   const base = `/${locale}`;
   const year = new Date().getFullYear();
 
@@ -76,6 +78,20 @@ export function Footer() {
                 <span>{tFooter('hoursLine')}</span>
               </li>
             </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-ink-800 py-8">
+          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] md:items-start md:gap-10">
+            <div>
+              <h2 className="text-meta-xs uppercase tracking-wider text-sand-300">
+                {tNewsletter('heading')}
+              </h2>
+              <p className="mt-2 text-body-md text-canvas-000">
+                {tNewsletter('subheading')}
+              </p>
+            </div>
+            <NewsletterSignup variant="inline" locale={locale} />
           </div>
         </div>
 

@@ -1016,6 +1016,53 @@
     "contact": "Contact",
     "skipToContent": "Passer au contenu principal"
   },
+  "newsletter": {
+    "inline": {
+      "ariaLabel": "Inscription à l'infolettre",
+      "heading": "Infolettre",
+      "subheading": "Conseils mensuels pour habiller ton équipe.",
+      "placeholder": "Ton courriel",
+      "submit": "S'abonner",
+      "helper": "Conseils + offres mensuelles. Aucun spam.",
+      "fullForm": "Formulaire complet"
+    },
+    "page": {
+      "hero": {
+        "eyebrow": "Infolettre",
+        "headline": "Conseils mensuels pour habiller ton équipe",
+        "subhead": "Une fois par mois, on partage : nouveau matériel, conseils tailles + couleurs, offres pour clients récurrents. Désabonnement en 1 clic. Conforme à la loi canadienne anti-pourriel."
+      },
+      "form": {
+        "email": "Courriel",
+        "firstName": "Prénom (optionnel)",
+        "language": "Langue préférée",
+        "languageFr": "Français",
+        "languageEn": "English",
+        "casl": {
+          "label": "Je consens à recevoir des courriels de Vision Affichage Inc., 123 rue Industrielle, Blainville (QC) J7C 0A1. Je peux me désabonner à tout moment via le lien dans chaque courriel.",
+          "required": "Tu dois consentir pour t'inscrire."
+        },
+        "submit": "Confirmer mon inscription",
+        "success": {
+          "heading": "Confirmation envoyée à ton courriel",
+          "body": "Clique le lien dans le courriel de confirmation pour activer ton abonnement (double opt-in). Tu peux fermer cette page.",
+          "ref": "Référence : {ref}"
+        },
+        "errors": {
+          "email": "Courriel invalide",
+          "caslRequired": "Tu dois consentir pour t'inscrire."
+        }
+      },
+      "trust": {
+        "heading": "Ce qu'on s'engage à faire",
+        "items": {
+          "1": "Désabonnement en 1 clic dans chaque courriel",
+          "2": "Aucun partage à des tiers",
+          "3": "Stockage des données au Canada"
+        }
+      }
+    }
+  },
   "pdp": {
     "addToCart": "Personnaliser et commander",
     "addToKit": "Ajouter au kit",

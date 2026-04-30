@@ -1016,6 +1016,53 @@
     "contact": "Contact",
     "skipToContent": "Skip to main content"
   },
+  "newsletter": {
+    "inline": {
+      "ariaLabel": "Newsletter signup",
+      "heading": "Newsletter",
+      "subheading": "Monthly tips for outfitting your team.",
+      "placeholder": "Your email",
+      "submit": "Subscribe",
+      "helper": "Monthly tips + offers. No spam.",
+      "fullForm": "Full form"
+    },
+    "page": {
+      "hero": {
+        "eyebrow": "Newsletter",
+        "headline": "Monthly tips for outfitting your team",
+        "subhead": "Once a month, we share: new materials, size and colour tips, offers for recurring clients. One-click unsubscribe. Compliant with Canadian anti-spam legislation."
+      },
+      "form": {
+        "email": "Email",
+        "firstName": "First name (optional)",
+        "language": "Preferred language",
+        "languageFr": "Français",
+        "languageEn": "English",
+        "casl": {
+          "label": "I consent to receive emails from Vision Affichage Inc., 123 rue Industrielle, Blainville QC J7C 0A1. I can unsubscribe at any time via the link in every email.",
+          "required": "You must consent to subscribe."
+        },
+        "submit": "Confirm my signup",
+        "success": {
+          "heading": "Confirmation sent to your email",
+          "body": "Click the link in the confirmation email to activate your subscription (double opt-in). You can close this page.",
+          "ref": "Reference: {ref}"
+        },
+        "errors": {
+          "email": "Invalid email",
+          "caslRequired": "You must consent to subscribe."
+        }
+      },
+      "trust": {
+        "heading": "What we commit to",
+        "items": {
+          "1": "One-click unsubscribe in every email",
+          "2": "No sharing with third parties",
+          "3": "Data stored in Canada"
+        }
+      }
+    }
+  },
   "pdp": {
     "addToCart": "Customize and order",
     "addToKit": "Add to kit",
