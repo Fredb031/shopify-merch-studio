@@ -11,11 +11,14 @@
     "placeholders": "node scripts/generate-placeholders.cjs"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "lucide-react": "0.453.0",
     "next": "15.5.15",
     "next-intl": "3.25.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "react-hook-form": "^7.74.0",
+    "zod": "^4.4.1",
     "zustand": "^5.0.12"
   },
   "devDependencies": {
