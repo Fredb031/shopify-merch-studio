@@ -493,10 +493,13 @@ export default function Index() {
                 </span>
               </div>
 
-              {/* H1 — three lines, blue accent on line 2 */}
+              {/* H1 — three lines, blue accent on line 2.
+                  Phase 8 LCP fix: rendered at full opacity from frame 0
+                  (no fade) so it can win the LCP race without waiting
+                  on a 580ms animation tail. Adornments around it
+                  (trust pill, subhead, CTAs) still animate in. */}
               <h1
                 className="font-display font-black text-white text-5xl md:text-6xl xl:text-[76px] leading-[1.0] tracking-[-0.04em] mb-7"
-                style={{ animation: 'fadeSlideUp 0.5s 80ms forwards', opacity: 0 }}
               >
                 {lang === 'en' ? (
                   <>

@@ -84,6 +84,13 @@ the cookie banner timing doesn't affect.
 - Render-blocking `index.css` (23.8 kb / 607 ms wasted). Could be split
   into critical-above-the-fold + deferred rest, but Tailwind's atomic
   output makes this non-trivial; deferred until a real CSS budget audit.
-- Hero H1 fade-in animation (`fadeSlideUp`, 80ms delay + 500ms duration)
-  pushes home LCP to 4.0s. Removing the delay or shortening the animation
-  would likely shave another tick — separate wave.
+- ~~Hero H1 fade-in animation (`fadeSlideUp`, 80ms delay + 500ms duration)
+  pushes home LCP to 4.0s.~~ **Resolved (Wave 19, commit pending).** The
+  H1 now renders at full opacity from frame 0 — no animation on the LCP
+  element itself. The trust pill, subhead, and CTAs around it still fade
+  in (80/180/300 ms), so the choreography reads the same to the eye but
+  the LCP candidate paints immediately. `prefers-reduced-motion: reduce`
+  was already collapsing all animation durations globally to 0.01ms via
+  the `@media` rule in `index.css`, so motion-sensitive users were
+  already fine — this change benefits everyone else by ~500-580ms on
+  LCP. Estimated home LCP 4.0s → ~3.4s (re-baseline pending).
