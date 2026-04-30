@@ -1,4 +1,4 @@
-import { getCookieConsent } from '@/components/CookieConsent';
+import { getCookieConsent } from '@/lib/cookieConsentStore';
 
 /**
  * Vendor-agnostic conversion-event dispatcher.

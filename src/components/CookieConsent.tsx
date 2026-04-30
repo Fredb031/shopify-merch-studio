@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Cookie, X } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
+import {
+  getCookieConsent,
+  persistCookieConsent,
+  type ConsentState,
+} from '@/lib/cookieConsentStore';
 
 /**
  * Québec Law 25 (CCQ) requires explicit opt-in for non-essential cookies
@@ -10,51 +15,21 @@ import { useLang } from '@/lib/langContext';
  *
  * Downstream code (analytics bootstrap, marketing pixels, etc.) MUST
  * gate on getCookieConsent() before firing any third-party tracker.
+ *
+ * The storage primitives (getCookieConsent / persistCookieConsent /
+ * ConsentState) live in src/lib/cookieConsentStore.ts so that the
+ * synchronous read path used by analytics + useVisitorTracking does
+ * not pull this component (and lucide-react) into the initial bundle —
+ * the banner UI is code-split via React.lazy in src/App.tsx.
+ *
+ * The `getCookieConsent` re-export below preserves the historical
+ * import path (`@/components/CookieConsent`) for any callers we
+ * haven't migrated to the lib path. New code should import from
+ * `@/lib/cookieConsentStore` directly.
  */
 
-const STORAGE_KEY = 'vision-cookie-consent';
-
-export interface ConsentState {
-  essentials: true;
-  analytics: boolean;
-  marketing: boolean;
-  at: string; // ISO timestamp of the user's decision
-}
-
-/**
- * Read the persisted consent choice, if any. Returns null when the user
- * has not yet made a decision (banner should still be shown). Safe in
- * private-mode browsers where localStorage access throws.
- */
-export function getCookieConsent(): ConsentState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<ConsentState>;
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      !Array.isArray(parsed) &&
-      parsed.essentials === true &&
-      typeof parsed.analytics === 'boolean' &&
-      typeof parsed.marketing === 'boolean' &&
-      typeof parsed.at === 'string'
-    ) {
-      return parsed as ConsentState;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function persistConsent(state: ConsentState) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    /* private mode / quota — silent is fine, banner will show again next visit */
-  }
-}
+export { getCookieConsent } from '@/lib/cookieConsentStore';
+export type { ConsentState } from '@/lib/cookieConsentStore';
 
 export function CookieConsent() {
   const { lang } = useLang();
@@ -66,13 +41,22 @@ export function CookieConsent() {
 
   useEffect(() => {
     // Only reveal once — if a choice already exists, stay hidden.
+    //
+    // The component itself ships in a lazy chunk (see App.tsx) so this
+    // effect doesn't run until the chunk arrives, which happens after
+    // the main bundle has executed and rendered the page shell. That's
+    // already enough to keep this overlay's text node off the LCP
+    // candidate list on the home page (H1 hero now wins). Adding a
+    // further explicit delay actively hurt the PDP LCP because the
+    // banner still ends up being the largest viewport content there
+    // and pushing it later just pushed LCP later — so we don't.
     if (getCookieConsent() === null) setVisible(true);
   }, []);
 
   if (!visible) return null;
 
   const record = (next: { analytics: boolean; marketing: boolean }) => {
-    persistConsent({
+    persistCookieConsent({
       essentials: true,
       analytics: next.analytics,
       marketing: next.marketing,

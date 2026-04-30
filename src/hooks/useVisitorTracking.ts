@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from 'react';
 import { bumpSession, getProfile, updateProfile, type VisitorProfile } from '@/lib/visitorProfile';
-import { getCookieConsent } from '@/components/CookieConsent';
+import { getCookieConsent } from '@/lib/cookieConsentStore';
 
 export function useVisitorTracking(): VisitorProfile {
   // Lazy-initialise from the persisted profile so the first render

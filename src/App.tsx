@@ -10,11 +10,18 @@ import { useChatTriggers } from "@/lib/chatTriggers";
 import { useVisitorTracking } from "@/hooks/useVisitorTracking";
 import { AuthGuard } from "@/components/AuthGuard";
 import { RequirePermission } from "@/components/RequirePermission";
-import { CookieConsent } from "@/components/CookieConsent";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { SocialProofNotification } from "@/components/SocialProofNotification";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
+// CookieConsent: lazy-split so the lucide-react Cookie/X icons + the
+// dialog markup don't ship in the initial entry. The synchronous
+// `getCookieConsent()` reader (used by analytics + visitor tracking)
+// lives in src/lib/cookieConsentStore.ts and is unchanged.
+const CookieConsent = lazy(() =>
+  import("@/components/CookieConsent").then((m) => ({ default: m.CookieConsent }))
+);
+
 // Cart, ProductDetail, NotFound used to be eager — there's no reason
 // the home page should bundle them. Lazy-split so only the page that
 // actually gets navigated to pulls its chunk.
@@ -407,7 +414,12 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <LangProvider>
       <Sonner />
-      <CookieConsent />
+      {/* Lazy-mounted: the chunk fetch + reveal both run after first
+          paint, so the bilingual consent <p> stops winning the LCP
+          race against actual page content. */}
+      <Suspense fallback={null}>
+        <CookieConsent />
+      </Suspense>
       <ErrorBoundary>
           <BrowserRouter
             // Opt-in to React Router v7 transition behavior so the dev
