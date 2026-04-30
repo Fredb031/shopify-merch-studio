@@ -30,6 +30,7 @@ const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const Account = lazy(() => import("./pages/Account"));
+const AccountOrderDetail = lazy(() => import("./pages/AccountOrderDetail"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin (lazy)
@@ -260,6 +261,12 @@ const AnimatedRoutes = () => {
           <Route path="/suivi" element={<TrackOrder />} />
           <Route path="/suivi/:orderNumber" element={<TrackOrder />} />
           <Route path="/account" element={<Account />} />
+          {/* Wave 20 — per-order detail view. Auth gating happens
+              inside AccountOrderDetail (mirrors Account.tsx's pattern)
+              rather than wrapping in <AuthGuard> so an unauthenticated
+              visitor sees a friendly "Sign in to view this order"
+              card instead of a redirect that drops the order URL. */}
+          <Route path="/account/orders/:orderNumber" element={<AccountOrderDetail />} />
 
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/signup" element={<Signup />} />

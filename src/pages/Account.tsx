@@ -546,11 +546,27 @@ export default function Account() {
                     lang === 'fr' ? 'fr-CA' : 'en-CA',
                     { year: 'numeric', month: 'short', day: 'numeric' },
                   );
+                  // Wave 20 — strip the leading '#' for the URL slug
+                  // so /account/orders/1570-DEMO is what the link
+                  // resolves to. AccountOrderDetail's lookup is
+                  // tolerant of either form, but the cleaner URL is
+                  // what we want copy-pasted from the address bar.
+                  const detailHref = `/account/orders/${encodeURIComponent(order.name.replace(/^#/, ''))}`;
                   return (
                     <li key={order.name} className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
                       <div className="flex items-start justify-between gap-3 flex-wrap">
                         <div className="min-w-0">
-                          <div className="font-extrabold text-foreground">{order.name}</div>
+                          <Link
+                            to={detailHref}
+                            className="font-extrabold text-foreground hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
+                            aria-label={
+                              lang === 'en'
+                                ? `View details for order ${order.name}`
+                                : `Voir les détails de la commande ${order.name}`
+                            }
+                          >
+                            {order.name}
+                          </Link>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {orderDate}
                             {' · '}
@@ -558,6 +574,12 @@ export default function Account() {
                             {' · '}
                             {order.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 2 })} $
                           </div>
+                          <Link
+                            to={detailHref}
+                            className="inline-block text-[11px] font-bold text-[#0052CC] hover:underline mt-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
+                          >
+                            {lang === 'en' ? 'View details →' : 'Voir les détails →'}
+                          </Link>
                         </div>
                         <button
                           type="button"

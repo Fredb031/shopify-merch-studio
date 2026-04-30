@@ -42,6 +42,18 @@ export type CustomerOrderLineItem = Readonly<{
   unitPrice: number;
 }>;
 
+export type CustomerOrderStatus =
+  /** Paid, queued for production. */
+  | 'processing'
+  /** In production / printing. */
+  | 'in_production'
+  /** Shipped, in transit. Unlocks /suivi/:orderNumber link. */
+  | 'shipped'
+  /** Delivered to the buyer. Tracking link still works for proof-of-delivery. */
+  | 'delivered'
+  /** Cancelled before shipment. */
+  | 'cancelled';
+
 export type CustomerOrderRecord = Readonly<{
   /** Shopify order name, e.g. '#1568'. Surfaced in the card header. */
   name: string;
@@ -49,6 +61,30 @@ export type CustomerOrderRecord = Readonly<{
   createdAt: string;
   /** Order total in CAD. Used in the card subtitle. */
   total: number;
+  /** Order subtotal (pre-tax, pre-shipping) in CAD. Optional — when
+   * absent the detail page derives it from line totals so legacy
+   * fixture rows keep rendering. */
+  subtotal?: number;
+  /** Shipping fee charged on the order in CAD. Optional — when absent
+   * the detail page assumes free shipping (the >$300 threshold applied
+   * to most demo orders). */
+  shipping?: number;
+  /** Province the order shipped to. Drives the GST/QST/HST split on
+   * the detail page when no `tax` line is provided. Defaults to 'QC'. */
+  province?: string;
+  /** Pre-computed tax total in CAD. When provided, takes precedence
+   * over the province-derived computation so the displayed value
+   * matches what Shopify actually charged. */
+  tax?: number;
+  /** High-level fulfilment state. Drives the "Voir le suivi" CTA on
+   * the detail page (only enabled once the order has shipped) and the
+   * status pill in the header. Defaults to 'processing' when absent. */
+  status?: CustomerOrderStatus;
+  /** Filename of the logo the customer uploaded for this order, if
+   * any. Surfaced as a "Logo utilisé:" footnote on the detail page;
+   * the file itself lives in the `vision-logos` Supabase bucket and
+   * isn't downloadable from this device. */
+  logoFilename?: string;
   /** Line items the reorder button rebuilds into the local cart. */
   lineItems: ReadonlyArray<CustomerOrderLineItem>;
 }>;
@@ -68,6 +104,15 @@ export const CUSTOMER_ORDERS: Readonly<Record<string, ReadonlyArray<CustomerOrde
       name: '#1570-DEMO',
       createdAt: '2026-04-17T11:55:01-04:00',
       total: 742.96,
+      // Wave 20 — fields surfaced on /account/orders/:orderNumber.
+      // 646.16 subtotal + 96.80 GST/QST (QC, 14.975%) ≈ 742.96 with
+      // free shipping (subtotal > $300 threshold).
+      subtotal: 646.16,
+      shipping: 0,
+      tax: 96.80,
+      province: 'QC',
+      status: 'shipped',
+      logoFilename: 'vision-affichage-logo-2026.svg',
       lineItems: Object.freeze([
         Object.freeze({
           productId: 'atcf2500',
@@ -97,6 +142,14 @@ export const CUSTOMER_ORDERS: Readonly<Record<string, ReadonlyArray<CustomerOrde
       name: '#1552-DEMO',
       createdAt: '2026-04-05T15:46:53-04:00',
       total: 429.39,
+      // Wave 20 — explicit subtotal/tax/shipping so the detail page
+      // matches what Shopify charged. 373.55 subtotal + 55.84 QC tax
+      // + free shipping ≈ 429.39 (rounding to the cent).
+      subtotal: 373.55,
+      shipping: 0,
+      tax: 55.84,
+      province: 'QC',
+      status: 'delivered',
       lineItems: Object.freeze([
         Object.freeze({
           productId: 's445',
@@ -125,4 +178,30 @@ export function getOrdersForEmail(email: string | null | undefined): ReadonlyArr
   const key = email.trim().toLowerCase();
   if (!key) return [];
   return CUSTOMER_ORDERS[key] ?? [];
+}
+
+/**
+ * Look up a single past order belonging to `email` by its display name
+ * (e.g. '#1570-DEMO' or '1570-DEMO'). Used by /account/orders/:orderNumber
+ * to render the per-order detail view. Both lookups are case- and
+ * whitespace-insensitive; the leading '#' is optional so a URL like
+ * /account/orders/1570-DEMO resolves to the same row as a copy-paste of
+ * the order name from an email receipt. Returns `null` (rather than
+ * `undefined`) when the order isn't found so the page can render a
+ * single "Commande introuvable" branch without a TS narrowing dance.
+ */
+export function getOrderByNumber(
+  email: string | null | undefined,
+  orderNumber: string | null | undefined,
+): CustomerOrderRecord | null {
+  if (!orderNumber || typeof orderNumber !== 'string') return null;
+  const orders = getOrdersForEmail(email);
+  if (orders.length === 0) return null;
+  const wanted = orderNumber.trim().toLowerCase().replace(/^#/, '');
+  if (!wanted) return null;
+  for (const order of orders) {
+    const stored = order.name.trim().toLowerCase().replace(/^#/, '');
+    if (stored === wanted) return order;
+  }
+  return null;
 }
