@@ -831,6 +831,30 @@
         "q": "How long does the decoration last?",
         "a": "Our embroidery holds for five years under commercial wash cycles. Screen printing on quality fabric lasts two to three years depending on use."
       }
+    },
+    "painPointHeading": "What the job actually looks like",
+    "whyThisFits": "Why it fits",
+    "caseStudyClientLabel": "Client",
+    "caseStudyResultLabel": "Result"
+  },
+  "industries": {
+    "construction": {
+      "label": "Construction"
+    },
+    "paysagement": {
+      "label": "Landscaping"
+    },
+    "restauration": {
+      "label": "Restaurants"
+    },
+    "demenagement": {
+      "label": "Moving services"
+    },
+    "metiers": {
+      "label": "Skilled trades"
+    },
+    "bureau": {
+      "label": "Office and corporate"
     }
   },
   "plp": {

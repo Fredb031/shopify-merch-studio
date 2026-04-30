@@ -44,6 +44,16 @@ export type Product = {
   decorationOptions?: DecorationOption[];
 };
 
+export type IndustryCaseStudy = {
+  client: string;
+  result: Bilingual;
+};
+
+export type IndustryFaqItem = {
+  question: Bilingual;
+  answer: Bilingual;
+};
+
 export type Industry = {
   slug: string;
   name: Bilingual;
@@ -51,6 +61,13 @@ export type Industry = {
   pitch: Bilingual;
   hookLine?: Bilingual;
   keyProducts: string[];
+  // Phase 2 industry-specific copy
+  hookHeroLine?: Bilingual;
+  painPoint?: Bilingual;
+  productJustifications?: Record<string, Bilingual>;
+  caseStudy?: IndustryCaseStudy;
+  proofPoint?: Bilingual;
+  industryFaq?: IndustryFaqItem[];
 };
 
 export type Review = {

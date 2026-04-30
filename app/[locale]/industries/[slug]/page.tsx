@@ -50,7 +50,7 @@ function recommendedProducts(industry: Industry): Product[] {
   return out.slice(0, 5);
 }
 
-const caseStudies: Record<
+const fallbackCaseStudies: Record<
   string,
   { quote: { 'fr-ca': string; 'en-ca': string }; attribution: { 'fr-ca': string; 'en-ca': string } }
 > = {
@@ -138,9 +138,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const isFr = locale === 'fr-ca';
   const titleName = industry.name[locale];
   const title = `${t('metaTitlePrefix')} ${titleName.toLowerCase()} · ${siteConfig.name}`;
-  const hookLine =
-    industry.hookLine?.[locale] ?? industry.shortDescription[locale];
-  const description = `${hookLine} ${t('metaDescriptionSuffix')}`;
+  const heroLine =
+    industry.hookHeroLine?.[locale] ??
+    industry.hookLine?.[locale] ??
+    industry.shortDescription[locale];
+  const description = `${heroLine} ${t('metaDescriptionSuffix')}`;
 
   return {
     title,
@@ -174,19 +176,35 @@ export default async function IndustryPage({ params }: Props) {
 
   const base = `/${locale}`;
   const titleName = industry.name[locale];
-  const hookLine =
-    industry.hookLine?.[locale] ?? industry.shortDescription[locale];
+  const heroLine =
+    industry.hookHeroLine?.[locale] ??
+    industry.hookLine?.[locale] ??
+    industry.shortDescription[locale];
   const recommended = recommendedProducts(industry);
-  const caseStudy = caseStudies[industry.slug];
 
-  const faqItems = FAQ_KEYS.map((key) => ({
-    q: t(`faq.${key}.q`),
-    a: t(`faq.${key}.a`),
-  }));
+  // Industry-specific FAQ if present, else fallback to generic
+  const faqItems = industry.industryFaq && industry.industryFaq.length > 0
+    ? industry.industryFaq.map((item) => ({
+        q: item.question[locale],
+        a: item.answer[locale],
+      }))
+    : FAQ_KEYS.map((key) => ({
+        q: t(`faq.${key}.q`),
+        a: t(`faq.${key}.a`),
+      }));
   const faqJsonLdItems = faqItems.map((item) => ({
     question: item.q,
     answer: item.a,
   }));
+
+  // Case study: prefer structured industry.caseStudy, fallback to legacy
+  const fallbackCase = fallbackCaseStudies[industry.slug];
+  const caseStudyBlock = industry.caseStudy
+    ? {
+        client: industry.caseStudy.client,
+        result: industry.caseStudy.result[locale],
+      }
+    : null;
 
   const otherIndustries = industries.filter((i) => i.slug !== industry.slug);
 
@@ -219,8 +237,13 @@ export default async function IndustryPage({ params }: Props) {
                 {titleName}
               </h1>
               <p className="mt-6 max-w-xl text-body-lg text-stone-600">
-                {hookLine}
+                {heroLine}
               </p>
+              {industry.proofPoint ? (
+                <p className="mt-6 inline-flex items-center rounded-full border border-sand-300 bg-canvas-000 px-3 py-1 text-meta-sm font-medium text-ink-950">
+                  {industry.proofPoint[locale]}
+                </p>
+              ) : null}
               <div className="mt-10 flex flex-wrap gap-3">
                 <Button href="#recommended" variant="primary" size="lg">
                   {t('ctaPrimary')}
@@ -245,6 +268,22 @@ export default async function IndustryPage({ params }: Props) {
           </div>
         </Container>
       </section>
+
+      {/* Pain point block (sand-100) */}
+      {industry.painPoint ? (
+        <Section tone="sand">
+          <Container size="xl">
+            <div className="max-w-[68ch] space-y-4">
+              <h2 className="text-title-lg text-ink-950">
+                {t('painPointHeading')}
+              </h2>
+              <p className="text-body-lg text-ink-950">
+                {industry.painPoint[locale]}
+              </p>
+            </div>
+          </Container>
+        </Section>
+      ) : null}
 
       {/* Industry description */}
       <Section tone="default">
@@ -279,6 +318,36 @@ export default async function IndustryPage({ params }: Props) {
               className="mt-10"
             />
           ) : null}
+
+          {/* Per-product justifications: why each fits */}
+          {industry.productJustifications && recommended.length > 0 ? (
+            <div className="mt-10 rounded-lg border border-sand-300 bg-canvas-000 p-6">
+              <h3 className="text-title-md text-ink-950">
+                {t('whyThisFits')}
+              </h3>
+              <ul className="mt-4 space-y-3">
+                {recommended.map((product) => {
+                  const justification =
+                    industry.productJustifications?.[product.styleCode];
+                  if (!justification) return null;
+                  return (
+                    <li
+                      key={product.styleCode}
+                      className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-3"
+                    >
+                      <span className="text-body-md font-medium text-ink-950">
+                        {product.title[locale]}
+                      </span>
+                      <span className="text-body-sm italic text-slate-700">
+                        {justification[locale]}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="mt-10 flex justify-end">
             <Link
               href={`${base}/produits`}
@@ -293,8 +362,30 @@ export default async function IndustryPage({ params }: Props) {
         </Container>
       </Section>
 
-      {/* Case study */}
-      {caseStudy ? (
+      {/* Case study: prefer structured caseStudy, else fallback quote */}
+      {caseStudyBlock ? (
+        <Section tone="sand">
+          <Container size="xl">
+            <h2 className="text-title-lg text-ink-950">
+              {t('caseStudyHeading')}
+            </h2>
+            <div className="mt-6 rounded-lg border border-sand-300 bg-canvas-000 p-6">
+              <p className="text-meta-sm uppercase tracking-wider text-stone-600">
+                {t('caseStudyClientLabel')}
+              </p>
+              <p className="mt-1 text-title-md text-ink-950">
+                {caseStudyBlock.client}
+              </p>
+              <p className="mt-5 text-meta-sm uppercase tracking-wider text-stone-600">
+                {t('caseStudyResultLabel')}
+              </p>
+              <p className="mt-1 text-body-lg text-ink-950">
+                {caseStudyBlock.result}
+              </p>
+            </div>
+          </Container>
+        </Section>
+      ) : fallbackCase ? (
         <Section tone="sand">
           <Container size="xl">
             <h2 className="text-title-lg text-ink-950">
@@ -302,10 +393,10 @@ export default async function IndustryPage({ params }: Props) {
             </h2>
             <blockquote className="mt-6 border-l-4 border-ink-950 pl-6 italic">
               <p className="text-body-lg text-ink-950">
-                « {caseStudy.quote[locale]} »
+                « {fallbackCase.quote[locale]} »
               </p>
               <footer className="mt-4 not-italic text-body-sm text-stone-600">
-                — {caseStudy.attribution[locale]}
+                — {fallbackCase.attribution[locale]}
               </footer>
             </blockquote>
           </Container>

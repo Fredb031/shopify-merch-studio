@@ -831,6 +831,30 @@
         "q": "Combien de temps tient la décoration ?",
         "a": "Notre broderie tient cinq ans en lavage commercial. La sérigraphie sur tissu de qualité tient deux à trois ans selon l'usage."
       }
+    },
+    "painPointHeading": "La réalité du terrain",
+    "whyThisFits": "Pourquoi ça fitte",
+    "caseStudyClientLabel": "Client",
+    "caseStudyResultLabel": "Résultat"
+  },
+  "industries": {
+    "construction": {
+      "label": "Construction"
+    },
+    "paysagement": {
+      "label": "Paysagement"
+    },
+    "restauration": {
+      "label": "Restauration"
+    },
+    "demenagement": {
+      "label": "Déménagement"
+    },
+    "metiers": {
+      "label": "Métiers spécialisés"
+    },
+    "bureau": {
+      "label": "Bureau et corporatif"
     }
   },
   "plp": {
