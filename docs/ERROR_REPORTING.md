@@ -181,3 +181,30 @@ already passes errors to whichever monitor is wired in `main.tsx`.
 `@sentry/cli` is intentionally **not** added as a devDependency: `npx`
 fetches it on demand in CI, so we don't pay the install cost for
 contributors who don't run the upload step.
+
+### Release notifications (Slack / Discord)
+
+After a successful source-map upload, the workflow can post a release
+notification to a Slack or Discord channel so the team has visibility
+that symbolication is ready for a given commit. The step is gated on
+**both** `SENTRY_AUTH_TOKEN` and `RELEASE_WEBHOOK_URL` being set — until
+the operator wires both, the build still passes green.
+
+Operator setup checklist:
+
+1. In Slack: create an Incoming Webhook for the target channel
+   (`Apps → Incoming Webhooks → Add to Slack → pick channel`). Copy the
+   `https://hooks.slack.com/services/...` URL.
+   - For Discord instead: in the target channel, `Edit Channel →
+     Integrations → Webhooks → New Webhook → Copy Webhook URL`. Discord
+     accepts the same Slack-compatible payload as long as you append
+     `/slack` to the URL (e.g. `.../webhooks/<id>/<token>/slack`).
+2. Add a repo secret in GitHub:
+   - `RELEASE_WEBHOOK_URL` — the webhook URL from step 1.
+3. Push to `main` (or trigger via `workflow_dispatch`). The workflow
+   posts a message containing the commit SHA, branch, and a link to the
+   Actions run that uploaded the maps.
+
+To disable temporarily, delete the `RELEASE_WEBHOOK_URL` secret — the
+workflow will fall back to the skip-step (`echo "… skipping release
+notification"`) and stay green.
