@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// FIXME (Phase 3): Wave-4 selectors drift from current UI (checkbox role, step
-// progression). Manual flow + smoke-curl verified. Selector fix tracked in
-// Phase 3 operator queue.
-test.fixme('quote form: 6-step submission generates Q-XXXX ref', async ({ page }) => {
+test('quote form: 6-step submission generates Q-XXXX ref', async ({ page }) => {
   await page.goto('/fr-ca/soumission');
 
   // Step 1 — scope.
@@ -16,8 +13,9 @@ test.fixme('quote form: 6-step submission generates Q-XXXX ref', async ({ page }
   await page.selectOption('select[name="industry"]', 'construction');
   await page.getByRole('button', { name: /Continuer|Continue/i }).click();
 
-  // Step 2 — products. Tick the first product checkbox.
-  await page.locator('[role="checkbox"]').nth(0).click();
+  // Step 2 — products. Each product is a <label> wrapping a hidden
+  // <input type="checkbox">; click the first checkbox via the label.
+  await page.locator('ul label').first().click();
   await page.getByRole('button', { name: /Continuer|Continue/i }).click();
 
   // Step 3 — logo (pending).

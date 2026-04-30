@@ -7,30 +7,51 @@ test('account: shows empty state when sessionStorage empty', async ({ page }) =>
   ).toBeVisible();
 });
 
-// FIXME (Phase 3): account page reads sessionStorage on mount; second
-// page.goto issues a fresh navigation with a fresh sessionStorage. Needs
-// addInitScript pattern. Tracked in Phase 3 operator queue.
-test.fixme('account: shows quote card after submitting /soumission', async ({
+test('account: shows quote card after submitting /soumission', async ({
   page,
+  context,
 }) => {
-  // Hit the origin first so sessionStorage is scoped to the right host.
-  await page.goto('/fr-ca/account');
+  // The account page reads sessionStorage on mount; sessionStorage is scoped
+  // per-tab and per-navigation in some Chromium quirks, so seed via
+  // addInitScript before any navigation. Shape must match StoredQuote
+  // (quoteId, createdAt, scope, products, logo, shipping, contact).
+  const seeded = {
+    quoteId: 'Q-TEST123',
+    createdAt: new Date().toISOString(),
+    scope: {
+      employeeCount: 50,
+      neededBy: '2099-01-01',
+      industry: 'construction',
+    },
+    products: { productIds: ['atc1015'] },
+    logo: { logoMode: 'pending', logoDescription: 'tbd' },
+    shipping: {
+      shippingMode: 'single',
+      addressLine1: '123 rue Test',
+      city: 'Montréal',
+      province: 'QC',
+      postalCode: 'H2X1Y4',
+      country: 'CA',
+    },
+    contact: {
+      name: 'Test User',
+      email: 'test@example.com',
+      phone: '5145551234',
+      company: 'Test Co',
+      language: 'fr',
+      transactionalConsent: true,
+      marketingConsent: false,
+    },
+  };
 
-  await page.evaluate(() => {
-    sessionStorage.setItem(
-      'va-last-quote',
-      JSON.stringify({
-        ref: 'Q-TEST123',
-        submittedAt: new Date().toISOString(),
-        employeeCount: 50,
-        industry: 'construction',
-        productIds: ['atc1015'],
-        shippingMode: 'single',
-      }),
-    );
-  });
+  await context.addInitScript((entry) => {
+    try {
+      window.sessionStorage.setItem('va-last-quote', JSON.stringify(entry));
+    } catch {
+      // sessionStorage unavailable; ignore
+    }
+  }, seeded);
 
-  // Reload so the account page picks up the seeded sessionStorage entry.
   await page.goto('/fr-ca/account');
   await expect(page.getByText('Q-TEST123').first()).toBeVisible();
 });

@@ -1,18 +1,18 @@
 import { test, expect } from '@playwright/test';
 
-// FIXME (Phase 3): Wave-4 selector for Starter card mismatches current UI
-// button text. Manual flow + smoke-curl verified. Selector fix tracked in
-// Phase 3 operator queue.
-test.fixme('kit order: select Starter kit + submit form generates K-XXXX', async ({
+test('kit order: select Starter kit + submit form generates K-XXXX', async ({
   page,
 }) => {
   await page.goto('/fr-ca/kit');
 
-  // Select the Starter card. Either the explicit French label or any button
-  // bearing "Starter" should reveal the form.
-  await page
-    .getByRole('button', { name: /Choisir le kit Starter|Starter/i })
-    .first()
+  // Select the Starter card. Each kit renders an <article> with the kit name
+  // as <h3> and a generic "Choisir ce kit" button. Scope to the Starter card
+  // by its accessible heading, then click that card's select button.
+  const starterCard = page.locator('article').filter({
+    has: page.getByRole('heading', { name: /Kit Starter|Starter Kit/i }),
+  });
+  await starterCard
+    .getByRole('button', { name: /Choisir ce kit|Select this kit/i })
     .click();
 
   // Form fields appear inline below the chosen kit.

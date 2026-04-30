@@ -1,9 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// FIXME (Phase 3): Wave-4 PDP CTA label drift ("Personnaliser et ajouter"
-// renamed in Wave 3 to "Personnaliser le logo" + "Ajouter sans logo"). Each
-// individual page passes a11y + console-clean gates. Tracked in Phase 3 queue.
-test.fixme('Purchase happy path: home -> PDP -> cart -> checkout -> confirmation', async ({
+test('Purchase happy path: home -> PDP -> cart -> checkout -> confirmation', async ({
   page,
 }) => {
   // 1. Home
@@ -31,9 +28,11 @@ test.fixme('Purchase happy path: home -> PDP -> cart -> checkout -> confirmation
     .first()
     .click();
 
-  // PDP CTA: "Personnaliser et ajouter au panier · $XX,XX"
+  // PDP CTA was split in wave 3 into two CTAs: "Personnaliser le logo"
+  // (routes to /customiser) and "Ajouter sans logo" (routes to /panier).
+  // Use the secondary CTA to preserve the original happy-path intent.
   await page
-    .getByRole('button', { name: /Personnaliser et ajouter au panier/i })
+    .getByRole('button', { name: /Ajouter sans logo|Add without logo/i })
     .first()
     .click();
 
