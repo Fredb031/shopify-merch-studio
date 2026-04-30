@@ -127,6 +127,21 @@
       "title": "Cart · Vision Affichage"
     }
   },
+  "cartDrawer": {
+    "heading": "Your cart",
+    "count": "{count, plural, =0 {No items} =1 {1 item} other {# items}}",
+    "close": "Close cart",
+    "viewFull": "View full cart →",
+    "checkout": "Proceed to payment",
+    "empty": {
+      "title": "Your cart is empty",
+      "cta": "Shop now →"
+    },
+    "item": {
+      "remove": "Remove this item",
+      "qty": "Quantity"
+    }
+  },
   "checkout": {
     "billing": "Billing",
     "contact": "Contact",

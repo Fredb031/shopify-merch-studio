@@ -16,6 +16,7 @@ import { Footer } from '@/components/Footer';
 import { SkipLink } from '@/components/SkipLink';
 import { OrganizationJsonLd } from '@/components/seo/OrganizationJsonLd';
 import { CookieConsent } from '@/components/CookieConsent';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 import { Analytics } from '@/components/Analytics';
 
 const inter = Inter({
@@ -124,6 +125,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <Header />
           <main id="main-content">{children}</main>
           <Footer />
+          <CartDrawer />
           <CookieConsent />
           <Analytics />
         </NextIntlClientProvider>

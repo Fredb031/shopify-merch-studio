@@ -8,6 +8,7 @@ import { Container } from './Container';
 import { Button } from './Button';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SearchDialog } from './search/SearchDialog';
+import { useCart } from '@/lib/cart';
 import type { Locale } from '@/i18n/routing';
 
 export function Header() {
@@ -18,6 +19,15 @@ export function Header() {
   const tSearch = useTranslations('search');
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const openCartDrawer = useCart((s) => s.openDrawer);
+  const cartCount = useCart((s) => s.itemCount());
+
+  // Cart state is persisted client-side; only render the count badge after
+  // hydration to avoid SSR/CSR mismatch flicker on initial paint.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cmd/Ctrl+K toggles the search dialog.
   useEffect(() => {
@@ -83,10 +93,20 @@ export function Header() {
             </Suspense>
             <button
               type="button"
+              onClick={openCartDrawer}
               aria-label={tCart('label')}
-              className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-sm text-ink-950 hover:bg-sand-100 transition-colors duration-base ease-standard"
+              aria-haspopup="dialog"
+              className="relative hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-sm text-ink-950 hover:bg-sand-100 transition-colors duration-base ease-standard"
             >
               <ShoppingCart aria-hidden className="h-5 w-5" />
+              {mounted && cartCount > 0 ? (
+                <span
+                  aria-hidden
+                  className="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-pill bg-ink-950 px-1 text-meta-xs font-semibold text-canvas-000 tabular-nums"
+                >
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              ) : null}
             </button>
 
             <Button href={`${base}/produits`} variant="tertiary" size="sm" className="hidden md:inline-flex">

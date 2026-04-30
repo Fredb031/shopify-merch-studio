@@ -127,6 +127,21 @@
       "title": "Panier · Vision Affichage"
     }
   },
+  "cartDrawer": {
+    "heading": "Ton panier",
+    "count": "{count, plural, =0 {Aucun article} =1 {1 article} other {# articles}}",
+    "close": "Fermer le panier",
+    "viewFull": "Voir le panier complet →",
+    "checkout": "Passer au paiement",
+    "empty": {
+      "title": "Ton panier est vide",
+      "cta": "Magasiner →"
+    },
+    "item": {
+      "remove": "Retirer cet article",
+      "qty": "Quantité"
+    }
+  },
   "checkout": {
     "billing": "Facturation",
     "contact": "Contact",

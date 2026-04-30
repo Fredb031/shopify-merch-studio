@@ -21,18 +21,25 @@ export type CartItem = {
 
 type CartState = {
   items: CartItem[];
+  /** Mini-cart drawer visibility. NOT persisted — always starts closed on load. */
+  isDrawerOpen: boolean;
   addItem: (item: CartItem) => void;
   removeItem: (productId: string, variantKey: string) => void;
   updateQty: (productId: string, variantKey: string, qty: number) => void;
   clear: () => void;
   subtotalCents: () => number;
   itemCount: () => number;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 };
 
 export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      isDrawerOpen: false,
+      openDrawer: () => set({ isDrawerOpen: true }),
+      closeDrawer: () => set({ isDrawerOpen: false }),
       addItem: (incoming) =>
         set((state) => {
           const existingIdx = state.items.findIndex(
@@ -75,6 +82,9 @@ export const useCart = create<CartState>()(
     {
       name: 'va-cart-v1',
       storage: createJSONStorage(() => localStorage),
+      // Only persist `items`. Drawer visibility is ephemeral UI state — we
+      // don't want a refresh to reopen the drawer mid-browsing.
+      partialize: (state) => ({ items: state.items }),
     },
   ),
 );

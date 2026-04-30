@@ -42,6 +42,7 @@ export function PdpClient({
   const tLive = useTranslations('pdp.live');
   const router = useRouter();
   const addItem = useCart((s) => s.addItem);
+  const openCartDrawer = useCart((s) => s.openDrawer);
 
   const firstAvailableColor = useMemo(() => {
     const found = product.colors.find((c) => c.available !== false);
@@ -87,7 +88,9 @@ export function PdpClient({
       qty: quantity,
       unitPriceCents: product.priceFromCents,
     });
-    router.push(`/${locale}/panier`);
+    // Open drawer instead of navigating to /panier — gives the customer the
+    // choice to keep shopping or jump to checkout/full cart from the drawer.
+    openCartDrawer();
   };
 
   const onCustomizeLogo = () => {
