@@ -1,16 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Déménagement">
   <defs>
-    <linearGradient id="g-demenagement" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#9A6700"/>
-      <stop offset="100%" stop-color="#101114"/>
-    </linearGradient>
-    <pattern id="p-demenagement" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    <pattern id="p-demenagement" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#101114" stroke-opacity="0.05" stroke-width="1.5"/>
     </pattern>
+    <radialGradient id="vg-demenagement" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>
+    <linearGradient id="bg-demenagement" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F0ECE4"/>
+      <stop offset="100%" stop-color="#F8F7F3"/>
+    </linearGradient>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-demenagement)"/>
+  <rect width="1600" height="900" fill="url(#bg-demenagement)"/>
+  <!-- 3 stacked boxes (rectangles + cross-strap outlines), slate-700 -->
+  <g fill="none" stroke="#35556D" stroke-width="3.5" opacity="0.7" stroke-linejoin="round">
+    <!-- bottom box (largest) -->
+    <rect x="540" y="560" width="380" height="220"/>
+    <line x1="540" y1="670" x2="920" y2="670"/>
+    <line x1="730" y1="560" x2="730" y2="780"/>
+    <!-- middle box -->
+    <rect x="600" y="380" width="320" height="180"/>
+    <line x1="600" y1="470" x2="920" y2="470"/>
+    <line x1="760" y1="380" x2="760" y2="560"/>
+    <!-- top box (smallest) -->
+    <rect x="660" y="240" width="240" height="140"/>
+    <line x1="660" y1="310" x2="900" y2="310"/>
+    <line x1="780" y1="240" x2="780" y2="380"/>
+  </g>
+  <!-- diagonal arrow up-right, stone-500 -->
+  <g fill="none" stroke="#7A7368" stroke-width="6" opacity="0.55" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="1080" y1="640" x2="1380" y2="340"/>
+    <polyline points="1280,330 1380,340 1370,440"/>
+  </g>
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-demenagement)"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Déménagement</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Moving</text>
+  <rect width="1600" height="900" fill="url(#vg-demenagement)"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="#101114" letter-spacing="-1">Déménagement</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="#7A7368" letter-spacing="2" opacity="0.85">MOVING</text>
 </svg>

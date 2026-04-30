@@ -1,16 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Restauration">
   <defs>
-    <linearGradient id="g-restauration" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#B42318"/>
-      <stop offset="100%" stop-color="#101114"/>
-    </linearGradient>
-    <pattern id="p-restauration" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    <pattern id="p-restauration" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#101114" stroke-opacity="0.05" stroke-width="1.5"/>
     </pattern>
+    <radialGradient id="vg-restauration" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>
+    <radialGradient id="bg-restauration" cx="50%" cy="55%" r="70%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </radialGradient>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-restauration)"/>
+  <rect width="1600" height="900" fill="url(#bg-restauration)"/>
+  <!-- place-setting silhouette: plate (circle) + utensils flanking, stone-500 outline -->
+  <g fill="none" stroke="#7A7368" stroke-width="3.5" opacity="0.65">
+    <circle cx="800" cy="450" r="210"/>
+    <circle cx="800" cy="450" r="170"/>
+    <!-- left utensil (fork-like vertical) -->
+    <line x1="540" y1="280" x2="540" y2="620"/>
+    <line x1="540" y1="280" x2="540" y2="360"/>
+    <line x1="528" y1="290" x2="528" y2="350"/>
+    <line x1="552" y1="290" x2="552" y2="350"/>
+    <!-- right utensil (knife-like vertical) -->
+    <line x1="1060" y1="280" x2="1060" y2="620"/>
+    <path d="M 1060 280 Q 1085 320 1080 410 L 1060 410 Z" stroke-linejoin="round"/>
+  </g>
+  <!-- chef-hat suggestion top-right (stacked rounded rectangles) -->
+  <g fill="none" stroke="#7A7368" stroke-width="3" opacity="0.55">
+    <rect x="1280" y="200" width="200" height="50" rx="25"/>
+    <rect x="1260" y="150" width="240" height="60" rx="30"/>
+    <rect x="1240" y="100" width="280" height="60" rx="30"/>
+    <rect x="1300" y="240" width="160" height="40" rx="6"/>
+  </g>
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-restauration)"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Restauration</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Restaurants</text>
+  <rect width="1600" height="900" fill="url(#vg-restauration)"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="#101114" letter-spacing="-1">Restauration</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="#7A7368" letter-spacing="2" opacity="0.85">RESTAURANTS</text>
 </svg>

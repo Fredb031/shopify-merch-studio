@@ -1,16 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Paysagement">
   <defs>
-    <linearGradient id="g-paysagement" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7A7368"/>
-      <stop offset="100%" stop-color="#1D2127"/>
+    <pattern id="p-paysagement" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#101114" stroke-opacity="0.05" stroke-width="1.5"/>
+    </pattern>
+    <radialGradient id="vg-paysagement" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>
+    <linearGradient id="bg-paysagement" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F0ECE4"/>
+      <stop offset="100%" stop-color="#F8F7F3"/>
     </linearGradient>
-    <pattern id="p-paysagement" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    <pattern id="hatch-paysagement" patternUnits="userSpaceOnUse" width="14" height="14" patternTransform="rotate(60)">
+      <line x1="0" y1="0" x2="0" y2="14" stroke="#35556D" stroke-opacity="0.05" stroke-width="1"/>
     </pattern>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-paysagement)"/>
+  <rect width="1600" height="900" fill="url(#bg-paysagement)"/>
+  <!-- faint horizon line -->
+  <line x1="0" y1="640" x2="1600" y2="640" stroke="#7A7368" stroke-opacity="0.18" stroke-width="1.5"/>
+  <!-- low-opacity sun -->
+  <circle cx="1280" cy="320" r="180" fill="#D2C7B0" opacity="0.35"/>
+  <circle cx="1280" cy="320" r="120" fill="#D2C7B0" opacity="0.25"/>
+  <!-- 3 abstract leaf forms (asymmetric ellipses), slate-700 outline -->
+  <g fill="none" stroke="#35556D" stroke-width="3" opacity="0.65">
+    <g transform="translate(380 420) rotate(-25)">
+      <path d="M -180 0 Q -90 -100 0 -110 Q 90 -100 180 0 Q 90 100 0 110 Q -90 100 -180 0 Z"/>
+      <line x1="-180" y1="0" x2="180" y2="0"/>
+    </g>
+    <g transform="translate(820 360) rotate(15)">
+      <path d="M -160 0 Q -80 -110 0 -120 Q 80 -110 160 0 Q 80 100 0 110 Q -80 100 -160 0 Z"/>
+      <line x1="-160" y1="0" x2="160" y2="0"/>
+    </g>
+    <g transform="translate(1180 500) rotate(-10)">
+      <path d="M -140 0 Q -70 -90 0 -100 Q 70 -90 140 0 Q 70 90 0 100 Q -70 90 -140 0 Z"/>
+      <line x1="-140" y1="0" x2="140" y2="0"/>
+    </g>
+  </g>
+  <!-- hatched ground texture, bottom 20% (y 720-900) -->
+  <rect x="0" y="720" width="1600" height="180" fill="url(#hatch-paysagement)"/>
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-paysagement)"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Paysagement</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Landscaping</text>
+  <rect width="1600" height="900" fill="url(#vg-paysagement)"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="#101114" letter-spacing="-1">Paysagement</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="#7A7368" letter-spacing="2" opacity="0.85">LANDSCAPING</text>
 </svg>

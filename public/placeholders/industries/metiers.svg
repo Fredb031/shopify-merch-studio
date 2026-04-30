@@ -1,16 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Métiers spécialisés">
   <defs>
-    <linearGradient id="g-metiers" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1B2B4B"/>
-      <stop offset="100%" stop-color="#101114"/>
+    <pattern id="p-metiers" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1.5"/>
+    </pattern>
+    <radialGradient id="vg-metiers" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>
+    <linearGradient id="bg-metiers" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D2127"/>
+      <stop offset="100%" stop-color="#35556D"/>
     </linearGradient>
-    <pattern id="p-metiers" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    <pattern id="mech-metiers" patternUnits="userSpaceOnUse" width="80" height="80">
+      <circle cx="40" cy="40" r="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1.5"/>
+      <line x1="0" y1="40" x2="80" y2="40" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1"/>
     </pattern>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-metiers)"/>
+  <rect width="1600" height="900" fill="url(#bg-metiers)"/>
+  <!-- crossed wrench + screwdriver, slate-700 silhouettes (lighter version on dark) -->
+  <g opacity="0.78" stroke="#101114" stroke-width="3" stroke-linejoin="round">
+    <!-- wrench: rotated -45 -->
+    <g transform="rotate(-45 800 450)" fill="#35556D">
+      <rect x="500" y="430" width="600" height="40" rx="8"/>
+      <path d="M 480 410 Q 460 450 480 490 L 540 490 L 560 470 L 540 450 L 540 430 Z"/>
+      <path d="M 1120 410 Q 1140 450 1120 490 L 1060 490 L 1040 470 L 1060 450 L 1060 430 Z"/>
+    </g>
+    <!-- screwdriver: rotated +45 -->
+    <g transform="rotate(45 800 450)" fill="#35556D">
+      <rect x="900" y="430" width="280" height="40" rx="6"/>
+      <rect x="880" y="420" width="30" height="60" rx="4" fill="#7A7368"/>
+      <rect x="540" y="438" width="360" height="24" fill="#F8F7F3" opacity="0.85"/>
+      <polygon points="540,438 540,462 480,450" fill="#F8F7F3" opacity="0.85"/>
+    </g>
+  </g>
+  <!-- mechanical pattern bottom band -->
+  <rect x="0" y="720" width="1600" height="180" fill="url(#mech-metiers)"/>
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-metiers)"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Métiers spécialisés</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Skilled trades</text>
+  <rect width="1600" height="900" fill="url(#vg-metiers)"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="#F8F7F3" letter-spacing="-1">Métiers spécialisés</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="#F0ECE4" letter-spacing="2" opacity="0.85">SKILLED TRADES</text>
 </svg>

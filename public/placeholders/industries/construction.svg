@@ -1,16 +1,63 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Construction">
   <defs>
-    <linearGradient id="g-construction" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#35556D"/>
-      <stop offset="100%" stop-color="#101114"/>
-    </linearGradient>
-    <pattern id="p-construction" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    <pattern id="p-construction" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1.5"/>
     </pattern>
+    <radialGradient id="vg-construction" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>
+    <linearGradient id="bg-construction" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1D2127"/>
+      <stop offset="100%" stop-color="#35556D"/>
+    </linearGradient>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-construction)"/>
+  <rect width="1600" height="900" fill="url(#bg-construction)"/>
+  <!-- 3 angled steel-beam rectangles, rotated -15deg around viewport center -->
+  <g transform="rotate(-15 800 450)" opacity="0.72">
+    <rect x="180" y="200" width="1280" height="60" fill="#35556D" stroke="#101114" stroke-width="3"/>
+    <rect x="180" y="200" width="1280" height="6" fill="#101114" opacity="0.6"/>
+    <rect x="180" y="254" width="1280" height="6" fill="#101114" opacity="0.6"/>
+    <rect x="120" y="430" width="1380" height="72" fill="#35556D" stroke="#101114" stroke-width="3"/>
+    <rect x="120" y="430" width="1380" height="7" fill="#101114" opacity="0.6"/>
+    <rect x="120" y="495" width="1380" height="7" fill="#101114" opacity="0.6"/>
+    <rect x="80" y="680" width="1440" height="60" fill="#35556D" stroke="#101114" stroke-width="3"/>
+    <rect x="80" y="680" width="1440" height="6" fill="#101114" opacity="0.6"/>
+    <rect x="80" y="734" width="1440" height="6" fill="#101114" opacity="0.6"/>
+  </g>
+  <!-- yellow safety-tape stripe across mid-frame, 40% opacity -->
+  <g opacity="0.4">
+    <rect x="-50" y="540" width="1700" height="50" fill="#F2C94C" transform="rotate(-3 800 565)"/>
+    <g transform="rotate(-3 800 565)" opacity="0.55">
+      <rect x="0" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="120" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="240" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="360" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="480" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="600" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="720" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="840" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="960" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="1080" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="1200" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="1320" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="1440" y="545" width="40" height="40" fill="#101114"/>
+      <rect x="1560" y="545" width="40" height="40" fill="#101114"/>
+    </g>
+  </g>
+  <!-- hard-hat silhouette outline (bottom-right) -->
+  <g transform="translate(1200 720)" fill="none" stroke="#7A7368" stroke-width="3" opacity="0.55">
+    <path d="M -120 0 Q -120 -110 0 -120 Q 120 -110 120 0 Z"/>
+    <line x1="-145" y1="0" x2="145" y2="0"/>
+    <rect x="-150" y="0" width="300" height="14" rx="3"/>
+    <line x1="-50" y1="-115" x2="-50" y2="0"/>
+    <line x1="50" y1="-115" x2="50" y2="0"/>
+  </g>
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-construction)"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Construction</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Construction</text>
+  <rect width="1600" height="900" fill="url(#vg-construction)"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="#F8F7F3" letter-spacing="-1">Construction</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="#F0ECE4" letter-spacing="2" opacity="0.85">CONSTRUCTION</text>
 </svg>

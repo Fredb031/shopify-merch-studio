@@ -1,16 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Bureau et corporatif">
   <defs>
-    <linearGradient id="g-bureau" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#35556D"/>
-      <stop offset="100%" stop-color="#1D2127"/>
-    </linearGradient>
-    <pattern id="p-bureau" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    <pattern id="p-bureau" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="#101114" stroke-opacity="0.05" stroke-width="1.5"/>
     </pattern>
+    <radialGradient id="vg-bureau" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>
+    <linearGradient id="bg-bureau" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F8F7F3"/>
+      <stop offset="100%" stop-color="#F0ECE4"/>
+    </linearGradient>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-bureau)"/>
+  <rect width="1600" height="900" fill="url(#bg-bureau)"/>
+  <!-- subtle window grid (3x2 rectangles) very low opacity, top region -->
+  <g fill="none" stroke="#35556D" stroke-width="2" opacity="0.10">
+    <rect x="1080" y="80" width="120" height="160"/>
+    <rect x="1220" y="80" width="120" height="160"/>
+    <rect x="1360" y="80" width="120" height="160"/>
+    <rect x="1080" y="260" width="120" height="160"/>
+    <rect x="1220" y="260" width="120" height="160"/>
+    <rect x="1360" y="260" width="120" height="160"/>
+  </g>
+  <!-- minimalist desk silhouette: horizontal line for desk + monitor rectangle -->
+  <g fill="none" stroke="#35556D" stroke-width="3.5" opacity="0.72" stroke-linejoin="round">
+    <!-- monitor screen -->
+    <rect x="640" y="280" width="420" height="260" rx="6"/>
+    <line x1="640" y1="320" x2="1060" y2="320"/>
+    <!-- monitor stand -->
+    <line x1="850" y1="540" x2="850" y2="600"/>
+    <rect x="780" y="600" width="140" height="14" rx="3"/>
+    <!-- desk surface -->
+    <line x1="160" y1="630" x2="1440" y2="630" stroke-width="5"/>
+    <line x1="160" y1="640" x2="1440" y2="640" stroke-width="2" opacity="0.5"/>
+    <!-- desk legs hint -->
+    <line x1="280" y1="640" x2="280" y2="800"/>
+    <line x1="1320" y1="640" x2="1320" y2="800"/>
+  </g>
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-bureau)"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Bureau et corporatif</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Office</text>
+  <rect width="1600" height="900" fill="url(#vg-bureau)"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="#101114" letter-spacing="-1">Bureau et corporatif</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="#7A7368" letter-spacing="2" opacity="0.85">OFFICE</text>
 </svg>

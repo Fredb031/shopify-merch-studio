@@ -550,32 +550,291 @@ function productSvg({ code, color, category }, view) {
 }
 
 // ---------- industry heroes ----------
+//
+// 1600x900 SVG per industry. Brand-token palette only:
+//   ink-950 #101114, slate-700 #35556D, sand-100 #F0ECE4,
+//   canvas-050 #F8F7F3, stone-500 #7A7368.
+//
+// Each composes an abstract scene appropriate to the industry — purely
+// SVG primitives, no real photography. Industry name positioned bottom-left
+// (80px padding) in 44px Inter weight 700. Common diagonal-line pattern at
+// 5% opacity + radial vignette darkening corners at 8% opacity.
+
+const BRAND = {
+  ink950: '#101114',
+  ink800: '#1D2127',
+  slate700: '#35556D',
+  sand100: '#F0ECE4',
+  sand300: '#D2C7B0',
+  canvas050: '#F8F7F3',
+  stone500: '#7A7368',
+};
 
 const industries = [
-  { slug: 'construction', label: { fr: 'Construction', en: 'Construction' }, gradient: ['#35556D', '#101114'] },
-  { slug: 'paysagement', label: { fr: 'Paysagement', en: 'Landscaping' }, gradient: ['#7A7368', '#1D2127'] },
-  { slug: 'restauration', label: { fr: 'Restauration', en: 'Restaurants' }, gradient: ['#B42318', '#101114'] },
-  { slug: 'demenagement', label: { fr: 'Déménagement', en: 'Moving' }, gradient: ['#9A6700', '#101114'] },
-  { slug: 'metiers', label: { fr: 'Métiers spécialisés', en: 'Skilled trades' }, gradient: ['#1B2B4B', '#101114'] },
-  { slug: 'bureau', label: { fr: 'Bureau et corporatif', en: 'Office' }, gradient: ['#35556D', '#1D2127'] },
+  { slug: 'construction', label: { fr: 'Construction', en: 'Construction' }, dark: true },
+  { slug: 'paysagement', label: { fr: 'Paysagement', en: 'Landscaping' }, dark: false },
+  { slug: 'restauration', label: { fr: 'Restauration', en: 'Restaurants' }, dark: false },
+  { slug: 'demenagement', label: { fr: 'Déménagement', en: 'Moving' }, dark: false },
+  { slug: 'metiers', label: { fr: 'Métiers spécialisés', en: 'Skilled trades' }, dark: true },
+  { slug: 'bureau', label: { fr: 'Bureau et corporatif', en: 'Office' }, dark: false },
 ];
 
-function industrySvg({ slug, label, gradient }) {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="${label.fr}">
-  <defs>
-    <linearGradient id="g-${slug}" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="${gradient[0]}"/>
-      <stop offset="100%" stop-color="${gradient[1]}"/>
+// Common overlays: subtle diagonal hatching + corner vignette.
+function industryOverlay(slug, dark) {
+  const lineColor = dark ? '#FFFFFF' : BRAND.ink950;
+  return `
+    <pattern id="p-${slug}" patternUnits="userSpaceOnUse" width="40" height="40" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="40" stroke="${lineColor}" stroke-opacity="0.05" stroke-width="1.5"/>
+    </pattern>
+    <radialGradient id="vg-${slug}" cx="50%" cy="50%" r="75%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.08"/>
+    </radialGradient>`;
+}
+
+// Each scene fragment occupies the full 1600x900 viewport behind the label.
+
+function sceneConstruction() {
+  // Dark diagonal gradient + 3 angled steel beams + hard-hat silhouette + safety-tape stripe.
+  return `
+    <linearGradient id="bg-construction" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${BRAND.ink800}"/>
+      <stop offset="100%" stop-color="${BRAND.slate700}"/>
     </linearGradient>
-    <pattern id="p-${slug}" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
-      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg-construction)"/>
+  <!-- 3 angled steel-beam rectangles, rotated -15deg around viewport center -->
+  <g transform="rotate(-15 800 450)" opacity="0.72">
+    <rect x="180" y="200" width="1280" height="60" fill="${BRAND.slate700}" stroke="${BRAND.ink950}" stroke-width="3"/>
+    <rect x="180" y="200" width="1280" height="6" fill="${BRAND.ink950}" opacity="0.6"/>
+    <rect x="180" y="254" width="1280" height="6" fill="${BRAND.ink950}" opacity="0.6"/>
+    <rect x="120" y="430" width="1380" height="72" fill="${BRAND.slate700}" stroke="${BRAND.ink950}" stroke-width="3"/>
+    <rect x="120" y="430" width="1380" height="7" fill="${BRAND.ink950}" opacity="0.6"/>
+    <rect x="120" y="495" width="1380" height="7" fill="${BRAND.ink950}" opacity="0.6"/>
+    <rect x="80" y="680" width="1440" height="60" fill="${BRAND.slate700}" stroke="${BRAND.ink950}" stroke-width="3"/>
+    <rect x="80" y="680" width="1440" height="6" fill="${BRAND.ink950}" opacity="0.6"/>
+    <rect x="80" y="734" width="1440" height="6" fill="${BRAND.ink950}" opacity="0.6"/>
+  </g>
+  <!-- yellow safety-tape stripe across mid-frame, 40% opacity -->
+  <g opacity="0.4">
+    <rect x="-50" y="540" width="1700" height="50" fill="#F2C94C" transform="rotate(-3 800 565)"/>
+    <g transform="rotate(-3 800 565)" opacity="0.55">
+      <rect x="0" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="120" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="240" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="360" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="480" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="600" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="720" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="840" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="960" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="1080" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="1200" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="1320" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="1440" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+      <rect x="1560" y="545" width="40" height="40" fill="${BRAND.ink950}"/>
+    </g>
+  </g>
+  <!-- hard-hat silhouette outline (bottom-right) -->
+  <g transform="translate(1200 720)" fill="none" stroke="${BRAND.stone500}" stroke-width="3" opacity="0.55">
+    <path d="M -120 0 Q -120 -110 0 -120 Q 120 -110 120 0 Z"/>
+    <line x1="-145" y1="0" x2="145" y2="0"/>
+    <rect x="-150" y="0" width="300" height="14" rx="3"/>
+    <line x1="-50" y1="-115" x2="-50" y2="0"/>
+    <line x1="50" y1="-115" x2="50" y2="0"/>
+  </g>`;
+}
+
+function scenePaysagement() {
+  // Warm gradient + 3 abstract leaf forms + horizon + sun + hatched ground.
+  return `
+    <linearGradient id="bg-paysagement" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="${BRAND.sand100}"/>
+      <stop offset="100%" stop-color="${BRAND.canvas050}"/>
+    </linearGradient>
+    <pattern id="hatch-paysagement" patternUnits="userSpaceOnUse" width="14" height="14" patternTransform="rotate(60)">
+      <line x1="0" y1="0" x2="0" y2="14" stroke="${BRAND.slate700}" stroke-opacity="0.05" stroke-width="1"/>
     </pattern>
   </defs>
-  <rect width="1600" height="900" fill="url(#g-${slug})"/>
+  <rect width="1600" height="900" fill="url(#bg-paysagement)"/>
+  <!-- faint horizon line -->
+  <line x1="0" y1="640" x2="1600" y2="640" stroke="${BRAND.stone500}" stroke-opacity="0.18" stroke-width="1.5"/>
+  <!-- low-opacity sun -->
+  <circle cx="1280" cy="320" r="180" fill="${BRAND.sand300}" opacity="0.35"/>
+  <circle cx="1280" cy="320" r="120" fill="${BRAND.sand300}" opacity="0.25"/>
+  <!-- 3 abstract leaf forms (asymmetric ellipses), slate-700 outline -->
+  <g fill="none" stroke="${BRAND.slate700}" stroke-width="3" opacity="0.65">
+    <g transform="translate(380 420) rotate(-25)">
+      <path d="M -180 0 Q -90 -100 0 -110 Q 90 -100 180 0 Q 90 100 0 110 Q -90 100 -180 0 Z"/>
+      <line x1="-180" y1="0" x2="180" y2="0"/>
+    </g>
+    <g transform="translate(820 360) rotate(15)">
+      <path d="M -160 0 Q -80 -110 0 -120 Q 80 -110 160 0 Q 80 100 0 110 Q -80 100 -160 0 Z"/>
+      <line x1="-160" y1="0" x2="160" y2="0"/>
+    </g>
+    <g transform="translate(1180 500) rotate(-10)">
+      <path d="M -140 0 Q -70 -90 0 -100 Q 70 -90 140 0 Q 70 90 0 100 Q -70 90 -140 0 Z"/>
+      <line x1="-140" y1="0" x2="140" y2="0"/>
+    </g>
+  </g>
+  <!-- hatched ground texture, bottom 20% (y 720-900) -->
+  <rect x="0" y="720" width="1600" height="180" fill="url(#hatch-paysagement)"/>`;
+}
+
+function sceneRestauration() {
+  // Warm canvas-050 with subtle radial gradient + place-setting silhouette + chef-hat suggestion.
+  return `
+    <radialGradient id="bg-restauration" cx="50%" cy="55%" r="70%">
+      <stop offset="0%" stop-color="${BRAND.canvas050}"/>
+      <stop offset="100%" stop-color="${BRAND.sand100}"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg-restauration)"/>
+  <!-- place-setting silhouette: plate (circle) + utensils flanking, stone-500 outline -->
+  <g fill="none" stroke="${BRAND.stone500}" stroke-width="3.5" opacity="0.65">
+    <circle cx="800" cy="450" r="210"/>
+    <circle cx="800" cy="450" r="170"/>
+    <!-- left utensil (fork-like vertical) -->
+    <line x1="540" y1="280" x2="540" y2="620"/>
+    <line x1="540" y1="280" x2="540" y2="360"/>
+    <line x1="528" y1="290" x2="528" y2="350"/>
+    <line x1="552" y1="290" x2="552" y2="350"/>
+    <!-- right utensil (knife-like vertical) -->
+    <line x1="1060" y1="280" x2="1060" y2="620"/>
+    <path d="M 1060 280 Q 1085 320 1080 410 L 1060 410 Z" stroke-linejoin="round"/>
+  </g>
+  <!-- chef-hat suggestion top-right (stacked rounded rectangles) -->
+  <g fill="none" stroke="${BRAND.stone500}" stroke-width="3" opacity="0.55">
+    <rect x="1280" y="200" width="200" height="50" rx="25"/>
+    <rect x="1260" y="150" width="240" height="60" rx="30"/>
+    <rect x="1240" y="100" width="280" height="60" rx="30"/>
+    <rect x="1300" y="240" width="160" height="40" rx="6"/>
+  </g>`;
+}
+
+function sceneDemenagement() {
+  // Cool gradient + 3 stacked box silhouettes + diagonal arrow.
+  return `
+    <linearGradient id="bg-demenagement" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${BRAND.sand100}"/>
+      <stop offset="100%" stop-color="${BRAND.canvas050}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg-demenagement)"/>
+  <!-- 3 stacked boxes (rectangles + cross-strap outlines), slate-700 -->
+  <g fill="none" stroke="${BRAND.slate700}" stroke-width="3.5" opacity="0.7" stroke-linejoin="round">
+    <!-- bottom box (largest) -->
+    <rect x="540" y="560" width="380" height="220"/>
+    <line x1="540" y1="670" x2="920" y2="670"/>
+    <line x1="730" y1="560" x2="730" y2="780"/>
+    <!-- middle box -->
+    <rect x="600" y="380" width="320" height="180"/>
+    <line x1="600" y1="470" x2="920" y2="470"/>
+    <line x1="760" y1="380" x2="760" y2="560"/>
+    <!-- top box (smallest) -->
+    <rect x="660" y="240" width="240" height="140"/>
+    <line x1="660" y1="310" x2="900" y2="310"/>
+    <line x1="780" y1="240" x2="780" y2="380"/>
+  </g>
+  <!-- diagonal arrow up-right, stone-500 -->
+  <g fill="none" stroke="${BRAND.stone500}" stroke-width="6" opacity="0.55" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="1080" y1="640" x2="1380" y2="340"/>
+    <polyline points="1280,330 1380,340 1370,440"/>
+  </g>`;
+}
+
+function sceneMetiers() {
+  // Dark gradient + crossed wrench + screwdriver + bottom mechanical pattern.
+  return `
+    <linearGradient id="bg-metiers" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${BRAND.ink800}"/>
+      <stop offset="100%" stop-color="${BRAND.slate700}"/>
+    </linearGradient>
+    <pattern id="mech-metiers" patternUnits="userSpaceOnUse" width="80" height="80">
+      <circle cx="40" cy="40" r="14" fill="none" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1.5"/>
+      <line x1="0" y1="40" x2="80" y2="40" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg-metiers)"/>
+  <!-- crossed wrench + screwdriver, slate-700 silhouettes (lighter version on dark) -->
+  <g opacity="0.78" stroke="${BRAND.ink950}" stroke-width="3" stroke-linejoin="round">
+    <!-- wrench: rotated -45 -->
+    <g transform="rotate(-45 800 450)" fill="${BRAND.slate700}">
+      <rect x="500" y="430" width="600" height="40" rx="8"/>
+      <path d="M 480 410 Q 460 450 480 490 L 540 490 L 560 470 L 540 450 L 540 430 Z"/>
+      <path d="M 1120 410 Q 1140 450 1120 490 L 1060 490 L 1040 470 L 1060 450 L 1060 430 Z"/>
+    </g>
+    <!-- screwdriver: rotated +45 -->
+    <g transform="rotate(45 800 450)" fill="${BRAND.slate700}">
+      <rect x="900" y="430" width="280" height="40" rx="6"/>
+      <rect x="880" y="420" width="30" height="60" rx="4" fill="${BRAND.stone500}"/>
+      <rect x="540" y="438" width="360" height="24" fill="${BRAND.canvas050}" opacity="0.85"/>
+      <polygon points="540,438 540,462 480,450" fill="${BRAND.canvas050}" opacity="0.85"/>
+    </g>
+  </g>
+  <!-- mechanical pattern bottom band -->
+  <rect x="0" y="720" width="1600" height="180" fill="url(#mech-metiers)"/>`;
+}
+
+function sceneBureau() {
+  // Clean canvas-050 + minimalist desk silhouette + window grid pattern at top.
+  return `
+    <linearGradient id="bg-bureau" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="${BRAND.canvas050}"/>
+      <stop offset="100%" stop-color="${BRAND.sand100}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg-bureau)"/>
+  <!-- subtle window grid (3x2 rectangles) very low opacity, top region -->
+  <g fill="none" stroke="${BRAND.slate700}" stroke-width="2" opacity="0.10">
+    <rect x="1080" y="80" width="120" height="160"/>
+    <rect x="1220" y="80" width="120" height="160"/>
+    <rect x="1360" y="80" width="120" height="160"/>
+    <rect x="1080" y="260" width="120" height="160"/>
+    <rect x="1220" y="260" width="120" height="160"/>
+    <rect x="1360" y="260" width="120" height="160"/>
+  </g>
+  <!-- minimalist desk silhouette: horizontal line for desk + monitor rectangle -->
+  <g fill="none" stroke="${BRAND.slate700}" stroke-width="3.5" opacity="0.72" stroke-linejoin="round">
+    <!-- monitor screen -->
+    <rect x="640" y="280" width="420" height="260" rx="6"/>
+    <line x1="640" y1="320" x2="1060" y2="320"/>
+    <!-- monitor stand -->
+    <line x1="850" y1="540" x2="850" y2="600"/>
+    <rect x="780" y="600" width="140" height="14" rx="3"/>
+    <!-- desk surface -->
+    <line x1="160" y1="630" x2="1440" y2="630" stroke-width="5"/>
+    <line x1="160" y1="640" x2="1440" y2="640" stroke-width="2" opacity="0.5"/>
+    <!-- desk legs hint -->
+    <line x1="280" y1="640" x2="280" y2="800"/>
+    <line x1="1320" y1="640" x2="1320" y2="800"/>
+  </g>`;
+}
+
+const SCENES = {
+  construction: sceneConstruction,
+  paysagement: scenePaysagement,
+  restauration: sceneRestauration,
+  demenagement: sceneDemenagement,
+  metiers: sceneMetiers,
+  bureau: sceneBureau,
+};
+
+function industrySvg({ slug, label, dark }) {
+  const scene = SCENES[slug]();
+  const overlay = industryOverlay(slug, dark);
+  // 44px display-lg, Inter weight 700, bottom-left at 80px padding.
+  const labelFill = dark ? BRAND.canvas050 : BRAND.ink950;
+  const subFill = dark ? BRAND.sand100 : BRAND.stone500;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="${label.fr}">
+  <defs>${overlay}${scene}
+  <!-- texture + vignette overlays -->
   <rect width="1600" height="900" fill="url(#p-${slug})"/>
-  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">${label.fr}</text>
-  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">${label.en}</text>
+  <rect width="1600" height="900" fill="url(#vg-${slug})"/>
+  <!-- industry name: display-lg, Inter 700, bottom-left, 80px padding -->
+  <text x="80" y="800" font-family="Inter,system-ui,sans-serif" font-size="44" font-weight="700" fill="${labelFill}" letter-spacing="-1">${label.fr}</text>
+  <text x="80" y="838" font-family="Inter,system-ui,sans-serif" font-size="18" font-weight="400" fill="${subFill}" letter-spacing="2" opacity="0.85">${label.en.toUpperCase()}</text>
 </svg>
 `;
 }
