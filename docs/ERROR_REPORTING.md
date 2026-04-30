@@ -184,14 +184,23 @@ contributors who don't run the upload step.
 
 ### Release notifications (Slack / Discord)
 
-The workflow posts **two** kinds of notifications via the same
+The workflow posts **three** tiers of notifications via the same
 `RELEASE_WEBHOOK_URL` secret:
 
-1. **Success** — after a successful source-map upload, posts a green
+1. **🚀 Success** — after a successful source-map upload, posts a green
    attachment with commit SHA, branch, and a link to the Actions run.
    Gated on **both** `SENTRY_AUTH_TOKEN` and `RELEASE_WEBHOOK_URL` being
    set, plus job `success()`.
-2. **Failure** — if any step in the job fails (Sentry upload, build,
+2. **🟡 Partial success** — build went green but `SENTRY_AUTH_TOKEN`
+   was unset, so source maps were never uploaded. Posts a yellow
+   `warning`-coloured attachment with commit SHA, branch, and a one-line
+   reminder to wire `SENTRY_AUTH_TOKEN` + `SENTRY_ORG` so production
+   stack traces become symbolicated. Gated on `SENTRY_AUTH_TOKEN == ''`
+   AND `RELEASE_WEBHOOK_URL != ''` — so operators who haven't yet wired
+   any webhook get the quieter fallback below instead of nothing.
+   Closes the silent-skip gap (build looked green, but symbolication
+   was secretly off).
+3. **🔴 Failure** — if any step in the job fails (Sentry upload, build,
    verify, etc.), posts a red attachment with commit SHA, branch, a
    one-click Investigate link to the run, and an impact statement
    noting that production stack traces will be unsymbolicated until
@@ -199,7 +208,13 @@ The workflow posts **two** kinds of notifications via the same
    `RELEASE_WEBHOOK_URL` being set — closes the silent-CI-red gap so
    a broken upload can't slip past the team unnoticed.
 
-Both notifications share the **same** webhook secret — no second
+When **no** `RELEASE_WEBHOOK_URL` is configured at all and
+`SENTRY_AUTH_TOKEN` is also unset, the workflow falls back to a quiet
+`::warning::` annotation in the GitHub Actions UI rather than firing
+any webhook traffic — operators who haven't wired anything don't get
+spammed.
+
+All three tiers share the **same** webhook secret — no second
 secret needed.
 
 Operator setup checklist:

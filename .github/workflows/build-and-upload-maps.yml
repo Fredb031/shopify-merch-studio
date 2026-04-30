@@ -64,12 +64,31 @@ jobs:
           echo "SENTRY_AUTH_TOKEN present — would upload source maps for $GITHUB_SHA"
           echo "(Step is a placeholder until Sentry is wired; uncomment the npx commands above to enable.)"
 
-      - name: Skip upload (no secrets)
-        if: env.SENTRY_AUTH_TOKEN == ''
+      - name: Notify on missing Sentry token
+        if: env.SENTRY_AUTH_TOKEN == '' && env.RELEASE_WEBHOOK_URL != ''
+        env:
+          RELEASE_WEBHOOK_URL: ${{ secrets.RELEASE_WEBHOOK_URL }}
         run: |
-          echo "SENTRY_AUTH_TOKEN not set — skipping source-map upload."
-          echo "To enable: add SENTRY_AUTH_TOKEN and SENTRY_ORG repo secrets,"
-          echo "then uncomment the @sentry/cli commands in this workflow."
+          curl -X POST "$RELEASE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(cat <<EOF
+          {
+            "text": "🟡 Vision Affichage build OK — Sentry symbolication NOT configured",
+            "attachments": [{
+              "color": "warning",
+              "fields": [
+                {"title": "Commit", "value": "${GITHUB_SHA}", "short": true},
+                {"title": "Branch", "value": "${GITHUB_REF_NAME}", "short": true},
+                {"title": "Action needed", "value": "Set SENTRY_AUTH_TOKEN + SENTRY_ORG repo secrets to enable production stack-trace symbolication. See docs/ERROR_REPORTING.md.", "short": false}
+              ]
+            }]
+          }
+          EOF
+          )"
+      - name: Console-only notification fallback
+        if: env.SENTRY_AUTH_TOKEN == '' && env.RELEASE_WEBHOOK_URL == ''
+        run: |
+          echo "::warning::SENTRY_AUTH_TOKEN not set — symbolication disabled. Set repo secrets to enable."
 
       - name: Notify Slack/Discord on successful release
         if: env.SENTRY_AUTH_TOKEN != '' && env.RELEASE_WEBHOOK_URL != '' && success()
