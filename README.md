@@ -34,7 +34,7 @@ The site auto-redirects `/` to `/fr-ca` (default locale).
 
 ```bash
 pnpm dev            # dev server (http://localhost:3000)
-pnpm build          # production build (61 statically-rendered pages)
+pnpm build          # production build (67 statically-rendered pages, Phase 2)
 pnpm start          # serve the production build
 pnpm lint           # next lint
 pnpm typecheck      # tsc --noEmit
@@ -117,8 +117,9 @@ tests/
   console-clean.spec.ts      0 console errors on 8 routes
 
 docs/
-  decisions/                 ADRs 001-005
-  PHASE_8_AUDIT.md           Wave 3B QA report
+  decisions/                            ADRs 001-005
+  PHASE_8_AUDIT.md                      Wave 3B (Phase 1) QA report
+  PHASE_2_LIGHTHOUSE_2026-04-30.md      Phase 2 Lighthouse re-baseline + verification
 ```
 
 ## Adding a product
@@ -150,47 +151,82 @@ docs/
 | `/checkout` | full (5-step, simulated payment) | yes | yes |
 | `/confirmation` | full | yes | yes |
 
-## Phase 2 stubs
+## Phase 2 routes (now live)
 
-These routes render `PhaseTwoStub` with on-brand interim copy plus contact CTAs:
+These routes were stubs in Phase 1 and shipped as full implementations in Phase 2 on
+`v2/rebrand`. See `docs/PHASE_2_LIGHTHOUSE_2026-04-30.md` for the verification report.
 
-| Route | Planned Phase 2 implementation |
-|---|---|
-| `/soumission` | Multi-step quote form (RHF + zod) -> CRM webhook + email |
-| `/kit` | Discovery kit catalog (3 SKUs, sample-fee waiver) -> dedicated checkout flow |
-| `/avis` | Full reviews page with industry filter, video testimonials, Google rating embed |
-| `/a-propos` | About page with team, atelier photos, history timeline |
-| `/contact` | Interactive form -> email + ticket creation |
-| `/faq` | Centralized FAQ with search + per-category drilldown |
-| `/comment-ca-marche` | Step-by-step process page with diagrams + video |
-| `/confidentialite` | Final privacy policy with consent management |
-| `/conditions` | Final terms of service with returns policy |
+| Route | Phase 2 implementation | fr-CA | en-CA |
+|---|---|---|---|
+| `/soumission` | Multi-step quote form (RHF + zod) with industry/quantity/decoration steps | yes | yes |
+| `/kit` | Discovery kit ordering: pick mix, sample fee + waiver flow | yes | yes |
+| `/avis` | Full reviews page replacing stub: industry filter, sortable cards | yes | yes |
+| `/a-propos` | About page with team, atelier, history timeline | yes | yes |
+| `/contact` | Interactive contact form with topic routing + validation | yes | yes |
+| `/faq` | Centralized FAQ with category drilldown | yes | yes |
+| `/comment-ca-marche` | Step-by-step process page | yes | yes |
+| `/customiser` | Proof-first upload flow per Vol III §07 | yes | yes |
 
-## Phase 1 acceptance criteria
+The catalogue/checkout core (`/`, `/produits`, `/produits/<slug>`, `/industries`,
+`/industries/<slug>`, `/panier`, `/checkout`, `/confirmation`) carried over from Phase 1
+unchanged. PDP CTA was split into "Personnaliser le logo" + "Ajouter sans logo"
+(commit 7cf4a97). Live SanMar product/inventory/pricing wiring landed with fallback
+(commit aa0910b).
+
+Legal pages (`/confidentialite`, `/conditions`) still render PhaseTwoStub awaiting
+operator-approved final copy.
+
+## Phase 2 acceptance criteria
 
 | # | Criterion | Status |
 |---|---|---|
 | 1 | Bilingual fr-CA / en-CA routing with hreflang + canonical | PASS |
-| 2 | 21 SKUs with full PDP info ladder (gallery, identity, badges, color/size/qty, lead time, decoration, fabric, fit, FAQ, reviews) | PASS |
-| 3 | PLP with filter (category/badge/color) + sort + URL-driven state | PASS |
-| 4 | 6 industry landing pages with case-study quote, recommended products, FAQ | PASS |
+| 2 | 21 SKUs with full PDP info ladder + split logo/no-logo CTA | PASS |
+| 3 | PLP with filter + sort + URL-driven state | PASS |
+| 4 | 6 industry landing pages | PASS |
 | 5 | Cart with persistent state across reloads | PASS |
-| 6 | 5-step guest checkout with field validation (zod) | PASS |
+| 6 | 5-step guest checkout with zod validation | PASS |
 | 7 | Order confirmation with summary + sessionStorage round-trip | PASS |
-| 8 | Lighthouse mobile Performance >= 85 | PASS (96-99) |
-| 9 | Lighthouse mobile Accessibility >= 95 | PASS (100) |
-| 10 | Lighthouse mobile SEO >= 95 | 92 — localhost canonical artifact, see docs/PHASE_8_AUDIT.md (production expected to clear) |
-| 11 | JSON-LD (Organization, Product, BreadcrumbList, FAQPage) | PASS |
-| 12 | Console-clean on critical routes | PASS |
-| 13 | Playwright a11y suite zero violations on 11 routes | PASS |
+| 8 | Customizer (`/customiser`) — proof-first upload flow | PASS |
+| 9 | Multi-step quote form (`/soumission`) | PASS |
+| 10 | Discovery kit ordering (`/kit`) | PASS |
+| 11 | Full reviews page (`/avis`) with filter | PASS |
+| 12 | Interactive contact form (`/contact`) | PASS |
+| 13 | About / FAQ / Process content (`/a-propos`, `/faq`, `/comment-ca-marche`) | PASS |
+| 14 | SanMar live product/inventory/pricing with fallback | PASS |
+| 15 | Lighthouse mobile Performance >= 85 | PASS (96-98) |
+| 16 | Lighthouse mobile Accessibility >= 95 | PASS (100) |
+| 17 | Lighthouse mobile Best Practices >= 95 | PASS (100) |
+| 18 | Lighthouse mobile SEO >= 95 | 90-92 — localhost canonical artifact, see docs/PHASE_2_LIGHTHOUSE_2026-04-30.md (production expected to clear) |
+| 19 | JSON-LD (Organization, Product, BreadcrumbList, FAQPage) | PASS |
+| 20 | Console-clean on critical routes | PASS |
+| 21 | Playwright a11y suite — 0 violations on 11 routes | PASS |
+| 22 | 17-route smoke (fr-CA + en-CA) — 100% 200 OK | PASS |
 
-## Operator follow-ups (Phase 2 kickoff)
+## What's left for Phase 3 (operator queue)
 
-1. **Real photography** — replace the SVG-generated `/public/placeholders/products/*.svg` with photographer-shot product images and on-job-site context shots. Keep the same filename mapping; no code changes needed.
-2. **Real client logos** — operator to supply 8-12 vetted client logos (with permission) to replace the SVG placeholders in `/public/placeholders/clients/*.svg`. Update `lib/clients.ts` once delivered.
-3. **Payment gateway** — wire Stripe Elements + Payment Intents per ADR 004. PCI-DSS SAQ A scope.
-4. **Discovery kit content** — operator to define the 3-SKU mix, sample fee, and waiver terms before `/kit` is implemented.
-5. **Phase 2 implementations** — `/soumission`, `/kit`, `/avis`, `/contact`, plus the legal pages (`/confidentialite`, `/conditions`) need final operator-approved copy and any required form actions.
+Phase 2 completes the front-of-house experience: every customer-facing route renders real
+content with interactive forms backed by zod schemas and client-side validation. Phase 3
+must wire the back-of-house plumbing the simulated flows currently stand in for.
+
+1. **Real photography** — replace SVG product/atelier/team placeholders with
+   photographer-shot assets. Filename mapping is stable, so this is asset-only.
+2. **Real auth backend** — `/account` is intentionally not built yet; it requires a
+   persistent customer DB + session layer (NextAuth or Clerk). Add login, order history,
+   saved logos, address book.
+3. **Payment gateway** — wire Stripe Elements + Payment Intents per ADR 004 to replace
+   the simulated checkout. PCI-DSS SAQ A scope.
+4. **Persistent customer database** — quote submissions, contact messages, kit orders
+   currently fire client-side only. Phase 3 needs server actions / API routes writing to
+   Postgres (Supabase or Neon recommended) plus an operator dashboard.
+5. **Email + CRM integration** — `/soumission`, `/contact`, `/kit` should trigger
+   transactional email (Resend/Postmark) and create CRM records (HubSpot or built-in).
+6. **Real client logos** — operator to supply 8-12 vetted client logos with permission;
+   update `lib/clients.ts`.
+7. **Final legal copy** — `/confidentialite`, `/conditions` still on PhaseTwoStub awaiting
+   operator-approved policy text.
+8. **Customer logo storage** — `/customiser` uploads currently held client-side; Phase 3
+   should persist to S3/R2 with virus scan + the operator review queue.
 
 ## Architecture decisions
 
