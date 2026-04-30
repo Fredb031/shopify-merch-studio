@@ -17,6 +17,7 @@ import type {
 
 import { ColorSwatch } from '@/components/product/ColorSwatch';
 import { SizePicker } from '@/components/product/SizePicker';
+import { WishlistButton } from '@/components/product/WishlistButton';
 import { LeadTimeEstimator } from '@/components/pdp/LeadTimeEstimator';
 import { StickyActionBar } from '@/components/pdp/StickyActionBar';
 import { Button } from '@/components/Button';
@@ -355,7 +356,10 @@ export function PdpClient({
             {addWithoutLogoLabel} · {formatCAD(product.priceFromCents * quantity, locale)}
           </Button>
         </div>
-        <p className="text-body-sm text-stone-600">{customizeLogoHelper}</p>
+        <div className="flex items-center gap-3">
+          <WishlistButton productId={product.styleCode} size="md" />
+          <p className="text-body-sm text-stone-600">{customizeLogoHelper}</p>
+        </div>
       </div>
 
       {/* 13. Secondary CTA */}

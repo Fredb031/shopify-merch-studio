@@ -1815,5 +1815,36 @@
       "addedToast": "Added to cart",
       "close": "Close quick view"
     }
+  },
+  "wishlist": {
+    "button": {
+      "add": "Add to favorites",
+      "remove": "Remove from favorites",
+      "ariaAdd": "Add to my favorites",
+      "ariaRemove": "Remove from my favorites"
+    },
+    "header": {
+      "label": "My favorites"
+    },
+    "badge": {
+      "count": "{count, plural, =0 {No favorites} =1 {1 favorite} other {# favorites}}"
+    },
+    "page": {
+      "breadcrumb": "My favorites",
+      "heading": "My favorites",
+      "empty": {
+        "title": "No products in your favorites",
+        "body": "Browse our catalog to add uniforms to your favorites.",
+        "cta": "Shop uniforms"
+      },
+      "clear": "Clear favorites"
+    },
+    "account": {
+      "cardTitle": "My favorites ({count})"
+    },
+    "toast": {
+      "added": "Added to favorites",
+      "removed": "Removed from favorites"
+    }
   }
 }

@@ -3,12 +3,13 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { Menu, X, ShoppingCart, Search } from 'lucide-react';
+import { Menu, X, ShoppingCart, Search, Heart } from 'lucide-react';
 import { Container } from './Container';
 import { Button } from './Button';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { SearchDialog } from './search/SearchDialog';
 import { useCart } from '@/lib/cart';
+import { useWishlist } from '@/lib/wishlist';
 import type { Locale } from '@/i18n/routing';
 
 export function Header() {
@@ -17,17 +18,21 @@ export function Header() {
   const tHeader = useTranslations('header');
   const tCart = useTranslations('cart');
   const tSearch = useTranslations('search');
+  const tWishlist = useTranslations('wishlist');
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const openCartDrawer = useCart((s) => s.openDrawer);
   const cartCount = useCart((s) => s.itemCount());
+  const wishlistIds = useWishlist((s) => s.productIds);
 
-  // Cart state is persisted client-side; only render the count badge after
-  // hydration to avoid SSR/CSR mismatch flicker on initial paint.
+  // Cart and wishlist state are persisted client-side; only render the count
+  // badges after hydration to avoid SSR/CSR mismatch flicker on initial paint.
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const wishlistCount = mounted ? wishlistIds.length : 0;
 
   // Cmd/Ctrl+K toggles the search dialog.
   useEffect(() => {
@@ -91,6 +96,21 @@ export function Header() {
             <Suspense fallback={<span className="hidden sm:inline-flex h-9 w-[44px]" aria-hidden />}>
               <LanguageSwitcher className="hidden sm:inline-flex" />
             </Suspense>
+            <Link
+              href={`${base}/wishlist`}
+              aria-label={tWishlist('header.label')}
+              className="relative hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-sm text-ink-950 hover:bg-sand-100 transition-colors duration-base ease-standard"
+            >
+              <Heart aria-hidden className="h-5 w-5" />
+              {wishlistCount > 0 ? (
+                <span
+                  aria-label={tWishlist('badge.count', { count: wishlistCount })}
+                  className="pointer-events-none absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-pill bg-error-700 px-1 text-[10px] font-semibold leading-none text-canvas-000"
+                >
+                  {wishlistCount}
+                </span>
+              ) : null}
+            </Link>
             <button
               type="button"
               onClick={openCartDrawer}

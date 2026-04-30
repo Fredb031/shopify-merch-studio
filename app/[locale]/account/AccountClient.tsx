@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ChevronUp,
   FileText,
+  Heart,
   Mail,
   Package,
   ShoppingBag,
@@ -17,6 +18,7 @@ import {
 import { Button } from '@/components/Button';
 import { formatCAD } from '@/lib/format';
 import { getKit } from '@/lib/kitTypes';
+import { useWishlist } from '@/lib/wishlist';
 import type { StoredContactMessage } from '@/lib/contactForm';
 import type { StoredKitOrder } from '@/lib/kitForm';
 import type { StoredOrder } from '@/lib/orderForm';
@@ -68,6 +70,7 @@ export function AccountClient({ locale }: Props) {
   const t = useTranslations('account');
   const [mounted, setMounted] = useState(false);
   const [data, setData] = useState<StoredState>(EMPTY_STATE);
+  const wishlistIds = useWishlist((s) => s.productIds);
 
   useEffect(() => {
     setMounted(true);
@@ -94,7 +97,8 @@ export function AccountClient({ locale }: Props) {
   }
 
   const { quote, kit, order, contact } = data;
-  const allEmpty = !quote && !kit && !order && !contact;
+  const wishlistCount = wishlistIds.length;
+  const allEmpty = !quote && !kit && !order && !contact && wishlistCount === 0;
 
   return (
     <div className="space-y-10">
@@ -113,6 +117,9 @@ export function AccountClient({ locale }: Props) {
           {kit ? <KitCard locale={locale} entry={kit} /> : null}
           {order ? <OrderCard locale={locale} entry={order} /> : null}
           {contact ? <ContactCard locale={locale} entry={contact} /> : null}
+          {wishlistCount > 0 ? (
+            <WishlistCard locale={locale} count={wishlistCount} />
+          ) : null}
         </div>
       )}
 
@@ -350,6 +357,35 @@ function ContactCard({
           className="inline-flex h-9 items-center gap-1.5 rounded-sm px-3 text-body-sm font-medium text-ink-950 underline underline-offset-2 hover:bg-sand-100"
         >
           {t('sendAnother')}
+          <ArrowRight aria-hidden className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    </CardShell>
+  );
+}
+
+function WishlistCard({
+  locale,
+  count,
+}: {
+  locale: Locale;
+  count: number;
+}) {
+  const t = useTranslations('wishlist');
+  return (
+    <CardShell
+      icon={<Heart aria-hidden className="h-5 w-5" />}
+      title={t('account.cardTitle', { count })}
+    >
+      <p className="text-body-sm text-stone-600">
+        {t('badge.count', { count })}
+      </p>
+      <div className="flex flex-wrap items-center gap-2 border-t border-sand-300 pt-4">
+        <Link
+          href={`/${locale}/wishlist`}
+          className="inline-flex h-9 items-center gap-1.5 rounded-sm px-3 text-body-sm font-medium text-ink-950 underline underline-offset-2 hover:bg-sand-100"
+        >
+          {t('page.heading')}
           <ArrowRight aria-hidden className="h-3.5 w-3.5" />
         </Link>
       </div>

@@ -1815,5 +1815,36 @@
       "addedToast": "Ajouté au panier",
       "close": "Fermer l'aperçu"
     }
+  },
+  "wishlist": {
+    "button": {
+      "add": "Ajouter aux favoris",
+      "remove": "Retirer des favoris",
+      "ariaAdd": "Ajouter à mes favoris",
+      "ariaRemove": "Retirer de mes favoris"
+    },
+    "header": {
+      "label": "Mes favoris"
+    },
+    "badge": {
+      "count": "{count, plural, =0 {Aucun favori} =1 {1 favori} other {# favoris}}"
+    },
+    "page": {
+      "breadcrumb": "Mes favoris",
+      "heading": "Mes favoris",
+      "empty": {
+        "title": "Aucun produit dans tes favoris",
+        "body": "Magasine notre catalogue pour ajouter des uniformes à tes favoris.",
+        "cta": "Magasiner les uniformes"
+      },
+      "clear": "Vider mes favoris"
+    },
+    "account": {
+      "cardTitle": "Mes favoris ({count})"
+    },
+    "toast": {
+      "added": "Ajouté aux favoris",
+      "removed": "Retiré des favoris"
+    }
   }
 }

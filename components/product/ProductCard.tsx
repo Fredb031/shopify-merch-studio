@@ -11,6 +11,7 @@ import { BadgeRow } from './BadgeRow';
 import { ColorSwatchRow } from './ColorSwatchRow';
 import { QuickViewButton } from './QuickViewButton';
 import { StarRating } from './StarRating';
+import { WishlistButton } from './WishlistButton';
 
 type Props = {
   product: Product;
@@ -39,6 +40,9 @@ export function ProductCard({ product, locale, className = '' }: Props) {
             className="object-contain p-6 transition-transform duration-base ease-standard group-hover:scale-[1.02]"
           />
         </Link>
+        <div className="absolute right-2 top-2 z-10">
+          <WishlistButton productId={product.styleCode} size="sm" />
+        </div>
         <div className="pointer-events-none absolute bottom-2 right-2 z-10">
           <QuickViewButton product={product} locale={locale} />
         </div>
