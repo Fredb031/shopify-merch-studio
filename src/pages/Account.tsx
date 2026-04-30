@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, ShieldCheck, AlertTriangle, Trash2, Download, Languages, BellRing } from 'lucide-react';
+import { ArrowLeft, Package, LogOut, User as UserIcon, Mail, ShieldCheck, AlertTriangle, Trash2, Download, Languages, BellRing, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { BottomNav } from '@/components/BottomNav';
@@ -14,6 +14,9 @@ import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { WishlistGrid } from '@/components/WishlistGrid';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { LoyaltyCard } from '@/components/LoyaltyCard';
+import { useCartStore } from '@/stores/localCartStore';
+import { findProductByHandle } from '@/data/products';
+import { getOrdersForEmail, type CustomerOrderRecord } from '@/data/customerOrders';
 
 // Law 25 (Québec) account-deletion request queue. We persist the
 // request in localStorage so an admin can drain it manually while the
@@ -149,6 +152,118 @@ export default function Account() {
   };
   const verificationWord = lang === 'en' ? 'DELETE' : 'SUPPRIMER';
   const canConfirmDelete = deleteConfirm.trim().toUpperCase() === verificationWord;
+
+  // Phase 2 — past orders surfaced for reorder. Memoised because
+  // CUSTOMER_ORDERS is module-scoped + frozen, so the lookup is pure
+  // and re-running it on every render would just allocate a new
+  // wrapper array each time. Falls back to [] when the user is null
+  // or the email isn't in the demo ledger; the JSX below renders the
+  // existing "coming soon" panel in that case.
+  const myOrders = useMemo<ReadonlyArray<CustomerOrderRecord>>(
+    () => getOrdersForEmail(user?.email),
+    [user?.email],
+  );
+
+  // Reorder cart helpers — pulled as stable refs so the handler can
+  // call them without subscribing the whole page to cart-state changes
+  // (which would re-render the orders list every time the user adds
+  // anything to the cart elsewhere on the site).
+  const cartClear = useCartStore(s => s.clear);
+  const cartAddItem = useCartStore(s => s.addItem);
+
+  // Per-row spinner so a slow click on a long order can't double-fire
+  // (which would clear the cart twice and re-add every line). Tracks
+  // the order name being reordered; null when idle.
+  const [reorderingOrder, setReorderingOrder] = useState<string | null>(null);
+
+  // "Reorder this set" — clears the local cart, re-adds every line
+  // item from the past order that still resolves to a live product in
+  // src/data/products.ts, and navigates to /panier with a success
+  // toast. Skipped lines (product retired since the order shipped)
+  // surface as a separate warning toast with a count so the buyer
+  // knows their cart isn't a perfect copy. No logo/text assets are
+  // restored — those required canvas state we don't persist on the
+  // server, so the customer re-uploads from the cart row's
+  // customizer entry point.
+  const handleReorder = (order: CustomerOrderRecord) => {
+    if (reorderingOrder) return;
+    setReorderingOrder(order.name);
+    try {
+      const resolved: Array<{ line: CustomerOrderRecord['lineItems'][number]; productName: string; previewSnapshot: string }> = [];
+      let skipped = 0;
+      for (const line of order.lineItems) {
+        const product = findProductByHandle(line.productId);
+        if (!product) {
+          skipped += 1;
+          continue;
+        }
+        const color = product.colors.find(c => c.id === line.colorId);
+        const colorLabel = color
+          ? (lang === 'en' ? color.nameEn : color.name)
+          : '';
+        const productName = colorLabel
+          ? `${product.name} — ${colorLabel}`
+          : product.name;
+        resolved.push({
+          line,
+          productName,
+          previewSnapshot: product.imageDevant,
+        });
+      }
+      if (resolved.length === 0) {
+        // Every line on this order has been retired. Don't wipe a
+        // cart the customer may have been building before clicking.
+        toast.error(
+          lang === 'en'
+            ? 'None of the items from this order are available anymore.'
+            : "Aucun des articles de cette commande n'est encore disponible."
+        );
+        return;
+      }
+      cartClear();
+      for (const { line, productName, previewSnapshot } of resolved) {
+        const totalQuantity = line.sizeQuantities.reduce((s, sq) => s + sq.quantity, 0);
+        cartAddItem({
+          productId: line.productId,
+          colorId: line.colorId,
+          // Reorder doesn't restore canvas placements — we never
+          // persist the original logo file or canvas state on the
+          // server. The buyer re-attaches a logo from the cart row
+          // if they need printing on the rebuilt order.
+          logoPlacement: null,
+          logoPlacementBack: null,
+          placementSides: 'none',
+          textAssets: [],
+          sizeQuantities: line.sizeQuantities.map(sq => ({ size: sq.size, quantity: sq.quantity })),
+          activeView: 'front',
+          step: 3,
+          productName,
+          previewSnapshot,
+          unitPrice: line.unitPrice,
+          totalQuantity,
+          totalPrice: parseFloat((line.unitPrice * totalQuantity).toFixed(2)),
+        });
+      }
+      toast.success(
+        lang === 'en'
+          ? 'Selection added to cart'
+          : 'Sélection ajoutée au panier'
+      );
+      if (skipped > 0) {
+        toast.warning(
+          lang === 'en'
+            ? `${skipped} unavailable product${skipped > 1 ? 's were' : ' was'} skipped`
+            : `${skipped} produit${skipped > 1 ? 's' : ''} non disponible${skipped > 1 ? 's ont' : ' a'} été ignoré${skipped > 1 ? 's' : ''}`
+        );
+      }
+      navigate('/panier');
+    } finally {
+      // Brief lockout so a double-tap on a fast machine can't flush
+      // the freshly-rebuilt cart and re-run the loop while we're
+      // still mid-navigation.
+      setTimeout(() => setReorderingOrder(null), 600);
+    }
+  };
 
   // OP-8: trigger lazy auth hydration on mount. The supabase chunk is
   // not in the eager landing-page graph anymore — visiting /account is
@@ -402,6 +517,7 @@ export default function Account() {
             </Link>
           </div>
           <div className="p-5">
+            {myOrders.length === 0 ? (
             <div className="rounded-2xl border border-[#E5E7EB] bg-[#F9FAFB] p-8 text-center">
               <h3 className="font-display font-bold text-xl text-[#0A0A0A] mb-2">
                 {lang === 'en' ? 'Order history coming soon' : 'Historique des commandes à venir'}
@@ -418,6 +534,65 @@ export default function Account() {
                 {lang === 'en' ? 'Email us' : 'Nous écrire'}
               </a>
             </div>
+            ) : (
+              <ul className="space-y-3">
+                {myOrders.map(order => {
+                  const orderTotalUnits = order.lineItems.reduce(
+                    (sum, li) => sum + li.sizeQuantities.reduce((s, sq) => s + sq.quantity, 0),
+                    0,
+                  );
+                  const reorderBusy = reorderingOrder === order.name;
+                  const orderDate = new Date(order.createdAt).toLocaleDateString(
+                    lang === 'fr' ? 'fr-CA' : 'en-CA',
+                    { year: 'numeric', month: 'short', day: 'numeric' },
+                  );
+                  return (
+                    <li key={order.name} className="rounded-2xl border border-[#E5E7EB] bg-white p-4">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="min-w-0">
+                          <div className="font-extrabold text-foreground">{order.name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {orderDate}
+                            {' · '}
+                            {orderTotalUnits} {lang === 'en' ? (orderTotalUnits === 1 ? 'item' : 'items') : (orderTotalUnits === 1 ? 'article' : 'articles')}
+                            {' · '}
+                            {order.total.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA', { maximumFractionDigits: 2 })} $
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleReorder(order)}
+                          disabled={reorderBusy}
+                          aria-busy={reorderBusy || undefined}
+                          aria-label={
+                            lang === 'en'
+                              ? `Reorder order ${order.name}`
+                              : `Recommander la commande ${order.name}`
+                          }
+                          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold text-primary-foreground gradient-navy hover:-translate-y-0.5 transition-transform focus:outline-none focus-visible:ring-4 focus-visible:ring-[#0052CC]/50 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                        >
+                          <RotateCcw size={13} aria-hidden="true" />
+                          {lang === 'en' ? 'Reorder this set' : 'Recommander cette sélection'}
+                        </button>
+                      </div>
+                      <ul className="mt-3 space-y-1 text-xs text-[#374151]">
+                        {order.lineItems.map((line, idx) => {
+                          const lineTotal = line.sizeQuantities.reduce((s, sq) => s + sq.quantity, 0);
+                          return (
+                            <li key={`${order.name}-${idx}`} className="flex items-center justify-between gap-3">
+                              <span className="truncate">{line.label}</span>
+                              <span className="text-muted-foreground flex-shrink-0">
+                                {'×'}{lineTotal}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </div>
 
