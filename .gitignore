@@ -28,3 +28,7 @@ playwright-report/
 test-results/
 /blob-report/
 
+# Source maps must never be committed — they leak un-minified source.
+# CI uploads them to Sentry/Datadog separately from the deployed bundle.
+*.map
+

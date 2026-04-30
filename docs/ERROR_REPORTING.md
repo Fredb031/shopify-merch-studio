@@ -131,3 +131,53 @@ setReportingUser(user: { id: string; email?: string } | null): void;
 - `src/lib/errorReporter.ts` — the abstraction itself.
 - `src/lib/__tests__/errorReporter.test.ts` — vitest contract pinning.
 - `src/components/ErrorBoundary.tsx` — primary caller.
+
+## Production source maps + CI upload
+
+A reporter SDK only gives readable stack traces if it can map minified
+prod JS back to source. We generate maps at build time and (optionally)
+upload them out-of-band so end users never see them.
+
+### Vite config
+
+`vite.config.ts` sets `build.sourcemap: 'hidden'`. That:
+
+- emits `dist/assets/*.js.map` files alongside the JS
+- does **not** inject `//# sourceMappingURL=…` into the shipped JS — so
+  users can't grab the maps from the browser network panel
+- leaves the maps available locally and to CI for upload to a monitor
+
+`.gitignore` excludes `*.map` so maps never end up in the repo. The
+already-existing `dist` rule covers them in the build output too — the
+explicit `*.map` rule is belt-and-suspenders for any other tooling that
+emits maps outside `dist/`.
+
+### CI workflow: `.github/workflows/build-and-upload-maps.yml`
+
+On every push to `main` (and via `workflow_dispatch`):
+
+1. checkout + Node 20 + `npm ci`
+2. `npm run build` (produces `dist/` with hidden maps)
+3. verifies `.map` files were generated and that no `sourceMappingURL`
+   comment leaked into shipped JS
+4. **conditionally** uploads maps to Sentry — only if the
+   `SENTRY_AUTH_TOKEN` repo secret is set. Otherwise it logs a
+   skip-message and continues green.
+
+The actual `npx @sentry/cli releases …` commands are commented out
+until Sentry is wired (account, DSN, project name). To enable:
+
+1. Operator creates a Sentry project named `vision-affichage`.
+2. Operator generates a Sentry auth token with `project:releases` scope.
+3. Operator adds two repo secrets in GitHub:
+   - `SENTRY_AUTH_TOKEN` — the token from step 2
+   - `SENTRY_ORG` — the Sentry org slug
+4. Operator uncomments the three `npx @sentry/cli` lines in
+   `.github/workflows/build-and-upload-maps.yml`.
+
+No app-side code change is required — the `errorReporter` abstraction
+already passes errors to whichever monitor is wired in `main.tsx`.
+
+`@sentry/cli` is intentionally **not** added as a devDependency: `npx`
+fetches it on demand in CI, so we don't pay the install cost for
+contributors who don't run the upload step.

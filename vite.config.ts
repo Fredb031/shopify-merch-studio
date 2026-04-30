@@ -20,6 +20,11 @@ export default defineConfig(({ mode }) => ({
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
   build: {
+    // 'hidden' generates .map files alongside the JS but does NOT inject a
+    // //# sourceMappingURL comment into shipped JS. End users can't grab the
+    // maps from the network panel, but build-time tooling (Sentry/Datadog
+    // CLI uploads in CI) can ingest them to symbolicate minified prod stacks.
+    sourcemap: "hidden",
     // Split the heavy 3D / canvas / framer libs out of the main bundle so the
     // landing page can hydrate fast and only load them when the customizer opens.
     rollupOptions: {

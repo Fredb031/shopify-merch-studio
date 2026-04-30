@@ -449,13 +449,34 @@ export default function Contact() {
                   const next = e.target.value.slice(0, MESSAGE_MAX);
                   setMessage(next);
                 }}
+                onKeyDown={e => {
+                  // Keyboard-a11y: Cmd/Ctrl+Enter submits the form from the
+                  // textarea. Plain Enter still inserts a newline (the
+                  // browser default for <textarea>), so power users get a
+                  // shortcut without breaking the natural typing flow.
+                  // requestSubmit() runs validation + the form's onSubmit
+                  // handler the same way clicking the submit button does.
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 required
                 rows={6}
                 maxLength={MESSAGE_MAX}
-                aria-describedby="contact-message-counter"
+                aria-describedby="contact-message-counter contact-message-hint"
                 className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-zinc-300 bg-white text-[#0F2341] placeholder:text-zinc-400 focus:outline-none focus:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/25 transition-shadow resize-y min-h-[140px]"
                 placeholder={lang === 'en' ? 'Tell us how we can help...' : 'Dites-nous comment nous pouvons aider...'}
               />
+              {/* Discoverable hint for the Cmd/Ctrl+Enter shortcut wired
+                  on the textarea above. sr-only-friendly via aria-describedby
+                  so AT users hear it on focus; visible copy is muted so it
+                  doesn't compete with the live character counter. */}
+              <p id="contact-message-hint" className="text-[11px] text-zinc-400 mt-1">
+                {lang === 'en'
+                  ? 'Tip: press ⌘ + Enter (or Ctrl + Enter) to send.'
+                  : 'Astuce : appuie sur ⌘ + Retour (ou Ctrl + Retour) pour envoyer.'}
+              </p>
               {/* Task 173 — live character counter. aria-live=polite so
                   screen readers hear the remaining budget without being
                   interrupted on every keystroke. Tints rose when within

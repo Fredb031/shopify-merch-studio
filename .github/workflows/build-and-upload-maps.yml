@@ -1,0 +1,71 @@
+name: Build + Upload Source Maps
+
+# Builds the production frontend and conditionally uploads source maps to
+# Sentry so minified prod stack traces can be symbolicated. Vite is
+# configured with `build.sourcemap: 'hidden'` (see vite.config.ts), which
+# emits .map files into dist/ without exposing them via //# sourceMappingURL
+# in the shipped JS. CI grabs those maps and uploads them to Sentry — end
+# users never see them.
+#
+# The upload step is gated on the SENTRY_AUTH_TOKEN repo secret. Until an
+# operator wires that secret (and SENTRY_ORG), the upload step is skipped
+# gracefully and the build still passes. No code change needed in app.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: vision-affichage
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Verify source maps generated
+        run: |
+          MAP_COUNT=$(find dist -name "*.map" | wc -l | tr -d ' ')
+          echo "Generated $MAP_COUNT source map files"
+          if [ "$MAP_COUNT" -eq 0 ]; then
+            echo "::warning::No .map files in dist/ — check vite.config.ts build.sourcemap"
+          fi
+          # Confirm //# sourceMappingURL is NOT in the shipped JS
+          if grep -r "sourceMappingURL" dist/assets --include="*.js" 2>/dev/null; then
+            echo "::warning::sourceMappingURL comment leaked into shipped JS — vite.config.ts should use 'hidden' not true"
+          fi
+
+      - name: Upload source maps to Sentry
+        if: env.SENTRY_AUTH_TOKEN != ''
+        run: |
+          # Placeholder — uncomment once @sentry/cli is wired and the project
+          # has a Sentry account/DSN. npx fetches @sentry/cli on demand so we
+          # don't need to add it as a devDependency.
+          #
+          # npx @sentry/cli releases new "$GITHUB_SHA"
+          # npx @sentry/cli releases files "$GITHUB_SHA" upload-sourcemaps ./dist \
+          #   --rewrite --strip-prefix dist/
+          # npx @sentry/cli releases finalize "$GITHUB_SHA"
+          echo "SENTRY_AUTH_TOKEN present — would upload source maps for $GITHUB_SHA"
+          echo "(Step is a placeholder until Sentry is wired; uncomment the npx commands above to enable.)"
+
+      - name: Skip upload (no secrets)
+        if: env.SENTRY_AUTH_TOKEN == ''
+        run: |
+          echo "SENTRY_AUTH_TOKEN not set — skipping source-map upload."
+          echo "To enable: add SENTRY_AUTH_TOKEN and SENTRY_ORG repo secrets,"
+          echo "then uncomment the @sentry/cli commands in this workflow."
