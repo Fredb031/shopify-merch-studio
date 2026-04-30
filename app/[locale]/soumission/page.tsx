@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import { setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 
-import { PhaseTwoStub } from '@/components/ui/PhaseTwoStub';
+import { Container } from '@/components/Container';
+import { Section } from '@/components/Section';
 import { getAlternates } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
 import { routing, type Locale } from '@/i18n/routing';
+import { SoumissionClient } from './SoumissionClient';
 
 function isLocale(value: string): value is Locale {
   return value === 'fr-ca' || value === 'en-ca';
@@ -53,5 +55,11 @@ export default async function SoumissionPage({ params }: Props) {
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
 
-  return <PhaseTwoStub locale={locale} pageKey="soumission" />;
+  return (
+    <Section tone="warm">
+      <Container size="lg">
+        <SoumissionClient locale={locale} />
+      </Container>
+    </Section>
+  );
 }

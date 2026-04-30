@@ -738,6 +738,124 @@
     "reviews": "{count} avis",
     "viewDetails": "Voir les détails"
   },
+  "quote": {
+    "breadcrumb": "Soumission",
+    "heading": "Demander une soumission",
+    "subhead": "Pour les commandes de 50 unités et plus. On répond sous un jour ouvrable.",
+    "stepsLabel": "Étapes de la soumission",
+    "steps": {
+      "1": { "label": "Portée" },
+      "2": { "label": "Produits" },
+      "3": { "label": "Logo" },
+      "4": { "label": "Livraison" },
+      "5": { "label": "Contact" },
+      "6": { "label": "Révision" }
+    },
+    "scope": {
+      "heading": "Portée du projet",
+      "subhead": "Trois infos pour bien démarrer.",
+      "employeeCount": "Combien d'employés à habiller ?",
+      "neededBy": "Date de besoin",
+      "neededByHelper": "Minimum cinq jours ouvrables pour la production.",
+      "industry": "Industrie",
+      "industryOptions": {
+        "construction": "Construction",
+        "paysagement": "Paysagement",
+        "restauration": "Restauration",
+        "demenagement": "Déménagement",
+        "metiers": "Métiers spécialisés",
+        "bureau": "Bureau et services"
+      }
+    },
+    "products": {
+      "heading": "Produits qui t'intéressent",
+      "helper": "Sélectionne tous les vêtements qui pourraient convenir — on ajustera ensemble.",
+      "priceFrom": "À partir de {price}",
+      "empty": "Aucun produit sélectionné."
+    },
+    "logo": {
+      "heading": "Ton logo",
+      "helper": "On peut partir d'un fichier prêt ou t'aider à le concevoir.",
+      "modeLegend": "Statut du logo",
+      "ready": "J'ai un logo prêt",
+      "readyHelper": "Téléverse un fichier vectoriel ou haute résolution.",
+      "pending": "Pas encore de logo finalisé",
+      "pendingHelper": "Dis-nous ce que tu as en tête, on s'occupe du reste.",
+      "fileLabel": "Fichier du logo",
+      "fileChoose": "Choisir un fichier",
+      "fileEmpty": "Aucun fichier sélectionné.",
+      "fileClear": "Retirer",
+      "fileHelper": "Formats acceptés : PDF, AI, SVG, PNG, JPG.",
+      "descriptionLabel": "Décris ton projet",
+      "descriptionPlaceholder": "Décris ce que tu veux : nom de l'entreprise, couleurs, style."
+    },
+    "shipping": {
+      "heading": "Livraison",
+      "helper": "Une seule adresse, ou plusieurs ?",
+      "modeLegend": "Mode d'expédition",
+      "single": "Une seule adresse",
+      "multiple": "Plusieurs adresses (équipe distribuée)",
+      "multipleHelper": "Liste les emplacements (un par ligne).",
+      "addressLine1": "Adresse",
+      "city": "Ville",
+      "province": "Province",
+      "postalCode": "Code postal",
+      "country": "Pays",
+      "locationsLabel": "Liste des emplacements",
+      "locationsPlaceholder": "Ex. : 5 polos — 123 rue X, Montréal QC H2X 1Y4\n3 ouates — 45 av. Y, Laval QC H7N 2B3"
+    },
+    "contact": {
+      "heading": "Tes coordonnées",
+      "helper": "On te revient à ces coordonnées.",
+      "name": "Nom complet",
+      "email": "Courriel",
+      "phone": "Téléphone",
+      "company": "Entreprise",
+      "language": "Langue de communication",
+      "languageFr": "Français",
+      "languageEn": "English",
+      "notes": "Autres précisions",
+      "notesHelper": "Maximum 1000 caractères.",
+      "notesPlaceholder": "Détails additionnels, contraintes, échéancier...",
+      "transactionalOptIn": "Recevoir des suivis sur cette soumission par courriel.",
+      "marketingOptIn": "Recevoir occasionnellement nos courriels marketing (optionnel)."
+    },
+    "review": {
+      "heading": "Révision avant envoi",
+      "edit": "Modifier"
+    },
+    "cta": {
+      "previous": "Précédent",
+      "continue": "Continuer",
+      "submit": "Envoyer ma soumission"
+    },
+    "success": {
+      "heading": "Soumission envoyée !",
+      "subhead": "On revient vers toi sous 24 h ouvrables.",
+      "ref": "Référence",
+      "nextSteps": {
+        "heading": "Ce qui arrive ensuite",
+        "1": "Tu reçois un courriel de confirmation dans les 5 prochaines minutes.",
+        "2": "Notre équipe analyse ta demande sous 24 h ouvrables.",
+        "3": "On t'envoie un prix détaillé et un échéancier.",
+        "4": "Tu approuves et la production démarre."
+      },
+      "support": "Une question ? Joins-nous directement.",
+      "returnHome": "Retour à l'accueil"
+    },
+    "errors": {
+      "required": "Champ requis",
+      "email": "Courriel invalide",
+      "phone": "Numéro de téléphone invalide",
+      "postalCode": "Code postal invalide (ex. : H2X 1Y4)",
+      "neededByTooSoon": "Choisis une date au moins cinq jours ouvrables après aujourd'hui.",
+      "neededByInvalid": "Date invalide.",
+      "productsRequired": "Sélectionne au moins un produit.",
+      "logoFileRequired": "Téléverse ton fichier de logo.",
+      "logoDescriptionRequired": "Donne-nous quelques détails (10 caractères minimum).",
+      "locationsRequired": "Liste au moins un emplacement."
+    }
+  },
   "routeCards": {
     "kitCta": "Aller",
     "kitSubtitle": "Trois échantillons à toucher avant de commander.",

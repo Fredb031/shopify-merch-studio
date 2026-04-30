@@ -738,6 +738,124 @@
     "reviews": "{count} reviews",
     "viewDetails": "View details"
   },
+  "quote": {
+    "breadcrumb": "Quote",
+    "heading": "Request a quote",
+    "subhead": "For 50-unit orders and up. We respond within one business day.",
+    "stepsLabel": "Quote steps",
+    "steps": {
+      "1": { "label": "Scope" },
+      "2": { "label": "Products" },
+      "3": { "label": "Logo" },
+      "4": { "label": "Shipping" },
+      "5": { "label": "Contact" },
+      "6": { "label": "Review" }
+    },
+    "scope": {
+      "heading": "Project scope",
+      "subhead": "Three quick details to get started.",
+      "employeeCount": "How many people to outfit?",
+      "neededBy": "Date needed by",
+      "neededByHelper": "Minimum five business days for production.",
+      "industry": "Industry",
+      "industryOptions": {
+        "construction": "Construction",
+        "paysagement": "Landscaping",
+        "restauration": "Restaurants",
+        "demenagement": "Moving services",
+        "metiers": "Skilled trades",
+        "bureau": "Office and services"
+      }
+    },
+    "products": {
+      "heading": "Products you're interested in",
+      "helper": "Pick anything that could fit — we'll refine it together.",
+      "priceFrom": "From {price}",
+      "empty": "No products selected."
+    },
+    "logo": {
+      "heading": "Your logo",
+      "helper": "Either upload a ready file, or tell us what you want.",
+      "modeLegend": "Logo status",
+      "ready": "I have a logo ready",
+      "readyHelper": "Upload a vector or high-resolution file.",
+      "pending": "Logo not finalized yet",
+      "pendingHelper": "Tell us what you have in mind — we'll handle the rest.",
+      "fileLabel": "Logo file",
+      "fileChoose": "Choose a file",
+      "fileEmpty": "No file selected.",
+      "fileClear": "Remove",
+      "fileHelper": "Accepted formats: PDF, AI, SVG, PNG, JPG.",
+      "descriptionLabel": "Describe your project",
+      "descriptionPlaceholder": "Describe what you want: company name, colors, style."
+    },
+    "shipping": {
+      "heading": "Shipping",
+      "helper": "One address, or several?",
+      "modeLegend": "Shipping mode",
+      "single": "Single address",
+      "multiple": "Multiple addresses (distributed team)",
+      "multipleHelper": "List locations (one per line).",
+      "addressLine1": "Address",
+      "city": "City",
+      "province": "Province",
+      "postalCode": "Postal code",
+      "country": "Country",
+      "locationsLabel": "Location list",
+      "locationsPlaceholder": "Ex.: 5 polos — 123 X St., Montreal QC H2X 1Y4\n3 hoodies — 45 Y Ave., Laval QC H7N 2B3"
+    },
+    "contact": {
+      "heading": "Your contact details",
+      "helper": "We'll follow up at these details.",
+      "name": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "company": "Company",
+      "language": "Communication language",
+      "languageFr": "Français",
+      "languageEn": "English",
+      "notes": "Other details",
+      "notesHelper": "Maximum 1000 characters.",
+      "notesPlaceholder": "Additional details, constraints, timeline...",
+      "transactionalOptIn": "Receive follow-ups about this quote by email.",
+      "marketingOptIn": "Occasionally receive marketing emails (optional)."
+    },
+    "review": {
+      "heading": "Review before sending",
+      "edit": "Edit"
+    },
+    "cta": {
+      "previous": "Back",
+      "continue": "Continue",
+      "submit": "Send my quote request"
+    },
+    "success": {
+      "heading": "Quote request sent!",
+      "subhead": "We'll get back to you within one business day.",
+      "ref": "Reference",
+      "nextSteps": {
+        "heading": "What happens next",
+        "1": "You'll receive a confirmation email within the next 5 minutes.",
+        "2": "Our team reviews your request within one business day.",
+        "3": "We send you a detailed quote and timeline.",
+        "4": "You approve, and production kicks off."
+      },
+      "support": "A question? Reach us directly.",
+      "returnHome": "Back to home"
+    },
+    "errors": {
+      "required": "Required field",
+      "email": "Invalid email",
+      "phone": "Invalid phone number",
+      "postalCode": "Invalid postal code (e.g. H2X 1Y4)",
+      "neededByTooSoon": "Pick a date at least five business days from today.",
+      "neededByInvalid": "Invalid date.",
+      "productsRequired": "Select at least one product.",
+      "logoFileRequired": "Upload your logo file.",
+      "logoDescriptionRequired": "Give us a few details (10 characters minimum).",
+      "locationsRequired": "List at least one location."
+    }
+  },
   "routeCards": {
     "kitCta": "Go",
     "kitSubtitle": "Three samples to touch before you commit.",
