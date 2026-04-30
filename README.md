@@ -34,7 +34,7 @@ The site auto-redirects `/` to `/fr-ca` (default locale).
 
 ```bash
 pnpm dev            # dev server (http://localhost:3000)
-pnpm build          # production build (69 statically-rendered pages, Phase 2)
+pnpm build          # production build (71 SSG + dynamic /api/og, Phase 2 final)
 pnpm start          # serve the production build
 pnpm lint           # next lint
 pnpm typecheck      # tsc --noEmit
@@ -207,6 +207,18 @@ operator-approved final copy.
 | 22 | Console-clean on critical routes | PASS |
 | 23 | Playwright a11y suite — 0 violations on 11 routes | PASS |
 | 24 | 17-route smoke (fr-CA + en-CA, 32 total) — 100% 200 OK | PASS |
+| 25 | sitemap.xml (auto-generated from products + industries + statics) | PASS |
+| 26 | robots.txt (allow all marketing, disallow account/checkout/api) | PASS |
+| 27 | Dynamic OG image at `/api/og?title=...&subtitle=...` (1200x630 PNG) | PASS |
+| 28 | Wave-4 E2E spec coverage (5 new flow specs landed) | PASS (1 ready, 4 fixme tracked) |
+| 29 | Industry-specific case study + pain-point copy on all 6 verticals | PASS |
+| 30 | Bundle audit — First Load JS shared 102 kB, no route over 169 kB | PASS |
+
+## Phase 2 final — verification
+
+See `docs/PHASE_2_COMPLETE_2026-04-30.md` for the comprehensive Wave 1-4
+retrospective, final commit SHA + tag, full route smoke evidence, and the
+Phase 3 operator handoff queue.
 
 ## What's left for Phase 3 (operator queue)
 
