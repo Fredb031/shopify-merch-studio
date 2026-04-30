@@ -166,6 +166,150 @@ const PAGE_SIZE = 50;
  *  doesn't care. */
 const SYNC_LOG_EXPORT_LIMIT = 200;
 
+/**
+ * Ordered SanMar status chain used by the <OrderStatusDots> visualizer
+ * in the open-orders table. Mirrors the 4-step indicator on /suivi
+ * (TrackOrder.tsx → mapSanmarStatus): 10/11 received, 41/44 logo proof,
+ * 60/75 production+shipping, 80 delivered, 99 cancelled. Each entry
+ * carries a phase token that drives the dot colour and bilingual labels
+ * for the hover tooltip — so this table is the single source of truth
+ * for both visuals + accessibility text.
+ *
+ * Order matters: the operator reads left → right, so the chain is the
+ * happy path with 99 (cancelled) appended at the end. When the current
+ * status_id matches a chain entry, dots up to and including its index
+ * are filled; the rest are empty. 99 short-circuits the fill (every
+ * dot stays empty, the cancelled dot itself fills red).
+ */
+type SanmarStatusPhase = 'received' | 'proof' | 'production' | 'delivered' | 'cancelled';
+
+interface SanmarStatusChainEntry {
+  id: number;
+  phase: SanmarStatusPhase;
+  fr: string;
+  en: string;
+}
+
+const SANMAR_STATUS_CHAIN: SanmarStatusChainEntry[] = [
+  { id: 10, phase: 'received',   fr: 'Reçue',                    en: 'Received' },
+  { id: 11, phase: 'received',   fr: 'En attente — service',     en: 'On hold — customer service' },
+  { id: 41, phase: 'proof',      fr: 'Épreuve de logo',          en: 'Logo proof' },
+  { id: 44, phase: 'proof',      fr: 'Approbation logo',         en: 'Logo approval' },
+  { id: 60, phase: 'production', fr: 'En production',            en: 'In production' },
+  { id: 75, phase: 'production', fr: 'Expédition partielle',     en: 'Partial shipment' },
+  { id: 80, phase: 'delivered',  fr: 'Livrée',                   en: 'Delivered' },
+  { id: 99, phase: 'cancelled',  fr: 'Annulée',                  en: 'Cancelled' },
+];
+
+/** Tailwind classes per phase for filled vs empty dots. va.* palette
+ *  isn't available for every shade so we lean on Tailwind defaults that
+ *  match the existing admin console (see tile colours in the AR
+ *  dashboard above). Empty dots share a neutral border so the chain
+ *  remains legible regardless of how far along the order is. */
+const PHASE_FILL_CLASS: Record<SanmarStatusPhase, string> = {
+  received:   'bg-slate-500 border-slate-500',
+  proof:      'bg-blue-500 border-blue-500',
+  production: 'bg-orange-500 border-orange-500',
+  delivered:  'bg-emerald-500 border-emerald-500',
+  cancelled:  'bg-red-500 border-red-500',
+};
+const EMPTY_DOT_CLASS = 'bg-transparent border-zinc-300';
+
+/** Number of full days elapsed since `iso` (status timestamp). Returns
+ *  null when the input is missing or unparseable so callers can fall
+ *  back to a dash. Uses floor(diff / 86_400_000) so a status set 23h
+ *  ago still reads as "0 j" — matches operator intuition (they only
+ *  care once a status sticks more than a calendar day). */
+function daysSince(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const ms = Date.now() - t;
+  if (ms < 0) return 0;
+  return Math.floor(ms / 86_400_000);
+}
+
+interface OrderStatusDotsProps {
+  statusId: number;
+  /** ISO timestamp of when this status was last validated by SanMar.
+   *  Drives the "X jours" suffix in the tooltip. Optional — when null
+   *  the tooltip omits the duration line. */
+  validTimestamp?: string | null;
+  lang: 'fr' | 'en';
+}
+
+/**
+ * Eight-dot visualizer for the SanMar status chain. Decorative only —
+ * the existing status_id text in the adjacent column is what screen
+ * readers announce. We still surface an aria-label on the container so
+ * AT users who land on the dots get the same one-glance summary the
+ * sighted operator reads (e.g. "Statut: Livrée (étape 7 sur 8)"). The
+ * native `title` tooltip (matching the rest of the admin console) shows
+ * the localized status name + days in status on hover.
+ */
+function OrderStatusDots({ statusId, validTimestamp, lang }: OrderStatusDotsProps) {
+  const currentIdx = SANMAR_STATUS_CHAIN.findIndex(s => s.id === statusId);
+  const cancelled = statusId === 99;
+  const current = currentIdx >= 0 ? SANMAR_STATUS_CHAIN[currentIdx] : null;
+  const days = daysSince(validTimestamp ?? null);
+
+  const statusLabel = current
+    ? lang === 'en' ? current.en : current.fr
+    : lang === 'en' ? `Status ${statusId}` : `Statut ${statusId}`;
+  const stepText = current
+    ? lang === 'en'
+      ? `step ${currentIdx + 1} of ${SANMAR_STATUS_CHAIN.length}`
+      : `étape ${currentIdx + 1} sur ${SANMAR_STATUS_CHAIN.length}`
+    : '';
+  const daysText =
+    days != null
+      ? lang === 'en'
+        ? days === 1 ? '1 day in status' : `${days} days in status`
+        : days <= 1 ? `${days} jour dans ce statut` : `${days} jours dans ce statut`
+      : '';
+
+  const tooltip = [
+    lang === 'en' ? `Status: ${statusLabel}` : `Statut : ${statusLabel}`,
+    stepText,
+    daysText,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const ariaLabel = current
+    ? lang === 'en'
+      ? `Status: ${statusLabel} (${stepText})`
+      : `Statut : ${statusLabel} (${stepText})`
+    : tooltip;
+
+  return (
+    <div
+      role="img"
+      aria-label={ariaLabel}
+      title={tooltip}
+      className="inline-flex items-center gap-1"
+    >
+      {SANMAR_STATUS_CHAIN.map((entry, i) => {
+        // Cancelled: only the last dot fills (red); every other dot is
+        // empty so the cancellation reads as a hard stop rather than a
+        // happy-path completion. Otherwise: fill every dot up to and
+        // including the current index.
+        const isFilled = cancelled
+          ? entry.id === 99
+          : currentIdx >= 0 && i <= currentIdx && entry.id !== 99;
+        const cls = isFilled ? PHASE_FILL_CLASS[entry.phase] : EMPTY_DOT_CLASS;
+        return (
+          <span
+            key={entry.id}
+            aria-hidden="true"
+            className={`inline-block w-2 h-2 rounded-full border ${cls}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminSanMar() {
   const { lang } = useLang();
   useDocumentTitle(lang === 'en' ? 'SanMar Canada · Admin · Vision Affichage' : 'SanMar Canada · Admin · Vision Affichage');
@@ -1939,6 +2083,9 @@ export default function AdminSanMar() {
                       {lang === 'en' ? 'Sales order' : 'No commande SanMar'}
                     </th>
                     <th className="py-2 pr-4">
+                      {lang === 'en' ? 'Progress' : 'Progression'}
+                    </th>
+                    <th className="py-2 pr-4">
                       {lang === 'en' ? 'Status' : 'Statut'}
                     </th>
                     <th className="py-2 pr-4">
@@ -1960,7 +2107,7 @@ export default function AdminSanMar() {
                             <td className="py-2 pr-4 font-mono text-xs">
                               {o.purchaseOrderNumber}
                             </td>
-                            <td className="py-2 pr-4 text-va-muted" colSpan={4}>
+                            <td className="py-2 pr-4 text-va-muted" colSpan={5}>
                               {lang === 'en' ? '(no detail rows)' : '(aucune ligne)'}
                             </td>
                           </tr>,
@@ -1975,6 +2122,13 @@ export default function AdminSanMar() {
                             </td>
                             <td className="py-2 pr-4 font-mono text-xs">
                               {d.factoryOrderNumber}
+                            </td>
+                            <td className="py-2 pr-4">
+                              <OrderStatusDots
+                                statusId={d.statusId}
+                                validTimestamp={d.validTimestamp}
+                                lang={lang}
+                              />
                             </td>
                             <td className="py-2 pr-4 text-va-ink font-bold">
                               {d.statusName}{' '}
