@@ -72,20 +72,26 @@ export function CartRecommendations() {
       .map(x => x.p);
   }, [productIdsKey]);
 
-  if (items.length === 0) return null;
-  if (recs.length === 0) return null;
-
   // Master Prompt Vol. II — heading interpolates the FIRST cart item's
   // product name (lowercased). Trim guards against accidental whitespace
   // padding from upstream data and keeps the lowercased token clean.
   // Memoised on the first item's name + lang so a qty bump on a sibling
   // line (which mutates `items` but leaves items[0]?.productName alone)
   // doesn't re-do the trim/lowercase string allocation on every paint.
+  // MUST run before the early-return guards below — placing the useMemo
+  // after them violates the Rules of Hooks: a render where the cart is
+  // empty would call N hooks while a render with items calls N+1, which
+  // React detects and either throws ('rendered more hooks than during
+  // the previous render') or silently mis-aligns state across hook
+  // slots in production.
   const productLabel = useMemo(() => {
     const firstName = items[0]?.productName?.trim() ?? '';
     if (firstName) return firstName.toLowerCase();
     return lang === 'en' ? 'this' : 'ceci';
   }, [items, lang]);
+
+  if (items.length === 0) return null;
+  if (recs.length === 0) return null;
 
   return (
     <section
