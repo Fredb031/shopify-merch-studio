@@ -328,7 +328,272 @@
         "a": "Toujours. Vous recevez une épreuve numérique et vous l'approuvez avant qu'on touche aux vêtements."
       }
     ],
-    "title": "Questions fréquentes"
+    "title": "Questions fréquentes",
+    "breadcrumb": "FAQ",
+    "eyebrow": "Centre d'aide",
+    "pageHeading": "Questions fréquentes",
+    "subhead": "Réponses aux questions les plus fréquentes.",
+    "categoriesLabel": "Catégories",
+    "categories": {
+      "order": {
+        "title": "Commande",
+        "items": {
+          "1": {
+            "q": "Quelle est la quantité minimum par commande ?",
+            "a": "Six pièces pour la broderie, douze pour la sérigraphie. Si tu as besoin d'une quantité plus petite, écris-nous : on trouve une solution dans la majorité des cas."
+          },
+          "2": {
+            "q": "Quels sont les délais de production ?",
+            "a": "Cinq jours ouvrables après approbation de la maquette pour la majorité des articles. Les vestes brodées et les commandes de plus de 200 unités peuvent demander jusqu'à dix jours ouvrables."
+          },
+          "3": {
+            "q": "Quels modes de paiement acceptez-vous ?",
+            "a": "Carte de crédit (Visa, Mastercard, Amex) sur le site, virement Interac et virement bancaire pour les comptes corporatifs. Le paiement complet est exigé à la commande, sauf entente particulière pour les comptes récurrents."
+          },
+          "4": {
+            "q": "Puis-je modifier ma commande après l'avoir placée ?",
+            "a": "Oui, tant que la maquette n'est pas approuvée. Une fois la production lancée, les modifications ne sont plus possibles. Écris-nous le plus tôt possible si tu dois changer une quantité, une couleur ou une taille."
+          }
+        }
+      },
+      "custom": {
+        "title": "Personnalisation",
+        "items": {
+          "1": {
+            "q": "Quels formats de fichier acceptez-vous pour le logo ?",
+            "a": "PDF, AI, EPS, SVG sont idéaux pour la broderie et la sérigraphie. PNG et JPG haute résolution (300 DPI minimum) fonctionnent aussi. Si ton fichier n'est pas optimal, notre équipe le redessine sans frais pour les commandes de 12 unités et plus."
+          },
+          "2": {
+            "q": "Combien de couleurs puis-je avoir dans mon logo ?",
+            "a": "Broderie : jusqu'à 15 couleurs sans surcoût significatif. Sérigraphie : chaque couleur ajoute un écran, donc le coût grimpe au-delà de 4 couleurs. Pour les designs photo-réalistes, on recommande l'impression numérique directe (DTG)."
+          },
+          "3": {
+            "q": "Broderie ou sérigraphie : laquelle choisir ?",
+            "a": "Broderie pour les polos, casquettes, vestes, et tout ce qui doit durer cinq ans et plus. Sérigraphie pour les t-shirts et chandails de grande quantité avec couleurs vives. On t'aide à choisir selon le vêtement, le tirage et le type de logo."
+          },
+          "4": {
+            "q": "Vais-je voir une maquette avant la production ?",
+            "a": "Toujours. Tu reçois une maquette numérique en 24 heures ouvrables après ta commande. Tu approuves ou demandes des ajustements. La production ne démarre pas sans ton OK."
+          }
+        }
+      },
+      "shipping": {
+        "title": "Livraison",
+        "items": {
+          "1": {
+            "q": "Livrez-vous partout au Canada ?",
+            "a": "Nous livrons partout au Québec et en Ontario. Pour les autres provinces, contacte-nous : on calcule les frais selon la destination et le poids."
+          },
+          "2": {
+            "q": "Combien de temps prend la livraison ?",
+            "a": "Une à trois journées ouvrables après la production, selon la destination. Région de Montréal et Laval : 1 à 2 jours. Reste du Québec et Ontario : 2 à 3 jours."
+          },
+          "3": {
+            "q": "Comment puis-je suivre ma commande ?",
+            "a": "Tu reçois un courriel avec ton numéro de suivi (Postes Canada ou Purolator) dès que ta commande quitte notre atelier. Tu peux suivre la progression en temps réel sur le site du transporteur."
+          }
+        }
+      },
+      "returns": {
+        "title": "Retours",
+        "items": {
+          "1": {
+            "q": "Puis-je retourner un vêtement personnalisé ?",
+            "a": "Les vêtements personnalisés ne sont pas remboursables, sauf en cas de défaut de production de notre part. C'est la règle standard de l'industrie : on ne peut pas revendre un polo brodé au nom d'une autre entreprise."
+          },
+          "2": {
+            "q": "Que faire si un vêtement a un défaut ?",
+            "a": "Écris-nous dans les 14 jours suivant la réception avec une photo du défaut. On remplace ou on rembourse, selon le cas. Notre garantie couvre la qualité de la décoration et de la couture."
+          },
+          "3": {
+            "q": "Et si un vêtement se déchire après quelques mois d'usage ?",
+            "a": "Si la déchirure est due à un défaut de fabrication du vêtement (couture qui lâche, tissu défectueux), on s'occupe du retour avec le manufacturier. Pour l'usure normale ou un accident, ce n'est pas couvert, mais on peut t'aider à réimprimer rapidement."
+          }
+        }
+      },
+      "sizing": {
+        "title": "Tailles",
+        "items": {
+          "1": {
+            "q": "Avez-vous un guide des tailles ?",
+            "a": "Oui. Chaque produit a son guide des tailles spécifique (mesures exactes en pouces et centimètres) sur sa page produit. Les coupes varient selon les manufacturiers."
+          },
+          "2": {
+            "q": "Peut-on faire des ajustements de coupe ?",
+            "a": "Pour les commandes de 50 unités et plus, nous pouvons proposer des modèles ajustés (coupe femme, coupe athlétique, grandes tailles). Demande une soumission et on te conseille selon ton équipe."
+          }
+        }
+      },
+      "business": {
+        "title": "Entreprise",
+        "items": {
+          "1": {
+            "q": "Qu'est-ce qu'un kit corporatif ?",
+            "a": "Un kit prêt-à-porter pour ton équipe : un mix de polos, t-shirts, hoodies et casquettes brodés à ton logo, livrés en une seule commande. Idéal pour l'embauche ou le renouvellement saisonnier."
+          },
+          "2": {
+            "q": "Peut-on ouvrir un compte récurrent ?",
+            "a": "Oui. Pour les entreprises qui commandent régulièrement, on garde ton design en archive, on fixe un prix unitaire et on simplifie le réapprovisionnement. Net 30 disponible après vérification de crédit."
+          },
+          "3": {
+            "q": "Comment demander une soumission grand volume ?",
+            "a": "Pour 50 unités et plus, utilise notre formulaire de soumission ou écris-nous directement. On répond en moins de 24 heures ouvrables avec un prix, un échéancier et des recommandations de produits."
+          }
+        }
+      }
+    },
+    "cta": {
+      "eyebrow": "Toujours bloqué ?",
+      "headline": "Pas trouvé ta réponse ?",
+      "subhead": "Notre équipe répond en moins d'un jour ouvrable. Téléphone, courriel ou formulaire — choisis ton canal.",
+      "ctaPrimary": "Nous joindre",
+      "ctaSecondary": "Demander une soumission"
+    }
+  },
+  "about": {
+    "breadcrumb": "À propos",
+    "hero": {
+      "eyebrow": "À propos",
+      "headline": "Atelier de broderie et sérigraphie québécois depuis 2021",
+      "subhead": "33 000+ vêtements livrés à 500+ entreprises, sans compromis sur la qualité ni le délai.",
+      "ctaPrimary": "Magasiner les uniformes",
+      "ctaSecondary": "Demander une soumission"
+    },
+    "story": {
+      "heading": "Notre histoire",
+      "p1": "Vision Affichage est né d'un constat simple : les PME québécoises méritent des uniformes professionnels sans avoir à passer par des fournisseurs internationaux ou des minimums absurdes.",
+      "p2": "Nous sommes une équipe de spécialistes basée à Blainville. Nous brodons et imprimons localement, contrôlons chaque étape de la production, et garantissons une livraison en 5 jours ouvrables après approbation visuelle.",
+      "p3": "Pas de catalogue infini. Pas de liens cliquables vers une usine en Asie. Notre force, c'est la simplicité opérationnelle."
+    },
+    "stats": {
+      "eyebrow": "En chiffres",
+      "1": {
+        "value": "33 000+",
+        "label": "vêtements livrés"
+      },
+      "2": {
+        "value": "500+",
+        "label": "entreprises clientes"
+      },
+      "3": {
+        "value": "5,0 / 5",
+        "label": "sur Google"
+      }
+    },
+    "values": {
+      "heading": "Nos valeurs",
+      "subhead": "Trois principes simples qui guident chaque commande qu'on livre.",
+      "local": {
+        "title": "Production locale",
+        "body": "Tout est fait au Québec, dans notre atelier de Blainville. Pas de sous-traitance internationale."
+      },
+      "french": {
+        "title": "Service en français",
+        "body": "Toute notre équipe parle français. Tu n'as pas à négocier en anglais avec un agent."
+      },
+      "leadtime": {
+        "title": "Délais respectés",
+        "body": "5 jours ouvrables après approbation. Si on rate le délai, on assume."
+      }
+    },
+    "industries": {
+      "heading": "Les industries qu'on habille",
+      "subhead": "Chaque secteur a ses contraintes : froid, sueur, lavages industriels, image client. On adapte le tissu et la décoration au terrain."
+    },
+    "cta": {
+      "eyebrow": "Prêt à commencer ?",
+      "headline": "Habillons ton équipe.",
+      "subhead": "Magasine notre catalogue ou demande une soumission pour les volumes 50+ unités.",
+      "ctaPrimary": "Magasiner les uniformes",
+      "ctaSecondary": "Demander une soumission"
+    }
+  },
+  "process": {
+    "breadcrumb": "Comment ça marche",
+    "hero": {
+      "eyebrow": "Comment ça marche",
+      "headline": "De la commande à la livraison en 5 jours ouvrables",
+      "subhead": "Cinq étapes simples : tu choisis, tu téléverses, on vérifie, on produit, on livre. Aucune surprise.",
+      "ctaPrimary": "Magasiner les uniformes",
+      "ctaSecondary": "Demander une soumission"
+    },
+    "steps": {
+      "heading": "Le processus en 5 étapes",
+      "subhead": "Conçu pour t'éviter les allers-retours inutiles. Chaque étape a un livrable clair et un délai annoncé.",
+      "stepLabel": "Étape {n}",
+      "1": {
+        "title": "Choisis tes vêtements",
+        "body": "T-shirts, hoodies, polos, casquettes, tuques. Sélectionne ce qui convient à ton équipe sur la page produit ou via une soumission pour les volumes 50+."
+      },
+      "2": {
+        "title": "Téléverse ton logo",
+        "body": "PDF, AI, SVG, PNG ou JPG. Notre outil te montre la position et le rendu approximatif."
+      },
+      "3": {
+        "title": "On vérifie ta maquette",
+        "body": "En 24 heures ouvrables, on t'envoie une maquette numérique. Tu approuves ou demandes des ajustements."
+      },
+      "4": {
+        "title": "Production locale 5 jours ouvrables",
+        "body": "Une fois la maquette approuvée, on lance la production dans notre atelier de Blainville."
+      },
+      "5": {
+        "title": "Livraison Québec et Ontario",
+        "body": "Postes Canada ou Purolator selon la quantité. Tu reçois un numéro de suivi."
+      }
+    },
+    "methods": {
+      "heading": "Broderie ou sérigraphie ?",
+      "subhead": "Le bon choix dépend du vêtement, du logo et du tirage. Voici comment on tranche.",
+      "columns": {
+        "method": "Méthode",
+        "idealFor": "Idéal pour",
+        "colors": "Couleurs",
+        "detail": "Détails",
+        "durability": "Durabilité",
+        "unitCost": "Coût unité"
+      },
+      "embroidery": {
+        "name": "Broderie",
+        "idealFor": "Polos, casquettes, vestes, ouates",
+        "colors": "Jusqu'à 15 sans surcoût",
+        "detail": "Texture en relief, finition haut de gamme",
+        "durability": "5+ ans en lavage commercial",
+        "unitCost": "Plus élevé en petite quantité"
+      },
+      "screenprint": {
+        "name": "Sérigraphie",
+        "idealFor": "T-shirts, chandails, sacs",
+        "colors": "Optimal de 1 à 4 couleurs",
+        "detail": "Couleurs vives, impression à plat",
+        "durability": "2-3 ans selon l'usage",
+        "unitCost": "Plus économique en grand tirage"
+      }
+    },
+    "factors": {
+      "eyebrow": "À savoir",
+      "heading": "Quels facteurs influencent le délai ?",
+      "subhead": "Le délai standard est de 5 jours ouvrables après approbation. Trois éléments peuvent l'allonger légèrement.",
+      "1": {
+        "title": "La quantité",
+        "body": "Au-delà de 200 unités, on planifie en série pour respecter la qualité. Compte 7 à 10 jours ouvrables pour les très gros volumes."
+      },
+      "2": {
+        "title": "La complexité du logo",
+        "body": "Un logo simple est numérisé en quelques heures. Un logo très détaillé ou multicolore peut demander 1 à 2 jours supplémentaires de préparation."
+      },
+      "3": {
+        "title": "La période de l'année",
+        "body": "Septembre (rentrée) et novembre-décembre (fêtes) sont nos périodes de pointe. Réserve ta production tôt pour garantir le délai standard."
+      }
+    },
+    "cta": {
+      "eyebrow": "Prêt à commencer ?",
+      "headline": "Habillons ton équipe.",
+      "subhead": "Magasine notre catalogue ou demande une soumission pour les volumes 50+ unités.",
+      "ctaPrimary": "Magasiner les uniformes",
+      "ctaSecondary": "Demander une soumission"
+    }
   },
   "kit": {
     "metadata": {

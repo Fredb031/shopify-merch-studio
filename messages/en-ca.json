@@ -328,7 +328,272 @@
         "a": "Always. You receive a digital proof and approve it before we touch any apparel."
       }
     ],
-    "title": "Frequently asked"
+    "title": "Frequently asked",
+    "breadcrumb": "FAQ",
+    "eyebrow": "Help center",
+    "pageHeading": "Frequently asked questions",
+    "subhead": "Answers to the most common questions.",
+    "categoriesLabel": "Categories",
+    "categories": {
+      "order": {
+        "title": "Ordering",
+        "items": {
+          "1": {
+            "q": "What is the minimum order quantity?",
+            "a": "Six pieces for embroidery, twelve for screen print. If you need a smaller quantity, write to us — we work something out in most cases."
+          },
+          "2": {
+            "q": "What are your production lead times?",
+            "a": "Five business days after proof approval for most items. Embroidered jackets and orders over 200 units may need up to ten business days."
+          },
+          "3": {
+            "q": "What payment methods do you accept?",
+            "a": "Credit card (Visa, Mastercard, Amex) on the site, Interac e-transfer, and bank transfer for corporate accounts. Full payment is required at order time, except for established recurring accounts."
+          },
+          "4": {
+            "q": "Can I change my order after placing it?",
+            "a": "Yes, as long as the proof has not been approved. Once production starts, no changes are possible. Write to us as soon as possible if you need to change a quantity, color, or size."
+          }
+        }
+      },
+      "custom": {
+        "title": "Customization",
+        "items": {
+          "1": {
+            "q": "What file formats do you accept for the logo?",
+            "a": "PDF, AI, EPS, SVG are ideal for embroidery and screen print. High-resolution PNG and JPG (300 DPI minimum) also work. If your file is not optimal, our team redraws it free of charge for orders of 12 units or more."
+          },
+          "2": {
+            "q": "How many colors can my logo have?",
+            "a": "Embroidery: up to 15 colors with no significant extra cost. Screen print: each color adds a screen, so cost rises beyond 4 colors. For photo-realistic designs, we recommend direct-to-garment (DTG) printing."
+          },
+          "3": {
+            "q": "Embroidery or screen print — which should I pick?",
+            "a": "Embroidery for polos, caps, jackets, and anything that has to last five years or more. Screen print for high-quantity tees and sweaters with vivid colors. We help you choose based on garment, run size, and logo type."
+          },
+          "4": {
+            "q": "Will I see a proof before production?",
+            "a": "Always. You receive a digital proof within 24 business hours of your order. You approve or request adjustments. Production never starts without your sign-off."
+          }
+        }
+      },
+      "shipping": {
+        "title": "Shipping",
+        "items": {
+          "1": {
+            "q": "Do you ship across Canada?",
+            "a": "We ship throughout Quebec and Ontario. For other provinces, contact us — we calculate shipping based on destination and weight."
+          },
+          "2": {
+            "q": "How long does shipping take?",
+            "a": "One to three business days after production, depending on destination. Greater Montreal and Laval: 1 to 2 days. Rest of Quebec and Ontario: 2 to 3 days."
+          },
+          "3": {
+            "q": "How can I track my order?",
+            "a": "You receive an email with your tracking number (Canada Post or Purolator) as soon as your order leaves our shop. Track progress in real time on the carrier's website."
+          }
+        }
+      },
+      "returns": {
+        "title": "Returns",
+        "items": {
+          "1": {
+            "q": "Can I return a customized garment?",
+            "a": "Customized garments are non-refundable, except in the case of a production defect on our end. This is the standard rule across the industry: we cannot resell a polo embroidered with another company's name."
+          },
+          "2": {
+            "q": "What if a garment has a defect?",
+            "a": "Write to us within 14 days of receipt with a photo of the defect. We replace or refund, depending on the case. Our warranty covers decoration and stitching quality."
+          },
+          "3": {
+            "q": "What if a garment tears after a few months of wear?",
+            "a": "If the tear is due to a manufacturing defect (failing seam, defective fabric), we handle the return with the manufacturer. Normal wear or accidents are not covered, but we can help you reorder quickly."
+          }
+        }
+      },
+      "sizing": {
+        "title": "Sizing",
+        "items": {
+          "1": {
+            "q": "Do you have a size guide?",
+            "a": "Yes. Each product has its own size guide (exact measurements in inches and centimeters) on its product page. Fits vary across manufacturers."
+          },
+          "2": {
+            "q": "Can fits be adjusted?",
+            "a": "For orders of 50 units or more, we can offer adjusted models (women's cut, athletic fit, plus sizes). Request a quote and we will advise based on your team."
+          }
+        }
+      },
+      "business": {
+        "title": "Business",
+        "items": {
+          "1": {
+            "q": "What is a corporate kit?",
+            "a": "A ready-to-wear kit for your team: a mix of polos, tees, hoodies, and caps embroidered with your logo, delivered in a single order. Ideal for new hires or seasonal refresh."
+          },
+          "2": {
+            "q": "Can we open a recurring account?",
+            "a": "Yes. For companies that order regularly, we keep your design on file, lock in a unit price, and streamline reordering. Net 30 available after credit verification."
+          },
+          "3": {
+            "q": "How do I request a high-volume quote?",
+            "a": "For 50 units or more, use our quote form or write to us directly. We respond within one business day with pricing, a timeline, and product recommendations."
+          }
+        }
+      }
+    },
+    "cta": {
+      "eyebrow": "Still stuck?",
+      "headline": "Didn't find your answer?",
+      "subhead": "Our team replies within one business day. Phone, email, or form — pick your channel.",
+      "ctaPrimary": "Contact us",
+      "ctaSecondary": "Request a quote"
+    }
+  },
+  "about": {
+    "breadcrumb": "About",
+    "hero": {
+      "eyebrow": "About",
+      "headline": "Quebec embroidery and screen-print shop since 2021",
+      "subhead": "33,000+ garments delivered to 500+ businesses, with no compromise on quality or lead time.",
+      "ctaPrimary": "Shop uniforms",
+      "ctaSecondary": "Request a quote"
+    },
+    "story": {
+      "heading": "Our story",
+      "p1": "Vision Affichage was born from a simple observation: Quebec SMBs deserve professional uniforms without having to deal with international suppliers or absurd minimums.",
+      "p2": "We are a team of specialists based in Blainville. We embroider and print locally, control every step of production, and guarantee delivery in 5 business days after proof approval.",
+      "p3": "No endless catalog. No clickable links to a factory in Asia. Our strength is operational simplicity."
+    },
+    "stats": {
+      "eyebrow": "By the numbers",
+      "1": {
+        "value": "33,000+",
+        "label": "garments delivered"
+      },
+      "2": {
+        "value": "500+",
+        "label": "business clients"
+      },
+      "3": {
+        "value": "5.0 / 5",
+        "label": "on Google"
+      }
+    },
+    "values": {
+      "heading": "Our values",
+      "subhead": "Three simple principles that guide every order we ship.",
+      "local": {
+        "title": "Local production",
+        "body": "Everything is made in Quebec, in our Blainville shop. No international subcontracting."
+      },
+      "french": {
+        "title": "Service in French",
+        "body": "Our entire team speaks French. You don't have to negotiate in English with an offshore agent."
+      },
+      "leadtime": {
+        "title": "Lead times honored",
+        "body": "5 business days after approval. If we miss the deadline, we own it."
+      }
+    },
+    "industries": {
+      "heading": "Industries we outfit",
+      "subhead": "Each sector has its own constraints: cold, sweat, industrial laundering, customer image. We adapt fabric and decoration to the field."
+    },
+    "cta": {
+      "eyebrow": "Ready to start?",
+      "headline": "Let's outfit your team.",
+      "subhead": "Browse our catalog or request a quote for volumes of 50+ units.",
+      "ctaPrimary": "Shop uniforms",
+      "ctaSecondary": "Request a quote"
+    }
+  },
+  "process": {
+    "breadcrumb": "How it works",
+    "hero": {
+      "eyebrow": "How it works",
+      "headline": "From order to delivery in 5 business days",
+      "subhead": "Five simple steps: you choose, you upload, we verify, we produce, we ship. No surprises.",
+      "ctaPrimary": "Shop uniforms",
+      "ctaSecondary": "Request a quote"
+    },
+    "steps": {
+      "heading": "The 5-step process",
+      "subhead": "Designed to spare you unnecessary back-and-forth. Each step has a clear deliverable and an announced lead time.",
+      "stepLabel": "Step {n}",
+      "1": {
+        "title": "Pick your apparel",
+        "body": "Tees, hoodies, polos, caps, beanies. Choose what fits your team on the product page or via a quote for 50+ unit volumes."
+      },
+      "2": {
+        "title": "Upload your logo",
+        "body": "PDF, AI, SVG, PNG, or JPG. Our tool shows the position and approximate rendering."
+      },
+      "3": {
+        "title": "We verify your proof",
+        "body": "Within 24 business hours, we send you a digital proof. You approve or request adjustments."
+      },
+      "4": {
+        "title": "Local production in 5 business days",
+        "body": "Once the proof is approved, we launch production in our Blainville shop."
+      },
+      "5": {
+        "title": "Delivery to Quebec and Ontario",
+        "body": "Canada Post or Purolator depending on quantity. You receive a tracking number."
+      }
+    },
+    "methods": {
+      "heading": "Embroidery or screen print?",
+      "subhead": "The right choice depends on the garment, the logo, and the run size. Here's how we decide.",
+      "columns": {
+        "method": "Method",
+        "idealFor": "Ideal for",
+        "colors": "Colors",
+        "detail": "Detail",
+        "durability": "Durability",
+        "unitCost": "Unit cost"
+      },
+      "embroidery": {
+        "name": "Embroidery",
+        "idealFor": "Polos, caps, jackets, hoodies",
+        "colors": "Up to 15 with no surcharge",
+        "detail": "Raised texture, premium finish",
+        "durability": "5+ years under commercial laundering",
+        "unitCost": "Higher on small runs"
+      },
+      "screenprint": {
+        "name": "Screen print",
+        "idealFor": "Tees, sweaters, bags",
+        "colors": "Optimal at 1 to 4 colors",
+        "detail": "Vivid colors, flat print",
+        "durability": "2-3 years depending on use",
+        "unitCost": "More economical at high run size"
+      }
+    },
+    "factors": {
+      "eyebrow": "Good to know",
+      "heading": "What factors influence lead time?",
+      "subhead": "Standard lead time is 5 business days after approval. Three factors can stretch it slightly.",
+      "1": {
+        "title": "Quantity",
+        "body": "Beyond 200 units, we batch production to maintain quality. Plan for 7 to 10 business days for very large volumes."
+      },
+      "2": {
+        "title": "Logo complexity",
+        "body": "A simple logo is digitized within hours. A highly detailed or multi-color logo can require 1 to 2 extra prep days."
+      },
+      "3": {
+        "title": "Time of year",
+        "body": "September (back-to-work) and November–December (holidays) are our peak periods. Book production early to lock in the standard lead time."
+      }
+    },
+    "cta": {
+      "eyebrow": "Ready to start?",
+      "headline": "Let's outfit your team.",
+      "subhead": "Browse our catalog or request a quote for volumes of 50+ units.",
+      "ctaPrimary": "Shop uniforms",
+      "ctaSecondary": "Request a quote"
+    }
   },
   "kit": {
     "metadata": {
