@@ -6,6 +6,16 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Tree-shake barrel files at build time. Reduces module graph for these
+  // packages, shaving evaluation cost and improving per-route chunk size.
+  // See https://nextjs.org/docs/app/api-reference/config/next-config-js/optimizePackageImports
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      'next-intl',
+      '@hookform/resolvers',
+    ],
+  },
   async redirects() {
     return [
       // Canonicalize quote route → /soumission
