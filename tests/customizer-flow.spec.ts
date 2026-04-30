@@ -1,14 +1,13 @@
 import { test, expect } from '@playwright/test';
+import path from 'node:path';
 
-// Minimal valid 1x1 transparent PNG (base64).
-const ONE_BY_ONE_PNG_B64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==';
+// Real on-disk fixture — see tests/fixtures/README.md.
+// 600x600 solid-colour PNG; the customiser's client-side file checks
+// (DPI estimate, raster/vector classifier, naturalWidth/Height probe)
+// need a genuine asset, not a synthetic 1x1 in-memory buffer.
+const LOGO_FIXTURE = path.resolve(__dirname, 'fixtures', 'test-logo.png');
 
-// NOTE: marked fixme — synthetic PNG buffer + the customiser's client-side
-// raster/vector detection pipeline is environmentally fragile in headless CI.
-// Kept as documentation of the intended flow; flip back to `test()` once
-// a real fixture is wired up under tests/fixtures/.
-test.fixme(
+test(
   'customizer flow: PDP -> /customiser -> save -> /panier with thumbnail',
   async ({ page }) => {
     // Land on a known PDP. If the slug changes, the first PLP card click below
@@ -30,13 +29,9 @@ test.fixme(
     // Now on /customiser with query params carrying product + variant.
     await expect(page).toHaveURL(/\/customiser\?/);
 
-    // Upload a synthetic 1x1 PNG.
+    // Upload the real PNG fixture.
     const fileInput = page.locator('input[type="file"]').first();
-    await fileInput.setInputFiles({
-      name: 'test-logo.png',
-      mimeType: 'image/png',
-      buffer: Buffer.from(ONE_BY_ONE_PNG_B64, 'base64'),
-    });
+    await fileInput.setInputFiles(LOGO_FIXTURE);
 
     // Wait for the client-side checks (raster vs vector classification).
     await expect(page.getByText(/raster|vecteur|vector/i).first()).toBeVisible({
