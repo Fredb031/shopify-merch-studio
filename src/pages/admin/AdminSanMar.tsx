@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
   RefreshCw,
@@ -20,9 +20,13 @@ import {
   AlertTriangle,
   Wallet,
   Gauge,
+  StickyNote,
+  X,
 } from 'lucide-react';
 import { useLang } from '@/lib/langContext';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { supabase } from '@/lib/supabase';
 import { sanmarClient } from '@/lib/sanmar/client';
 import type { SanmarOrderStatus, SanmarOrderInput } from '@/lib/sanmar/types';
@@ -417,6 +421,12 @@ export default function AdminSanMar() {
   // window (up to SYNC_LOG_EXPORT_LIMIT rows) — keeps the button from
   // double-firing if the operator is impatient and re-clicks.
   const [exportingSyncLog, setExportingSyncLog] = useState(false);
+  // Mirrors `exportingSyncLog` for the Open Orders Download-CSV button.
+  // The export enriches the in-memory `filteredOpenOrders` snapshot with
+  // a one-shot `sanmar_orders` query so the operator gets customer PO,
+  // total CAD, and submitted-at columns the SanMar API doesn't return.
+  // Disabling while inflight prevents a double-fire firing two queries.
+  const [exportingOpenOrders, setExportingOpenOrders] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   // ── pg_cron health ─────────────────────────────────────────────────────
@@ -1812,6 +1822,149 @@ export default function AdminSanMar() {
     setPhaseFilter(prev => (prev === phase ? null : phase));
   }, []);
 
+  /**
+   * Export the visible open-orders snapshot to CSV for offline review.
+   *
+   * Mirrors {@link handleExportSyncLogCsv} in spirit (RFC 4180 quoting,
+   * UTF-8 BOM, CRLF, formula-injection guard — all delegated to
+   * {@link downloadCsv}) but the data source is dual: the SanMar API
+   * payload in `filteredOpenOrders` gives us PO + status detail rows,
+   * while a one-shot `sanmar_orders` lookup gives us the columns the
+   * SanMar getOrderStatus call doesn't return — customer PO
+   * (`va_order_id`), total CAD (`order_data.totalAmount`), and
+   * submitted-at (`created_at`). We merge by `purchaseOrderNumber` so
+   * the CSV emits one row per status detail row, exactly matching what
+   * the operator sees on screen after any active filters.
+   *
+   * Filter respect: we read `filteredOpenOrders` (the same memo the
+   * table renders), so if the operator filtered by phase or by the
+   * AR-tile click ('open' / 'oldest'), only the narrowed set exports.
+   * Empty-after-filter → toast.info, no file written.
+   *
+   * Columns (9): PO | Customer PO | Status ID | Status label | Phase |
+   * Days open | Total CAD | Submitted at (ISO) | Expected ship date.
+   *
+   * The Supabase enrichment is best-effort — RLS blocks non-admins
+   * from `sanmar_orders` already, so the export still works for the
+   * president/admin caller. Missing rows fall back to empty cells so
+   * the SanMar columns alone still surface in the CSV; only a hard
+   * query failure aborts with a toast.
+   */
+  const handleExportOpenOrdersCsv = async () => {
+    if (filteredOpenOrders.length === 0) {
+      toast.info(
+        lang === 'en'
+          ? 'No open orders to export.'
+          : 'Aucune commande ouverte à exporter.',
+      );
+      return;
+    }
+    setExportingOpenOrders(true);
+    try {
+      // Enrich with sanmar_orders rows so the CSV includes the columns
+      // the SanMar API doesn't return. One IN-list query keyed on the
+      // visible PO numbers — RLS still applies, missing rows fall back
+      // to empty cells rather than blocking the export.
+      const poNumbers = filteredOpenOrders.map(o => o.purchaseOrderNumber);
+      type EnrichRow = {
+        va_order_id: string | null;
+        order_data: unknown;
+        created_at: string | null;
+      };
+      const enrichByPo = new Map<
+        string,
+        { customerPo: string; totalCad: number | null; submittedAt: string | null }
+      >();
+      if (supabase && poNumbers.length > 0) {
+        const { data, error } = await supabase
+          .from('sanmar_orders')
+          .select('va_order_id, order_data, created_at')
+          .in('order_data->>purchaseOrderNumber', poNumbers);
+        if (error) throw error;
+        for (const row of (data ?? []) as EnrichRow[]) {
+          const od =
+            row.order_data && typeof row.order_data === 'object'
+              ? (row.order_data as Record<string, unknown>)
+              : {};
+          const po = String(od.purchaseOrderNumber ?? '');
+          if (!po) continue;
+          const totalRaw = Number(
+            (od as { totalAmount?: unknown }).totalAmount ?? NaN,
+          );
+          enrichByPo.set(po, {
+            customerPo: row.va_order_id ?? '',
+            totalCad: Number.isFinite(totalRaw) ? totalRaw : null,
+            submittedAt: row.created_at,
+          });
+        }
+      }
+
+      const header = [
+        lang === 'en' ? 'PO #' : 'No commande',
+        lang === 'en' ? 'Customer PO' : 'PO client',
+        lang === 'en' ? 'Status ID' : 'ID statut',
+        lang === 'en' ? 'Status label' : 'Libellé statut',
+        lang === 'en' ? 'Phase' : 'Phase',
+        lang === 'en' ? 'Days open' : 'Jours ouverts',
+        lang === 'en' ? 'Total CAD' : 'Total CAD',
+        lang === 'en' ? 'Submitted at' : 'Soumise le',
+        lang === 'en' ? 'Expected ship date' : 'Expédition prévue',
+      ];
+      const body: Array<Array<string | number | Date | null>> = [];
+      for (const order of filteredOpenOrders) {
+        const enrich = enrichByPo.get(order.purchaseOrderNumber);
+        if (order.orderStatusDetails.length === 0) {
+          // Edge case: the upstream sometimes returns a PO with no
+          // detail rows (mid-sync race). Emit one row so the export
+          // still shows the PO; status columns blank.
+          body.push([
+            order.purchaseOrderNumber,
+            enrich?.customerPo ?? '',
+            '',
+            '',
+            '',
+            '',
+            enrich?.totalCad ?? '',
+            enrich?.submittedAt ? new Date(enrich.submittedAt) : '',
+            '',
+          ]);
+          continue;
+        }
+        for (const d of order.orderStatusDetails) {
+          const phase =
+            SANMAR_STATUS_CHAIN.find(s => s.id === d.statusId)?.phase ?? '';
+          const days = daysSince(d.validTimestamp);
+          body.push([
+            order.purchaseOrderNumber,
+            enrich?.customerPo ?? '',
+            d.statusId,
+            d.statusName,
+            phase,
+            days ?? '',
+            enrich?.totalCad ?? '',
+            enrich?.submittedAt ? new Date(enrich.submittedAt) : '',
+            d.expectedShipDate ?? '',
+          ]);
+        }
+      }
+      downloadCsv([header, ...body], csvFilename('sanmar-open-orders'));
+      toast.success(
+        lang === 'en'
+          ? `Exported ${body.length} row${body.length === 1 ? '' : 's'}.`
+          : `${body.length} ligne${body.length === 1 ? '' : 's'} exportée${body.length === 1 ? '' : 's'}.`,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(
+        lang === 'en'
+          ? `Export failed: ${msg}`
+          : `Échec de l’export : ${msg}`,
+      );
+    } finally {
+      setExportingOpenOrders(false);
+    }
+  };
+
   const envLabel = NEXT_GEN_ENABLED
     ? lang === 'en'
       ? 'PROD (next-gen edge functions enabled)'
@@ -2850,19 +3003,45 @@ export default function AdminSanMar() {
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={fetchOpenOrders}
-              disabled={openOrdersLoading}
-              className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
-            >
-              <RefreshCw
-                size={14}
-                aria-hidden="true"
-                className={openOrdersLoading ? 'animate-spin' : ''}
-              />
-              {lang === 'en' ? 'Refresh' : 'Actualiser'}
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleExportOpenOrdersCsv}
+                disabled={exportingOpenOrders || filteredOpenOrders.length === 0}
+                title={
+                  lang === 'en'
+                    ? 'Download the visible filtered open orders as CSV'
+                    : 'Télécharger les commandes ouvertes visibles en CSV'
+                }
+                className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                <Download
+                  size={14}
+                  aria-hidden="true"
+                  className={exportingOpenOrders ? 'animate-pulse' : ''}
+                />
+                {exportingOpenOrders
+                  ? lang === 'en'
+                    ? 'Exporting…'
+                    : 'Export…'
+                  : lang === 'en'
+                    ? 'Download CSV'
+                    : 'Télécharger CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={fetchOpenOrders}
+                disabled={openOrdersLoading}
+                className="border border-va-line rounded-lg px-4 py-2 text-sm font-bold text-va-ink hover:bg-va-bg-2 inline-flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                <RefreshCw
+                  size={14}
+                  aria-hidden="true"
+                  className={openOrdersLoading ? 'animate-spin' : ''}
+                />
+                {lang === 'en' ? 'Refresh' : 'Actualiser'}
+              </button>
+            </div>
           </div>
           {openOrdersError ? (
             <SanmarErrorPanel err={openOrdersError} lang={lang} />
