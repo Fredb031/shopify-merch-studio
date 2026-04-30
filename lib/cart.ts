@@ -13,6 +13,10 @@ export type CartItem = {
   size: string;
   qty: number;
   unitPriceCents: number;
+  /** Optional — links the cart line to a saved customizer payload in sessionStorage (`va-customizer-{token}`). */
+  customizerToken?: string;
+  /** Optional — small data-URL thumbnail for cart display; capped to ~50KB at write time. */
+  customizerThumbDataUrl?: string;
 };
 
 type CartState = {

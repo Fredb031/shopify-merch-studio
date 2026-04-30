@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
@@ -56,6 +56,18 @@ export function CustomiserClient({
 }: Props) {
   const t = useTranslations('customizer');
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Quantity comes from the PDP CTA query params (e.g. /customiser?...&qty=24).
+  // We persist it alongside slug/color/size so the cart can rebuild the CartItem
+  // on round-trip without re-reading the URL.
+  const qtyFromUrl = useMemo(() => {
+    const raw = searchParams?.get('qty');
+    if (!raw) return null;
+    const parsed = Number.parseInt(raw, 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return null;
+    return parsed;
+  }, [searchParams]);
 
   const [file, setFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -130,7 +142,7 @@ export function CustomiserClient({
 
     try {
       const token = makeShortId();
-      const payload: SavedCustomizer = {
+      const basePayload: SavedCustomizer = {
         productSlug,
         color: garmentHex,
         size,
@@ -146,6 +158,10 @@ export function CustomiserClient({
         colorCount: checks.colorCount,
         savedAt: Date.now(),
       };
+      // Extend the persisted payload with the originating PDP context (qty)
+      // so the cart page can reconstruct a CartItem without re-parsing the URL.
+      // productSlug/color/size are already on SavedCustomizer.
+      const payload = { ...basePayload, qty: qtyFromUrl ?? null };
       try {
         sessionStorage.setItem(`${STORAGE_PREFIX}${token}`, JSON.stringify(payload));
       } catch {
@@ -159,7 +175,7 @@ export function CustomiserClient({
     } finally {
       setSaving(false);
     }
-  }, [file, checks, productSlug, garmentHex, size, placement, notes, locale, router]);
+  }, [file, checks, productSlug, garmentHex, size, placement, notes, locale, router, qtyFromUrl]);
 
   const placementOptions: { id: Placement; label: string; description: string }[] = [
     {

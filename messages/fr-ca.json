@@ -116,6 +116,13 @@
       "checkout": "Passer au paiement",
       "quote": "Demander une soumission"
     },
+    "customizer": {
+      "addedToast": "Logo enregistré et ajouté au panier.",
+      "logoStatus": {
+        "pending": "Logo en attente d'approbation"
+      },
+      "modifyLogo": "Modifier le logo"
+    },
     "metadata": {
       "title": "Panier · Vision Affichage"
     }

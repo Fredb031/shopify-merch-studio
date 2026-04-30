@@ -116,6 +116,13 @@
       "checkout": "Proceed to payment",
       "quote": "Request a quote"
     },
+    "customizer": {
+      "addedToast": "Logo saved and added to cart.",
+      "logoStatus": {
+        "pending": "Logo pending review"
+      },
+      "modifyLogo": "Modify logo"
+    },
     "metadata": {
       "title": "Cart · Vision Affichage"
     }
