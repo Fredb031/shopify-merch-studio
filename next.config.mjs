@@ -16,6 +16,15 @@ const nextConfig = {
       '@hookform/resolvers',
     ],
   },
+  async rewrites() {
+    return [
+      // PWA / favicon validators frequently expect explicit `.png` URLs.
+      // Next emits the dynamic icon routes without an extension, so we
+      // rewrite the dotted paths to the dotless metadata routes.
+      { source: '/icon.png', destination: '/icon' },
+      { source: '/apple-icon.png', destination: '/apple-icon' },
+    ];
+  },
   async redirects() {
     return [
       // Canonicalize quote route → /soumission

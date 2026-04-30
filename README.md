@@ -1,30 +1,32 @@
 # Vision Affichage — v2
 
-> **Phase 2 SEALED — tag `v2-phase2-sealed`.** Loi 25 cookie consent mounted,
-> per-page OG overrides on 8+ social-shareable routes, photo-realistic
-> abstract industry hero SVGs, 25 of 26 Playwright tests passing (one
-> customizer flow remains `.fixme` pending a real raster + vector fixture).
+> **Phase 2 SEALED — final tag `v2-phase2-final-2.5`.** Six waves of feature
+> work, **78 SSG pages**, **26 / 26 Playwright tests** (zero `fixme`). Loi 25
+> cookie consent + Plausible analytics gated behind it, branded 404, route
+> loading skeletons, PWA manifest with dynamic VA-monogram icons, per-page OG
+> overrides, abstract industry hero SVGs, sitemap + robots + dynamic OG image
+> generation.
 
 Bilingual (fr-CA / en-CA) marketing + catalogue site for Vision Affichage, a Quebec embroidery and screen-print shop. Built with Next.js 15 App Router, statically rendered, with a guest checkout that simulates payment so the operator can demo the full shopper experience before Phase 3 wires a real PSP.
 
 ## Phase 2 — what shipped
 
-Five waves of feature work, sealed at 75 SSG pages and 25 passing E2E tests:
+Six waves of feature work, sealed at 78 SSG pages and 26 passing E2E tests:
 
 - **Wave 1** — Vol-III v2 rebrand (logo split CTA, real `/a-propos`, `/faq`, `/comment-ca-marche`)
 - **Wave 2** — interactive `/contact`, `/avis`, photo-realistic product mockups
 - **Wave 3** — `/account` + customizer round-trip (sessionStorage persistence)
 - **Wave 4** — sitemap.xml, robots.txt, dynamic `/api/og`, industry copy + case studies
 - **Wave 5** — **Loi 25 cookie consent + `/legal/{confidentialite,cookies}` legal stubs (production blocker closed)**, per-page OG overrides on 8 social-shareable routes, industry SVG heroes upgraded to abstract scenes, 4 fixme tests un-fixme'd
+- **Wave 6** — **Plausible analytics gated on Loi 25 consent**, branded 404 + 6 route-specific loading skeletons, **PWA manifest + dynamic VA-monogram icons** (64×64 + 180×180), customizer E2E un-fixme'd with real PNG fixture (now **26 / 26**)
 
 ### Phase 3 queue (operator follow-ups)
 
 1. **Real payment gateway** — wire Stripe Checkout Session + webhook (replace mock card flow in `/checkout`)
 2. **Persistent backend** — move quote/kit/order from sessionStorage to a DB (Postgres + Drizzle, or Supabase)
 3. **Real photography** — replace abstract industry SVGs and product mocks with shoots
-4. **Analytics + email** — GA4 + transactional email (Resend / Postmark) for quote/order acknowledgments
-5. **Customizer E2E fixture** — wire a real raster + vector fixture under `tests/fixtures/` and un-fixme the customizer flow test
-6. **Cookie-consent → analytics gating** — once GA4 is wired, gate it behind the `va-cookie-consent` localStorage flag
+4. **Custom analytics events** — GA-style event mapping (page_view, add_to_cart, quote_submit, kit_submit, contact_submit) wired into the consent-gated Plausible script. Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` to enable.
+5. **Transactional email** — Resend or Postmark for quote/order/kit acknowledgments
 
 ## Tech stack
 
