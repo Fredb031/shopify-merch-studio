@@ -1738,5 +1738,17 @@
     "kbd": {
       "shortcut": "Ctrl + K"
     }
+  },
+  "quickView": {
+    "button": {
+      "label": "Aperçu rapide"
+    },
+    "modal": {
+      "viewFull": "Voir la fiche complète →",
+      "addToCart": "Ajouter au panier",
+      "sizeError": "Choisissez une taille pour continuer.",
+      "addedToast": "Ajouté au panier",
+      "close": "Fermer l'aperçu"
+    }
   }
 }

@@ -1738,5 +1738,17 @@
     "kbd": {
       "shortcut": "Ctrl + K"
     }
+  },
+  "quickView": {
+    "button": {
+      "label": "Quick view"
+    },
+    "modal": {
+      "viewFull": "View full details →",
+      "addToCart": "Add to cart",
+      "sizeError": "Choose a size to continue.",
+      "addedToast": "Added to cart",
+      "close": "Close quick view"
+    }
   }
 }

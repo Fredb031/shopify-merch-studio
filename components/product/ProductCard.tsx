@@ -9,6 +9,7 @@ import {
 import { getAverageRating } from '@/lib/reviews';
 import { BadgeRow } from './BadgeRow';
 import { ColorSwatchRow } from './ColorSwatchRow';
+import { QuickViewButton } from './QuickViewButton';
 import { StarRating } from './StarRating';
 
 type Props = {
@@ -25,11 +26,11 @@ export function ProductCard({ product, locale, className = '' }: Props) {
     <article
       className={`group flex flex-col overflow-hidden rounded-md bg-canvas-000 shadow-xs transition-shadow duration-base ease-standard hover:shadow-md ${className}`.trim()}
     >
-      <Link
-        href={productHref}
-        className="block focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
-      >
-        <div className="relative aspect-square w-full overflow-hidden bg-sand-100">
+      <div className="relative aspect-square w-full overflow-hidden bg-sand-100">
+        <Link
+          href={productHref}
+          className="absolute inset-0 block focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
+        >
           <Image
             src={imgSrc}
             alt={product.title[locale]}
@@ -37,8 +38,11 @@ export function ProductCard({ product, locale, className = '' }: Props) {
             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
             className="object-contain p-6 transition-transform duration-base ease-standard group-hover:scale-[1.02]"
           />
+        </Link>
+        <div className="pointer-events-none absolute bottom-2 right-2 z-10">
+          <QuickViewButton product={product} locale={locale} />
         </div>
-      </Link>
+      </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         {product.badgeKeys && product.badgeKeys.length > 0 ? (
