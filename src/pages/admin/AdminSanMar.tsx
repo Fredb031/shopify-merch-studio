@@ -1248,11 +1248,18 @@ export default function AdminSanMar() {
               {lang === 'en' ? 'Loading…' : 'Chargement…'}
             </p>
           ) : recentRuns.length === 0 ? (
-            <p className="text-va-muted text-sm py-6 text-center">
-              {lang === 'en'
-                ? 'No sync runs yet. Trigger one above to populate the log.'
-                : 'Aucune synchro enregistrée. Lance-en une ci-dessus pour remplir le journal.'}
-            </p>
+            <div className="py-8 text-center space-y-1.5">
+              <p className="text-va-fg text-sm font-medium">
+                {lang === 'en'
+                  ? 'No sync runs logged yet.'
+                  : 'Aucune synchro enregistrée pour le moment.'}
+              </p>
+              <p className="text-va-muted text-xs max-w-md mx-auto">
+                {lang === 'en'
+                  ? 'Use the Sync card above (Inventory or Orders) to trigger a run — entries appear here within seconds.'
+                  : 'Utilise la carte Synchro ci-dessus (Inventaire ou Commandes) pour lancer une exécution — les entrées apparaissent ici en quelques secondes.'}
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto -mx-6 px-6">
               <table className="min-w-full text-sm">
@@ -1374,11 +1381,18 @@ export default function AdminSanMar() {
               {lang === 'en' ? 'Loading…' : 'Chargement…'}
             </p>
           ) : cronHealth.length === 0 ? (
-            <p className="text-va-muted text-sm py-6 text-center">
-              {lang === 'en'
-                ? 'No sanmar-* cron jobs registered (or insufficient privileges).'
-                : 'Aucune tâche cron sanmar-* enregistrée (ou privilèges insuffisants).'}
-            </p>
+            <div className="py-8 text-center space-y-1.5">
+              <p className="text-va-fg text-sm font-medium">
+                {lang === 'en'
+                  ? 'No sanmar-* cron jobs registered.'
+                  : 'Aucune tâche cron sanmar-* enregistrée.'}
+              </p>
+              <p className="text-va-muted text-xs max-w-md mx-auto">
+                {lang === 'en'
+                  ? 'Either pg_cron jobs haven\'t been deployed yet, or this role lacks SELECT on cron.job. Check supabase/migrations/*sanmar*cron* and ensure the get_sanmar_cron_health() RPC is granted to authenticated.'
+                  : 'Soit les tâches pg_cron ne sont pas encore déployées, soit ce rôle n\'a pas SELECT sur cron.job. Vérifie supabase/migrations/*sanmar*cron* et que la RPC get_sanmar_cron_health() est accordée à authenticated.'}
+              </p>
+            </div>
           ) : (
             <div className="overflow-x-auto -mx-6 px-6">
               <table className="min-w-full text-sm">
@@ -1745,10 +1759,19 @@ export default function AdminSanMar() {
                   </tr>
                 ) : catalogRows.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-12 text-center text-va-muted">
-                      {lang === 'en'
-                        ? 'No catalogue rows yet. Trigger a sync above.'
-                        : 'Aucune ligne dans le catalogue. Lance une synchro ci-dessus.'}
+                    <td colSpan={10} className="py-12 text-center">
+                      <div className="space-y-1.5">
+                        <p className="text-va-fg text-sm font-medium">
+                          {lang === 'en'
+                            ? 'Catalogue is empty.'
+                            : 'Le catalogue est vide.'}
+                        </p>
+                        <p className="text-va-muted text-xs max-w-md mx-auto">
+                          {lang === 'en'
+                            ? 'Trigger an Inventory sync from the Sync card above. Once it completes, ~3k SKUs across 4 warehouses will populate this table.'
+                            : 'Lance une synchro Inventaire depuis la carte ci-dessus. Une fois terminée, environ 3 000 SKU sur 4 entrepôts apparaîtront ici.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
@@ -1877,15 +1900,35 @@ export default function AdminSanMar() {
               </div>
             </div>
           ) : openOrders.length === 0 ? (
-            <p className="text-va-muted text-sm py-6">
-              {openOrdersLastPoll
-                ? lang === 'en'
-                  ? 'No open orders.'
-                  : 'Aucune commande ouverte.'
-                : lang === 'en'
-                  ? 'Click Refresh to load open orders.'
-                  : 'Clique sur Actualiser pour charger les commandes ouvertes.'}
-            </p>
+            <div className="py-8 text-center space-y-1.5">
+              {openOrdersLastPoll ? (
+                <>
+                  <p className="text-va-fg text-sm font-medium">
+                    {lang === 'en'
+                      ? 'No open orders right now.'
+                      : 'Aucune commande ouverte en ce moment.'}
+                  </p>
+                  <p className="text-va-muted text-xs max-w-md mx-auto">
+                    {lang === 'en'
+                      ? 'Every SanMar PO is closed (status 80) or cancelled (99). New POs will surface here within ~5 min of the next sync — or click Refresh to poll now.'
+                      : 'Toutes les commandes SanMar sont fermées (statut 80) ou annulées (99). Les nouvelles apparaîtront ici environ 5 min après la prochaine synchro — ou clique sur Actualiser pour interroger maintenant.'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-va-fg text-sm font-medium">
+                    {lang === 'en'
+                      ? 'Open orders not loaded yet.'
+                      : 'Commandes ouvertes pas encore chargées.'}
+                  </p>
+                  <p className="text-va-muted text-xs max-w-md mx-auto">
+                    {lang === 'en'
+                      ? 'Click Refresh above to fetch the current SanMar PO snapshot. The table polls on demand to keep API calls cheap.'
+                      : 'Clique sur Actualiser ci-dessus pour récupérer l\'instantané SanMar actuel. La table interroge sur demande pour économiser les appels API.'}
+                  </p>
+                </>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto -mx-6 px-6">
               <table className="min-w-full text-sm">
