@@ -74,11 +74,31 @@ export function PdpClient({ product, locale }: Props) {
     router.push(`/${locale}/panier`);
   };
 
+  const onCustomizeLogo = () => {
+    if (!selectedSize) {
+      setSizeError(true);
+      return;
+    }
+    setSizeError(false);
+    const params = new URLSearchParams({
+      product: product.slug,
+      size: selectedSize,
+      qty: String(quantity),
+    });
+    if (selectedColorHex) {
+      params.set('color', selectedColorHex);
+    }
+    router.push(`/${locale}/customiser?${params.toString()}`);
+  };
+
   const colorLabel = t('variant.color');
   const sizeLabel = t('variant.size');
   const qtyLabel = t('qty.label');
   const qtyUnit = t('qty.unit');
   const ctaLabel = t('cta.addToCart');
+  const customizeLogoLabel = t('cta.customizeLogo');
+  const customizeLogoHelper = t('cta.customizeLogoHelper');
+  const addWithoutLogoLabel = t('cta.addWithoutLogo');
   const quoteLabel = t('cta.quote.label');
   const quoteSubtext = t('cta.quote.subtext');
   const sizeErrorMsg = t('variant.error.size');
@@ -210,14 +230,25 @@ export function PdpClient({ product, locale }: Props) {
             {sizeErrorMsg}
           </p>
         ) : null}
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          onClick={onAddToCart}
-        >
-          {ctaLabel} · {formatCAD(product.priceFromCents * quantity, locale)}
-        </Button>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            onClick={onCustomizeLogo}
+          >
+            {customizeLogoLabel}
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            className="w-full"
+            onClick={onAddToCart}
+          >
+            {addWithoutLogoLabel} · {formatCAD(product.priceFromCents * quantity, locale)}
+          </Button>
+        </div>
+        <p className="text-body-sm text-stone-600">{customizeLogoHelper}</p>
       </div>
 
       {/* 13. Secondary CTA */}

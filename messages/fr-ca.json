@@ -660,6 +660,9 @@
     },
     "cta": {
       "addToCart": "Personnaliser et ajouter au panier",
+      "customizeLogo": "Personnaliser le logo",
+      "customizeLogoHelper": "Téléverse ton logo + choisis la position",
+      "addWithoutLogo": "Ajouter sans logo",
       "quote": {
         "label": "Demander une soumission pour 50+ unités",
         "subtext": "Tarifs dégressifs au-delà de 50 unités."

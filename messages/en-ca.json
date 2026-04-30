@@ -660,6 +660,9 @@
     },
     "cta": {
       "addToCart": "Customize and add to cart",
+      "customizeLogo": "Customize logo",
+      "customizeLogoHelper": "Upload your logo + pick position",
+      "addWithoutLogo": "Add without logo",
       "quote": {
         "label": "Request a quote for 50+ units",
         "subtext": "Volume pricing kicks in past 50 units."
