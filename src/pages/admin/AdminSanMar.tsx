@@ -516,6 +516,35 @@ export default function AdminSanMar() {
   // dot is hovered. Reset to null on mouseleave/blur.
   const [hoveredPhase, setHoveredPhase] = useState<SanmarStatusPhase | null>(null);
 
+  // ── Internal notes (operator-only) ────────────────────────────────────
+  // Map keyed by purchase_order_number → currently-saved note text.
+  // Hydrated once per fetchOpenOrders refresh by selecting
+  // (va_order_id, internal_notes) from sanmar_orders for every PO
+  // visible in the open-orders payload. We keep this map separate from
+  // `openOrders` so a saved note doesn't get wiped when the SanMar API
+  // payload is replaced on the next poll. null = no note → clean dot
+  // gating (`hasNote = Boolean(notesByPo[po])`).
+  const [notesByPo, setNotesByPo] = useState<Record<string, string | null>>({});
+  // Editor dialog state. `null` = closed; otherwise carries the PO
+  // being edited and the in-flight draft text. We seed `draft` with
+  // the saved note on open so the textarea reflects current persisted
+  // state, and mirror edits here until Save commits to Supabase.
+  const [noteEditor, setNoteEditor] = useState<{
+    po: string;
+    draft: string;
+    saving: boolean;
+  } | null>(null);
+  // Remember the row-level button that opened the dialog so we can
+  // return focus there on close — the focus-trap hook restores
+  // document.activeElement automatically, but mounting the trapped
+  // container moves focus inside it before the trap runs, which means
+  // the trap captures the wrong "previous" element. Saving it
+  // explicitly here side-steps that ordering.
+  const noteOpenerRef = useRef<HTMLButtonElement | null>(null);
+  // Limit must match the DB CHECK constraint in
+  // 20260430000000_sanmar_order_notes.sql — keep both in sync.
+  const NOTE_MAX = 500;
+
   // ── Test order form ────────────────────────────────────────────────────
   const [testOrderOpen, setTestOrderOpen] = useState(false);
   const [testOrderSubmitting, setTestOrderSubmitting] = useState(false);
@@ -1324,6 +1353,41 @@ export default function AdminSanMar() {
         const result = await sanmarClient.getOrderStatus(4);
         setOpenOrders(result);
         setOpenOrdersLastPoll(new Date());
+
+        // Hydrate operator notes for every PO in the new payload.
+        // Done in a single round-trip via `.in('va_order_id', [...])`
+        // rather than per-row to keep AdminSanMar's request count flat
+        // as the open-orders list grows. Failures here are non-fatal —
+        // the table still renders, the notes column just stays empty
+        // and operators see no dot indicators. We swallow the error
+        // because notes are auxiliary metadata, not load-bearing.
+        const pos = result.map(o => o.purchaseOrderNumber).filter(Boolean);
+        if (pos.length === 0) {
+          setNotesByPo({});
+        } else if (supabase) {
+          const { data: noteRows, error: notesErr } = await supabase
+            .from('sanmar_orders')
+            .select('va_order_id, internal_notes')
+            .in('va_order_id', pos);
+          if (!notesErr && noteRows) {
+            const next: Record<string, string | null> = {};
+            for (const row of noteRows as Array<{
+              va_order_id: string;
+              internal_notes: string | null;
+            }>) {
+              // Multiple sanmar_orders rows can share a va_order_id
+              // when the same VA order produced more than one SanMar
+              // PO; keep the first non-empty note seen so the
+              // indicator stays accurate when there are duplicates.
+              if (!next[row.va_order_id] && row.internal_notes) {
+                next[row.va_order_id] = row.internal_notes;
+              } else if (!(row.va_order_id in next)) {
+                next[row.va_order_id] = row.internal_notes;
+              }
+            }
+            setNotesByPo(next);
+          }
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         // Try to extract a status code if the SanMar client surfaced
@@ -1339,6 +1403,87 @@ export default function AdminSanMar() {
     },
     [],
   );
+
+  // ── Internal notes handlers ────────────────────────────────────────────
+
+  /**
+   * Open the note editor for a specific PO. Seeds the draft with the
+   * currently-saved note (or '') so the textarea reflects persisted
+   * state. The trigger button is captured in `noteOpenerRef` so the
+   * dialog can return focus to exactly the row it was opened from on
+   * close — restoring focus to a generic ancestor would skip past the
+   * row and disorient keyboard users navigating a long table.
+   */
+  const openNoteEditor = useCallback(
+    (po: string, opener: HTMLButtonElement | null) => {
+      noteOpenerRef.current = opener;
+      setNoteEditor({ po, draft: notesByPo[po] ?? '', saving: false });
+    },
+    [notesByPo],
+  );
+
+  /**
+   * Close the editor without persisting. Returns focus to the row's
+   * Note button so keyboard users land back on the control they
+   * activated. Guarded against missing ref (e.g. row unmounted between
+   * open and close after a fetchOpenOrders refresh in another tab).
+   */
+  const closeNoteEditor = useCallback(() => {
+    setNoteEditor(null);
+    const btn = noteOpenerRef.current;
+    noteOpenerRef.current = null;
+    if (btn && typeof btn.focus === 'function') {
+      // Defer until after the dialog tears down so the focus-trap's
+      // own cleanup doesn't immediately steal focus back to body.
+      requestAnimationFrame(() => btn.focus({ preventScroll: true }));
+    }
+  }, []);
+
+  /**
+   * Persist the current draft to sanmar_orders.internal_notes. We
+   * UPDATE by va_order_id (= purchaseOrderNumber on the SanMar
+   * payload — see migration 20260429132247_sanmar_catalog.sql). Empty
+   * strings become NULL so the dot indicator gates on truthy cleanly.
+   * Optimistically update `notesByPo` on success so the dot flips
+   * immediately without waiting for a refetch.
+   */
+  const saveNote = useCallback(async () => {
+    if (!noteEditor) return;
+    const trimmed = noteEditor.draft.trim();
+    if (trimmed.length > NOTE_MAX) {
+      toast.error(
+        lang === 'en'
+          ? `Note too long (${trimmed.length}/${NOTE_MAX})`
+          : `Note trop longue (${trimmed.length}/${NOTE_MAX})`,
+      );
+      return;
+    }
+    setNoteEditor(prev => (prev ? { ...prev, saving: true } : prev));
+    const next = trimmed === '' ? null : trimmed;
+    const { error } = await supabase
+      .from('sanmar_orders')
+      .update({ internal_notes: next })
+      .eq('va_order_id', noteEditor.po);
+    if (error) {
+      setNoteEditor(prev => (prev ? { ...prev, saving: false } : prev));
+      toast.error(
+        lang === 'en'
+          ? `Couldn't save note: ${error.message}`
+          : `Échec de l'enregistrement : ${error.message}`,
+      );
+      return;
+    }
+    setNotesByPo(prev => ({ ...prev, [noteEditor.po]: next }));
+    toast.success(lang === 'en' ? 'Note saved' : 'Note enregistrée');
+    closeNoteEditor();
+  }, [noteEditor, lang, closeNoteEditor]);
+
+  // Esc closes the dialog when open. Hook reads its `active` arg each
+  // render so the listener attaches/detaches as the dialog mounts.
+  useEscapeKey(noteEditor != null, closeNoteEditor);
+  // Focus trap activates only while the dialog is open. The hook
+  // returns a ref attached to the dialog container below.
+  const noteTrapRef = useFocusTrap<HTMLDivElement>(noteEditor != null);
 
   // ── Handlers ───────────────────────────────────────────────────────────
 
@@ -3096,6 +3241,14 @@ export default function AdminSanMar() {
                     <th className="py-2 pr-4">
                       {lang === 'en' ? 'Last poll' : 'Dernier sondage'}
                     </th>
+                    <th className="py-2 pr-4">
+                      <span className="sr-only">
+                        {lang === 'en' ? 'Internal note' : 'Note interne'}
+                      </span>
+                      <span aria-hidden="true">
+                        {lang === 'en' ? 'Note' : 'Note'}
+                      </span>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3111,6 +3264,14 @@ export default function AdminSanMar() {
                             </td>
                             <td className="py-2 pr-4 text-va-muted" colSpan={5}>
                               {lang === 'en' ? '(no detail rows)' : '(aucune ligne)'}
+                            </td>
+                            <td className="py-2 pr-4">
+                              <NoteButton
+                                po={o.purchaseOrderNumber}
+                                hasNote={Boolean(notesByPo[o.purchaseOrderNumber])}
+                                lang={lang}
+                                onOpen={openNoteEditor}
+                              />
                             </td>
                           </tr>,
                         ]
@@ -3165,6 +3326,29 @@ export default function AdminSanMar() {
                                     lang === 'fr' ? 'fr-CA' : 'en-CA',
                                   )
                                 : '—'}
+                            </td>
+                            <td className="py-2 pr-4">
+                              {/*
+                                Notes are per-PO, but a single PO can
+                                have multiple detail rows (one per
+                                factory line item). Render the Note
+                                button only on the first detail row to
+                                avoid stuttering the same control N
+                                times — visually it reads as "the note
+                                belongs to this whole group". Subsequent
+                                rows show an empty cell so the column
+                                stays aligned without a redundant button.
+                              */}
+                              {i === 0 ? (
+                                <NoteButton
+                                  po={o.purchaseOrderNumber}
+                                  hasNote={Boolean(
+                                    notesByPo[o.purchaseOrderNumber],
+                                  )}
+                                  lang={lang}
+                                  onOpen={openNoteEditor}
+                                />
+                              ) : null}
                             </td>
                           </tr>
                           );
@@ -3299,7 +3483,213 @@ export default function AdminSanMar() {
           )}
         </section>
       </div>
+
+      {/*
+        Internal notes editor — rendered at the page root so the
+        backdrop overlays the whole admin viewport cleanly. Mounted
+        only when `noteEditor` is set so focus-trap activation maps 1:1
+        to DOM presence (no stale traps after close).
+
+        Accessibility: role="dialog" + aria-modal + labelled-by on the
+        title + described-by on the help line, plus a tabindex=-1
+        container pulled into the focus trap so screen readers know to
+        scope navigation to the dialog and keyboard users can't Tab
+        back out into the dimmed table behind it.
+
+        Why a custom dialog vs. <details> or shadcn Popover: the design
+        constraint requires dialog role + focus trap + return focus,
+        which <details> can't deliver and shadcn would mean adding a
+        new dependency. A ~70-line custom dialog matching the existing
+        SizeGuide / LoginModal pattern is simpler and reuses the
+        in-tree useFocusTrap/useEscapeKey hooks.
+      */}
+      {noteEditor && (
+        <div
+          className="fixed inset-0 z-[600] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+          role="presentation"
+          onClick={e => {
+            // Click-on-backdrop closes — only when the click target is
+            // the backdrop itself, not a bubbled click from inside the
+            // dialog. Without this guard, clicking the textarea would
+            // dismiss the editor and lose the in-flight draft.
+            if (e.target === e.currentTarget) closeNoteEditor();
+          }}
+        >
+          <div
+            ref={noteTrapRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sanmar-note-title"
+            aria-describedby="sanmar-note-help"
+            className="bg-va-white rounded-2xl border border-va-line shadow-2xl max-w-md w-full focus:outline-none"
+          >
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-va-line">
+              <h3
+                id="sanmar-note-title"
+                className="text-sm font-black text-va-ink flex items-center gap-2"
+              >
+                <StickyNote
+                  size={16}
+                  aria-hidden="true"
+                  className="text-va-blue"
+                />
+                {lang === 'en' ? 'Internal note' : 'Note interne'}
+                <span className="font-mono font-normal text-va-muted text-xs">
+                  · {noteEditor.po}
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={closeNoteEditor}
+                aria-label={lang === 'en' ? 'Close' : 'Fermer'}
+                className="w-7 h-7 rounded-full border border-va-line flex items-center justify-center text-va-muted hover:bg-va-bg-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="p-5 space-y-3">
+              <p
+                id="sanmar-note-help"
+                className="text-xs text-va-muted"
+              >
+                {lang === 'en'
+                  ? 'Operator-only. Never shown to customers. Ctrl+Enter to save, Esc to cancel.'
+                  : 'Opérateurs seulement. Jamais visible aux clients. Ctrl+Entrée pour enregistrer, Échap pour annuler.'}
+              </p>
+              <textarea
+                data-autofocus
+                value={noteEditor.draft}
+                onChange={e =>
+                  setNoteEditor(prev =>
+                    prev
+                      ? {
+                          ...prev,
+                          // Hard-clamp to NOTE_MAX so paste of an
+                          // oversized blob can't quietly defeat the
+                          // counter — maxLength on textarea blocks
+                          // keystrokes but pasted text in some
+                          // browsers can briefly exceed before the
+                          // browser truncates. Belt + suspenders.
+                          draft: e.target.value.slice(0, NOTE_MAX),
+                        }
+                      : prev,
+                  )
+                }
+                onKeyDown={e => {
+                  // Ctrl+Enter (Cmd+Enter on macOS) saves; Enter alone
+                  // inserts a newline as in any textarea so multi-line
+                  // notes feel natural. Esc is handled by useEscapeKey
+                  // at the dialog scope, not here.
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    void saveNote();
+                  }
+                }}
+                maxLength={NOTE_MAX}
+                rows={5}
+                disabled={noteEditor.saving}
+                placeholder={
+                  lang === 'en'
+                    ? 'e.g. Customer called about timing — needs by Friday'
+                    : 'ex. Client a appelé pour le délai — besoin pour vendredi'
+                }
+                className="w-full text-sm text-va-ink bg-va-white border border-va-line rounded-lg px-3 py-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 resize-y disabled:opacity-60"
+                aria-label={lang === 'en' ? 'Note text' : 'Texte de la note'}
+              />
+              <div
+                className="flex items-center justify-between text-xs"
+                aria-live="polite"
+              >
+                <span
+                  className={
+                    noteEditor.draft.length >= NOTE_MAX
+                      ? 'text-va-err font-bold'
+                      : 'text-va-muted'
+                  }
+                >
+                  {noteEditor.draft.length}/{NOTE_MAX}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closeNoteEditor}
+                    disabled={noteEditor.saving}
+                    className="px-3 py-1.5 text-xs font-bold text-va-fg border border-va-line rounded-lg hover:bg-va-bg-2 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+                  >
+                    {lang === 'en' ? 'Cancel' : 'Annuler'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void saveNote()}
+                    disabled={noteEditor.saving}
+                    className="px-3 py-1.5 text-xs font-bold text-va-white bg-va-blue rounded-lg hover:bg-va-blue-hover disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 inline-flex items-center gap-1.5"
+                  >
+                    {noteEditor.saving ? (
+                      <RefreshCw
+                        size={12}
+                        aria-hidden="true"
+                        className="animate-spin"
+                      />
+                    ) : null}
+                    {lang === 'en' ? 'Save' : 'Enregistrer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * Per-row "Note" trigger button. Lives outside the main component so
+ * the table render path doesn't churn it on unrelated state changes —
+ * the props it actually depends on (po, hasNote, lang) are stable per
+ * row across most renders. The dot indicator is a subtle 8px circle
+ * pinned to the top-right of the icon; aria-label surfaces the
+ * "view/edit" vs "add" distinction so screen-reader users get the
+ * same signal sighted users get from the dot.
+ */
+function NoteButton({
+  po,
+  hasNote,
+  lang,
+  onOpen,
+}: {
+  po: string;
+  hasNote: boolean;
+  lang: 'fr' | 'en';
+  onOpen: (po: string, opener: HTMLButtonElement | null) => void;
+}) {
+  const ref = useRef<HTMLButtonElement | null>(null);
+  const label = hasNote
+    ? lang === 'en'
+      ? `View / edit internal note for ${po}`
+      : `Voir / modifier la note interne pour ${po}`
+    : lang === 'en'
+      ? `Add internal note for ${po}`
+      : `Ajouter une note interne pour ${po}`;
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={() => onOpen(po, ref.current)}
+      aria-label={label}
+      title={label}
+      className="relative inline-flex items-center justify-center w-7 h-7 rounded-md border border-va-line text-va-muted hover:text-va-blue hover:bg-va-bg-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 transition-colors"
+    >
+      <StickyNote size={14} aria-hidden="true" />
+      {hasNote && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-va-blue ring-2 ring-va-white"
+        />
+      )}
+    </button>
   );
 }
 
