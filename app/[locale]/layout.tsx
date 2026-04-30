@@ -15,6 +15,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { SkipLink } from '@/components/SkipLink';
 import { OrganizationJsonLd } from '@/components/seo/OrganizationJsonLd';
+import { CookieConsent } from '@/components/CookieConsent';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -112,6 +113,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <Header />
           <main id="main-content">{children}</main>
           <Footer />
+          <CookieConsent />
         </NextIntlClientProvider>
       </body>
     </html>

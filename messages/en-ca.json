@@ -1475,5 +1475,152 @@
       "4": "Delivery to Quebec / Ontario."
     },
     "noscript": "This step requires JavaScript to upload your logo. Contact us directly at hello@visionaffichage.ca if you prefer."
+  },
+  "consent": {
+    "ariaLabel": "Cookie consent",
+    "heading": "Data collection consent",
+    "body": "This site uses cookies for essential functionality and — with your consent — to measure usage. In accordance with Quebec's Law 25, you can accept, decline, or customize.",
+    "buttons": {
+      "acceptAll": "Accept all",
+      "declineAll": "Decline all",
+      "customize": "Customize"
+    },
+    "settings": {
+      "heading": "Consent settings",
+      "save": "Save my choices",
+      "cancel": "Cancel",
+      "categories": {
+        "essentials": {
+          "title": "Essentials",
+          "description": "Required for site operation (cart, language, etc.)",
+          "lockedNote": "Always on"
+        },
+        "preferences": {
+          "title": "Preferences",
+          "description": "Remember your choices (language, last kit viewed)",
+          "lockedNote": ""
+        },
+        "analytics": {
+          "title": "Analytics",
+          "description": "Anonymous usage statistics (Plausible/Vercel — no Google Analytics)",
+          "lockedNote": ""
+        },
+        "marketing": {
+          "title": "Marketing",
+          "description": "None for now — reserved for Phase 3",
+          "lockedNote": ""
+        }
+      }
+    },
+    "links": {
+      "privacy": "Privacy policy",
+      "cookies": "Cookie policy"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "eyebrow": "Legal",
+      "title": "Privacy policy",
+      "lastUpdatedLabel": "Last updated",
+      "lastUpdated": "April 29, 2026",
+      "intro": "Vision Affichage Inc. respects your privacy and complies with Quebec's Act respecting the protection of personal information in the private sector (Law 25). This document describes what information we collect, how we use it, and the rights you can exercise.",
+      "phase3Note": "This policy will be reviewed by our legal counsel before public launch (Phase 3).",
+      "sections": {
+        "whoWeAre": {
+          "heading": "Who we are",
+          "body": "Vision Affichage Inc.\nBlainville, Quebec, Canada\nEmail: contact@visionaffichage.com\nPersonal information officer: TBA."
+        },
+        "dataCollected": {
+          "heading": "Data we collect",
+          "body": "• Identification: name, email, phone, company name.\n• Order: selected products, sizes, quantities, customization options.\n• Shipping: shipping and billing addresses.\n• Logo files and any artwork provided for production.\n• Cookies: see the Cookie policy."
+        },
+        "whyCollected": {
+          "heading": "Why we collect it",
+          "body": "• Order fulfillment (production, shipping, billing).\n• Transactional communications (confirmations, follow-ups, proofs).\n• Service improvement, but only with your explicit consent.\n• Legal and accounting obligations."
+        },
+        "rightsLoi25": {
+          "heading": "Your rights under Law 25",
+          "body": "• Right to access your information.\n• Right to rectification.\n• Right to deletion (right to be forgotten) where applicable.\n• Right to data portability.\n• Right to withdraw consent at any time.\n• Right to file a complaint with the Commission d'accès à l'information du Québec (CAI)."
+        },
+        "contactUs": {
+          "heading": "How to reach us",
+          "body": "To exercise your rights or ask a question:\nEmail: privacy@visionaffichage.com (placeholder)\nPhone: 1-800 (placeholder)\nWe respond within a maximum of 30 days."
+        },
+        "retention": {
+          "heading": "Data retention",
+          "body": "• Order data: 7 years (accounting and tax obligations).\n• Logo files and proofs: 3 years after the last order.\n• Cookies: 1 year maximum (see Cookie policy).\n• Inactive accounts: deleted on request."
+        },
+        "thirdCountries": {
+          "heading": "Third countries and providers",
+          "body": "Your data is stored in Canada whenever possible:\n• Vercel / AWS (Canada region).\n• Stripe Canada for payments.\n• Canadian transactional email providers.\nA transfer outside Quebec only occurs when strictly necessary for service delivery, with the contractual protections required by Law 25."
+        },
+        "modifications": {
+          "heading": "Policy modifications",
+          "body": "Any material modification will be announced on this page and, when relevant, by email. The date at the top of the page indicates the last update."
+        },
+        "security": {
+          "heading": "Security",
+          "body": "We use HTTPS, encryption at rest where applicable, restricted access to authorized personnel, and regular backups. No system is infallible — you will be notified in the event of a significant incident."
+        },
+        "review": {
+          "heading": "Legal review",
+          "body": "This document is a Phase-3 draft. It will be reviewed and signed off by our legal counsel before official public launch."
+        }
+      }
+    },
+    "cookies": {
+      "eyebrow": "Legal",
+      "title": "Cookie policy",
+      "lastUpdatedLabel": "Last updated",
+      "lastUpdated": "April 29, 2026",
+      "intro": "Vision Affichage uses a minimal set of cookies. You can adjust your preferences at any time from the consent banner.",
+      "manage": "To change your preferences, delete the va-consent-v1 cookie in your browser or contact us at privacy@visionaffichage.com.",
+      "table": {
+        "headers": {
+          "name": "Name",
+          "category": "Category",
+          "purpose": "Purpose",
+          "duration": "Duration",
+          "party": "Party"
+        }
+      },
+      "rows": {
+        "consent": {
+          "name": "va-consent-v1",
+          "category": "Essentials",
+          "purpose": "Stores your consent decision",
+          "duration": "1 year",
+          "party": "First-party"
+        },
+        "cart": {
+          "name": "va-cart-v1 (localStorage)",
+          "category": "Essentials",
+          "purpose": "Cart persistence",
+          "duration": "Session",
+          "party": "First-party"
+        },
+        "locale": {
+          "name": "va-locale",
+          "category": "Preferences",
+          "purpose": "Remembers your language",
+          "duration": "1 year",
+          "party": "First-party"
+        },
+        "analyticsFuture": {
+          "name": "(Phase 3)",
+          "category": "Analytics",
+          "purpose": "Anonymous Plausible/Vercel stats — not active yet",
+          "duration": "—",
+          "party": "Third-party (TBD)"
+        },
+        "marketingFuture": {
+          "name": "(Phase 3)",
+          "category": "Marketing",
+          "purpose": "No marketing cookies are active",
+          "duration": "—",
+          "party": "—"
+        }
+      }
+    }
   }
 }

@@ -1475,5 +1475,152 @@
       "4": "Livraison Québec / Ontario."
     },
     "noscript": "Cette étape nécessite JavaScript pour téléverser ton logo. Contacte-nous directement à hello@visionaffichage.ca si tu préfères."
+  },
+  "consent": {
+    "ariaLabel": "Consentement aux témoins",
+    "heading": "Consentement à la collecte de données",
+    "body": "Ce site utilise des témoins (cookies) pour le fonctionnement essentiel et — avec votre consentement — pour mesurer l'utilisation. Conformément à la Loi 25, vous pouvez accepter, refuser ou personnaliser.",
+    "buttons": {
+      "acceptAll": "Accepter tout",
+      "declineAll": "Refuser tout",
+      "customize": "Personnaliser"
+    },
+    "settings": {
+      "heading": "Paramètres de consentement",
+      "save": "Enregistrer mes choix",
+      "cancel": "Annuler",
+      "categories": {
+        "essentials": {
+          "title": "Essentiels",
+          "description": "Nécessaires au fonctionnement (panier, langue, etc.)",
+          "lockedNote": "Toujours actifs"
+        },
+        "preferences": {
+          "title": "Préférences",
+          "description": "Mémoriser tes choix (langue, dernier kit consulté)",
+          "lockedNote": ""
+        },
+        "analytics": {
+          "title": "Mesure d'audience",
+          "description": "Statistiques anonymisées (Plausible/Vercel — pas de Google Analytics)",
+          "lockedNote": ""
+        },
+        "marketing": {
+          "title": "Marketing",
+          "description": "Aucun pour l'instant — réservé pour Phase 3",
+          "lockedNote": ""
+        }
+      }
+    },
+    "links": {
+      "privacy": "Politique de confidentialité",
+      "cookies": "Politique des témoins"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "eyebrow": "Mentions légales",
+      "title": "Politique de confidentialité",
+      "lastUpdatedLabel": "Dernière mise à jour",
+      "lastUpdated": "29 avril 2026",
+      "intro": "Vision Affichage Inc. respecte votre vie privée et la Loi sur la protection des renseignements personnels dans le secteur privé du Québec (Loi 25). Ce document décrit quels renseignements nous recueillons, comment nous les utilisons et quels droits vous pouvez exercer.",
+      "phase3Note": "Cette politique sera revue par notre conseiller juridique avant le lancement public (Phase 3).",
+      "sections": {
+        "whoWeAre": {
+          "heading": "Qui nous sommes",
+          "body": "Vision Affichage Inc.\nBlainville, Québec, Canada\nCourriel : contact@visionaffichage.com\nResponsable de la protection des renseignements personnels : à venir."
+        },
+        "dataCollected": {
+          "heading": "Données que nous recueillons",
+          "body": "• Identification : nom, courriel, téléphone, nom d'entreprise.\n• Commande : produits sélectionnés, tailles, quantités, options de personnalisation.\n• Livraison : adresses de livraison et de facturation.\n• Fichier logo et fichiers fournis pour la production.\n• Témoins (cookies) : voir la Politique des témoins."
+        },
+        "whyCollected": {
+          "heading": "Pourquoi nous les recueillons",
+          "body": "• Exécution de votre commande (production, livraison, facturation).\n• Communications transactionnelles (confirmations, suivis, maquettes).\n• Amélioration du service, mais uniquement avec votre consentement explicite.\n• Obligations légales et comptables."
+        },
+        "rightsLoi25": {
+          "heading": "Vos droits sous la Loi 25",
+          "body": "• Droit d'accès à vos renseignements.\n• Droit de rectification.\n• Droit de suppression (droit à l'oubli) lorsque applicable.\n• Droit à la portabilité de vos données.\n• Droit de retirer votre consentement en tout temps.\n• Droit de déposer une plainte auprès de la Commission d'accès à l'information du Québec (CAI)."
+        },
+        "contactUs": {
+          "heading": "Comment nous joindre",
+          "body": "Pour exercer vos droits ou poser une question :\nCourriel : privacy@visionaffichage.com (à venir)\nTéléphone : 1-800 (à venir)\nNous répondons dans un délai maximal de 30 jours."
+        },
+        "retention": {
+          "heading": "Conservation des données",
+          "body": "• Données de commande : 7 ans (obligations comptables et fiscales).\n• Fichiers logo et maquettes : 3 ans après la dernière commande.\n• Témoins : 1 an maximum (voir Politique des témoins).\n• Comptes inactifs : suppression sur demande."
+        },
+        "thirdCountries": {
+          "heading": "Pays tiers et fournisseurs",
+          "body": "Vos données sont stockées au Canada lorsque possible :\n• Vercel / AWS (région Canada).\n• Stripe Canada pour les paiements.\n• Fournisseurs de courriel transactionnel basés au Canada.\nUn transfert hors Québec n'a lieu que lorsque cela est nécessaire à la prestation du service, avec les protections contractuelles requises par la Loi 25."
+        },
+        "modifications": {
+          "heading": "Modifications de la politique",
+          "body": "Toute modification importante sera annoncée sur cette page et, lorsque pertinent, par courriel. La date en haut de page indique la dernière mise à jour."
+        },
+        "security": {
+          "heading": "Sécurité",
+          "body": "Nous utilisons HTTPS, le chiffrement au repos lorsqu'applicable, l'accès restreint au personnel autorisé et des sauvegardes régulières. Aucun système n'étant infaillible, vous serez avisé(e) en cas d'incident significatif."
+        },
+        "review": {
+          "heading": "Révision juridique",
+          "body": "Ce document est un avant-projet de Phase 3. Il sera revu et signé par notre conseiller juridique avant le lancement public officiel."
+        }
+      }
+    },
+    "cookies": {
+      "eyebrow": "Mentions légales",
+      "title": "Politique des témoins",
+      "lastUpdatedLabel": "Dernière mise à jour",
+      "lastUpdated": "29 avril 2026",
+      "intro": "Vision Affichage utilise un nombre minimal de témoins. Vous pouvez ajuster vos préférences en tout temps depuis le bandeau de consentement.",
+      "manage": "Pour modifier vos préférences, supprimez le témoin va-consent-v1 dans votre navigateur ou contactez-nous à privacy@visionaffichage.com.",
+      "table": {
+        "headers": {
+          "name": "Nom",
+          "category": "Catégorie",
+          "purpose": "Finalité",
+          "duration": "Durée",
+          "party": "Origine"
+        }
+      },
+      "rows": {
+        "consent": {
+          "name": "va-consent-v1",
+          "category": "Essentiels",
+          "purpose": "Mémoriser votre décision de consentement",
+          "duration": "1 an",
+          "party": "Première partie"
+        },
+        "cart": {
+          "name": "va-cart-v1 (localStorage)",
+          "category": "Essentiels",
+          "purpose": "Persistance du panier",
+          "duration": "Session",
+          "party": "Première partie"
+        },
+        "locale": {
+          "name": "va-locale",
+          "category": "Préférences",
+          "purpose": "Mémoriser votre langue",
+          "duration": "1 an",
+          "party": "Première partie"
+        },
+        "analyticsFuture": {
+          "name": "(Phase 3)",
+          "category": "Mesure d'audience",
+          "purpose": "Statistiques anonymisées Plausible/Vercel — non actifs présentement",
+          "duration": "—",
+          "party": "Tiers (à venir)"
+        },
+        "marketingFuture": {
+          "name": "(Phase 3)",
+          "category": "Marketing",
+          "purpose": "Aucun témoin marketing actif présentement",
+          "duration": "—",
+          "party": "—"
+        }
+      }
+    }
   }
 }
