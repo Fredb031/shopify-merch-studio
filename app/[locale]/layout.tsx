@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
@@ -86,12 +86,22 @@ export async function generateMetadata({
     icons: {
       icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     },
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      title: 'Vision Affichage',
+      statusBarStyle: 'black-translucent',
+    },
     robots: {
       index: true,
       follow: true,
     },
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: '#101114',
+};
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
