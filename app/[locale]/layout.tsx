@@ -1,0 +1,130 @@
+import type { ReactNode } from 'react';
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { routing, localeToHtmlLang, type Locale } from '@/i18n/routing';
+
+function isLocale(value: string): value is Locale {
+  return value === 'fr-ca' || value === 'en-ca';
+}
+import { siteConfig } from '@/lib/site';
+import { Header } from '@/components/Header';
+import { Footer } from '@/components/Footer';
+import { SkipLink } from '@/components/SkipLink';
+import { Hreflang } from '@/components/Hreflang';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+type Props = {
+  children: ReactNode;
+  params: Promise<{ locale: string }>;
+};
+
+export function generateStaticParams() {
+  return routing.locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isLocale(locale)) {
+    return {};
+  }
+  const t = await getTranslations({ locale, namespace: 'metadata' });
+
+  return {
+    metadataBase: new URL(siteConfig.url),
+    title: {
+      default: t('title'),
+      template: `%s — ${siteConfig.name}`,
+    },
+    description: t('description'),
+    alternates: {
+      canonical: `/${locale}`,
+      languages: {
+        'fr-CA': `/fr-ca`,
+        'en-CA': `/en-ca`,
+        'x-default': `/${routing.defaultLocale}`,
+      },
+    },
+    openGraph: {
+      type: 'website',
+      locale: locale === 'fr-ca' ? 'fr_CA' : 'en_CA',
+      title: t('ogTitle'),
+      description: t('ogDescription'),
+      siteName: siteConfig.name,
+      url: `${siteConfig.url}/${locale}`,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t('ogTitle'),
+      description: t('ogDescription'),
+    },
+    icons: {
+      icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
+
+export default async function LocaleLayout({ children, params }: Props) {
+  const { locale } = await params;
+
+  if (!isLocale(locale)) {
+    notFound();
+  }
+
+  setRequestLocale(locale);
+  const messages = await getMessages();
+
+  const orgJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: siteConfig.name,
+    legalName: siteConfig.legalName,
+    url: siteConfig.url,
+    logo: `${siteConfig.url}/favicon.svg`,
+    telephone: siteConfig.phone,
+    email: siteConfig.email,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: siteConfig.addressLocality,
+      addressRegion: siteConfig.addressRegion,
+      addressCountry: siteConfig.addressCountry,
+    },
+    sameAs: [siteConfig.social.facebook, siteConfig.social.instagram, siteConfig.social.linkedin],
+  };
+
+  return (
+    <html lang={localeToHtmlLang[locale as Locale]} className={inter.variable}>
+      <head>
+        <Hreflang pathWithoutLocale="/" />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
+      </head>
+      <body className="font-sans antialiased bg-canvas-000 text-ink-950">
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <SkipLink />
+          <Header />
+          <main id="main-content">{children}</main>
+          <Footer />
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}

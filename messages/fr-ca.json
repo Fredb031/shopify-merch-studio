@@ -1,0 +1,62 @@
+{
+  "site": {
+    "name": "Vision Affichage",
+    "tagline": "Vêtements et signalétique d'entreprise au Québec",
+    "description": "Polos, t-shirts et chandails brodés ou imprimés pour PME québécoises. Service complet, livraison rapide, qualité durable."
+  },
+  "nav": {
+    "products": "Produits",
+    "industries": "Industries",
+    "process": "Notre processus",
+    "portfolio": "Réalisations",
+    "quote": "Demander une soumission",
+    "contact": "Contact",
+    "about": "À propos",
+    "menu": "Menu",
+    "close": "Fermer",
+    "openMenu": "Ouvrir le menu",
+    "skipToContent": "Passer au contenu principal"
+  },
+  "cart": {
+    "label": "Panier",
+    "empty": "Panier vide"
+  },
+  "language": {
+    "switch": "Changer de langue",
+    "fr": "Français",
+    "en": "English"
+  },
+  "header": {
+    "ctaQuote": "Soumission",
+    "ctaCatalog": "Catalogue",
+    "ctaContact": "Nous joindre"
+  },
+  "hero": {
+    "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
+    "subhead": "Polos, t-shirts et chandails brodés ou imprimés pour les PME québécoises. Service complet, livraison rapide, qualité durable.",
+    "ctaPrimary": "Demander une soumission",
+    "ctaSecondary": "Voir le catalogue"
+  },
+  "footer": {
+    "tagline": "Vêtements et signalétique d'entreprise. Fabriqué et brodé au Québec depuis plus de 20 ans.",
+    "explore": "Explorer",
+    "company": "Entreprise",
+    "contact": "Nous joindre",
+    "legal": "Légal",
+    "phone": "Téléphone",
+    "email": "Courriel",
+    "address": "Adresse",
+    "addressLine": "Région de Montréal, Québec",
+    "hours": "Heures",
+    "hoursLine": "Lun–Ven, 8 h à 17 h",
+    "rights": "Tous droits réservés.",
+    "privacy": "Confidentialité",
+    "terms": "Conditions"
+  },
+  "metadata": {
+    "title": "Vision Affichage — Vêtements d'entreprise brodés au Québec",
+    "description": "PME québécoises : polos, t-shirts et chandails brodés ou imprimés. Service complet, livraison rapide, qualité durable.",
+    "ogTitle": "Vision Affichage",
+    "ogDescription": "Vêtements d'entreprise brodés au Québec."
+  }
+}

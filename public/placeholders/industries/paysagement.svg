@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Paysagement">
+  <defs>
+    <linearGradient id="g-paysagement" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7A7368"/>
+      <stop offset="100%" stop-color="#1D2127"/>
+    </linearGradient>
+    <pattern id="p-paysagement" patternUnits="userSpaceOnUse" width="80" height="80" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="80" stroke="#FFFFFF" stroke-opacity="0.05" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#g-paysagement)"/>
+  <rect width="1600" height="900" fill="url(#p-paysagement)"/>
+  <text x="100" y="500" font-family="Inter,system-ui,sans-serif" font-size="92" font-weight="600" fill="#FFFFFF" letter-spacing="-2">Paysagement</text>
+  <text x="100" y="560" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="400" fill="#F0ECE4" letter-spacing="1">Landscaping</text>
+</svg>

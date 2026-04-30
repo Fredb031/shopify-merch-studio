@@ -1,0 +1,62 @@
+{
+  "site": {
+    "name": "Vision Affichage",
+    "tagline": "Company apparel and signage in Quebec",
+    "description": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality."
+  },
+  "nav": {
+    "products": "Products",
+    "industries": "Industries",
+    "process": "Our process",
+    "portfolio": "Work",
+    "quote": "Request a quote",
+    "contact": "Contact",
+    "about": "About",
+    "menu": "Menu",
+    "close": "Close",
+    "openMenu": "Open menu",
+    "skipToContent": "Skip to main content"
+  },
+  "cart": {
+    "label": "Cart",
+    "empty": "Empty cart"
+  },
+  "language": {
+    "switch": "Switch language",
+    "fr": "Français",
+    "en": "English"
+  },
+  "header": {
+    "ctaQuote": "Quote",
+    "ctaCatalog": "Catalog",
+    "ctaContact": "Contact"
+  },
+  "hero": {
+    "headline": "Company apparel that looks professional from day one.",
+    "subhead": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality.",
+    "ctaPrimary": "Request a quote",
+    "ctaSecondary": "View catalog"
+  },
+  "footer": {
+    "tagline": "Company apparel and signage. Made and embroidered in Quebec for over 20 years.",
+    "explore": "Explore",
+    "company": "Company",
+    "contact": "Contact",
+    "legal": "Legal",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "addressLine": "Greater Montreal, Quebec",
+    "hours": "Hours",
+    "hoursLine": "Mon–Fri, 8 a.m. to 5 p.m.",
+    "rights": "All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms"
+  },
+  "metadata": {
+    "title": "Vision Affichage — Embroidered company apparel in Quebec",
+    "description": "Quebec SMBs: embroidered or printed polos, tees, and hoodies. Full-service, fast turnaround, durable quality.",
+    "ogTitle": "Vision Affichage",
+    "ogDescription": "Embroidered company apparel from Quebec."
+  }
+}
