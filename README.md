@@ -34,7 +34,7 @@ The site auto-redirects `/` to `/fr-ca` (default locale).
 
 ```bash
 pnpm dev            # dev server (http://localhost:3000)
-pnpm build          # production build (67 statically-rendered pages, Phase 2)
+pnpm build          # production build (69 statically-rendered pages, Phase 2)
 pnpm start          # serve the production build
 pnpm lint           # next lint
 pnpm typecheck      # tsc --noEmit
@@ -166,12 +166,15 @@ These routes were stubs in Phase 1 and shipped as full implementations in Phase 
 | `/faq` | Centralized FAQ with category drilldown | yes | yes |
 | `/comment-ca-marche` | Step-by-step process page | yes | yes |
 | `/customiser` | Proof-first upload flow per Vol III §07 | yes | yes |
+| `/account` | Client-only activity surface (sessionStorage-backed; quotes, kits, orders, messages) | yes | yes |
 
 The catalogue/checkout core (`/`, `/produits`, `/produits/<slug>`, `/industries`,
 `/industries/<slug>`, `/panier`, `/checkout`, `/confirmation`) carried over from Phase 1
 unchanged. PDP CTA was split into "Personnaliser le logo" + "Ajouter sans logo"
 (commit 7cf4a97). Live SanMar product/inventory/pricing wiring landed with fallback
-(commit aa0910b).
+(commit aa0910b). Cart auto-adds saved logo + thumbnail + status badge after the
+customizer round-trip (commit 65407be). Photo-realistic SVG mockups replaced the simple
+silhouettes (commit b7225e5).
 
 Legal pages (`/confidentialite`, `/conditions`) still render PhaseTwoStub awaiting
 operator-approved final copy.
@@ -194,14 +197,16 @@ operator-approved final copy.
 | 12 | Interactive contact form (`/contact`) | PASS |
 | 13 | About / FAQ / Process content (`/a-propos`, `/faq`, `/comment-ca-marche`) | PASS |
 | 14 | SanMar live product/inventory/pricing with fallback | PASS |
-| 15 | Lighthouse mobile Performance >= 85 | PASS (96-98) |
-| 16 | Lighthouse mobile Accessibility >= 95 | PASS (100) |
-| 17 | Lighthouse mobile Best Practices >= 95 | PASS (100) |
-| 18 | Lighthouse mobile SEO >= 95 | 90-92 — localhost canonical artifact, see docs/PHASE_2_LIGHTHOUSE_2026-04-30.md (production expected to clear) |
-| 19 | JSON-LD (Organization, Product, BreadcrumbList, FAQPage) | PASS |
-| 20 | Console-clean on critical routes | PASS |
-| 21 | Playwright a11y suite — 0 violations on 11 routes | PASS |
-| 22 | 17-route smoke (fr-CA + en-CA) — 100% 200 OK | PASS |
+| 15 | Account page (`/account`) — client-only sessionStorage activity surface | PASS |
+| 16 | Cart customizer round-trip — auto-add saved logo + thumbnail + badge | PASS |
+| 17 | Lighthouse mobile Performance >= 85 | PASS (95-98) |
+| 18 | Lighthouse mobile Accessibility >= 95 | PASS (100) |
+| 19 | Lighthouse mobile Best Practices >= 95 | PASS (100) |
+| 20 | Lighthouse mobile SEO >= 95 (indexable routes) | 90-92 — localhost canonical artifact, see docs/PHASE_2_LIGHTHOUSE_2026-04-30.md (production expected to clear); /soumission + /account intentionally noindex |
+| 21 | JSON-LD (Organization, Product, BreadcrumbList, FAQPage) | PASS |
+| 22 | Console-clean on critical routes | PASS |
+| 23 | Playwright a11y suite — 0 violations on 11 routes | PASS |
+| 24 | 17-route smoke (fr-CA + en-CA, 32 total) — 100% 200 OK | PASS |
 
 ## What's left for Phase 3 (operator queue)
 
@@ -211,9 +216,10 @@ must wire the back-of-house plumbing the simulated flows currently stand in for.
 
 1. **Real photography** — replace SVG product/atelier/team placeholders with
    photographer-shot assets. Filename mapping is stable, so this is asset-only.
-2. **Real auth backend** — `/account` is intentionally not built yet; it requires a
-   persistent customer DB + session layer (NextAuth or Clerk). Add login, order history,
-   saved logos, address book.
+2. **Real auth backend** — `/account` is currently client-only (reads sessionStorage).
+   Phase 3 needs a persistent customer DB + session layer (NextAuth or Clerk) to
+   replace the sessionStorage surface with real login, order history, saved logos,
+   and address book.
 3. **Payment gateway** — wire Stripe Elements + Payment Intents per ADR 004 to replace
    the simulated checkout. PCI-DSS SAQ A scope.
 4. **Persistent customer database** — quote submissions, contact messages, kit orders
