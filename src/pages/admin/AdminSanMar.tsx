@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   RefreshCw,
@@ -216,6 +216,32 @@ const PHASE_FILL_CLASS: Record<SanmarStatusPhase, string> = {
 };
 const EMPTY_DOT_CLASS = 'bg-transparent border-zinc-300';
 
+/** Bilingual labels per phase used in the active-filter chip and the
+ *  per-dot aria-label. Mirrors the chain entries above but flattens to
+ *  one phrase per phase (10 + 11 share "Réception", etc.) so the chip
+ *  text reads cleanly when the operator clicks any of the dots in a
+ *  given phase. */
+const PHASE_LABEL: Record<SanmarStatusPhase, { fr: string; en: string }> = {
+  received:   { fr: 'Réception',   en: 'Received' },
+  proof:      { fr: 'Épreuve',     en: 'Proof' },
+  production: { fr: 'Production',  en: 'Production' },
+  delivered:  { fr: 'Livrée',      en: 'Delivered' },
+  cancelled:  { fr: 'Annulée',     en: 'Cancelled' },
+};
+
+/** All status_id values that belong to a given phase. The visualizer
+ *  dots filter the open-orders table down to detail rows whose statusId
+ *  is in this set when clicked. Derived from SANMAR_STATUS_CHAIN so the
+ *  two stay in lockstep — add a new chain entry and the click filter
+ *  picks it up automatically. */
+const PHASE_STATUS_IDS: Record<SanmarStatusPhase, ReadonlySet<number>> = {
+  received:   new Set(SANMAR_STATUS_CHAIN.filter(s => s.phase === 'received').map(s => s.id)),
+  proof:      new Set(SANMAR_STATUS_CHAIN.filter(s => s.phase === 'proof').map(s => s.id)),
+  production: new Set(SANMAR_STATUS_CHAIN.filter(s => s.phase === 'production').map(s => s.id)),
+  delivered:  new Set(SANMAR_STATUS_CHAIN.filter(s => s.phase === 'delivered').map(s => s.id)),
+  cancelled:  new Set(SANMAR_STATUS_CHAIN.filter(s => s.phase === 'cancelled').map(s => s.id)),
+};
+
 /** Number of full days elapsed since `iso` (status timestamp). Returns
  *  null when the input is missing or unparseable so callers can fall
  *  back to a dash. Uses floor(diff / 86_400_000) so a status set 23h
@@ -237,18 +263,40 @@ interface OrderStatusDotsProps {
    *  the tooltip omits the duration line. */
   validTimestamp?: string | null;
   lang: 'fr' | 'en';
+  /** Currently active phase filter (or null for "no phase filter").
+   *  Drives aria-pressed on each dot button so AT users hear which
+   *  phase is currently driving the table view. */
+  activePhase: SanmarStatusPhase | null;
+  /** Click handler — toggles the phase filter at the page level. The
+   *  parent decides whether clicking the same phase twice clears the
+   *  filter (toggle behaviour) or replaces it with another phase. */
+  onPhaseClick: (phase: SanmarStatusPhase) => void;
+  /** Hover handlers feed a shared "highlighted phase" state so rows
+   *  matching the hovered phase get a subtle ring (CSS only, no
+   *  re-render of the dots themselves). Optional — when omitted, the
+   *  visualizer behaves like before minus the row highlight. */
+  onPhaseHover?: (phase: SanmarStatusPhase | null) => void;
 }
 
 /**
- * Eight-dot visualizer for the SanMar status chain. Decorative only —
- * the existing status_id text in the adjacent column is what screen
- * readers announce. We still surface an aria-label on the container so
- * AT users who land on the dots get the same one-glance summary the
- * sighted operator reads (e.g. "Statut: Livrée (étape 7 sur 8)"). The
- * native `title` tooltip (matching the rest of the admin console) shows
- * the localized status name + days in status on hover.
+ * Eight-dot visualizer for the SanMar status chain. Each dot is now an
+ * interactive `<button>` that filters the open-orders table to only the
+ * rows whose statusId matches that dot's phase. The container is
+ * `role="presentation"` since the interactive children expose their own
+ * labels — AT users tab to each dot button and hear "Filtrer par {phase}"
+ * + the aria-pressed state. The native `title` tooltip (matching the
+ * rest of the admin console) still shows the localized status name +
+ * days in status on hover so the sighted operator gets the one-glance
+ * summary they had before the dots became clickable.
  */
-function OrderStatusDots({ statusId, validTimestamp, lang }: OrderStatusDotsProps) {
+function OrderStatusDots({
+  statusId,
+  validTimestamp,
+  lang,
+  activePhase,
+  onPhaseClick,
+  onPhaseHover,
+}: OrderStatusDotsProps) {
   const currentIdx = SANMAR_STATUS_CHAIN.findIndex(s => s.id === statusId);
   const cancelled = statusId === 99;
   const current = currentIdx >= 0 ? SANMAR_STATUS_CHAIN[currentIdx] : null;
@@ -269,7 +317,7 @@ function OrderStatusDots({ statusId, validTimestamp, lang }: OrderStatusDotsProp
         : days <= 1 ? `${days} jour dans ce statut` : `${days} jours dans ce statut`
       : '';
 
-  const tooltip = [
+  const containerTooltip = [
     lang === 'en' ? `Status: ${statusLabel}` : `Statut : ${statusLabel}`,
     stepText,
     daysText,
@@ -277,17 +325,10 @@ function OrderStatusDots({ statusId, validTimestamp, lang }: OrderStatusDotsProp
     .filter(Boolean)
     .join(' · ');
 
-  const ariaLabel = current
-    ? lang === 'en'
-      ? `Status: ${statusLabel} (${stepText})`
-      : `Statut : ${statusLabel} (${stepText})`
-    : tooltip;
-
   return (
     <div
-      role="img"
-      aria-label={ariaLabel}
-      title={tooltip}
+      role="presentation"
+      title={containerTooltip}
       className="inline-flex items-center gap-1"
     >
       {SANMAR_STATUS_CHAIN.map((entry, i) => {
@@ -299,11 +340,26 @@ function OrderStatusDots({ statusId, validTimestamp, lang }: OrderStatusDotsProp
           ? entry.id === 99
           : currentIdx >= 0 && i <= currentIdx && entry.id !== 99;
         const cls = isFilled ? PHASE_FILL_CLASS[entry.phase] : EMPTY_DOT_CLASS;
+        const phaseLabel = lang === 'en'
+          ? PHASE_LABEL[entry.phase].en
+          : PHASE_LABEL[entry.phase].fr;
+        const dotAria = lang === 'en'
+          ? `Filter by ${phaseLabel}`
+          : `Filtrer par ${phaseLabel}`;
+        const isActive = activePhase === entry.phase;
         return (
-          <span
+          <button
             key={entry.id}
-            aria-hidden="true"
-            className={`inline-block w-2 h-2 rounded-full border ${cls}`}
+            type="button"
+            onClick={() => onPhaseClick(entry.phase)}
+            onMouseEnter={onPhaseHover ? () => onPhaseHover(entry.phase) : undefined}
+            onMouseLeave={onPhaseHover ? () => onPhaseHover(null) : undefined}
+            onFocus={onPhaseHover ? () => onPhaseHover(entry.phase) : undefined}
+            onBlur={onPhaseHover ? () => onPhaseHover(null) : undefined}
+            aria-pressed={isActive}
+            aria-label={dotAria}
+            title={dotAria}
+            className={`inline-block w-2 h-2 rounded-full border p-0 cursor-pointer transition-transform hover:scale-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1 ${cls} ${isActive ? 'ring-2 ring-va-blue ring-offset-1 scale-125' : ''}`}
           />
         );
       })}
@@ -400,6 +456,16 @@ export default function AdminSanMar() {
   // shows detail rows whose statusId < 80; when 'oldest' it sorts by
   // expectedShipDate ascending. Reset to 'all' clears the filter.
   const [orderTableFilter, setOrderTableFilter] = useState<OrderTableFilter>('all');
+  // Phase filter is an independent dimension that layers on top of the
+  // 'all'/'open'/'oldest' OrderTableFilter above. Set by clicking a dot
+  // in the OrderStatusDots visualizer; null means "no phase filter".
+  // Click the same dot twice to toggle off, or use the X on the chip.
+  const [phaseFilter, setPhaseFilter] = useState<SanmarStatusPhase | null>(null);
+  // Pure-UI hover state so hovering a dot rings the matching rows. Lives
+  // here (not inside <OrderStatusDots>) because the row highlight needs
+  // to span all detail rows for the same phase, not just the one whose
+  // dot is hovered. Reset to null on mouseleave/blur.
+  const [hoveredPhase, setHoveredPhase] = useState<SanmarStatusPhase | null>(null);
 
   // ── Test order form ────────────────────────────────────────────────────
   const [testOrderOpen, setTestOrderOpen] = useState(false);
@@ -1295,9 +1361,25 @@ export default function AdminSanMar() {
    * `SanmarOrderStatus[]` so the existing flatMap render below works
    * unchanged. */
   const filteredOpenOrders = useMemo<SanmarOrderStatus[]>(() => {
-    if (orderTableFilter === 'all') return openOrders;
+    // Step 1: apply the phase filter (if any). Layered as the first
+    // pass so the downstream 'open'/'oldest' transforms operate on
+    // an already-narrowed set — keeps the table cheap and the chip
+    // text accurate even if the operator stacks both dimensions.
+    const phaseStatusIds = phaseFilter ? PHASE_STATUS_IDS[phaseFilter] : null;
+    const afterPhase: SanmarOrderStatus[] = phaseStatusIds
+      ? openOrders
+          .map(o => ({
+            ...o,
+            orderStatusDetails: o.orderStatusDetails.filter(d =>
+              phaseStatusIds.has(d.statusId),
+            ),
+          }))
+          .filter(o => o.orderStatusDetails.length > 0)
+      : openOrders;
+
+    if (orderTableFilter === 'all') return afterPhase;
     if (orderTableFilter === 'open') {
-      return openOrders
+      return afterPhase
         .map(o => ({
           ...o,
           orderStatusDetails: o.orderStatusDetails.filter(
@@ -1311,7 +1393,7 @@ export default function AdminSanMar() {
     }
     // 'oldest' — same set, just sorted by ship date ascending. Empty /
     // missing dates land at the end (Date NaN compares > anything).
-    const allDetails = openOrders
+    const allDetails = afterPhase
       .flatMap(o =>
         o.orderStatusDetails.map(d => ({ po: o.purchaseOrderNumber, d })),
       )
@@ -1335,7 +1417,15 @@ export default function AdminSanMar() {
       }
     }
     return [...groups.values()];
-  }, [openOrders, orderTableFilter]);
+  }, [openOrders, orderTableFilter, phaseFilter]);
+
+  /** Toggle handler shared by every dot in every row. Clicking the same
+   *  phase that's already active clears the filter; clicking a different
+   *  phase replaces it. Wrapped in useCallback so the OrderStatusDots
+   *  prop reference stays stable across re-renders. */
+  const handlePhaseClick = useCallback((phase: SanmarStatusPhase) => {
+    setPhaseFilter(prev => (prev === phase ? null : phase));
+  }, []);
 
   const envLabel = NEXT_GEN_ENABLED
     ? lang === 'en'
@@ -2254,6 +2344,35 @@ export default function AdminSanMar() {
                   </button>
                 </span>
               )}
+              {phaseFilter && (
+                // Phase filter chip — independent dimension from the
+                // tile-driven 'open'/'oldest' filter above. Set when the
+                // operator clicks one of the dots in OrderStatusDots
+                // below; cleared via the X here or by clicking the same
+                // dot a second time.
+                <span className="inline-flex items-center gap-2 text-xs font-bold text-va-blue bg-va-blue/10 border border-va-blue/30 rounded-full px-3 py-1">
+                  {lang === 'en'
+                    ? `Filtered by phase: ${PHASE_LABEL[phaseFilter].en}`
+                    : `Filtré par phase : ${PHASE_LABEL[phaseFilter].fr}`}
+                  <button
+                    type="button"
+                    onClick={() => setPhaseFilter(null)}
+                    className="text-va-blue hover:text-va-blue-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 rounded"
+                    aria-label={
+                      lang === 'en'
+                        ? 'Clear phase filter'
+                        : 'Effacer le filtre de phase'
+                    }
+                    title={
+                      lang === 'en'
+                        ? 'Clear phase filter'
+                        : 'Effacer le filtre de phase'
+                    }
+                  >
+                    <XCircle size={14} aria-hidden="true" />
+                  </button>
+                </span>
+              )}
             </div>
             <button
               type="button"
@@ -2352,10 +2471,25 @@ export default function AdminSanMar() {
                             </td>
                           </tr>,
                         ]
-                      : o.orderStatusDetails.map((d, i) => (
+                      : o.orderStatusDetails.map((d, i) => {
+                          // Row-level highlight: when the operator hovers
+                          // a dot in the visualizer, every row whose
+                          // statusId belongs to the same phase gets a
+                          // subtle ring so they can see at a glance which
+                          // rows the click would filter to. CSS-only —
+                          // no React state per row, just a derived class
+                          // computed from hoveredPhase + this row's id.
+                          const rowPhase = SANMAR_STATUS_CHAIN.find(
+                            s => s.id === d.statusId,
+                          )?.phase;
+                          const isHovered =
+                            hoveredPhase != null && rowPhase === hoveredPhase;
+                          return (
                           <tr
                             key={`${o.purchaseOrderNumber}-${d.factoryOrderNumber}-${i}`}
-                            className="border-b border-va-line/50 hover:bg-va-bg-2/50"
+                            className={`border-b border-va-line/50 hover:bg-va-bg-2/50 transition-colors ${
+                              isHovered ? 'bg-va-blue/5 outline outline-1 outline-va-blue/40' : ''
+                            }`}
                           >
                             <td className="py-2 pr-4 font-mono text-xs">
                               {o.purchaseOrderNumber}
@@ -2368,6 +2502,9 @@ export default function AdminSanMar() {
                                 statusId={d.statusId}
                                 validTimestamp={d.validTimestamp}
                                 lang={lang}
+                                activePhase={phaseFilter}
+                                onPhaseClick={handlePhaseClick}
+                                onPhaseHover={setHoveredPhase}
                               />
                             </td>
                             <td className="py-2 pr-4 text-va-ink font-bold">
@@ -2387,7 +2524,8 @@ export default function AdminSanMar() {
                                 : '—'}
                             </td>
                           </tr>
-                        )),
+                          );
+                        }),
                   )}
                 </tbody>
               </table>
