@@ -1216,6 +1216,16 @@
     "reviews": "{count} reviews",
     "viewDetails": "View details"
   },
+  "recommendations": {
+    "related": {
+      "heading": "Often bought together",
+      "viewAll": "View all products"
+    },
+    "upsell": {
+      "heading": "You might also like",
+      "viewLink": "View"
+    }
+  },
   "quote": {
     "breadcrumb": "Quote",
     "heading": "Request a quote",

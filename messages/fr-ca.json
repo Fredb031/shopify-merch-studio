@@ -1216,6 +1216,16 @@
     "reviews": "{count} avis",
     "viewDetails": "Voir les détails"
   },
+  "recommendations": {
+    "related": {
+      "heading": "Souvent achetés ensemble",
+      "viewAll": "Voir tous les produits"
+    },
+    "upsell": {
+      "heading": "Tu pourrais aussi aimer",
+      "viewLink": "Voir"
+    }
+  },
   "quote": {
     "breadcrumb": "Soumission",
     "heading": "Demander une soumission",

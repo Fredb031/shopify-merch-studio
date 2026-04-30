@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { ArrowRight, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 import { Container } from '@/components/Container';
 import { Section } from '@/components/Section';
@@ -10,7 +10,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { ProductGallery } from '@/components/pdp/ProductGallery';
 import { BadgeRow } from '@/components/product/BadgeRow';
 import { StarRating } from '@/components/product/StarRating';
-import { ProductGrid } from '@/components/product/ProductGrid';
+import { RelatedProducts } from '@/components/product/RelatedProducts';
 import { ReviewGrid } from '@/components/sections/ReviewGrid';
 import { FaqAccordion } from '@/components/sections/FaqAccordion';
 import { HeroBlock } from '@/components/sections/HeroBlock';
@@ -19,6 +19,7 @@ import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
 
 import { products, getProductBySlug } from '@/lib/products';
+import { getRelatedProducts } from '@/lib/recommendations';
 import { getReviewsForProduct, getAverageRating } from '@/lib/reviews';
 import { getAlternates, getOgImageUrl, BASE_URL } from '@/lib/seo';
 import { siteConfig } from '@/lib/site';
@@ -159,9 +160,7 @@ export default async function ProductPage({ params }: Props) {
   const productUrl = `${base}${productPath}`;
   const rating = getAverageRating(product.styleCode);
   const productReviews = getReviewsForProduct(product.styleCode);
-  const related = products
-    .filter((p) => p.category === product.category && p.slug !== product.slug)
-    .slice(0, 3);
+  const relatedProducts = getRelatedProducts(product.styleCode, 4);
 
   const categoryLabel = t(`category.${product.category}`);
 
@@ -438,31 +437,8 @@ export default async function ProductPage({ params }: Props) {
         </Container>
       </Section>
 
-      {/* 18. Related products */}
-      {related.length > 0 ? (
-        <Section tone="warm">
-          <Container size="xl">
-            <h2 className="text-title-xl text-ink-950">
-              {t('related.heading')}
-            </h2>
-            <ProductGrid
-              products={related}
-              locale={locale}
-              columns={3}
-              className="mt-10"
-            />
-            <div className="mt-10 flex justify-end">
-              <Link
-                href={`${base}/produits`}
-                className="inline-flex items-center gap-1 text-body-md font-medium text-ink-950 hover:underline focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-700"
-              >
-                {t('breadcrumb.products')}
-                <ArrowRight aria-hidden className="h-4 w-4" />
-              </Link>
-            </div>
-          </Container>
-        </Section>
-      ) : null}
+      {/* 18. Related products — driven by lib/recommendations getRelatedProducts */}
+      <RelatedProducts products={relatedProducts} locale={locale} />
 
       {/* 19. Product FAQ */}
       <Section tone="default">

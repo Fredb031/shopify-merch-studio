@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CartUpsell } from '@/components/cart/CartUpsell';
 import { LogoStatusBadge } from '@/components/checkout/LogoStatusBadge';
 import { OrderSummary } from '@/components/checkout/OrderSummary';
 import { useCart, type CartItem } from '@/lib/cart';
@@ -218,19 +219,23 @@ export function CartClient({ locale }: Props) {
       ) : null}
 
       <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
-        <ul className="divide-y divide-sand-300 rounded-lg border border-sand-300 bg-canvas-000">
-          {items.map((item) => (
-            <CartLineItem
-              key={`${item.productId}-${item.variantKey}`}
-              item={item}
-              locale={locale}
-              onQtyChange={(qty) =>
-                updateQty(item.productId, item.variantKey, qty)
-              }
-              onRemove={() => removeItem(item.productId, item.variantKey)}
-            />
-          ))}
-        </ul>
+        <div className="space-y-6">
+          <ul className="divide-y divide-sand-300 rounded-lg border border-sand-300 bg-canvas-000">
+            {items.map((item) => (
+              <CartLineItem
+                key={`${item.productId}-${item.variantKey}`}
+                item={item}
+                locale={locale}
+                onQtyChange={(qty) =>
+                  updateQty(item.productId, item.variantKey, qty)
+                }
+                onRemove={() => removeItem(item.productId, item.variantKey)}
+              />
+            ))}
+          </ul>
+
+          <CartUpsell locale={locale} />
+        </div>
 
         <div className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <OrderSummary items={items} locale={locale} showItems={false} />
