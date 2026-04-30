@@ -16,12 +16,13 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from sanmar.api.app import get_engine
+from sanmar.api.rate_limit import limiter
 from sanmar.db import session_scope
 from sanmar.dto import WAREHOUSE_NAMES, InventoryResponse, WarehouseLevel
 from sanmar.models import InventorySnapshot, Product, Variant
@@ -97,7 +98,9 @@ def _check_staleness(
     response_model=InventoryResponse,
     name="get_inventory_for_style",
 )
+@limiter.limit("30/minute")
 async def get_inventory_for_style(
+    request: Request,
     style_number: str = Path(..., description="SanMar style number"),
     max_age_hours: int = Query(24, ge=1),
     engine: Engine = Depends(get_engine),
@@ -152,7 +155,9 @@ async def get_inventory_for_style(
     response_model=InventoryResponse,
     name="get_inventory_for_sku",
 )
+@limiter.limit("30/minute")
 async def get_inventory_for_sku(
+    request: Request,
     style_number: str = Path(..., description="SanMar style number"),
     color: str = Path(..., description="Color name as cached in Variant.color"),
     size: str = Path(..., description="Size name as cached in Variant.size"),

@@ -506,5 +506,67 @@ def serve_api(
     uvicorn.run(fastapi_app, host=final_host, port=final_port, reload=False)
 
 
+# ── Phase 13: cache warmer ─────────────────────────────────────────────
+
+
+@app.command("warm-cache")
+def warm_cache_cmd(
+    top: int = typer.Option(
+        20,
+        "--top",
+        help="Pre-populate the API response cache for the top-N styles.",
+    ),
+) -> None:
+    """Pre-populate the FastAPI LRU cache for the top-N styles.
+
+    Designed to run from ``sanmar-warmer.timer`` shortly after the
+    nightly sync finishes. The warmer drives the app in-process via
+    TestClient so it doesn't need a live HTTP listener — that means
+    this command works on a freshly-installed box even before
+    sanmar-api.service has started.
+    """
+    from sanmar.api.app import create_app, get_engine
+    from sanmar.api.warmer import warm_cache as _warm
+    from sanmar.config import get_settings as _gs
+    from sanmar.db import make_engine
+
+    settings = _gs()
+    engine = make_engine(settings.db_path)
+
+    application = create_app()
+    application.dependency_overrides[get_engine] = lambda: engine
+    application.state.engine = engine
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        task = progress.add_task(
+            f"Warming cache for top {top} styles…", total=top
+        )
+
+        def _bump(style: str, ok: bool, _errs: int) -> None:
+            mark = "[green]✓[/green]" if ok else "[yellow]·[/yellow]"
+            progress.update(
+                task,
+                advance=1,
+                description=f"Warmed {style} {mark}",
+            )
+
+        summary = _warm(application, engine, top=top, progress_cb=_bump)
+
+    table = Table(title="Cache warming summary")
+    table.add_column("metric")
+    table.add_column("value", justify="right")
+    table.add_row("styles attempted", str(summary["styles_attempted"]))
+    table.add_row("styles succeeded", str(summary["styles_succeeded"]))
+    table.add_row("styles failed", str(summary["styles_failed"]))
+    table.add_row("routes succeeded", str(summary["routes_succeeded"]))
+    table.add_row("routes failed", str(summary["routes_failed"]))
+    console.print(table)
+
+
 if __name__ == "__main__":  # pragma: no cover
     app()

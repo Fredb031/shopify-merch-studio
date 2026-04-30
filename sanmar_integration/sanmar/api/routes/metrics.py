@@ -10,11 +10,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func, select
 from sqlalchemy.engine import Engine
 
 from sanmar.api.app import get_engine
+from sanmar.api.rate_limit import limiter
 from sanmar.api.models import FreshnessResponse
 from sanmar.db import session_scope
 from sanmar.models import SyncState
@@ -40,7 +41,9 @@ def _age_seconds(when: Optional[datetime]) -> Optional[int]:
 @router.get(
     "/freshness", response_model=FreshnessResponse, name="metrics_freshness"
 )
+@limiter.limit("10/minute")
 async def metrics_freshness(
+    request: Request,
     engine: Engine = Depends(get_engine),
 ) -> FreshnessResponse:
     """Return seconds since last successful finish for each sync stream."""

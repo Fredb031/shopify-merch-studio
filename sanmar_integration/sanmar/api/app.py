@@ -20,8 +20,11 @@ from typing import AsyncIterator
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy.engine import Engine
 
+from sanmar.api.rate_limit import limiter
 from sanmar.config import get_settings
 from sanmar.db import init_schema, make_engine
 
@@ -88,6 +91,29 @@ def get_engine(request: Request) -> Engine:
     return request.app.state.engine
 
 
+def _rate_limit_exceeded_handler(
+    request: Request, exc: RateLimitExceeded
+) -> JSONResponse:
+    """Return 429 with a ``Retry-After`` header for the failing window.
+
+    slowapi computes ``exc.detail`` as e.g. ``"60 per 1 minute"``; we
+    surface that string in the body so clients can log it, and pin
+    ``Retry-After: 60`` so well-behaved clients back off without
+    parsing the message. The :class:`Limiter`'s reset-time helper is
+    not used here because slowapi's API around it churns between
+    versions — a fixed 60s back-off matches every limit we ship.
+    """
+    response = JSONResponse(
+        status_code=429,
+        content={
+            "error": "rate_limit_exceeded",
+            "detail": str(exc.detail),
+        },
+    )
+    response.headers["Retry-After"] = "60"
+    return response
+
+
 def create_app() -> FastAPI:
     """Build a fresh FastAPI app — exposed for tests + ``__main__``.
 
@@ -104,6 +130,15 @@ def create_app() -> FastAPI:
         ),
         version="0.1.0",
         lifespan=lifespan,
+    )
+
+    # Phase 13: bind the slowapi limiter + register the 429 handler.
+    # The handler wraps slowapi's default to guarantee a Retry-After
+    # header lands in the response — uptime monitors and reverse
+    # proxies expect it for back-off behaviour.
+    application.state.limiter = limiter
+    application.add_exception_handler(
+        RateLimitExceeded, _rate_limit_exceeded_handler
     )
 
     origins = _resolve_cors_origins()

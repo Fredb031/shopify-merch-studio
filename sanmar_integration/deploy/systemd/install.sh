@@ -14,6 +14,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 sudo cp "${SCRIPT_DIR}/sanmar-nightly.service" /etc/systemd/system/
 sudo cp "${SCRIPT_DIR}/sanmar-nightly.timer" /etc/systemd/system/
+sudo cp "${SCRIPT_DIR}/sanmar-warmer.service" /etc/systemd/system/
+sudo cp "${SCRIPT_DIR}/sanmar-warmer.timer" /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now sanmar-nightly.timer
+sudo systemctl enable --now sanmar-warmer.timer
 sudo systemctl status sanmar-nightly.timer
+sudo systemctl status sanmar-warmer.timer

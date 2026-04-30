@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session, selectinload
 from sanmar.api.app import get_engine
 from sanmar.api.cache import cache_response
 from sanmar.api.cache_pricing import CachedPricing
+from sanmar.api.rate_limit import limiter
 from sanmar.api.models import (
     ProductListResponse,
     VariantMatrixResponse,
@@ -141,6 +142,7 @@ async def search_products(
 
 
 @router.get("", response_model=ProductListResponse, name="list_products")
+@limiter.limit("60/minute")
 @cache_response(ttl_seconds=30)
 async def list_products(
     request: Request,
@@ -222,7 +224,9 @@ async def list_products(
     response_model=ProductResponse,
     name="get_product",
 )
+@limiter.limit("30/minute")
 async def get_product(
+    request: Request,
     style_number: str = Path(..., description="SanMar style number, e.g. NF0A529K"),
     engine: Engine = Depends(get_engine),
 ) -> ProductResponse:
@@ -275,7 +279,9 @@ async def get_product_variants(
     response_model=InventoryResponse,
     name="get_product_inventory",
 )
+@limiter.limit("30/minute")
 async def get_product_inventory(
+    request: Request,
     style_number: str = Path(..., description="SanMar style number"),
     engine: Engine = Depends(get_engine),
 ) -> InventoryResponse:
@@ -359,7 +365,9 @@ async def get_product_inventory(
     response_model=PricingResponse,
     name="get_product_cached_pricing",
 )
+@limiter.limit("30/minute")
 async def get_product_cached_pricing(
+    request: Request,
     style_number: str = Path(..., description="SanMar style number"),
     color: Optional[str] = Query(None),
     size: Optional[str] = Query(None),

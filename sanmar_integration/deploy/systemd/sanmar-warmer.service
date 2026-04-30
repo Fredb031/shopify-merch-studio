@@ -1,0 +1,16 @@
+[Unit]
+Description=SanMar cache warmer — pre-populate API LRU after nightly sync
+After=sanmar-api.service
+Wants=sanmar-api.service
+
+[Service]
+Type=oneshot
+User=sanmar
+WorkingDirectory=/opt/sanmar
+EnvironmentFile=/opt/sanmar/.env
+ExecStart=/opt/sanmar/.venv/bin/python -m sanmar warm-cache --top 50
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

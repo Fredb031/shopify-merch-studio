@@ -11,11 +11,12 @@ from __future__ import annotations
 from decimal import Decimal
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
 
 from sanmar.api.app import get_engine
+from sanmar.api.rate_limit import limiter
 from sanmar.db import session_scope
 from sanmar.dto import PriceBreak, PricingResponse
 from sanmar.models import Product, Variant
@@ -28,7 +29,9 @@ router = APIRouter(prefix="/pricing", tags=["pricing"])
     response_model=PricingResponse,
     name="get_pricing_for_style",
 )
+@limiter.limit("30/minute")
 async def get_pricing_for_style(
+    request: Request,
     style_number: str = Path(..., description="SanMar style number"),
     color: Optional[str] = Query(None),
     size: Optional[str] = Query(None),

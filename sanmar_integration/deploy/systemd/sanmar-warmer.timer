@@ -1,0 +1,14 @@
+[Unit]
+Description=Daily SanMar cache warming — runs after the 02:00 ET sync chain
+Requires=sanmar-warmer.service
+
+[Timer]
+# 02:30 America/Toronto = 06:30 UTC during EST and 06:30 UTC during EDT.
+# DST drift up to ±1h is acceptable here — the warmer is best-effort
+# and the 30s response cache is short-lived anyway.
+OnCalendar=*-*-* 06:30:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target
