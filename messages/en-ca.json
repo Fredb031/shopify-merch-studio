@@ -25,7 +25,39 @@
     "shipping": "Shipping",
     "subtotal": "Subtotal",
     "tax": "Taxes (GST + QST)",
-    "total": "Total"
+    "total": "Total",
+    "heading": "Your cart",
+    "count": "{count, plural, =0 {No items} =1 {1 item} other {# items}}",
+    "emptyState": {
+      "title": "Your cart is empty",
+      "body": "Browse our uniform catalog or order a discovery kit before getting started.",
+      "cta": "Shop the uniforms"
+    },
+    "item": {
+      "qty": "Quantity",
+      "remove": "Remove this item",
+      "unitPrice": "Unit price",
+      "decrease": "Decrease quantity",
+      "increase": "Increase quantity"
+    },
+    "summary": {
+      "heading": "Summary",
+      "subtotal": "Subtotal",
+      "gst": "GST (5%)",
+      "qst": "QST (9.975%)",
+      "shipping": "Shipping",
+      "shippingFree": "Free",
+      "shippingThreshold": "Free shipping on orders over $250 CAD.",
+      "total": "Total",
+      "leadTime": "Production in 5 business days after logo approval."
+    },
+    "cta": {
+      "checkout": "Proceed to payment",
+      "quote": "Request a quote"
+    },
+    "metadata": {
+      "title": "Cart · Vision Affichage"
+    }
   },
   "checkout": {
     "billing": "Billing",
@@ -36,7 +68,118 @@
     "payment": "Payment",
     "review": "Review",
     "shipping": "Shipping",
-    "stepperLabel": "Checkout steps"
+    "stepperLabel": "Checkout steps",
+    "heading": "Checkout",
+    "metadata": {
+      "title": "Checkout · Vision Affichage"
+    },
+    "steps": {
+      "1": { "label": "Contact" },
+      "2": { "label": "Shipping" },
+      "3": { "label": "Billing" },
+      "4": { "label": "Payment" },
+      "5": { "label": "Review" }
+    },
+    "contactForm": {
+      "heading": "Contact information",
+      "guestNote": "Quick checkout, no account needed.",
+      "email": "Email",
+      "phone": "Phone",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "company": "Company",
+      "language": "Communication language",
+      "languageFr": "Français",
+      "languageEn": "English",
+      "marketingOptIn": "I want to receive Vision Affichage news and offers by email."
+    },
+    "shippingForm": {
+      "heading": "Shipping address",
+      "addressLine1": "Address",
+      "addressLine2": "Apartment, suite, etc. (optional)",
+      "city": "City",
+      "province": "Province",
+      "postalCode": "Postal code",
+      "country": "Country"
+    },
+    "billingForm": {
+      "heading": "Billing address",
+      "sameAsShipping": "Same as shipping address"
+    },
+    "paymentForm": {
+      "heading": "Payment",
+      "cardNumber": "Card number",
+      "cardExpiry": "Expiry (MM/YY)",
+      "cardCvc": "CVC",
+      "cardName": "Name on card",
+      "simulationNotice": "Simulated payment · No card will be charged.",
+      "trust": {
+        "ssl": "Secure SSL connection",
+        "cards": "Visa · Mastercard",
+        "canada": "Data hosted in Canada"
+      }
+    },
+    "reviewStep": {
+      "heading": "Review your order",
+      "contactSection": "Contact",
+      "shippingSection": "Shipping address",
+      "billingSection": "Billing address",
+      "paymentSection": "Payment",
+      "editStep": "Edit"
+    },
+    "cta": {
+      "previous": "Back",
+      "continue": "Continue",
+      "placeOrder": "Place order"
+    },
+    "errors": {
+      "required": "Required field",
+      "email": "Invalid email",
+      "phone": "Invalid phone number",
+      "postalCode": "Invalid postal code (e.g. H2X 1Y4)",
+      "cardNumber": "Invalid card number",
+      "cardExpiry": "Format MM/YY required",
+      "cardCvc": "Invalid CVC"
+    }
+  },
+  "confirmation": {
+    "metadata": {
+      "title": "Order confirmed · Vision Affichage"
+    },
+    "heading": "Order confirmed!",
+    "subhead": "Thank you. We'll email a confirmation and get started right away.",
+    "orderNumber": "Reference",
+    "nextSteps": {
+      "heading": "What happens next",
+      "1": "You'll receive a confirmation email within the next five minutes.",
+      "2": "Our team verifies your logo and prepares a digital mockup within one business day.",
+      "3": "You approve the mockup by email.",
+      "4": "We start production. Delivery in five business days after your approval."
+    },
+    "summary": {
+      "heading": "Order summary"
+    },
+    "reorder": {
+      "heading": "Reorder this selection later?",
+      "body": "Your logo, sizes, and colors are kept on file. Reordering the same thing takes thirty seconds.",
+      "cta": "Shop again"
+    },
+    "support": {
+      "heading": "Have a question?",
+      "body": "Our team is available Monday to Friday.",
+      "phoneLabel": "Phone",
+      "phone": "(367) 380-4808",
+      "emailLabel": "Email",
+      "email": "contact@visionaffichage.com"
+    },
+    "continue": {
+      "cta": "Continue shopping"
+    },
+    "missing": {
+      "heading": "No recent order",
+      "body": "We couldn't find an order to display. Return home or continue shopping.",
+      "cta": "Back to home"
+    }
   },
   "discoveryKit": {
     "bullet1": "Three representative pieces",
@@ -104,6 +247,69 @@
     "ctaSecondary": "View catalog",
     "headline": "Company apparel that looks professional from day one.",
     "subhead": "Embroidered and printed polos, tees, and hoodies for Quebec SMBs. Full-service, fast turnaround, durable quality."
+  },
+  "industry": {
+    "breadcrumb": "Industries",
+    "indexHeading": "For your industry",
+    "indexSubhead": "Pick your sector. We take you straight to the uniforms and accessories Québec teams in your industry actually wear.",
+    "indexFallbackHeading": "Don't see your industry?",
+    "indexFallbackBody": "We outfit dozens of sectors. Request a quote and we'll build the right kit for your team.",
+    "indexFallbackCta": "Request a quote",
+    "ctaPrimary": "See recommended uniforms",
+    "ctaSecondary": "Request a quote",
+    "recommendedFor": "Recommended for {title}",
+    "recommendedSubhead": "The pieces customers in your industry recommend most.",
+    "caseStudyHeading": "On the ground",
+    "viewOthers": "See other industries",
+    "viewOthersBody": "Every sector has its constraints. Find yours.",
+    "fallbackCta": "Request a quote",
+    "metaTitlePrefix": "Apparel for",
+    "metaDescriptionSuffix": "Five business days after logo approval. French-speaking service across Québec.",
+    "faq": {
+      "1": {
+        "q": "What is the delivery lead time?",
+        "a": "Five business days after logo approval. Rush orders are possible — talk to us."
+      },
+      "2": {
+        "q": "Which fabrics work best for this sector?",
+        "a": "We pick the fabric with you based on your team's constraints: cold, sweat, industrial laundering, abrasion."
+      },
+      "3": {
+        "q": "Can I customize multiple logos?",
+        "a": "Yes. Main logo, back logo, employee name, department number: we handle multiple decoration zones on the same order."
+      },
+      "4": {
+        "q": "How long does the decoration last?",
+        "a": "Our embroidery holds for five years under commercial wash cycles. Screen printing on quality fabric lasts two to three years depending on use."
+      }
+    }
+  },
+  "plp": {
+    "breadcrumb": "Products",
+    "heading": "All uniforms",
+    "subhead": "Polos, tees, hoodies, jackets, caps. Filter by category, specialty, or color. All prices are in CAD before taxes.",
+    "sortLabel": "Sort by",
+    "sort": {
+      "recommended": "Recommended",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low",
+      "leadTime": "Lead time"
+    },
+    "filters": {
+      "category": "Category",
+      "badges": "Specialties",
+      "colors": "Color",
+      "clear": "Clear all",
+      "apply": "Apply",
+      "empty": {
+        "title": "No products found",
+        "body": "No uniforms match these filters. Try removing one or start fresh.",
+        "cta": "Clear filters"
+      }
+    },
+    "results": {
+      "count": "{count, plural, =0 {No products} =1 {1 product} other {# products}}"
+    }
   },
   "home": {
     "hero": {
@@ -253,7 +459,104 @@
     "specifications": "Specifications",
     "viewBack": "Back view",
     "viewDetail": "Logo detail",
-    "viewFront": "Front view"
+    "viewFront": "Front view",
+    "breadcrumb": {
+      "home": "Home",
+      "products": "Products"
+    },
+    "identityHookLabel": "Why this piece",
+    "ratingsLabel": "See reviews",
+    "price": {
+      "from": "From {price}",
+      "perUnit": "/ unit",
+      "embroidered": "/ embroidered unit"
+    },
+    "minQty": {
+      "label": "Min. order {qty} units",
+      "tooltip": "Minimum order amortizes the embroidery or print setup."
+    },
+    "variant": {
+      "color": "Color",
+      "size": "Size",
+      "sizeGuide": "Size guide",
+      "error": {
+        "size": "Pick a size to continue."
+      }
+    },
+    "qty": {
+      "label": "Quantity",
+      "unit": "units"
+    },
+    "cta": {
+      "addToCart": "Customize and add to cart",
+      "quote": {
+        "label": "Request a quote for 50+ units",
+        "subtext": "Volume pricing kicks in past 50 units."
+      }
+    },
+    "trust": {
+      "logoApproved": "Logo approved before production",
+      "production": "5-business-day production",
+      "frenchService": "French service across Québec"
+    },
+    "tabs": {
+      "description": "Description",
+      "specs": "Specifications",
+      "care": "Care",
+      "shipping": "Shipping"
+    },
+    "specs": {
+      "fabricWeight": "Fabric weight",
+      "decorationOptions": "Decoration options",
+      "fit": "Fit"
+    },
+    "reviews": {
+      "heading": "Verified customer reviews",
+      "empty": "No reviews yet for this product. Be the first to wear it and write us."
+    },
+    "related": {
+      "heading": "Related products"
+    },
+    "faq": {
+      "1": {
+        "q": "How long before I get my order?",
+        "a": "Five business days after logo approval for most items. Embroidered jackets can take up to ten days."
+      },
+      "2": {
+        "q": "Can I see the logo proof before production?",
+        "a": "Yes. You receive a digital proof and approve it before we touch any apparel."
+      },
+      "3": {
+        "q": "What if I need less than the minimum quantity?",
+        "a": "Talk to us. We can often work it out with a setup adjustment for smaller runs."
+      },
+      "4": {
+        "q": "Do you ship across Québec?",
+        "a": "Yes. Direct delivery in Greater Montreal, elsewhere in Québec and Ontario by trusted carrier. Other provinces on request."
+      }
+    },
+    "finalCta": {
+      "heading": "Ready to outfit your team?",
+      "subhead": "Request a quote or start your order now. Response in under one business day."
+    },
+    "sizeMatrix": {
+      "heading": "Size chart (in)",
+      "size": "Size",
+      "chest": "Chest",
+      "length": "Length"
+    },
+    "category": {
+      "tshirt": "T-shirts",
+      "polo": "Polos",
+      "longsleeve": "Long sleeve",
+      "hoodie": "Hoodies",
+      "jacket": "Jackets",
+      "youth": "Youth"
+    },
+    "shipping": {
+      "leadTime": "Production in 5 to 7 business days after logo approval. Jackets and XL embroidery: 7 to 14 days.",
+      "zones": "Direct delivery in Greater Montreal. Elsewhere in Québec and Ontario by carrier. Other provinces on request."
+    }
   },
   "product": {
     "badgeCount": "+{count}",

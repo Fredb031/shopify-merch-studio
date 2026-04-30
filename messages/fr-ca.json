@@ -25,7 +25,39 @@
     "shipping": "Livraison",
     "subtotal": "Sous-total",
     "tax": "Taxes (TPS + TVQ)",
-    "total": "Total"
+    "total": "Total",
+    "heading": "Ton panier",
+    "count": "{count, plural, =0 {Aucun article} =1 {1 article} other {# articles}}",
+    "emptyState": {
+      "title": "Ton panier est vide",
+      "body": "Magasine notre catalogue d'uniformes ou commande un kit découverte avant de te lancer.",
+      "cta": "Magasiner les uniformes"
+    },
+    "item": {
+      "qty": "Quantité",
+      "remove": "Retirer cet article",
+      "unitPrice": "Prix unitaire",
+      "decrease": "Diminuer la quantité",
+      "increase": "Augmenter la quantité"
+    },
+    "summary": {
+      "heading": "Récapitulatif",
+      "subtotal": "Sous-total",
+      "gst": "TPS (5%)",
+      "qst": "TVQ (9,975%)",
+      "shipping": "Livraison",
+      "shippingFree": "Gratuite",
+      "shippingThreshold": "Livraison gratuite à partir de 250 $ CAD.",
+      "total": "Total",
+      "leadTime": "Production en 5 jours ouvrables après l'approbation du logo."
+    },
+    "cta": {
+      "checkout": "Passer au paiement",
+      "quote": "Demander une soumission"
+    },
+    "metadata": {
+      "title": "Panier · Vision Affichage"
+    }
   },
   "checkout": {
     "billing": "Facturation",
@@ -36,7 +68,118 @@
     "payment": "Paiement",
     "review": "Révision",
     "shipping": "Livraison",
-    "stepperLabel": "Étapes de commande"
+    "stepperLabel": "Étapes de commande",
+    "heading": "Paiement",
+    "metadata": {
+      "title": "Paiement · Vision Affichage"
+    },
+    "steps": {
+      "1": { "label": "Contact" },
+      "2": { "label": "Livraison" },
+      "3": { "label": "Facturation" },
+      "4": { "label": "Paiement" },
+      "5": { "label": "Révision" }
+    },
+    "contactForm": {
+      "heading": "Coordonnées",
+      "guestNote": "Commande rapide, sans créer de compte.",
+      "email": "Courriel",
+      "phone": "Téléphone",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "company": "Entreprise",
+      "language": "Langue de communication",
+      "languageFr": "Français",
+      "languageEn": "English",
+      "marketingOptIn": "Je veux recevoir les nouveautés et offres de Vision Affichage par courriel."
+    },
+    "shippingForm": {
+      "heading": "Adresse de livraison",
+      "addressLine1": "Adresse",
+      "addressLine2": "Appartement, suite, etc. (facultatif)",
+      "city": "Ville",
+      "province": "Province",
+      "postalCode": "Code postal",
+      "country": "Pays"
+    },
+    "billingForm": {
+      "heading": "Adresse de facturation",
+      "sameAsShipping": "Identique à l'adresse de livraison"
+    },
+    "paymentForm": {
+      "heading": "Paiement",
+      "cardNumber": "Numéro de carte",
+      "cardExpiry": "Expiration (MM/AA)",
+      "cardCvc": "CVC",
+      "cardName": "Nom sur la carte",
+      "simulationNotice": "Paiement simulé · Aucune carte ne sera débitée.",
+      "trust": {
+        "ssl": "Connexion sécurisée SSL",
+        "cards": "Visa · Mastercard",
+        "canada": "Données hébergées au Canada"
+      }
+    },
+    "reviewStep": {
+      "heading": "Révise ta commande",
+      "contactSection": "Coordonnées",
+      "shippingSection": "Adresse de livraison",
+      "billingSection": "Adresse de facturation",
+      "paymentSection": "Paiement",
+      "editStep": "Modifier"
+    },
+    "cta": {
+      "previous": "Précédent",
+      "continue": "Continuer",
+      "placeOrder": "Passer la commande"
+    },
+    "errors": {
+      "required": "Champ requis",
+      "email": "Courriel invalide",
+      "phone": "Numéro de téléphone invalide",
+      "postalCode": "Code postal invalide (ex. : H2X 1Y4)",
+      "cardNumber": "Numéro de carte invalide",
+      "cardExpiry": "Format MM/AA requis",
+      "cardCvc": "CVC invalide"
+    }
+  },
+  "confirmation": {
+    "metadata": {
+      "title": "Commande confirmée · Vision Affichage"
+    },
+    "heading": "Commande confirmée!",
+    "subhead": "Merci. On t'envoie un courriel de confirmation et on commence la suite tout de suite.",
+    "orderNumber": "Référence",
+    "nextSteps": {
+      "heading": "Voici ce qui s'en vient",
+      "1": "Tu reçois un courriel de confirmation dans les cinq prochaines minutes.",
+      "2": "Notre équipe vérifie ton logo et te prépare une maquette numérique en un jour ouvrable.",
+      "3": "Tu approuves la maquette par courriel.",
+      "4": "On lance la production. Livraison en cinq jours ouvrables après ton approbation."
+    },
+    "summary": {
+      "heading": "Sommaire de la commande"
+    },
+    "reorder": {
+      "heading": "Recommander cette sélection plus tard?",
+      "body": "Ton logo, tes tailles et tes couleurs sont gardés en mémoire. Recommander la même chose prend trente secondes.",
+      "cta": "Magasiner à nouveau"
+    },
+    "support": {
+      "heading": "Une question?",
+      "body": "Notre équipe est disponible du lundi au vendredi.",
+      "phoneLabel": "Téléphone",
+      "phone": "(367) 380-4808",
+      "emailLabel": "Courriel",
+      "email": "contact@visionaffichage.com"
+    },
+    "continue": {
+      "cta": "Continuer le magasinage"
+    },
+    "missing": {
+      "heading": "Aucune commande récente",
+      "body": "On n'a pas trouvé de commande à afficher. Reviens à l'accueil ou continue ton magasinage.",
+      "cta": "Retour à l'accueil"
+    }
   },
   "discoveryKit": {
     "bullet1": "Trois vêtements représentatifs",
@@ -104,6 +247,69 @@
     "ctaSecondary": "Voir le catalogue",
     "headline": "Des vêtements d'entreprise qui font pro dès le premier regard.",
     "subhead": "Polos, t-shirts et chandails brodés ou imprimés pour les PME québécoises. Service complet, livraison rapide, qualité durable."
+  },
+  "industry": {
+    "breadcrumb": "Industries",
+    "indexHeading": "Pour ton industrie",
+    "indexSubhead": "Choisis ton secteur. On t'amène directement aux uniformes et accessoires que portent les équipes québécoises de ton industrie.",
+    "indexFallbackHeading": "Pas trouvé ton industrie ?",
+    "indexFallbackBody": "On habille des dizaines de secteurs. Demande une soumission et on bâtit le bon kit pour ton équipe.",
+    "indexFallbackCta": "Demander une soumission",
+    "ctaPrimary": "Voir uniformes recommandés",
+    "ctaSecondary": "Demander une soumission",
+    "recommendedFor": "Recommandé pour {title}",
+    "recommendedSubhead": "Les pièces que nos clients de ton industrie recommandent le plus.",
+    "caseStudyHeading": "Sur le terrain",
+    "viewOthers": "Voir d'autres industries",
+    "viewOthersBody": "Chaque secteur a ses contraintes. Trouve le tien.",
+    "fallbackCta": "Demander une soumission",
+    "metaTitlePrefix": "Vêtements pour",
+    "metaDescriptionSuffix": "Production en cinq jours ouvrables après l'approbation du logo. Service en français au Québec.",
+    "faq": {
+      "1": {
+        "q": "Quel est le délai de livraison ?",
+        "a": "Cinq jours ouvrables après l'approbation du logo. Les commandes urgentes sont possibles, parle-nous."
+      },
+      "2": {
+        "q": "Quels tissus sont recommandés pour ce secteur ?",
+        "a": "On choisit avec toi le tissu adapté aux contraintes de ton équipe : froid, sueur, lavages industriels, abrasion."
+      },
+      "3": {
+        "q": "Puis-je faire personnaliser plusieurs logos ?",
+        "a": "Oui. Logo principal, logo dorsal, nom d'employé, numéro de département : on gère plusieurs zones de décoration sur la même commande."
+      },
+      "4": {
+        "q": "Combien de temps tient la décoration ?",
+        "a": "Notre broderie tient cinq ans en lavage commercial. La sérigraphie sur tissu de qualité tient deux à trois ans selon l'usage."
+      }
+    }
+  },
+  "plp": {
+    "breadcrumb": "Produits",
+    "heading": "Tous les uniformes",
+    "subhead": "Polos, t-shirts, ouates, vestes, casquettes. Filtre par catégorie, spécialité ou couleur. Tous les prix sont en CAD avant taxes.",
+    "sortLabel": "Trier par",
+    "sort": {
+      "recommended": "Recommandés",
+      "priceAsc": "Prix croissant",
+      "priceDesc": "Prix décroissant",
+      "leadTime": "Délai de production"
+    },
+    "filters": {
+      "category": "Catégorie",
+      "badges": "Spécialités",
+      "colors": "Couleur",
+      "clear": "Effacer tout",
+      "apply": "Appliquer",
+      "empty": {
+        "title": "Aucun produit trouvé",
+        "body": "Aucun uniforme ne correspond à ces filtres. Essaie de retirer un filtre ou repars de zéro.",
+        "cta": "Effacer les filtres"
+      }
+    },
+    "results": {
+      "count": "{count, plural, =0 {Aucun produit} =1 {1 produit} other {# produits}}"
+    }
   },
   "home": {
     "hero": {
@@ -253,7 +459,104 @@
     "specifications": "Spécifications",
     "viewBack": "Vue arrière",
     "viewDetail": "Détail logo",
-    "viewFront": "Vue avant"
+    "viewFront": "Vue avant",
+    "breadcrumb": {
+      "home": "Accueil",
+      "products": "Produits"
+    },
+    "identityHookLabel": "Pourquoi ce vêtement",
+    "ratingsLabel": "Voir les avis",
+    "price": {
+      "from": "À partir de {price}",
+      "perUnit": "/ unité",
+      "embroidered": "/ unité brodé"
+    },
+    "minQty": {
+      "label": "Commande min. {qty} unités",
+      "tooltip": "La quantité minimum permet d'amortir la mise en route de la broderie ou de l'impression."
+    },
+    "variant": {
+      "color": "Couleur",
+      "size": "Taille",
+      "sizeGuide": "Guide des tailles",
+      "error": {
+        "size": "Choisissez une taille pour continuer."
+      }
+    },
+    "qty": {
+      "label": "Quantité",
+      "unit": "unités"
+    },
+    "cta": {
+      "addToCart": "Personnaliser et ajouter au panier",
+      "quote": {
+        "label": "Demander une soumission pour 50+ unités",
+        "subtext": "Tarifs dégressifs au-delà de 50 unités."
+      }
+    },
+    "trust": {
+      "logoApproved": "Logo approuvé avant production",
+      "production": "Production en 5 jours ouvrables",
+      "frenchService": "Service en français au Québec"
+    },
+    "tabs": {
+      "description": "Description",
+      "specs": "Caractéristiques",
+      "care": "Entretien",
+      "shipping": "Livraison"
+    },
+    "specs": {
+      "fabricWeight": "Grammage du tissu",
+      "decorationOptions": "Options de décoration",
+      "fit": "Coupe"
+    },
+    "reviews": {
+      "heading": "Avis clients vérifiés",
+      "empty": "Aucun avis pour ce produit pour le moment. Soyez le premier à le porter et à nous écrire."
+    },
+    "related": {
+      "heading": "Produits similaires"
+    },
+    "faq": {
+      "1": {
+        "q": "Combien de temps avant de recevoir ma commande ?",
+        "a": "Cinq jours ouvrables après l'approbation du logo pour la majorité des articles. Les vestes brodées peuvent prendre jusqu'à dix jours."
+      },
+      "2": {
+        "q": "Puis-je voir le rendu du logo avant la production ?",
+        "a": "Oui. Vous recevez une épreuve numérique et vous l'approuvez avant que nous touchions aux vêtements."
+      },
+      "3": {
+        "q": "Que se passe-t-il si j'ai besoin de moins que la quantité minimum ?",
+        "a": "Parlez-nous. On s'arrange souvent avec un ajustement de mise en route pour des plus petites séries."
+      },
+      "4": {
+        "q": "Livrez-vous partout au Québec ?",
+        "a": "Oui. Région de Montréal en livraison directe, ailleurs au Québec et Ontario par transporteur de confiance."
+      }
+    },
+    "finalCta": {
+      "heading": "Prêt à uniformiser votre équipe ?",
+      "subhead": "Demandez une soumission ou commencez votre commande dès maintenant. Réponse en moins d'un jour ouvrable."
+    },
+    "sizeMatrix": {
+      "heading": "Tableau des tailles (po)",
+      "size": "Taille",
+      "chest": "Poitrine",
+      "length": "Longueur"
+    },
+    "category": {
+      "tshirt": "T-shirts",
+      "polo": "Polos",
+      "longsleeve": "Manches longues",
+      "hoodie": "Ouates",
+      "jacket": "Vestes",
+      "youth": "Jeunesse"
+    },
+    "shipping": {
+      "leadTime": "Production en 5 à 7 jours ouvrables après approbation du logo. Vestes et broderies XL : 7 à 14 jours.",
+      "zones": "Livraison directe dans la région de Montréal. Ailleurs au Québec et en Ontario par transporteur. Autres provinces sur demande."
+    }
   },
   "product": {
     "badgeCount": "+{count}",
