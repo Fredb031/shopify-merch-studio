@@ -217,6 +217,167 @@
     ],
     "title": "Frequently asked"
   },
+  "kit": {
+    "metadata": {
+      "title": "Discovery kit · Vision Affichage"
+    },
+    "breadcrumb": {
+      "kit": "Discovery kit"
+    },
+    "hero": {
+      "eyebrow": "Not sure?",
+      "headline": "Get 3 sample garments to touch before ordering for your team.",
+      "subhead": "The discovery kit lets you test the fabrics, see the embroidery and confirm sizing before you commit. Cost refunded on your first team order."
+    },
+    "kits": {
+      "heading": "Choose your kit",
+      "subhead": "Three pre-built kits matched to your team type. Each contains three representative pieces.",
+      "includes": "What's inside",
+      "bestFor": "Best for",
+      "price": "Kit price",
+      "select": "Choose this kit",
+      "selected": "Kit selected"
+    },
+    "kitItems": {
+      "starter": {
+        "name": "Starter Kit",
+        "bestFor": "Office, mixed teams, first order",
+        "contents": {
+          "1": "T-shirt 6.1 oz (M, Black)",
+          "2": "Classic polo (M, Navy)",
+          "3": "Hoodie 13 oz (M, Charcoal)"
+        }
+      },
+      "workwear": {
+        "name": "Workwear Kit",
+        "bestFor": "Construction, landscaping, outdoor trades",
+        "contents": {
+          "1": "Long-sleeve T-shirt (L, Forest Green)",
+          "2": "Work jacket (L, Charcoal)",
+          "3": "Trucker cap (Black)"
+        }
+      },
+      "corporate": {
+        "name": "Corporate Kit",
+        "bestFor": "Office, client-facing teams, events",
+        "contents": {
+          "1": "Women polo (M, White)",
+          "2": "Long-sleeve polo (M, Navy)",
+          "3": "Youth T-shirt (S, Red)"
+        }
+      }
+    },
+    "form": {
+      "heading": "Your details and shipping address",
+      "summaryHeading": "Your kit",
+      "changeKit": "Change kit",
+      "contact": {
+        "heading": "Contact",
+        "name": "Full name",
+        "email": "Email",
+        "phone": "Phone",
+        "company": "Company",
+        "language": "Communication language",
+        "languageFr": "Français",
+        "languageEn": "English"
+      },
+      "shipping": {
+        "heading": "Shipping address",
+        "addressLine1": "Address",
+        "city": "City",
+        "province": "Province",
+        "postalCode": "Postal code",
+        "country": "Country"
+      },
+      "marketing": {
+        "optIn": "I want to receive Vision Affichage news and offers by email."
+      },
+      "errors": {
+        "required": "Required field",
+        "email": "Invalid email address",
+        "postalCode": "Invalid Canadian postal code (e.g. H2X 1Y4)",
+        "phone": "Phone number too short"
+      },
+      "cta": {
+        "back": "Back to kits",
+        "submit": "Order my kit"
+      }
+    },
+    "checklist": {
+      "heading": "What you can check on arrival",
+      "items": {
+        "1": "The feel of the fabric and its real weight",
+        "2": "The quality of the sample embroidery",
+        "3": "Fit and sizing on your team",
+        "4": "How the colours look under your office light"
+      }
+    },
+    "timeline": {
+      "heading": "What happens next",
+      "items": {
+        "1": {
+          "title": "Your kit ships in 2 business days",
+          "desc": "We pack and send your kit as soon as we receive your order."
+        },
+        "2": {
+          "title": "You receive it, you test it",
+          "desc": "Feel the fabric, have your team try it on, take photos under your real lighting."
+        },
+        "3": {
+          "title": "You order or request a quote",
+          "desc": "Browse our catalogue or request a full quote. The kit cost is credited on your first order."
+        }
+      }
+    },
+    "faq": {
+      "heading": "Discovery kit FAQ",
+      "items": {
+        "1": {
+          "q": "How much does the kit cost?",
+          "a": "Between $49.95 and $79.95 depending on the kit type. The cost covers the garments, sample embroidery and round-trip shipping."
+        },
+        "2": {
+          "q": "Is the cost refunded on my first order?",
+          "a": "Yes. The full amount paid for the kit is automatically credited on your first team order (minimum 12 pieces)."
+        },
+        "3": {
+          "q": "Can I return the kit?",
+          "a": "You can keep the garments or return them with the prepaid label. No purchase obligation."
+        },
+        "4": {
+          "q": "What's the delivery time for the kit?",
+          "a": "Your kit ships from our workshop within 2 business days. Free delivery anywhere in Canada in 3 to 5 days."
+        }
+      }
+    },
+    "handoff": {
+      "title": "Not the right match?",
+      "body": "If none of the kits matches your needs, request a direct quote and we'll build a custom kit for your team.",
+      "cta": "Request a direct quote"
+    },
+    "success": {
+      "heading": "Your kit is on its way",
+      "subhead": "You'll receive a confirmation email within minutes. Your kit ships in 2 business days.",
+      "ref": "Reference number",
+      "nextSteps": {
+        "heading": "What's coming up",
+        "1": "We pack your kit in our Saint-Hubert workshop.",
+        "2": "You receive an email with the tracking number once it ships.",
+        "3": "You test the garments with your team.",
+        "4": "You order or request a full quote — the kit cost is credited."
+      },
+      "support": {
+        "heading": "Question about your kit?",
+        "body": "Our team is available Monday to Friday, 8 a.m. to 5 p.m.",
+        "phoneLabel": "Phone",
+        "phone": "+1 (450) 555-0188",
+        "emailLabel": "Email",
+        "email": "kit@visionaffichage.ca"
+      },
+      "ctaShop": "Shop uniforms",
+      "ctaQuote": "Request a quote"
+    }
+  },
   "filters": {
     "category": "Category",
     "clearAll": "Clear all",

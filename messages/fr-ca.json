@@ -217,6 +217,167 @@
     ],
     "title": "Questions fréquentes"
   },
+  "kit": {
+    "metadata": {
+      "title": "Kit découverte · Vision Affichage"
+    },
+    "breadcrumb": {
+      "kit": "Kit découverte"
+    },
+    "hero": {
+      "eyebrow": "Pas sûr ?",
+      "headline": "Reçois 3 vêtements à toucher avant de commander pour ton équipe.",
+      "subhead": "Le kit découverte te permet de tester les tissus, voir la broderie et confirmer les tailles avant de t'engager. Coût remboursé sur ta première commande d'équipe."
+    },
+    "kits": {
+      "heading": "Choisis ton kit",
+      "subhead": "Trois kits préassemblés selon ton type d'équipe. Chacun contient trois pièces représentatives.",
+      "includes": "Ce qui est inclus",
+      "bestFor": "Idéal pour",
+      "price": "Prix du kit",
+      "select": "Choisir ce kit",
+      "selected": "Kit sélectionné"
+    },
+    "kitItems": {
+      "starter": {
+        "name": "Kit Starter",
+        "bestFor": "Bureau, équipes mixtes, première commande",
+        "contents": {
+          "1": "T-shirt 6.1 oz (M, Noir)",
+          "2": "Polo classique (M, Marine)",
+          "3": "Hoodie 13 oz (M, Charbon)"
+        }
+      },
+      "workwear": {
+        "name": "Kit Workwear",
+        "bestFor": "Construction, paysagement, métiers extérieurs",
+        "contents": {
+          "1": "T-shirt manches longues (L, Vert forêt)",
+          "2": "Veste de travail (L, Charbon)",
+          "3": "Casquette trucker (Noir)"
+        }
+      },
+      "corporate": {
+        "name": "Kit Corporatif",
+        "bestFor": "Bureau, équipes client-facing, événements",
+        "contents": {
+          "1": "Polo coupe femme (M, Blanc)",
+          "2": "Polo manches longues (M, Marine)",
+          "3": "T-shirt jeunesse (S, Rouge)"
+        }
+      }
+    },
+    "form": {
+      "heading": "Tes coordonnées et adresse de livraison",
+      "summaryHeading": "Ton kit",
+      "changeKit": "Changer de kit",
+      "contact": {
+        "heading": "Coordonnées",
+        "name": "Nom complet",
+        "email": "Courriel",
+        "phone": "Téléphone",
+        "company": "Entreprise",
+        "language": "Langue de communication",
+        "languageFr": "Français",
+        "languageEn": "English"
+      },
+      "shipping": {
+        "heading": "Adresse de livraison",
+        "addressLine1": "Adresse",
+        "city": "Ville",
+        "province": "Province",
+        "postalCode": "Code postal",
+        "country": "Pays"
+      },
+      "marketing": {
+        "optIn": "Je veux recevoir les nouveautés et offres de Vision Affichage par courriel."
+      },
+      "errors": {
+        "required": "Champ requis",
+        "email": "Adresse courriel invalide",
+        "postalCode": "Code postal canadien invalide (ex. : H2X 1Y4)",
+        "phone": "Numéro de téléphone trop court"
+      },
+      "cta": {
+        "back": "Revenir aux kits",
+        "submit": "Commander mon kit"
+      }
+    },
+    "checklist": {
+      "heading": "Ce que tu peux vérifier à l'arrivée",
+      "items": {
+        "1": "Le toucher du tissu et son poids réel",
+        "2": "La qualité de la broderie échantillon",
+        "3": "La coupe et les tailles sur ton équipe",
+        "4": "Les couleurs sous ta lumière de bureau"
+      }
+    },
+    "timeline": {
+      "heading": "Ce qui arrive ensuite",
+      "items": {
+        "1": {
+          "title": "Ton kit part en 2 jours ouvrables",
+          "desc": "On prépare et on expédie le kit dès la réception de ta commande."
+        },
+        "2": {
+          "title": "Tu reçois, tu testes",
+          "desc": "Touche le tissu, fais essayer ton équipe, prends des photos sous ta vraie lumière."
+        },
+        "3": {
+          "title": "Tu commandes ou tu demandes une soumission",
+          "desc": "Magasine notre catalogue de produits ou demande une soumission complète. Le coût du kit est remboursé sur ta première commande."
+        }
+      }
+    },
+    "faq": {
+      "heading": "Questions fréquentes sur le kit",
+      "items": {
+        "1": {
+          "q": "Combien coûte le kit ?",
+          "a": "Entre 49,95 $ et 79,95 $ selon le type de kit. Le coût couvre les vêtements, la broderie échantillon et la livraison aller-retour."
+        },
+        "2": {
+          "q": "Le coût est-il remboursé sur ma première commande ?",
+          "a": "Oui. Le montant total payé pour le kit est crédité automatiquement sur ta première commande d'équipe (minimum 12 pièces)."
+        },
+        "3": {
+          "q": "Puis-je retourner le kit ?",
+          "a": "Tu peux garder les vêtements ou nous les retourner avec l'étiquette prépayée. Aucune obligation d'achat."
+        },
+        "4": {
+          "q": "Quel est le délai de livraison du kit ?",
+          "a": "Ton kit part de notre atelier en 2 jours ouvrables. Livraison gratuite partout au Canada en 3 à 5 jours."
+        }
+      }
+    },
+    "handoff": {
+      "title": "Pas le bon match ?",
+      "body": "Si aucun kit ne correspond à ton besoin, demande une soumission directe et on bâtit un kit sur mesure pour ton équipe.",
+      "cta": "Demander une soumission directe"
+    },
+    "success": {
+      "heading": "Ton kit est en route",
+      "subhead": "Tu vas recevoir une confirmation par courriel d'ici quelques minutes. Ton kit part en 2 jours ouvrables.",
+      "ref": "Numéro de référence",
+      "nextSteps": {
+        "heading": "Ce qui s'en vient",
+        "1": "On prépare ton kit dans notre atelier de Saint-Hubert.",
+        "2": "Tu reçois un courriel avec le numéro de suivi dès l'expédition.",
+        "3": "Tu testes les vêtements avec ton équipe.",
+        "4": "Tu commandes ou tu demandes une soumission complète — le coût du kit est crédité."
+      },
+      "support": {
+        "heading": "Une question sur ton kit ?",
+        "body": "Notre équipe est disponible du lundi au vendredi de 8 h à 17 h.",
+        "phoneLabel": "Téléphone",
+        "phone": "+1 (450) 555-0188",
+        "emailLabel": "Courriel",
+        "email": "kit@visionaffichage.ca"
+      },
+      "ctaShop": "Magasiner les uniformes",
+      "ctaQuote": "Demander une soumission"
+    }
+  },
   "filters": {
     "category": "Catégorie",
     "clearAll": "Effacer tout",
