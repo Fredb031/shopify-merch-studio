@@ -174,6 +174,23 @@ const PAGE_SIZE = 50;
 const SYNC_LOG_EXPORT_LIMIT = 200;
 
 /**
+ * Module-level bilingual sync_type formatter used by the Realtime
+ * subscription handler — its handlers run inside a useEffect with
+ * empty deps to avoid resubscribing on language flips, so they cannot
+ * close over the in-component `formatSyncType` (which captures `lang`).
+ * Resolving lang explicitly via the langRef inside the handler and
+ * funneling through this pure helper keeps the channel mount-stable
+ * while still rendering the right label for the current language.
+ */
+function formatSyncTypeLabel(t: string, lang: 'en' | 'fr'): string {
+  if (t === 'catalog') return lang === 'en' ? 'Catalogue' : 'Catalogue';
+  if (t === 'inventory') return lang === 'en' ? 'Inventory' : 'Inventaire';
+  if (t === 'order_status')
+    return lang === 'en' ? 'Order status' : 'Statut commandes';
+  return t;
+}
+
+/**
  * Ordered SanMar status chain used by the <OrderStatusDots> visualizer
  * in the open-orders table. Mirrors the 4-step indicator on /suivi
  * (TrackOrder.tsx → mapSanmarStatus): 10/11 received, 41/44 logo proof,
@@ -1101,6 +1118,189 @@ export default function AdminSanMar() {
   }, [loadCatalog]);
 
   /**
+   * Supabase Realtime subscription. Pushes two kinds of events into the
+   * dashboard so the operator no longer needs to hit "Refresh" after a
+   * sync run or an order status transition:
+   *
+   *   1. INSERT on `sanmar_sync_log` → prepend the new row to
+   *      `recentRuns`, update the headline `lastSync` cell, and toast
+   *      "Synchro terminée : {sync_type}". Bilingual.
+   *   2. UPDATE on `sanmar_orders` → splice the matching purchase
+   *      order in `openOrders` so its status_id reflects the new value
+   *      immediately. When the new status_id is 80 (delivered/paid) or
+   *      99 (cancelled), surface a toast so terminal transitions don't
+   *      get lost in the noise.
+   *
+   * Subscription lifecycle: opened once on mount, torn down on unmount.
+   * `liveSubscribed` flips true on SUBSCRIBED status and gates the
+   * "En direct" indicator in the header. CHANNEL_ERROR / TIMED_OUT /
+   * CLOSED leave it false — silent fallback to existing manual-refresh
+   * patterns; we don't nag with a toast because the page still works.
+   *
+   * Stale-closure guard: lang flips would otherwise force a resubscribe.
+   * We park lang in a ref and resolve it inside the handlers, keeping
+   * the subscription deps array empty so the channel is created exactly
+   * once per mount.
+   *
+   * RLS still applies on the receive side — the publication is
+   * membership but Realtime evaluates SELECT policies before delivering
+   * payloads. Non-admin / non-president visitors won't see anything;
+   * they also don't reach this page (RequirePermission gate above).
+   */
+  const langRef = useRef(lang);
+  useEffect(() => {
+    langRef.current = lang;
+  }, [lang]);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    const sb = supabase;
+    const channel = sb
+      .channel('admin-sanmar')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'sanmar_sync_log' },
+        payload => {
+          const row = payload.new as Partial<SanmarSyncLogRow> | null;
+          if (!row) return;
+          const safeRow: SanmarSyncLogRow = {
+            id: (row.id as string | null | undefined) ?? null,
+            sync_type:
+              (row.sync_type as SanmarSyncLogRow['sync_type']) ?? '',
+            total_processed: (row.total_processed as number | null) ?? null,
+            errors: row.errors ?? null,
+            duration_ms: (row.duration_ms as number | null) ?? null,
+            created_at:
+              (row.created_at as string | null) ?? new Date().toISOString(),
+          };
+          // Prepend + cap at 5 to mirror the original loadRecentRuns()
+          // limit; deduplicate on id so a fast sync that completes
+          // before the initial fetch lands won't show twice.
+          setRecentRuns(prev => {
+            const dedup = safeRow.id
+              ? prev.filter(r => r.id !== safeRow.id)
+              : prev;
+            return [safeRow, ...dedup].slice(0, 5);
+          });
+          // Headline "Last sync" mirrors the freshest row, regardless
+          // of sync_type — matches the existing loadRecentRuns
+          // derivation.
+          setSyncStatus(s => ({
+            ...s,
+            lastSync: safeRow.created_at,
+            loading: false,
+          }));
+          const t = formatSyncTypeLabel(
+            String(safeRow.sync_type ?? ''),
+            langRef.current,
+          );
+          toast.success(
+            langRef.current === 'en'
+              ? `Sync complete: ${t}`
+              : `Synchro terminée : ${t}`,
+          );
+        },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'sanmar_orders' },
+        payload => {
+          const newRow = payload.new as {
+            va_order_id?: string | null;
+            status_id?: number | null;
+            status_name?: string | null;
+          } | null;
+          const oldRow = payload.old as {
+            status_id?: number | null;
+          } | null;
+          if (!newRow) return;
+          const poNumber = newRow.va_order_id ?? '';
+          const newStatus = newRow.status_id ?? null;
+          const prevStatus = oldRow?.status_id ?? null;
+
+          // Surgically update the matching purchase order's primary
+          // status detail. The SanMar gateway model is one-to-many
+          // (purchaseOrderNumber → orderStatusDetails[]); we update
+          // the first detail's statusId because that's what
+          // SANMAR_STATUS_CHAIN reads when colouring dots. If the
+          // order isn't loaded (operator hasn't clicked "Fetch" yet)
+          // we no-op.
+          if (poNumber) {
+            setOpenOrders(prev => {
+              let touched = false;
+              const next = prev.map(order => {
+                if (order.purchaseOrderNumber !== poNumber) return order;
+                touched = true;
+                const details = order.orderStatusDetails ?? [];
+                const head = details[0];
+                const updatedHead = head
+                  ? { ...head, statusId: newStatus ?? head.statusId }
+                  : head;
+                return {
+                  ...order,
+                  orderStatusDetails: updatedHead
+                    ? [updatedHead, ...details.slice(1)]
+                    : details,
+                };
+              });
+              return touched ? next : prev;
+            });
+          }
+
+          // Terminal-transition toast: only fire when the status
+          // actually crossed into 80 (delivered/paid) or 99
+          // (cancelled), not on every row touch. Compare against
+          // payload.old so a re-poll that re-writes the same value
+          // stays silent.
+          const transitionedToTerminal =
+            (newStatus === 80 || newStatus === 99) &&
+            prevStatus !== newStatus;
+          if (transitionedToTerminal) {
+            const isDelivered = newStatus === 80;
+            const label =
+              poNumber ||
+              (langRef.current === 'en' ? 'order' : 'commande');
+            if (isDelivered) {
+              toast.success(
+                langRef.current === 'en'
+                  ? `Order delivered: ${label}`
+                  : `Commande livrée : ${label}`,
+              );
+            } else {
+              toast.warning(
+                langRef.current === 'en'
+                  ? `Order cancelled: ${label}`
+                  : `Commande annulée : ${label}`,
+              );
+            }
+          }
+        },
+      )
+      .subscribe(status => {
+        if (cancelled) return;
+        // Realtime publishes a small set of states; only SUBSCRIBED
+        // means the channel is hot. Anything else (CHANNEL_ERROR,
+        // TIMED_OUT, CLOSED) leaves the indicator dark and the page
+        // falls back to the existing manual-refresh / polling pattern
+        // — silent, by design, so a transient network blip doesn't
+        // spam toasts.
+        setLiveSubscribed(status === 'SUBSCRIBED');
+      });
+    return () => {
+      cancelled = true;
+      setLiveSubscribed(false);
+      // Best-effort teardown — removeChannel is async but we don't
+      // need to await it here; React unmount path handles the rest.
+      void sb.removeChannel(channel);
+    };
+    // Mount-only: stale closures are guarded by langRef + the static
+    // formatter helper. The handlers don't reference any in-component
+    // values that change after mount, so the empty deps array is the
+    // correct shape and the rules-of-hooks linter agrees.
+  }, []);
+
+  /**
    * Fetch all open orders (queryType = 4 per the SanMar PDF: "all open
    * orders for this customer"). Manual-trigger only after first mount
    * because each call hits the SanMar gateway and counts toward the
@@ -1626,12 +1826,44 @@ export default function AdminSanMar() {
     <div className="min-h-full bg-va-bg-1">
       {/* Header strip */}
       <header className="bg-va-bg-2 py-6 px-8 border-b border-va-line">
-        <h1 className="font-display font-black text-va-ink text-3xl tracking-tight">
-          SanMar Canada
-        </h1>
-        <p className="text-va-muted text-sm mt-1">
-          {lang === 'en' ? 'Environment' : 'Environnement'} : {envLabel}
-        </p>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="font-display font-black text-va-ink text-3xl tracking-tight">
+              SanMar Canada
+            </h1>
+            <p className="text-va-muted text-sm mt-1">
+              {lang === 'en' ? 'Environment' : 'Environnement'} : {envLabel}
+            </p>
+          </div>
+          {/* Live realtime indicator. Only renders the chip when the
+              Supabase Realtime channel is hot (SUBSCRIBED). On
+              CHANNEL_ERROR / TIMED_OUT / CLOSED we keep the chip hidden
+              rather than show a "disconnected" state — the page falls
+              back silently to the existing manual-refresh / polling
+              pattern, and surfacing a red dot would only worry the
+              operator without giving them a useful action. */}
+          {liveSubscribed ? (
+            <div
+              role="status"
+              aria-live="polite"
+              title={
+                lang === 'en'
+                  ? 'Realtime updates connected — sync runs and order status changes appear instantly.'
+                  : 'Mises à jour en temps réel connectées — les synchros et changements de statut s’affichent instantanément.'
+              }
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold uppercase tracking-wider"
+            >
+              {/* Pulsing green dot. Two layers: a ping halo (animated)
+                  + a solid core. Tailwind's animate-ping is a stock
+                  utility so no custom keyframes needed. */}
+              <span className="relative inline-flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-emerald-500 opacity-75 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-emerald-600" />
+              </span>
+              {lang === 'en' ? 'Live' : 'En direct'}
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <div className="px-8 py-8 space-y-8">
