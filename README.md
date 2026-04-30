@@ -1,6 +1,30 @@
 # Vision Affichage — v2
 
-Bilingual (fr-CA / en-CA) marketing + catalogue site for Vision Affichage, a Quebec embroidery and screen-print shop. Built with Next.js 15 App Router, statically rendered, with a guest checkout that simulates payment so the operator can demo the full shopper experience before Phase 2 wires a real PSP.
+> **Phase 2 SEALED — tag `v2-phase2-sealed`.** Loi 25 cookie consent mounted,
+> per-page OG overrides on 8+ social-shareable routes, photo-realistic
+> abstract industry hero SVGs, 25 of 26 Playwright tests passing (one
+> customizer flow remains `.fixme` pending a real raster + vector fixture).
+
+Bilingual (fr-CA / en-CA) marketing + catalogue site for Vision Affichage, a Quebec embroidery and screen-print shop. Built with Next.js 15 App Router, statically rendered, with a guest checkout that simulates payment so the operator can demo the full shopper experience before Phase 3 wires a real PSP.
+
+## Phase 2 — what shipped
+
+Five waves of feature work, sealed at 75 SSG pages and 25 passing E2E tests:
+
+- **Wave 1** — Vol-III v2 rebrand (logo split CTA, real `/a-propos`, `/faq`, `/comment-ca-marche`)
+- **Wave 2** — interactive `/contact`, `/avis`, photo-realistic product mockups
+- **Wave 3** — `/account` + customizer round-trip (sessionStorage persistence)
+- **Wave 4** — sitemap.xml, robots.txt, dynamic `/api/og`, industry copy + case studies
+- **Wave 5** — **Loi 25 cookie consent + `/legal/{confidentialite,cookies}` legal stubs (production blocker closed)**, per-page OG overrides on 8 social-shareable routes, industry SVG heroes upgraded to abstract scenes, 4 fixme tests un-fixme'd
+
+### Phase 3 queue (operator follow-ups)
+
+1. **Real payment gateway** — wire Stripe Checkout Session + webhook (replace mock card flow in `/checkout`)
+2. **Persistent backend** — move quote/kit/order from sessionStorage to a DB (Postgres + Drizzle, or Supabase)
+3. **Real photography** — replace abstract industry SVGs and product mocks with shoots
+4. **Analytics + email** — GA4 + transactional email (Resend / Postmark) for quote/order acknowledgments
+5. **Customizer E2E fixture** — wire a real raster + vector fixture under `tests/fixtures/` and un-fixme the customizer flow test
+6. **Cookie-consent → analytics gating** — once GA4 is wired, gate it behind the `va-cookie-consent` localStorage flag
 
 ## Tech stack
 
@@ -34,7 +58,7 @@ The site auto-redirects `/` to `/fr-ca` (default locale).
 
 ```bash
 pnpm dev            # dev server (http://localhost:3000)
-pnpm build          # production build (71 SSG + dynamic /api/og, Phase 2 final)
+pnpm build          # production build (75 SSG + dynamic /api/og, Phase 2 SEALED)
 pnpm start          # serve the production build
 pnpm lint           # next lint
 pnpm typecheck      # tsc --noEmit

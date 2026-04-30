@@ -81,9 +81,14 @@ export function Footer() {
 
         <div className="flex flex-col items-start justify-between gap-4 border-t border-ink-800 py-6 text-body-sm text-sand-300 md:flex-row md:items-center">
           <p>© {year} {siteConfig.legalName}. {tFooter('rights')}</p>
-          <ul className="flex gap-6">
+          <ul className="flex flex-wrap gap-6">
             <li>
-              <Link href={`${base}/confidentialite`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tFooter('privacy')}</Link>
+              <Link href={`${base}/legal/confidentialite`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tFooter('privacy')}</Link>
+            </li>
+            <li>
+              <Link href={`${base}/legal/cookies`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">
+                {locale === 'fr-ca' ? 'Témoins' : 'Cookies'}
+              </Link>
             </li>
             <li>
               <Link href={`${base}/conditions`} className="hover:text-canvas-000 transition-colors duration-base ease-standard">{tFooter('terms')}</Link>
