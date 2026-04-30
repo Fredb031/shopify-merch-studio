@@ -3341,13 +3341,73 @@ export default function AdminSanMar() {
           aria-labelledby="sanmar-catalog-title"
           className="bg-va-white border border-va-line rounded-2xl p-6"
         >
-          <h2
-            id="sanmar-catalog-title"
-            className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2 mb-4"
-          >
-            <Boxes size={20} aria-hidden="true" className="text-va-blue" />
-            {lang === 'en' ? 'Inventory' : 'Inventaire'}
-          </h2>
+          <div className="flex items-start justify-between gap-4 flex-wrap mb-4">
+            <h2
+              id="sanmar-catalog-title"
+              className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+            >
+              <Boxes size={20} aria-hidden="true" className="text-va-blue" />
+              {lang === 'en' ? 'Inventory' : 'Inventaire'}
+            </h2>
+            {/* Bulk-refresh action area. Three exclusive states:
+                  1. progress + cancel (a bulk run is inflight)
+                  2. "Refresh selected (N)" (>0 ticked, no run inflight)
+                  3. nothing (no selection)
+                Capped at BULK_REFRESH_MAX so the button text caps too —
+                operator gets a clear hint via the title attribute when
+                they've ticked more than the cap. */}
+            {bulkRefreshState?.running ? (
+              <div className="flex items-center gap-3 flex-wrap">
+                <span
+                  className="inline-flex items-center gap-2 text-xs font-bold text-va-blue bg-va-blue/10 border border-va-blue/30 rounded-full px-3 py-1.5"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <RefreshCw
+                    size={12}
+                    aria-hidden="true"
+                    className="animate-spin"
+                  />
+                  {lang === 'en'
+                    ? `Refreshing ${bulkRefreshState.completed + 1}/${bulkRefreshState.total}${bulkRefreshState.current ? ` — ${bulkRefreshState.current}` : ''}`
+                    : `Actualisation ${bulkRefreshState.completed + 1}/${bulkRefreshState.total}${bulkRefreshState.current ? ` — ${bulkRefreshState.current}` : ''}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCancelBulkRefresh}
+                  disabled={bulkCancelRef.current}
+                  className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold text-va-ink bg-va-white border border-va-line hover:bg-va-bg-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <X size={12} aria-hidden="true" />
+                  {bulkCancelRef.current
+                    ? lang === 'en'
+                      ? 'Cancelling…'
+                      : 'Annulation…'
+                    : lang === 'en'
+                      ? 'Cancel'
+                      : 'Annuler'}
+                </button>
+              </div>
+            ) : selectedStyles.size > 0 ? (
+              <button
+                type="button"
+                onClick={handleBulkRefreshSelected}
+                className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-bold text-va-white bg-va-blue hover:bg-va-blue-hover transition-colors"
+                title={
+                  selectedStyles.size > BULK_REFRESH_MAX
+                    ? lang === 'en'
+                      ? `Capped at ${BULK_REFRESH_MAX} per run — ${selectedStyles.size - BULK_REFRESH_MAX} will be skipped`
+                      : `Plafonné à ${BULK_REFRESH_MAX} par exécution — ${selectedStyles.size - BULK_REFRESH_MAX} seront ignorés`
+                    : undefined
+                }
+              >
+                <RefreshCw size={12} aria-hidden="true" />
+                {lang === 'en'
+                  ? `Refresh selected (${Math.min(selectedStyles.size, BULK_REFRESH_MAX)})`
+                  : `Actualiser sélection (${Math.min(selectedStyles.size, BULK_REFRESH_MAX)})`}
+              </button>
+            ) : null}
+          </div>
           {catalogError ? (
             <SanmarErrorPanel
               err={catalogError}
@@ -3359,6 +3419,54 @@ export default function AdminSanMar() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-va-muted border-b border-va-line">
+                  <th className="py-2 pr-4 w-8">
+                    {/* Header "select all on this page". Indeterminate
+                        when some-but-not-all visible styles are ticked.
+                        Native <input> doesn't take indeterminate as a
+                        prop, hence the callback ref that sets it on the
+                        DOM node directly. */}
+                    <input
+                      type="checkbox"
+                      aria-label={
+                        lang === 'en'
+                          ? 'Select all styles on this page'
+                          : 'Sélectionner tous les styles de cette page'
+                      }
+                      disabled={
+                        bulkRefreshState?.running ||
+                        visibleStyleIds.size === 0
+                      }
+                      checked={
+                        visibleStyleIds.size > 0 &&
+                        Array.from(visibleStyleIds).every((id) =>
+                          selectedStyles.has(id),
+                        )
+                      }
+                      ref={(el) => {
+                        if (!el) return;
+                        const visibleArr = Array.from(visibleStyleIds);
+                        const selectedCount = visibleArr.filter((id) =>
+                          selectedStyles.has(id),
+                        ).length;
+                        el.indeterminate =
+                          selectedCount > 0 &&
+                          selectedCount < visibleArr.length;
+                      }}
+                      onChange={(e) => {
+                        const allSelected = e.target.checked;
+                        setSelectedStyles((prev) => {
+                          const next = new Set(prev);
+                          if (allSelected) {
+                            for (const id of visibleStyleIds) next.add(id);
+                          } else {
+                            for (const id of visibleStyleIds) next.delete(id);
+                          }
+                          return next;
+                        });
+                      }}
+                      className="cursor-pointer accent-va-blue disabled:cursor-not-allowed"
+                    />
+                  </th>
                   <th className="py-2 pr-4">SKU</th>
                   <th className="py-2 pr-4">{lang === 'en' ? 'Style' : 'Style'}</th>
                   <th className="py-2 pr-4">{lang === 'en' ? 'Color' : 'Couleur'}</th>
@@ -3385,13 +3493,13 @@ export default function AdminSanMar() {
               <tbody>
                 {catalogLoading ? (
                   <tr>
-                    <td colSpan={11} className="py-12 text-center text-va-muted">
+                    <td colSpan={12} className="py-12 text-center text-va-muted">
                       {lang === 'en' ? 'Loading...' : 'Chargement...'}
                     </td>
                   </tr>
                 ) : catalogRows.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="py-12 text-center">
+                    <td colSpan={12} className="py-12 text-center">
                       <div className="space-y-1.5">
                         <p className="text-va-fg text-sm font-medium">
                           {lang === 'en'
@@ -3412,6 +3520,35 @@ export default function AdminSanMar() {
                       key={`${row.sku ?? row.style_id}-${i}`}
                       className="border-b border-va-line/50 hover:bg-va-bg-2/50"
                     >
+                      <td className="py-2 pr-4 w-8">
+                        {row.style_id ? (
+                          <input
+                            type="checkbox"
+                            aria-label={
+                              lang === 'en'
+                                ? `Select style ${row.style_id} for bulk refresh`
+                                : `Sélectionner le style ${row.style_id} pour actualisation groupée`
+                            }
+                            checked={selectedStyles.has(row.style_id)}
+                            disabled={bulkRefreshState?.running}
+                            onChange={(e) => {
+                              const styleId = row.style_id;
+                              if (!styleId) return;
+                              const checked = e.target.checked;
+                              setSelectedStyles((prev) => {
+                                const next = new Set(prev);
+                                if (checked) {
+                                  next.add(styleId);
+                                } else {
+                                  next.delete(styleId);
+                                }
+                                return next;
+                              });
+                            }}
+                            className="cursor-pointer accent-va-blue disabled:cursor-not-allowed"
+                          />
+                        ) : null}
+                      </td>
                       <td className="py-2 pr-4 font-mono text-xs text-va-ink">
                         {row.sku ?? '—'}
                       </td>
