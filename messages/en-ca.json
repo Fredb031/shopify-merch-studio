@@ -1,4 +1,65 @@
 {
+  "account": {
+    "breadcrumb": "My account",
+    "heading": "My recent activity",
+    "subhead": "Here are your recent interactions with Vision Affichage. For a permanent account with full history, contact us.",
+    "disclaimer": "Data stored locally in this browser. For a permanent history, request a permanent account at contact@visionaffichage.com.",
+    "sections": {
+      "quote": {
+        "title": "Latest quote",
+        "ref": "Reference",
+        "date": "Date",
+        "items": "Selection",
+        "viewDetails": "View details",
+        "retry": "Request another quote",
+        "detail": {
+          "employees": "Employee count",
+          "neededBy": "Needed by",
+          "industry": "Industry",
+          "shippingMode": "Shipping"
+        }
+      },
+      "kit": {
+        "title": "Latest kit order",
+        "ref": "Reference",
+        "date": "Date",
+        "kitName": "Kit",
+        "price": "Price",
+        "reorder": "Reorder this selection",
+        "orderAgain": "Order another kit"
+      },
+      "order": {
+        "title": "Latest order",
+        "ref": "Reference",
+        "date": "Date",
+        "items": "Items",
+        "total": "Total",
+        "track": "Track order",
+        "reorder": "Reorder"
+      },
+      "contact": {
+        "title": "Latest message",
+        "ref": "Reference",
+        "subject": "Subject",
+        "date": "Date",
+        "sendAnother": "Send another message",
+        "subjects": {
+          "product": "Product question",
+          "quote": "Quote request",
+          "tracking": "Order tracking",
+          "other": "Other"
+        }
+      }
+    },
+    "empty": {
+      "title": "No recent activity",
+      "body": "Start by shopping uniforms or requesting a quote.",
+      "cta": {
+        "shop": "Shop uniforms",
+        "quote": "Request a quote"
+      }
+    }
+  },
   "badges": {
     "best-embroidery": "Best for embroidery",
     "best-screen-print": "Best for screen print",

@@ -1,4 +1,65 @@
 {
+  "account": {
+    "breadcrumb": "Mon compte",
+    "heading": "Mes activités récentes",
+    "subhead": "Voici tes interactions récentes avec Vision Affichage. Pour un compte permanent avec historique complet, contacte-nous.",
+    "disclaimer": "Données stockées localement dans ce navigateur. Pour un historique permanent, demande un compte permanent à contact@visionaffichage.com.",
+    "sections": {
+      "quote": {
+        "title": "Dernière soumission",
+        "ref": "Référence",
+        "date": "Date",
+        "items": "Sélection",
+        "viewDetails": "Voir détails",
+        "retry": "Demander une autre soumission",
+        "detail": {
+          "employees": "Nombre d'employés",
+          "neededBy": "Date souhaitée",
+          "industry": "Industrie",
+          "shippingMode": "Livraison"
+        }
+      },
+      "kit": {
+        "title": "Dernier kit commandé",
+        "ref": "Référence",
+        "date": "Date",
+        "kitName": "Kit",
+        "price": "Prix",
+        "reorder": "Récommander cette sélection",
+        "orderAgain": "Commander un autre kit"
+      },
+      "order": {
+        "title": "Dernière commande",
+        "ref": "Référence",
+        "date": "Date",
+        "items": "Articles",
+        "total": "Total",
+        "track": "Voir le suivi",
+        "reorder": "Récommander"
+      },
+      "contact": {
+        "title": "Dernier message",
+        "ref": "Référence",
+        "subject": "Sujet",
+        "date": "Date",
+        "sendAnother": "Envoyer un autre message",
+        "subjects": {
+          "product": "Question sur un produit",
+          "quote": "Demande de soumission",
+          "tracking": "Suivi de commande",
+          "other": "Autre"
+        }
+      }
+    },
+    "empty": {
+      "title": "Aucune activité récente",
+      "body": "Commence par magasiner les uniformes ou demander une soumission.",
+      "cta": {
+        "shop": "Magasiner les uniformes",
+        "quote": "Demander une soumission"
+      }
+    }
+  },
   "badges": {
     "best-embroidery": "Meilleure broderie",
     "best-screen-print": "Meilleure sérigraphie",
