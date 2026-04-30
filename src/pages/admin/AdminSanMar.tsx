@@ -105,6 +105,43 @@ interface SanmarCronHealthRow {
 }
 
 /**
+ * Phase 19 — one row of /webhook-deliveries returned by the FastAPI
+ * cache layer (proxied through the sanmar-webhook-deliveries edge
+ * function). ``signature_hex`` is intentionally truncated to the last
+ * 8 chars upstream — full HMACs never leave the SQLite row.
+ */
+interface WebhookDeliveryRow {
+  id: number;
+  po_number: string;
+  event: string;
+  status_code: number | null;
+  attempt_count: number;
+  outcome: string;
+  response_ms: number | null;
+  signed_at: string | null;
+  signature_hex: string;
+  event_id: string | null;
+  error: string | null;
+}
+
+/** Bilingual outcome → colour-coded badge classes for the webhook table. */
+const WEBHOOK_OUTCOME_BADGE: Record<string, string> = {
+  success:
+    'bg-emerald-50 border border-emerald-200 text-emerald-700',
+  retry: 'bg-amber-50 border border-amber-200 text-amber-700',
+  failed: 'bg-rose-50 border border-rose-200 text-rose-700',
+  skipped: 'bg-slate-50 border border-slate-200 text-slate-600',
+};
+
+/** Webhook event types the operator can pick when firing a test. */
+const WEBHOOK_EVENT_OPTIONS: ReadonlyArray<string> = [
+  'order.shipped',
+  'order.picked',
+  'order.partially_shipped',
+  'order.cancelled',
+];
+
+/**
  * Aggregated AR snapshot. As of Wave 13 this comes from the
  * `get_sanmar_ar_summary()` SECURITY DEFINER RPC (migration
  * 20260429200000_sanmar_ar_summary_rpc.sql) which performs one
@@ -168,6 +205,17 @@ const OPEN_STATUS_CUTOFF = 80;
 const OLDEST_WARN_DAYS = 14;
 
 const PAGE_SIZE = 50;
+
+/**
+ * Hard cap on how many styles a single bulk-refresh operation can hit.
+ * Each style fans out to ~3 SOAP calls (product/inventory/pricing) on
+ * the SanMar side, so 50 styles = ~150 SOAP requests serialized. That
+ * keeps a single bulk run under ~5 minutes even on a slow day and well
+ * inside SanMar's per-IP quota. Operators who genuinely need more should
+ * run two passes — the cap is a guard against an over-eager "select all
+ * 3k SKUs" click that would melt the SOAP endpoint.
+ */
+const BULK_REFRESH_MAX = 50;
 
 /** Cap for the "Download CSV" export from the Recent runs widget. The
  *  on-screen table only shows the latest 5, but operators investigating
@@ -493,6 +541,54 @@ export default function AdminSanMar() {
   const [refreshingStyles, setRefreshingStyles] = useState<Set<string>>(
     () => new Set(),
   );
+  // Bulk-refresh selection. Operator ticks rows in the inventory table to
+  // queue them for a single sequential refresh pass. Keyed by style_id —
+  // multiple SKU rows that share a style collapse to one entry, mirroring
+  // how the per-row button already works.
+  const [selectedStyles, setSelectedStyles] = useState<Set<string>>(
+    () => new Set(),
+  );
+  // Bulk-refresh runtime state. Set to a tracker object while a bulk
+  // operation is inflight, null otherwise. Drives the progress indicator
+  // in the inventory header and disables row checkboxes during the run.
+  const [bulkRefreshState, setBulkRefreshState] = useState<{
+    running: boolean;
+    current: string | null; // style_id currently being refreshed
+    completed: number;
+    total: number;
+    succeeded: string[];
+    failed: { styleId: string; title: string; action: string }[];
+  } | null>(null);
+  // Cancel signal for the bulk loop. useRef so we don't trigger re-renders
+  // and so the running iteration sees the latest value synchronously.
+  // The current SOAP call can't be aborted (edge fn doesn't support it),
+  // so cancel = "finish current style, skip the rest".
+  const bulkCancelRef = useRef(false);
+
+  // ── Webhook deliveries (Phase 19) ──────────────────────────────────────
+  // Mirror of the Streamlit Phase-18 webhook panel for operators who only
+  // ever touch the storefront. Reads from the FastAPI cache layer via an
+  // edge-function proxy (sanmar-webhook-deliveries) — the audit data
+  // lives in SQLite on the Python side, not Supabase. Hidden when
+  // VITE_SANMAR_CACHE_API_URL is unset so operators not running the
+  // cache layer don't see a permanent "no data" widget.
+  const [webhookDeliveries, setWebhookDeliveries] = useState<WebhookDeliveryRow[]>(
+    [],
+  );
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [webhookError, setWebhookError] = useState<SanmarErrorContext | null>(
+    null,
+  );
+  const [webhookOutcomeFilter, setWebhookOutcomeFilter] = useState<string>('all');
+  const [webhookEventFilter, setWebhookEventFilter] = useState<string>('all');
+  const [webhookLimit, setWebhookLimit] = useState<number>(50);
+  const [webhookHasMore, setWebhookHasMore] = useState(false);
+  const [webhookTotalCount, setWebhookTotalCount] = useState<number | null>(null);
+  // "Fire test event" dialog state.
+  const [testFireOpen, setTestFireOpen] = useState(false);
+  const [testFirePo, setTestFirePo] = useState<string>('');
+  const [testFireEvent, setTestFireEvent] = useState<string>('order.shipped');
+  const [testFireSubmitting, setTestFireSubmitting] = useState(false);
 
   // ── Open orders ────────────────────────────────────────────────────────
   const [openOrders, setOpenOrders] = useState<SanmarOrderStatus[]>([]);
@@ -1642,6 +1738,175 @@ export default function AdminSanMar() {
   );
 
   /**
+   * Distinct style_ids on the *currently visible* catalogue page that
+   * are eligible for selection. Multiple SKUs share a style, so we
+   * dedupe — the bulk refresh fans out per-style, not per-SKU. Computed
+   * via useMemo so the "Select all" checkbox state stays referentially
+   * stable across unrelated re-renders.
+   */
+  const visibleStyleIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const row of catalogRows) {
+      if (row.style_id) ids.add(row.style_id);
+    }
+    return ids;
+  }, [catalogRows]);
+
+  /**
+   * Bulk refresh selected styles in series. Sequential — NOT parallel —
+   * because SanMar's PromoStandards SOAP endpoint rate-limits per-IP
+   * and we've seen 429s when more than ~3 inflight requests hit it from
+   * the cron job. The edge fn already does ~3 SOAP calls per style
+   * (product/inventory/pricing), so even one style at a time produces
+   * meaningful concurrency on SanMar's side. Operator can cancel via
+   * the progress indicator; the in-flight iteration completes (we have
+   * no AbortController plumbing through to the edge fn) but no further
+   * styles are kicked off after that. On completion: a single toast
+   * summarises the run, with categorized failures listed for triage.
+   */
+  const handleBulkRefreshSelected = useCallback(async () => {
+    if (!supabase) {
+      toast.error(
+        lang === 'en'
+          ? 'Supabase client not initialized'
+          : 'Client Supabase non initialisé',
+      );
+      return;
+    }
+    // Snapshot the selection at click-time. If new boxes get ticked
+    // mid-run we don't want them retroactively swept up — operator's
+    // intent was the set as it stood when they hit the button.
+    const styleIds = Array.from(selectedStyles).slice(0, BULK_REFRESH_MAX);
+    if (styleIds.length === 0) return;
+    if (bulkRefreshState?.running) return;
+
+    bulkCancelRef.current = false;
+    setBulkRefreshState({
+      running: true,
+      current: null,
+      completed: 0,
+      total: styleIds.length,
+      succeeded: [],
+      failed: [],
+    });
+
+    const succeeded: string[] = [];
+    const failed: { styleId: string; title: string; action: string }[] = [];
+
+    for (let i = 0; i < styleIds.length; i++) {
+      if (bulkCancelRef.current) break;
+      const styleId = styleIds[i];
+      setBulkRefreshState((prev) =>
+        prev
+          ? { ...prev, current: styleId, completed: i }
+          : prev,
+      );
+      // Mark the row as refreshing so the per-row spinner kicks in too.
+      setRefreshingStyles((prev) => {
+        const next = new Set(prev);
+        next.add(styleId);
+        return next;
+      });
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'sanmar-force-refresh-style',
+          { body: { style_id: styleId } },
+        );
+        if (error) {
+          const { title, action } = categorizeError(
+            { message: error.message || '' },
+            lang,
+          );
+          failed.push({ styleId, title, action });
+        } else {
+          const payload = data as { success?: boolean; error?: string } | null;
+          if (!payload || payload.success !== true) {
+            const { title, action } = categorizeError(
+              { message: payload?.error ?? 'Unknown error' },
+              lang,
+            );
+            failed.push({ styleId, title, action });
+          } else {
+            succeeded.push(styleId);
+          }
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        const { title, action } = categorizeError({ message: msg }, lang);
+        failed.push({ styleId, title, action });
+      } finally {
+        setRefreshingStyles((prev) => {
+          const next = new Set(prev);
+          next.delete(styleId);
+          return next;
+        });
+      }
+    }
+
+    const cancelled = bulkCancelRef.current;
+    setBulkRefreshState(null);
+    bulkCancelRef.current = false;
+    // Refresh the visible page so quantities/prices update for the
+    // styles we just hit. Cheaper than re-rendering each row inline.
+    await loadCatalog();
+
+    // Summary toast. We *always* surface success even on partial-fail
+    // runs so the operator knows the cancel/cap landed where they
+    // intended, then list failures so they can re-queue them.
+    const okCount = succeeded.length;
+    const failCount = failed.length;
+    if (failCount === 0) {
+      toast.success(
+        lang === 'en'
+          ? cancelled
+            ? `Bulk refresh cancelled: ${okCount}/${styleIds.length} succeeded`
+            : `Bulk refresh complete: ${okCount}/${styleIds.length} succeeded`
+          : cancelled
+            ? `Actualisation groupée annulée : ${okCount}/${styleIds.length} réussis`
+            : `Actualisation groupée terminée : ${okCount}/${styleIds.length} réussis`,
+      );
+    } else {
+      const failLines = failed
+        .slice(0, 5)
+        .map((f) => `• ${f.styleId}: ${f.title}`)
+        .join('\n');
+      const more =
+        failed.length > 5
+          ? lang === 'en'
+            ? `\n…and ${failed.length - 5} more`
+            : `\n…et ${failed.length - 5} de plus`
+          : '';
+      toast.error(
+        lang === 'en'
+          ? cancelled
+            ? `Bulk refresh cancelled: ${okCount}/${styleIds.length} succeeded, ${failCount} failed`
+            : `Bulk refresh complete: ${okCount}/${styleIds.length} succeeded, ${failCount} failed`
+          : cancelled
+            ? `Actualisation groupée annulée : ${okCount}/${styleIds.length} réussis, ${failCount} échecs`
+            : `Actualisation groupée terminée : ${okCount}/${styleIds.length} réussis, ${failCount} échecs`,
+        { description: `${failLines}${more}` },
+      );
+    }
+    // Keep the selection alive on partial failures so operator can
+    // retry just the failed ones; clear it on a clean run.
+    if (failCount === 0 && !cancelled) {
+      setSelectedStyles(new Set());
+    } else {
+      setSelectedStyles(new Set(failed.map((f) => f.styleId)));
+    }
+  }, [lang, selectedStyles, bulkRefreshState, loadCatalog]);
+
+  /**
+   * Cancel a bulk refresh in flight. The current SOAP call still runs
+   * to completion (no abort plumbing through the edge fn) but no
+   * further iterations are kicked off. The summary toast at the end
+   * notes the cancellation so the operator knows it landed.
+   */
+  const handleCancelBulkRefresh = useCallback(() => {
+    bulkCancelRef.current = true;
+  }, []);
+
+  /**
    * Test order submission — dispatches a Sample-type order with a
    * single line item so the operator can verify the SOAP plumbing
    * end-to-end without filing a real order. The transactionId is
@@ -2117,6 +2382,155 @@ export default function AdminSanMar() {
     : lang === 'en'
       ? 'UAT (config-driven, gate disabled)'
       : 'UAT (piloté par config, gate désactivé)';
+
+  // ── Webhook deliveries loader (Phase 19) ───────────────────────────────
+  // Hidden when the cache layer isn't configured — operators not running
+  // Python don't need a "no data" widget cluttering their dashboard.
+  const cacheApiBaseUrl = (
+    import.meta.env.VITE_SANMAR_CACHE_API_URL as string | undefined
+  )?.trim();
+  const webhookSectionEnabled = Boolean(cacheApiBaseUrl);
+
+  const loadWebhookDeliveries = useCallback(async () => {
+    if (!webhookSectionEnabled) return;
+    setWebhookLoading(true);
+    setWebhookError(null);
+    try {
+      const params: Record<string, string> = { limit: String(webhookLimit) };
+      if (webhookOutcomeFilter !== 'all') params.outcome = webhookOutcomeFilter;
+      if (webhookEventFilter !== 'all') params.event = webhookEventFilter;
+      const search = new URLSearchParams(params).toString();
+      const { data, error } = await supabase.functions.invoke(
+        `sanmar-webhook-deliveries?${search}`,
+        { method: 'GET' },
+      );
+      if (error) {
+        setWebhookError({ message: error.message || 'edge_function_error' });
+        return;
+      }
+      const payload = data as
+        | {
+            deliveries?: WebhookDeliveryRow[];
+            total_count?: number;
+            has_more?: boolean;
+          }
+        | null;
+      setWebhookDeliveries(payload?.deliveries ?? []);
+      setWebhookHasMore(Boolean(payload?.has_more));
+      setWebhookTotalCount(
+        typeof payload?.total_count === 'number' ? payload.total_count : null,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setWebhookError({ message: msg });
+    } finally {
+      setWebhookLoading(false);
+    }
+  }, [webhookSectionEnabled, webhookLimit, webhookOutcomeFilter, webhookEventFilter]);
+
+  // Initial load + reload on filter change. The dependency on
+  // loadWebhookDeliveries (which closes over the filter state) is what
+  // wires reactivity; eslint's exhaustive-deps gets it right here.
+  useEffect(() => {
+    if (!webhookSectionEnabled) return;
+    void loadWebhookDeliveries();
+  }, [webhookSectionEnabled, loadWebhookDeliveries]);
+
+  const openTestFireDialog = () => {
+    // Default PO carries a unix-ts so consecutive clicks don't collide.
+    setTestFirePo(`TEST-${Math.floor(Date.now() / 1000)}`);
+    setTestFireEvent('order.shipped');
+    setTestFireOpen(true);
+  };
+
+  const submitTestFire = async () => {
+    if (testFireSubmitting) return;
+    setTestFireSubmitting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(
+        'sanmar-webhook-test',
+        {
+          body: {
+            po_number: testFirePo.trim() || undefined,
+            event: testFireEvent,
+          },
+        },
+      );
+      if (error) {
+        const { title, action } = categorizeError(
+          { message: error.message || '' },
+          lang,
+        );
+        toast.error(
+          lang === 'en' ? `Test fire failed: ${title}` : `Échec du test : ${title}`,
+          { description: action },
+        );
+        return;
+      }
+      const payload = data as
+        | {
+            fired?: boolean;
+            delivery?: WebhookDeliveryRow | null;
+            is_test?: boolean;
+          }
+        | null;
+      const delivery = payload?.delivery ?? null;
+      if (delivery) {
+        const status = delivery.status_code ?? '—';
+        const ms = delivery.response_ms != null ? `${delivery.response_ms} ms` : '—';
+        toast.success(
+          lang === 'en'
+            ? `Test fired: status ${status}, ${ms}`
+            : `Test envoyé : statut ${status}, ${ms}`,
+        );
+      } else {
+        toast.success(
+          lang === 'en'
+            ? 'Test fired (no delivery row persisted)'
+            : 'Test envoyé (aucune livraison persistée)',
+        );
+      }
+      setTestFireOpen(false);
+      // Refresh the table so the new row shows up at the top.
+      void loadWebhookDeliveries();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(
+        lang === 'en' ? `Test fire failed: ${msg}` : `Échec du test : ${msg}`,
+      );
+    } finally {
+      setTestFireSubmitting(false);
+    }
+  };
+
+  /** Format a webhook signed_at into a relative + absolute string pair
+   *  for the table cell. Mirrors the digest convention — relative for
+   *  scannability, absolute on hover for forensic accuracy. */
+  const formatWebhookTime = (iso: string | null): { rel: string; abs: string } => {
+    if (!iso) return { rel: '—', abs: '' };
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return { rel: '—', abs: iso };
+    const diffMs = Date.now() - d.getTime();
+    const diffSec = Math.round(diffMs / 1000);
+    const rel =
+      diffSec < 60
+        ? lang === 'en' ? `${diffSec}s ago` : `il y a ${diffSec}s`
+        : diffSec < 3600
+          ? lang === 'en'
+            ? `${Math.floor(diffSec / 60)}m ago`
+            : `il y a ${Math.floor(diffSec / 60)} min`
+          : diffSec < 86_400
+            ? lang === 'en'
+              ? `${Math.floor(diffSec / 3600)}h ago`
+              : `il y a ${Math.floor(diffSec / 3600)} h`
+            : lang === 'en'
+              ? `${Math.floor(diffSec / 86_400)}d ago`
+              : `il y a ${Math.floor(diffSec / 86_400)} j`;
+    return {
+      rel,
+      abs: d.toLocaleString(lang === 'fr' ? 'fr-CA' : 'en-CA'),
+    };
+  };
 
   // ── Render ─────────────────────────────────────────────────────────────
 
@@ -3482,7 +3896,291 @@ export default function AdminSanMar() {
             </div>
           )}
         </section>
+
+        {/* Phase 19 — Webhook deliveries panel. Mirrors the Streamlit
+            Phase-18 panel for storefront-only operators. Hidden when
+            VITE_SANMAR_CACHE_API_URL is unset. */}
+        {webhookSectionEnabled && (
+          <section
+            aria-labelledby="sanmar-webhooks-title"
+            className="bg-va-white border border-va-line rounded-2xl p-6"
+          >
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2
+                  id="sanmar-webhooks-title"
+                  className="font-display font-black text-va-ink text-xl tracking-tight flex items-center gap-2"
+                >
+                  <Send size={20} aria-hidden="true" className="text-va-blue" />
+                  {lang === 'en' ? 'Webhook deliveries' : 'Livraisons de webhooks'}
+                </h2>
+                <p className="text-va-muted text-sm mt-1">
+                  {lang === 'en'
+                    ? 'Outbound customer-webhook attempts logged by the SanMar Python cache.'
+                    : 'Tentatives de webhooks clients enregistrées par le cache Python SanMar.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void loadWebhookDeliveries()}
+                  disabled={webhookLoading}
+                  className="bg-va-bg-2 hover:bg-va-bg-3 text-va-ink px-4 py-2 rounded-lg text-xs font-bold disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 transition-colors border border-va-line"
+                >
+                  <RefreshCw
+                    size={14}
+                    aria-hidden="true"
+                    className={webhookLoading ? 'animate-spin' : ''}
+                  />
+                  {lang === 'en' ? 'Refresh' : 'Actualiser'}
+                </button>
+                <button
+                  type="button"
+                  onClick={openTestFireDialog}
+                  className="bg-va-blue hover:bg-va-blue-hover text-white px-4 py-2 rounded-lg text-xs font-bold inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2 transition-colors"
+                >
+                  <Send size={14} aria-hidden="true" />
+                  {lang === 'en' ? 'Fire test event' : 'Envoyer test'}
+                </button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="mt-5 flex flex-wrap gap-3 items-end">
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  {lang === 'en' ? 'Outcome' : 'Résultat'}
+                </span>
+                <select
+                  value={webhookOutcomeFilter}
+                  onChange={e => {
+                    setWebhookOutcomeFilter(e.target.value);
+                    setWebhookLimit(50);
+                  }}
+                  className="mt-1 border border-va-line rounded-lg px-3 py-2 text-sm text-va-ink bg-va-white outline-none focus:border-va-blue focus-visible:ring-2 focus-visible:ring-va-blue/25"
+                >
+                  <option value="all">{lang === 'en' ? 'All' : 'Tous'}</option>
+                  <option value="success">success</option>
+                  <option value="retry">retry</option>
+                  <option value="failed">failed</option>
+                  <option value="skipped">skipped</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  {lang === 'en' ? 'Event' : 'Événement'}
+                </span>
+                <select
+                  value={webhookEventFilter}
+                  onChange={e => {
+                    setWebhookEventFilter(e.target.value);
+                    setWebhookLimit(50);
+                  }}
+                  className="mt-1 border border-va-line rounded-lg px-3 py-2 text-sm text-va-ink bg-va-white outline-none focus:border-va-blue focus-visible:ring-2 focus-visible:ring-va-blue/25"
+                >
+                  <option value="all">{lang === 'en' ? 'All' : 'Tous'}</option>
+                  {WEBHOOK_EVENT_OPTIONS.map(ev => (
+                    <option key={ev} value={ev}>
+                      {ev}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {webhookTotalCount != null && (
+                <p className="text-xs text-va-muted ml-auto pb-2">
+                  {lang === 'en'
+                    ? `Showing ${webhookDeliveries.length} of ${webhookTotalCount}`
+                    : `Affichage de ${webhookDeliveries.length} sur ${webhookTotalCount}`}
+                </p>
+              )}
+            </div>
+
+            {webhookError ? (
+              <SanmarErrorPanel
+                err={webhookError}
+                lang={lang}
+                className="mt-4"
+              />
+            ) : null}
+
+            {/* Empty state vs. table */}
+            {!webhookLoading && webhookDeliveries.length === 0 && !webhookError ? (
+              <div className="mt-5 rounded-xl border border-va-line bg-va-bg-2 p-6 text-center">
+                <p className="text-sm text-va-ink font-bold">
+                  {lang === 'en'
+                    ? 'No deliveries recorded — no webhooks fired yet'
+                    : 'Aucune livraison enregistrée — aucun webhook envoyé pour le moment'}
+                </p>
+                <p className="text-xs text-va-muted mt-2">
+                  {lang === 'en'
+                    ? 'Deliveries appear here once the SanMar reconciler fires a customer webhook. Reads from VITE_SANMAR_CACHE_API_URL.'
+                    : "Les livraisons s’affichent ici dès qu’un webhook client est envoyé. Source : VITE_SANMAR_CACHE_API_URL."}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-5 overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] font-bold uppercase tracking-wider text-va-muted border-b border-va-line">
+                      <th className="py-2 pr-4">
+                        {lang === 'en' ? 'When' : 'Quand'}
+                      </th>
+                      <th className="py-2 pr-4">PO</th>
+                      <th className="py-2 pr-4">
+                        {lang === 'en' ? 'Event' : 'Événement'}
+                      </th>
+                      <th className="py-2 pr-4">
+                        {lang === 'en' ? 'Status' : 'Statut'}
+                      </th>
+                      <th className="py-2 pr-4">
+                        {lang === 'en' ? 'Attempts' : 'Tentatives'}
+                      </th>
+                      <th className="py-2 pr-4">ms</th>
+                      <th className="py-2 pr-4">
+                        {lang === 'en' ? 'Outcome' : 'Résultat'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {webhookDeliveries.map(d => {
+                      const t = formatWebhookTime(d.signed_at);
+                      const badgeCls =
+                        WEBHOOK_OUTCOME_BADGE[d.outcome] ??
+                        WEBHOOK_OUTCOME_BADGE.failed;
+                      return (
+                        <tr
+                          key={d.id}
+                          className="border-b border-va-line/50 hover:bg-va-bg-2/50 transition-colors"
+                        >
+                          <td
+                            className="py-2 pr-4 text-va-dim text-xs"
+                            title={t.abs}
+                          >
+                            {t.rel}
+                          </td>
+                          <td className="py-2 pr-4 font-mono text-xs">
+                            {d.po_number}
+                          </td>
+                          <td className="py-2 pr-4 text-xs">{d.event}</td>
+                          <td className="py-2 pr-4 font-mono text-xs">
+                            {d.status_code ?? '—'}
+                          </td>
+                          <td className="py-2 pr-4 text-xs">
+                            {d.attempt_count}
+                          </td>
+                          <td className="py-2 pr-4 font-mono text-xs">
+                            {d.response_ms ?? '—'}
+                          </td>
+                          <td className="py-2 pr-4">
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${badgeCls}`}
+                            >
+                              {d.outcome}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {webhookHasMore && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setWebhookLimit(n => n + 50)}
+                      disabled={webhookLoading}
+                      className="text-xs font-bold text-va-blue hover:text-va-blue-hover disabled:opacity-60 px-4 py-2 rounded-lg border border-va-line hover:bg-va-bg-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+                    >
+                      {lang === 'en' ? 'See more' : 'Voir plus'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
       </div>
+
+      {/* Phase 19 — Fire test event dialog. Lightweight modal matching
+          the existing note-editor pattern; no shadcn dependency for a
+          two-input form. */}
+      {testFireOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sanmar-test-fire-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+          onClick={e => {
+            if (e.target === e.currentTarget) setTestFireOpen(false);
+          }}
+        >
+          <div className="bg-va-white rounded-2xl border border-va-line shadow-xl w-full max-w-md p-6">
+            <h3
+              id="sanmar-test-fire-title"
+              className="font-display font-black text-va-ink text-lg tracking-tight"
+            >
+              {lang === 'en' ? 'Fire test webhook' : 'Envoyer un webhook test'}
+            </h3>
+            <p className="text-xs text-va-muted mt-1">
+              {lang === 'en'
+                ? 'Sends a synthetic order event with is_test:true so receivers can ignore in production logic.'
+                : "Envoie un événement synthétique avec is_test:true — les récepteurs peuvent l’ignorer en production."}
+            </p>
+
+            <div className="mt-5 space-y-4">
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  {lang === 'en' ? 'PO number' : 'Numéro PO'}
+                </span>
+                <input
+                  type="text"
+                  value={testFirePo}
+                  onChange={e => setTestFirePo(e.target.value)}
+                  className="mt-1 w-full border border-va-line rounded-lg px-3 py-2 text-sm text-va-ink bg-va-white outline-none focus:border-va-blue focus-visible:ring-2 focus-visible:ring-va-blue/25"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-va-muted">
+                  {lang === 'en' ? 'Event' : 'Événement'}
+                </span>
+                <select
+                  value={testFireEvent}
+                  onChange={e => setTestFireEvent(e.target.value)}
+                  className="mt-1 w-full border border-va-line rounded-lg px-3 py-2 text-sm text-va-ink bg-va-white outline-none focus:border-va-blue focus-visible:ring-2 focus-visible:ring-va-blue/25"
+                >
+                  {WEBHOOK_EVENT_OPTIONS.map(ev => (
+                    <option key={ev} value={ev}>
+                      {ev}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setTestFireOpen(false)}
+                disabled={testFireSubmitting}
+                className="px-4 py-2 text-xs font-bold text-va-fg border border-va-line rounded-lg hover:bg-va-bg-2 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                {lang === 'en' ? 'Cancel' : 'Annuler'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitTestFire()}
+                disabled={testFireSubmitting}
+                className="px-4 py-2 text-xs font-bold text-white bg-va-blue rounded-lg hover:bg-va-blue-hover disabled:opacity-60 inline-flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-2"
+              >
+                {testFireSubmitting ? (
+                  <RefreshCw size={12} aria-hidden="true" className="animate-spin" />
+                ) : null}
+                {lang === 'en' ? 'Submit' : 'Soumettre'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/*
         Internal notes editor — rendered at the page root so the
