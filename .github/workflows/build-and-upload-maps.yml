@@ -95,3 +95,26 @@ jobs:
       - name: Skip release notification (no webhook secret)
         if: env.RELEASE_WEBHOOK_URL == ''
         run: echo "RELEASE_WEBHOOK_URL not set — skipping release notification"
+
+      - name: Notify on release upload failure
+        if: failure() && env.RELEASE_WEBHOOK_URL != ''
+        env:
+          RELEASE_WEBHOOK_URL: ${{ secrets.RELEASE_WEBHOOK_URL }}
+        run: |
+          curl -X POST "$RELEASE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$(cat <<EOF
+          {
+            "text": "🔴 Vision Affichage release upload FAILED",
+            "attachments": [{
+              "color": "danger",
+              "fields": [
+                {"title": "Commit", "value": "${GITHUB_SHA}", "short": true},
+                {"title": "Branch", "value": "${GITHUB_REF_NAME}", "short": true},
+                {"title": "Run", "value": "<${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|Investigate>", "short": false},
+                {"title": "Impact", "value": "Source maps not uploaded — production stack traces will be unsymbolicated until next successful run.", "short": false}
+              ]
+            }]
+          }
+          EOF
+          )"

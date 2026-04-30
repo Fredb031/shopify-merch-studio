@@ -184,11 +184,23 @@ contributors who don't run the upload step.
 
 ### Release notifications (Slack / Discord)
 
-After a successful source-map upload, the workflow can post a release
-notification to a Slack or Discord channel so the team has visibility
-that symbolication is ready for a given commit. The step is gated on
-**both** `SENTRY_AUTH_TOKEN` and `RELEASE_WEBHOOK_URL` being set — until
-the operator wires both, the build still passes green.
+The workflow posts **two** kinds of notifications via the same
+`RELEASE_WEBHOOK_URL` secret:
+
+1. **Success** — after a successful source-map upload, posts a green
+   attachment with commit SHA, branch, and a link to the Actions run.
+   Gated on **both** `SENTRY_AUTH_TOKEN` and `RELEASE_WEBHOOK_URL` being
+   set, plus job `success()`.
+2. **Failure** — if any step in the job fails (Sentry upload, build,
+   verify, etc.), posts a red attachment with commit SHA, branch, a
+   one-click Investigate link to the run, and an impact statement
+   noting that production stack traces will be unsymbolicated until
+   the next successful run. Gated on `failure()` and
+   `RELEASE_WEBHOOK_URL` being set — closes the silent-CI-red gap so
+   a broken upload can't slip past the team unnoticed.
+
+Both notifications share the **same** webhook secret — no second
+secret needed.
 
 Operator setup checklist:
 
@@ -201,10 +213,10 @@ Operator setup checklist:
      `/slack` to the URL (e.g. `.../webhooks/<id>/<token>/slack`).
 2. Add a repo secret in GitHub:
    - `RELEASE_WEBHOOK_URL` — the webhook URL from step 1.
-3. Push to `main` (or trigger via `workflow_dispatch`). The workflow
-   posts a message containing the commit SHA, branch, and a link to the
-   Actions run that uploaded the maps.
+3. Push to `main` (or trigger via `workflow_dispatch`). On success the
+   workflow posts a green message; on any step failure it posts a red
+   message instead.
 
-To disable temporarily, delete the `RELEASE_WEBHOOK_URL` secret — the
-workflow will fall back to the skip-step (`echo "… skipping release
-notification"`) and stay green.
+To disable temporarily, delete the `RELEASE_WEBHOOK_URL` secret — both
+notification steps will skip and the workflow will stay green (or red,
+based on actual job outcome) without posting.
