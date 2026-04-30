@@ -8,6 +8,12 @@ import { useTranslations } from 'next-intl';
 import type { Locale, Product } from '@/lib/types';
 import { useCart } from '@/lib/cart';
 import { formatCAD } from '@/lib/format';
+import type {
+  SanmarProduct,
+  SanmarInventory,
+  SanmarPricing,
+  SanmarFetchResult,
+} from '@/lib/sanmar/types';
 
 import { ColorSwatch } from '@/components/product/ColorSwatch';
 import { SizePicker } from '@/components/product/SizePicker';
@@ -18,12 +24,22 @@ import { Button } from '@/components/Button';
 type Props = {
   product: Product;
   locale: Locale;
+  liveProduct?: SanmarFetchResult<SanmarProduct> | null;
+  liveInventory?: SanmarFetchResult<SanmarInventory> | null;
+  livePricing?: SanmarFetchResult<SanmarPricing> | null;
 };
 
 const QTY_MAX = 1000;
 
-export function PdpClient({ product, locale }: Props) {
+export function PdpClient({
+  product,
+  locale,
+  liveProduct,
+  liveInventory,
+  livePricing,
+}: Props) {
   const t = useTranslations('pdp');
+  const tLive = useTranslations('pdp.live');
   const router = useRouter();
   const addItem = useCart((s) => s.addItem);
 
@@ -103,8 +119,69 @@ export function PdpClient({ product, locale }: Props) {
   const quoteSubtext = t('cta.quote.subtext');
   const sizeErrorMsg = t('variant.error.size');
 
+  const inventoryData =
+    liveInventory && liveInventory.source === 'cache' ? liveInventory.data : null;
+  const pricingData =
+    livePricing && livePricing.source === 'cache' ? livePricing.data : null;
+  const showLiveBadge =
+    (liveProduct && liveProduct.source === 'cache') ||
+    inventoryData !== null ||
+    pricingData !== null;
+
+  const tierFormatter = (priceCad: number): string =>
+    formatCAD(Math.round(priceCad * 100), locale);
+
   return (
     <>
+      {/* Live data badge */}
+      {showLiveBadge ? (
+        <div>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-pill bg-slate-700 px-2.5 py-1 text-meta-xs font-medium text-canvas-000"
+            title={tLive('source.liveTooltip', { url: 'SanMar cache API' })}
+          >
+            <span
+              aria-hidden
+              className="inline-block h-1.5 w-1.5 rounded-full bg-success-200"
+            />
+            {tLive('source.live')}
+          </span>
+        </div>
+      ) : null}
+
+      {/* Live pricing tiers (only when 2+ breaks) */}
+      {pricingData && pricingData.breaks.length > 1 ? (
+        <div>
+          <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
+            {tLive('pricing.tiers.heading')}
+          </span>
+          <ul className="mt-2 divide-y divide-sand-300/60 rounded-sm border border-sand-300 bg-canvas-050">
+            {pricingData.breaks.map((b, idx) => {
+              const range =
+                b.maxQuantity === null
+                  ? tLive('pricing.tier.from', { min: b.minQuantity })
+                  : tLive('pricing.tier.to', {
+                      min: b.minQuantity,
+                      max: b.maxQuantity,
+                    });
+              return (
+                <li
+                  key={`${b.minQuantity}-${idx}`}
+                  className="flex items-center justify-between px-3 py-2 text-body-sm text-ink-950"
+                >
+                  <span className="font-medium">{range}</span>
+                  <span>
+                    {tLive('pricing.tier.unitPrice', {
+                      price: tierFormatter(b.priceCad),
+                    })}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
       {/* 8. Color picker */}
       <div>
         <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
@@ -174,6 +251,33 @@ export function PdpClient({ product, locale }: Props) {
           showSizeGuide
         />
       </div>
+
+      {/* Live stock indicator */}
+      {inventoryData ? (
+        <div>
+          <span className="block text-meta-xs uppercase tracking-wider text-stone-600">
+            {tLive('stock.heading')}
+          </span>
+          {inventoryData.total === 0 ? (
+            <p className="mt-2 text-body-sm font-medium text-error-700">
+              {tLive('stock.outOfStock')}
+            </p>
+          ) : (
+            <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-body-sm text-ink-950">
+              {inventoryData.locations.map((loc) => (
+                <li key={loc.warehouseId} className="flex items-center gap-1">
+                  <span className="font-medium">
+                    {tLive(`stock.warehouse.${loc.warehouseName}`)}
+                  </span>
+                  <span className="text-stone-600">
+                    ({loc.quantity} {tLive('stock.units')})
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
 
       {/* 10. Quantity */}
       <div>

@@ -730,6 +730,32 @@
     "shipping": {
       "leadTime": "Production en 5 à 7 jours ouvrables après approbation du logo. Vestes et broderies XL : 7 à 14 jours.",
       "zones": "Livraison directe dans la région de Montréal. Ailleurs au Québec et en Ontario par transporteur. Autres provinces sur demande."
+    },
+    "live": {
+      "stock": {
+        "heading": "Disponibilité",
+        "warehouse": {
+          "Vancouver": "Vancouver",
+          "Mississauga": "Mississauga",
+          "Calgary": "Calgary"
+        },
+        "units": "unités",
+        "outOfStock": "Hors stock"
+      },
+      "pricing": {
+        "tiers": {
+          "heading": "Prix par quantité"
+        },
+        "tier": {
+          "from": "{min}+",
+          "to": "{min}-{max}",
+          "unitPrice": "{price} / unité"
+        }
+      },
+      "source": {
+        "live": "Données en direct",
+        "liveTooltip": "Source : {url}"
+      }
     }
   },
   "product": {
@@ -747,12 +773,24 @@
     "subhead": "Pour les commandes de 50 unités et plus. On répond sous un jour ouvrable.",
     "stepsLabel": "Étapes de la soumission",
     "steps": {
-      "1": { "label": "Portée" },
-      "2": { "label": "Produits" },
-      "3": { "label": "Logo" },
-      "4": { "label": "Livraison" },
-      "5": { "label": "Contact" },
-      "6": { "label": "Révision" }
+      "1": {
+        "label": "Portée"
+      },
+      "2": {
+        "label": "Produits"
+      },
+      "3": {
+        "label": "Logo"
+      },
+      "4": {
+        "label": "Livraison"
+      },
+      "5": {
+        "label": "Contact"
+      },
+      "6": {
+        "label": "Révision"
+      }
     },
     "scope": {
       "heading": "Portée du projet",

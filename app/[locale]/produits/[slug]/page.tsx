@@ -25,6 +25,11 @@ import { siteConfig } from '@/lib/site';
 import { formatCAD } from '@/lib/format';
 import { routing, type Locale } from '@/i18n/routing';
 import type { Product, ProductCategory } from '@/lib/types';
+import {
+  getProductFromCache,
+  getInventoryFromCache,
+  getPricingFromCache,
+} from '@/lib/sanmar/client';
 
 import { PdpClient } from './PdpClient';
 
@@ -188,6 +193,16 @@ export default async function ProductPage({ params }: Props) {
 
   const ratingsAnchor = '#reviews';
 
+  // Concurrent live SanMar cache fetches (no-op when env unset; never throws).
+  const styleNumber = product.styleCode
+    ? product.styleCode.toUpperCase()
+    : slug.toUpperCase();
+  const [liveProduct, liveInventory, livePricing] = await Promise.all([
+    getProductFromCache(styleNumber),
+    getInventoryFromCache(styleNumber),
+    getPricingFromCache(styleNumber),
+  ]);
+
   const trustItems = [
     t('trust.logoApproved'),
     t('trust.production'),
@@ -283,7 +298,13 @@ export default async function ProductPage({ params }: Props) {
               </p>
 
               {/* 8-13: client-side picker / qty / CTA */}
-              <PdpClient product={product} locale={locale} />
+              <PdpClient
+                product={product}
+                locale={locale}
+                liveProduct={liveProduct}
+                liveInventory={liveInventory}
+                livePricing={livePricing}
+              />
 
               {/* 14. Trust strip */}
               <ul className="grid grid-cols-1 gap-2 border-t border-sand-300 pt-4 sm:grid-cols-3">

@@ -730,6 +730,32 @@
     "shipping": {
       "leadTime": "Production in 5 to 7 business days after logo approval. Jackets and XL embroidery: 7 to 14 days.",
       "zones": "Direct delivery in Greater Montreal. Elsewhere in Québec and Ontario by carrier. Other provinces on request."
+    },
+    "live": {
+      "stock": {
+        "heading": "Stock",
+        "warehouse": {
+          "Vancouver": "Vancouver",
+          "Mississauga": "Mississauga",
+          "Calgary": "Calgary"
+        },
+        "units": "units",
+        "outOfStock": "Out of stock"
+      },
+      "pricing": {
+        "tiers": {
+          "heading": "Price by quantity"
+        },
+        "tier": {
+          "from": "{min}+",
+          "to": "{min}-{max}",
+          "unitPrice": "{price} / unit"
+        }
+      },
+      "source": {
+        "live": "Live data",
+        "liveTooltip": "Source: {url}"
+      }
     }
   },
   "product": {
@@ -747,12 +773,24 @@
     "subhead": "For 50-unit orders and up. We respond within one business day.",
     "stepsLabel": "Quote steps",
     "steps": {
-      "1": { "label": "Scope" },
-      "2": { "label": "Products" },
-      "3": { "label": "Logo" },
-      "4": { "label": "Shipping" },
-      "5": { "label": "Contact" },
-      "6": { "label": "Review" }
+      "1": {
+        "label": "Scope"
+      },
+      "2": {
+        "label": "Products"
+      },
+      "3": {
+        "label": "Logo"
+      },
+      "4": {
+        "label": "Shipping"
+      },
+      "5": {
+        "label": "Contact"
+      },
+      "6": {
+        "label": "Review"
+      }
     },
     "scope": {
       "heading": "Project scope",
