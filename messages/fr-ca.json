@@ -999,6 +999,90 @@
         }
       }
     },
+    "stats": {
+      "1": {
+        "value": "33 000+",
+        "label": "vêtements brodés depuis 2021"
+      },
+      "2": {
+        "value": "500+",
+        "label": "entreprises clientes"
+      },
+      "3": {
+        "value": "5 jours",
+        "label": "production garantie"
+      },
+      "4": {
+        "value": "5,0/5",
+        "label": "moyenne Google"
+      }
+    },
+    "whyUs": {
+      "eyebrow": "POURQUOI VISION AFFICHAGE",
+      "heading": "Pourquoi Vision Affichage",
+      "subhead": "Un atelier au Québec. Une équipe qui parle français. Cinq jours pour livrer."
+    },
+    "process": {
+      "heading": "Comment ça marche",
+      "subhead": "De la commande à la livraison en 5 jours ouvrables.",
+      "steps": {
+        "1": {
+          "title": "Choisis tes vêtements",
+          "description": "Magasine notre catalogue ou commande un kit découverte pour toucher trois échantillons.",
+          "duration": "Maintenant",
+          "alt": "Trois vêtements empilés avec une icône d'ajout"
+        },
+        "2": {
+          "title": "Téléverse ton logo",
+          "description": "PDF, AI, SVG, PNG ou JPG. On vérifie la qualité avant de toucher aux vêtements.",
+          "duration": "Quelques minutes",
+          "alt": "Flèche pointant vers une zone de dépôt de fichier"
+        },
+        "3": {
+          "title": "On approuve la maquette",
+          "description": "On numérise et on t'envoie une épreuve. Tu approuves avant qu'on lance la production.",
+          "duration": "1 jour ouvrable",
+          "alt": "Coche dans un cercle à côté d'une maquette de vêtement"
+        },
+        "4": {
+          "title": "Production + livraison",
+          "description": "Production garantie en 5 jours après approbation. Livraison partout au Québec.",
+          "duration": "5 jours ouvrables",
+          "alt": "Boîte d'expédition avec une flèche de livraison"
+        }
+      }
+    },
+    "caseStudy": {
+      "ctaSection": "Voir l'industrie construction"
+    },
+    "industryPreview": {
+      "heading": "Adapté à ton terrain",
+      "subhead": "On comprend que les besoins varient. Voici 2 exemples.",
+      "productSampleHeading": "Produits populaires",
+      "cards": {
+        "construction": {
+          "cta": "Voir tous les produits pour la construction",
+          "hookLine": "Tissus costauds, broderie qui tient cinq hivers de chantier.",
+          "caseQuote": "« Le polo qu'on commandait avant ne tenait pas un été. Vision Affichage, c'est un autre standard. »",
+          "caseAttribution": "— Marc Tremblay, Construction Rivard"
+        },
+        "bureau": {
+          "cta": "Voir tous les produits pour le bureau",
+          "hookLine": "Coupes ajustées, finis pro, broderie discrète sur la poitrine.",
+          "caseQuote": "« On uniformise nos 80 employés à chaque embauche. Toujours en stock, toujours impec. »",
+          "caseAttribution": "— Sophie Beauchamp, agence corporative Montréal"
+        }
+      }
+    },
+    "newsletter": {
+      "stripe": {
+        "heading": "Conseils mensuels pour habiller ton équipe",
+        "subhead": "Une fois par mois. Conformité CASL. Désabonnement 1 clic.",
+        "placeholder": "ton.courriel@entreprise.ca",
+        "submit": "S'inscrire",
+        "fullLink": "Inscription complète sur /infolettre"
+      }
+    },
     "finalCta": {
       "heading": "Prêt à uniformiser ton équipe ?",
       "subhead": "Soumission en 24 heures ouvrables. Production en 5 jours. Service en français.",

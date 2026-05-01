@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="#FFFFFF"/>
+  <!-- box -->
+  <path d="M40 60 L80 45 L120 60 L120 110 L80 125 L40 110 Z" fill="#F0ECE4" stroke="#35556D" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- box top crease -->
+  <path d="M40 60 L80 75 L120 60" fill="none" stroke="#35556D" stroke-width="1.5"/>
+  <line x1="80" y1="75" x2="80" y2="125" stroke="#35556D" stroke-width="1.5"/>
+  <!-- tape -->
+  <path d="M64 52 L64 67 L80 75 L96 67 L96 52" fill="none" stroke="#1D2127" stroke-width="1.5"/>
+  <!-- arrow forward -->
+  <line x1="125" y1="80" x2="148" y2="80" stroke="#1D2127" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M141 73 L148 80 L141 87" fill="none" stroke="#1D2127" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ground -->
+  <line x1="20" y1="135" x2="148" y2="135" stroke="#D2C7B0" stroke-width="1.5"/>
+</svg>

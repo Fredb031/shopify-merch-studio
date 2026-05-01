@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img" aria-hidden="true">
+  <rect width="280" height="280" fill="#F8F7F3"/>
+  <!-- header strip -->
+  <rect x="40" y="60" width="200" height="24" fill="#1D2127" rx="2"/>
+  <circle cx="80" cy="56" r="4" fill="#35556D"/>
+  <circle cx="200" cy="56" r="4" fill="#35556D"/>
+  <line x1="80" y1="48" x2="80" y2="64" stroke="#35556D" stroke-width="3" stroke-linecap="round"/>
+  <line x1="200" y1="48" x2="200" y2="64" stroke="#35556D" stroke-width="3" stroke-linecap="round"/>
+  <!-- 5 cells in a row -->
+  <rect x="44" y="92" width="34" height="34" fill="#35556D" stroke="#35556D" stroke-width="1.5" rx="2"/><text x="61" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#F8F7F3">1</text>
+  <rect x="83" y="92" width="34" height="34" fill="#35556D" stroke="#35556D" stroke-width="1.5" rx="2"/><text x="100" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#F8F7F3">2</text>
+  <rect x="122" y="92" width="34" height="34" fill="#35556D" stroke="#35556D" stroke-width="1.5" rx="2"/><text x="139" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#F8F7F3">3</text>
+  <rect x="161" y="92" width="34" height="34" fill="#35556D" stroke="#35556D" stroke-width="1.5" rx="2"/><text x="178" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="#F8F7F3">4</text>
+  <rect x="200" y="92" width="34" height="34" fill="#FFFFFF" stroke="#35556D" stroke-width="1.5" rx="2"/><text x="217" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="#1D2127">5</text>
+  <!-- second row, hint -->
+  <rect x="44" y="134" width="34" height="34" fill="#FFFFFF" stroke="#D2C7B0" stroke-width="1" rx="2"/>
+  <rect x="83" y="134" width="34" height="34" fill="#FFFFFF" stroke="#D2C7B0" stroke-width="1" rx="2"/>
+  <rect x="122" y="134" width="34" height="34" fill="#FFFFFF" stroke="#D2C7B0" stroke-width="1" rx="2"/>
+  <rect x="161" y="134" width="34" height="34" fill="#FFFFFF" stroke="#D2C7B0" stroke-width="1" rx="2"/>
+  <rect x="200" y="134" width="34" height="34" fill="#FFFFFF" stroke="#D2C7B0" stroke-width="1" rx="2"/>
+  <!-- arrow pointing to last cell -->
+  <path d="M155 195 L210 175" stroke="#1D2127" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M203 169 L213 174 L208 184" stroke="#1D2127" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- caption -->
+  <text x="140" y="225" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="#1D2127">5 jours ouvrables</text>
+</svg>

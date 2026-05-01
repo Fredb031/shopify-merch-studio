@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="#FFFFFF"/>
+  <!-- dashed dropzone rectangle -->
+  <rect x="35" y="40" width="90" height="80" fill="#F0ECE4" stroke="#35556D" stroke-width="1.5" stroke-dasharray="4 4" rx="4"/>
+  <!-- file icon -->
+  <path d="M70 60 L85 60 L95 70 L95 100 L70 100 Z" fill="#FFFFFF" stroke="#1D2127" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M85 60 L85 70 L95 70" fill="none" stroke="#1D2127" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- upward arrow -->
+  <line x1="80" y1="92" x2="80" y2="74" stroke="#35556D" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M73 80 L80 73 L87 80" fill="none" stroke="#35556D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ground line -->
+  <line x1="35" y1="135" x2="125" y2="135" stroke="#D2C7B0" stroke-width="1.5"/>
+</svg>

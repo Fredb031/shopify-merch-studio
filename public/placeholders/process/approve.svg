@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="#FFFFFF"/>
+  <!-- mockup grid behind -->
+  <rect x="32" y="42" width="56" height="72" fill="#F0ECE4" stroke="#35556D" stroke-width="1.5" rx="2"/>
+  <line x1="32" y1="58" x2="88" y2="58" stroke="#35556D" stroke-width="0.8"/>
+  <line x1="60" y1="42" x2="60" y2="114" stroke="#35556D" stroke-width="0.8"/>
+  <!-- garment hint inside -->
+  <path d="M44 70 L50 64 L58 66 L64 64 L70 70 L66 76 L66 100 L48 100 L48 76 Z" fill="#FFFFFF" stroke="#1D2127" stroke-width="1"/>
+  <!-- check circle on top right -->
+  <circle cx="110" cy="60" r="22" fill="#35556D"/>
+  <path d="M99 61 L107 69 L122 53" fill="none" stroke="#F8F7F3" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ground -->
+  <line x1="32" y1="130" x2="135" y2="130" stroke="#D2C7B0" stroke-width="1.5"/>
+</svg>

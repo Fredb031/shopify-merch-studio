@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="#FFFFFF"/>
+  <!-- back tee silhouette -->
+  <path d="M40 50 L50 40 L60 45 L75 40 L90 45 L100 40 L110 50 L105 65 L100 60 L100 110 L60 110 L60 60 L55 65 Z" fill="#F0ECE4" stroke="#35556D" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- front polo -->
+  <path d="M55 80 L65 70 L75 75 L80 70 L85 75 L95 70 L105 80 L100 95 L95 92 L95 130 L65 130 L65 92 L60 95 Z" fill="#FFFFFF" stroke="#1D2127" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- placket -->
+  <line x1="80" y1="75" x2="80" y2="105" stroke="#35556D" stroke-width="1"/>
+  <circle cx="80" cy="84" r="1.2" fill="#35556D"/>
+  <circle cx="80" cy="92" r="1.2" fill="#35556D"/>
+  <!-- plus mark -->
+  <circle cx="125" cy="50" r="14" fill="#35556D"/>
+  <line x1="125" y1="42" x2="125" y2="58" stroke="#F8F7F3" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="117" y1="50" x2="133" y2="50" stroke="#F8F7F3" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

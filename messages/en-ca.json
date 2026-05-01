@@ -999,6 +999,90 @@
         }
       }
     },
+    "stats": {
+      "1": {
+        "value": "33,000+",
+        "label": "garments embroidered since 2021"
+      },
+      "2": {
+        "value": "500+",
+        "label": "business clients"
+      },
+      "3": {
+        "value": "5 days",
+        "label": "production, guaranteed"
+      },
+      "4": {
+        "value": "5.0/5",
+        "label": "average Google rating"
+      }
+    },
+    "whyUs": {
+      "eyebrow": "WHY VISION AFFICHAGE",
+      "heading": "Why Vision Affichage",
+      "subhead": "A Quebec workshop. A French-speaking team. Five days to ship."
+    },
+    "process": {
+      "heading": "How it works",
+      "subhead": "From order to delivery in 5 business days.",
+      "steps": {
+        "1": {
+          "title": "Pick your apparel",
+          "description": "Browse the catalog or order a discovery kit to touch three samples first.",
+          "duration": "Right now",
+          "alt": "Three garments stacked with an add icon"
+        },
+        "2": {
+          "title": "Upload your logo",
+          "description": "PDF, AI, SVG, PNG, or JPG. We check the quality before we touch any apparel.",
+          "duration": "A few minutes",
+          "alt": "Upward arrow pointing into a file drop zone"
+        },
+        "3": {
+          "title": "We approve the proof",
+          "description": "We digitize and send a proof. You approve before we start production.",
+          "duration": "1 business day",
+          "alt": "Checkmark in a circle next to a garment proof"
+        },
+        "4": {
+          "title": "Production + delivery",
+          "description": "Five-day production guaranteed after approval. Delivery anywhere in Québec.",
+          "duration": "5 business days",
+          "alt": "Shipping box with a delivery arrow"
+        }
+      }
+    },
+    "caseStudy": {
+      "ctaSection": "See the construction industry"
+    },
+    "industryPreview": {
+      "heading": "Tailored to your trade",
+      "subhead": "We understand needs vary. Here are 2 examples.",
+      "productSampleHeading": "Popular products",
+      "cards": {
+        "construction": {
+          "cta": "See all products for construction",
+          "hookLine": "Heavy fabrics, embroidery that survives five winters on site.",
+          "caseQuote": "\"The polo we used to order didn't make it through one summer. Vision Affichage is a different standard.\"",
+          "caseAttribution": "— Marc Tremblay, Construction Rivard"
+        },
+        "bureau": {
+          "cta": "See all products for office teams",
+          "hookLine": "Tailored cuts, professional finishes, discreet embroidery on the chest.",
+          "caseQuote": "\"We outfit our 80 employees on every new hire. Always in stock, always sharp.\"",
+          "caseAttribution": "— Sophie Beauchamp, corporate agency Montreal"
+        }
+      }
+    },
+    "newsletter": {
+      "stripe": {
+        "heading": "Monthly tips to outfit your team",
+        "subhead": "Once a month. CASL-compliant. 1-click unsubscribe.",
+        "placeholder": "your.email@business.ca",
+        "submit": "Subscribe",
+        "fullLink": "Full signup on /infolettre"
+      }
+    },
     "finalCta": {
       "heading": "Ready to outfit your team?",
       "subhead": "Quote in 24 business hours. Production in 5 days. Service in French and English.",

@@ -1216,6 +1216,285 @@ const HOME_CATEGORIES = [
 
 // ---------- run ----------
 
+// ---------- WhyUs illustrations (280x280, 3 panels) ----------
+//
+// Editorial-grade flat illustrations. Limited palette (slate-700, ink-800,
+// sand-100, canvas-000) with thin geometric line-art and tactile fills.
+
+function whyUsAtelierSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img" aria-hidden="true">
+  <rect width="280" height="280" fill="${BRAND.canvas050}"/>
+  <!-- ground -->
+  <rect x="0" y="220" width="280" height="60" fill="${BRAND.sand100}"/>
+  <!-- factory body -->
+  <rect x="60" y="120" width="160" height="100" fill="${BRAND.canvas000 || '#FFFFFF'}" stroke="${BRAND.slate700}" stroke-width="2"/>
+  <!-- sawtooth roof -->
+  <path d="M60 120 L80 95 L100 120 L120 95 L140 120 L160 95 L180 120 L200 95 L220 120 Z" fill="${BRAND.slate700}" stroke="${BRAND.ink800}" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- chimney -->
+  <rect x="180" y="70" width="14" height="30" fill="${BRAND.ink800}"/>
+  <!-- door -->
+  <rect x="130" y="170" width="30" height="50" fill="${BRAND.ink800}"/>
+  <!-- warm light windows -->
+  <rect x="76" y="140" width="22" height="22" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1"/>
+  <rect x="106" y="140" width="22" height="22" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1"/>
+  <rect x="172" y="140" width="22" height="22" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1"/>
+  <rect x="202" y="140" width="22" height="22" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1"/>
+  <!-- mullions -->
+  <line x1="76" y1="151" x2="98" y2="151" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="87" y1="140" x2="87" y2="162" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="106" y1="151" x2="128" y2="151" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="117" y1="140" x2="117" y2="162" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="172" y1="151" x2="194" y2="151" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="183" y1="140" x2="183" y2="162" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="202" y1="151" x2="224" y2="151" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="213" y1="140" x2="213" y2="162" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <!-- QC fleur badge on facade -->
+  <circle cx="145" cy="135" r="9" fill="${BRAND.ink800}"/>
+  <text x="145" y="139" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="700" fill="${BRAND.canvas050}">QC</text>
+</svg>`;
+}
+
+function whyUsCalendarSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img" aria-hidden="true">
+  <rect width="280" height="280" fill="${BRAND.canvas050}"/>
+  <!-- header strip -->
+  <rect x="40" y="60" width="200" height="24" fill="${BRAND.ink800}" rx="2"/>
+  <circle cx="80" cy="56" r="4" fill="${BRAND.slate700}"/>
+  <circle cx="200" cy="56" r="4" fill="${BRAND.slate700}"/>
+  <line x1="80" y1="48" x2="80" y2="64" stroke="${BRAND.slate700}" stroke-width="3" stroke-linecap="round"/>
+  <line x1="200" y1="48" x2="200" y2="64" stroke="${BRAND.slate700}" stroke-width="3" stroke-linecap="round"/>
+  <!-- 5 cells in a row -->
+  ${[0, 1, 2, 3, 4]
+    .map((i) => {
+      const x = 44 + i * 39;
+      const filled = i < 4;
+      const fill = filled ? BRAND.slate700 : BRAND.canvas000 || '#FFFFFF';
+      const stroke = BRAND.slate700;
+      const num = filled
+        ? `<text x="${x + 17}" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="700" fill="${BRAND.canvas050}">${i + 1}</text>`
+        : `<text x="${x + 17}" y="118" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="14" font-weight="600" fill="${BRAND.ink800}">5</text>`;
+      return `<rect x="${x}" y="92" width="34" height="34" fill="${fill}" stroke="${stroke}" stroke-width="1.5" rx="2"/>${num}`;
+    })
+    .join('\n  ')}
+  <!-- second row, hint -->
+  ${[0, 1, 2, 3, 4]
+    .map((i) => {
+      const x = 44 + i * 39;
+      return `<rect x="${x}" y="134" width="34" height="34" fill="${BRAND.canvas000 || '#FFFFFF'}" stroke="${BRAND.sand300}" stroke-width="1" rx="2"/>`;
+    })
+    .join('\n  ')}
+  <!-- arrow pointing to last cell -->
+  <path d="M155 195 L210 175" stroke="${BRAND.ink800}" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M203 169 L213 174 L208 184" stroke="${BRAND.ink800}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- caption -->
+  <text x="140" y="225" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="13" font-weight="600" fill="${BRAND.ink800}">5 jours ouvrables</text>
+</svg>`;
+}
+
+function whyUsSpeechSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img" aria-hidden="true">
+  <rect width="280" height="280" fill="${BRAND.canvas050}"/>
+  <!-- back bubble (sand) -->
+  <path d="M150 70 Q230 70 230 120 Q230 160 175 165 L160 185 L160 165 Q150 165 145 160 Q120 155 120 120 Q120 70 150 70 Z" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1.5"/>
+  <text x="175" y="125" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" fill="${BRAND.slate700}">Bonjour</text>
+  <!-- front bubble (slate) -->
+  <path d="M55 130 Q55 90 105 90 Q160 90 160 135 Q160 175 110 180 L95 200 L95 180 Q55 175 55 130 Z" fill="${BRAND.slate700}" stroke="${BRAND.ink800}" stroke-width="1.5"/>
+  <text x="107" y="145" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="700" fill="${BRAND.canvas050}">Allô !</text>
+  <!-- accent dots -->
+  <circle cx="200" cy="55" r="3" fill="${BRAND.ink800}"/>
+  <circle cx="218" cy="65" r="2" fill="${BRAND.slate700}"/>
+  <circle cx="60" cy="220" r="3" fill="${BRAND.slate700}"/>
+</svg>`;
+}
+
+const WHY_US_PANELS = [
+  { id: 'atelier', svg: whyUsAtelierSvg },
+  { id: 'calendar', svg: whyUsCalendarSvg },
+  { id: 'speech', svg: whyUsSpeechSvg },
+];
+
+// ---------- Process step icons (160x160, 4 panels) ----------
+
+function processChooseSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="${BRAND.canvas000 || '#FFFFFF'}"/>
+  <!-- back tee silhouette -->
+  <path d="M40 50 L50 40 L60 45 L75 40 L90 45 L100 40 L110 50 L105 65 L100 60 L100 110 L60 110 L60 60 L55 65 Z" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- front polo -->
+  <path d="M55 80 L65 70 L75 75 L80 70 L85 75 L95 70 L105 80 L100 95 L95 92 L95 130 L65 130 L65 92 L60 95 Z" fill="${BRAND.canvas000 || '#FFFFFF'}" stroke="${BRAND.ink800}" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- placket -->
+  <line x1="80" y1="75" x2="80" y2="105" stroke="${BRAND.slate700}" stroke-width="1"/>
+  <circle cx="80" cy="84" r="1.2" fill="${BRAND.slate700}"/>
+  <circle cx="80" cy="92" r="1.2" fill="${BRAND.slate700}"/>
+  <!-- plus mark -->
+  <circle cx="125" cy="50" r="14" fill="${BRAND.slate700}"/>
+  <line x1="125" y1="42" x2="125" y2="58" stroke="${BRAND.canvas050}" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="117" y1="50" x2="133" y2="50" stroke="${BRAND.canvas050}" stroke-width="2.5" stroke-linecap="round"/>
+</svg>`;
+}
+
+function processUploadSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="${BRAND.canvas000 || '#FFFFFF'}"/>
+  <!-- dashed dropzone rectangle -->
+  <rect x="35" y="40" width="90" height="80" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1.5" stroke-dasharray="4 4" rx="4"/>
+  <!-- file icon -->
+  <path d="M70 60 L85 60 L95 70 L95 100 L70 100 Z" fill="${BRAND.canvas000 || '#FFFFFF'}" stroke="${BRAND.ink800}" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M85 60 L85 70 L95 70" fill="none" stroke="${BRAND.ink800}" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- upward arrow -->
+  <line x1="80" y1="92" x2="80" y2="74" stroke="${BRAND.slate700}" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M73 80 L80 73 L87 80" fill="none" stroke="${BRAND.slate700}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ground line -->
+  <line x1="35" y1="135" x2="125" y2="135" stroke="${BRAND.sand300}" stroke-width="1.5"/>
+</svg>`;
+}
+
+function processApproveSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="${BRAND.canvas000 || '#FFFFFF'}"/>
+  <!-- mockup grid behind -->
+  <rect x="32" y="42" width="56" height="72" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1.5" rx="2"/>
+  <line x1="32" y1="58" x2="88" y2="58" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <line x1="60" y1="42" x2="60" y2="114" stroke="${BRAND.slate700}" stroke-width="0.8"/>
+  <!-- garment hint inside -->
+  <path d="M44 70 L50 64 L58 66 L64 64 L70 70 L66 76 L66 100 L48 100 L48 76 Z" fill="${BRAND.canvas000 || '#FFFFFF'}" stroke="${BRAND.ink800}" stroke-width="1"/>
+  <!-- check circle on top right -->
+  <circle cx="110" cy="60" r="22" fill="${BRAND.slate700}"/>
+  <path d="M99 61 L107 69 L122 53" fill="none" stroke="${BRAND.canvas050}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ground -->
+  <line x1="32" y1="130" x2="135" y2="130" stroke="${BRAND.sand300}" stroke-width="1.5"/>
+</svg>`;
+}
+
+function processDeliverySvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-hidden="true">
+  <rect width="160" height="160" fill="${BRAND.canvas000 || '#FFFFFF'}"/>
+  <!-- box -->
+  <path d="M40 60 L80 45 L120 60 L120 110 L80 125 L40 110 Z" fill="${BRAND.sand100}" stroke="${BRAND.slate700}" stroke-width="1.5" stroke-linejoin="round"/>
+  <!-- box top crease -->
+  <path d="M40 60 L80 75 L120 60" fill="none" stroke="${BRAND.slate700}" stroke-width="1.5"/>
+  <line x1="80" y1="75" x2="80" y2="125" stroke="${BRAND.slate700}" stroke-width="1.5"/>
+  <!-- tape -->
+  <path d="M64 52 L64 67 L80 75 L96 67 L96 52" fill="none" stroke="${BRAND.ink800}" stroke-width="1.5"/>
+  <!-- arrow forward -->
+  <line x1="125" y1="80" x2="148" y2="80" stroke="${BRAND.ink800}" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M141 73 L148 80 L141 87" fill="none" stroke="${BRAND.ink800}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- ground -->
+  <line x1="20" y1="135" x2="148" y2="135" stroke="${BRAND.sand300}" stroke-width="1.5"/>
+</svg>`;
+}
+
+const PROCESS_PANELS = [
+  { id: 'choose', svg: processChooseSvg },
+  { id: 'upload', svg: processUploadSvg },
+  { id: 'approve', svg: processApproveSvg },
+  { id: 'delivery', svg: processDeliverySvg },
+];
+
+// ---------- Case study hero (800x600) ----------
+
+function caseStudyConstructionRivardSvg() {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-hidden="true">
+  <defs>
+    <linearGradient id="csbg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="${BRAND.ink800}"/>
+      <stop offset="1" stop-color="${BRAND.ink950}"/>
+    </linearGradient>
+    <pattern id="csnoise" x="0" y="0" width="3" height="3" patternUnits="userSpaceOnUse">
+      <rect width="3" height="3" fill="transparent"/>
+      <circle cx="0.6" cy="0.6" r="0.4" fill="${BRAND.canvas050}" fill-opacity="0.025"/>
+    </pattern>
+    <pattern id="csword" x="0" y="0" width="220" height="60" patternUnits="userSpaceOnUse">
+      <text x="0" y="40" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="800" letter-spacing="6" fill="${BRAND.canvas050}" fill-opacity="0.04">CONSTRUCTION RIVARD</text>
+    </pattern>
+  </defs>
+  <rect width="800" height="600" fill="url(#csbg)"/>
+  <rect width="800" height="600" fill="url(#csword)"/>
+  <rect width="800" height="600" fill="url(#csnoise)"/>
+  <!-- horizon glow -->
+  <ellipse cx="400" cy="430" rx="380" ry="60" fill="${BRAND.slate700}" fill-opacity="0.18"/>
+  <!-- scaffold lines -->
+  <g stroke="${BRAND.slate700}" stroke-width="1.5" stroke-opacity="0.55" fill="none">
+    <line x1="60" y1="80" x2="60" y2="500"/>
+    <line x1="120" y1="80" x2="120" y2="500"/>
+    <line x1="60" y1="180" x2="120" y2="180"/>
+    <line x1="60" y1="260" x2="120" y2="260"/>
+    <line x1="60" y1="340" x2="120" y2="340"/>
+    <line x1="60" y1="420" x2="120" y2="420"/>
+    <line x1="680" y1="120" x2="680" y2="500"/>
+    <line x1="740" y1="120" x2="740" y2="500"/>
+    <line x1="680" y1="220" x2="740" y2="220"/>
+    <line x1="680" y1="300" x2="740" y2="300"/>
+    <line x1="680" y1="380" x2="740" y2="380"/>
+  </g>
+  <!-- ladder mid-bg -->
+  <g stroke="${BRAND.slate700}" stroke-width="2" stroke-opacity="0.4" fill="none">
+    <line x1="180" y1="160" x2="220" y2="500"/>
+    <line x1="240" y1="160" x2="280" y2="500"/>
+    <line x1="190" y1="220" x2="245" y2="220"/>
+    <line x1="200" y1="280" x2="255" y2="280"/>
+    <line x1="210" y1="340" x2="265" y2="340"/>
+    <line x1="220" y1="400" x2="275" y2="400"/>
+  </g>
+  <!-- ground line -->
+  <line x1="0" y1="490" x2="800" y2="490" stroke="${BRAND.slate700}" stroke-opacity="0.5" stroke-width="1.5"/>
+  <!-- worker silhouettes (3-4) -->
+  <g>
+    <!-- worker 1 (centre, slate) -->
+    <g transform="translate(360,250)">
+      <!-- hard hat -->
+      <path d="M-22 -110 Q-22 -135 0 -135 Q22 -135 22 -110 L22 -100 L-22 -100 Z" fill="${BRAND.slate700}"/>
+      <rect x="-26" y="-102" width="52" height="5" fill="${BRAND.ink800}"/>
+      <!-- head -->
+      <circle cx="0" cy="-85" r="14" fill="${BRAND.sand100}" fill-opacity="0.85"/>
+      <!-- body -->
+      <path d="M-32 -70 L32 -70 L40 80 L-40 80 Z" fill="${BRAND.slate700}"/>
+      <!-- chest logo block -->
+      <rect x="-18" y="-42" width="36" height="14" fill="${BRAND.canvas050}" fill-opacity="0.9"/>
+      <text x="0" y="-32" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="700" fill="${BRAND.ink950}">RIVARD</text>
+      <!-- arms -->
+      <path d="M-32 -68 L-58 0 L-46 8 L-22 -50 Z" fill="${BRAND.slate700}"/>
+      <path d="M32 -68 L58 0 L46 8 L22 -50 Z" fill="${BRAND.slate700}"/>
+    </g>
+    <!-- worker 2 (left, ink) -->
+    <g transform="translate(220,290)">
+      <path d="M-18 -88 Q-18 -110 0 -110 Q18 -110 18 -88 L18 -80 L-18 -80 Z" fill="${BRAND.ink800}"/>
+      <rect x="-21" y="-82" width="42" height="4" fill="${BRAND.ink950}"/>
+      <circle cx="0" cy="-68" r="11" fill="${BRAND.sand100}" fill-opacity="0.7"/>
+      <path d="M-26 -56 L26 -56 L33 60 L-33 60 Z" fill="${BRAND.ink800}"/>
+      <rect x="-14" y="-32" width="28" height="11" fill="${BRAND.canvas050}" fill-opacity="0.85"/>
+      <path d="M-26 -54 L-46 0 L-36 6 L-18 -38 Z" fill="${BRAND.ink800}"/>
+      <path d="M26 -54 L46 0 L36 6 L18 -38 Z" fill="${BRAND.ink800}"/>
+    </g>
+    <!-- worker 3 (right, slate-700 darker) -->
+    <g transform="translate(520,300)">
+      <path d="M-18 -88 Q-18 -110 0 -110 Q18 -110 18 -88 L18 -80 L-18 -80 Z" fill="${BRAND.slate700}"/>
+      <rect x="-21" y="-82" width="42" height="4" fill="${BRAND.ink800}"/>
+      <circle cx="0" cy="-68" r="11" fill="${BRAND.sand100}" fill-opacity="0.7"/>
+      <path d="M-26 -56 L26 -56 L33 55 L-33 55 Z" fill="${BRAND.slate700}"/>
+      <rect x="-14" y="-30" width="28" height="11" fill="${BRAND.canvas050}" fill-opacity="0.85"/>
+      <path d="M-26 -54 L-46 0 L-36 6 L-18 -38 Z" fill="${BRAND.slate700}"/>
+      <path d="M26 -54 L46 0 L36 6 L18 -38 Z" fill="${BRAND.slate700}"/>
+    </g>
+    <!-- worker 4 (far right, ink) -->
+    <g transform="translate(620,310)">
+      <path d="M-15 -78 Q-15 -98 0 -98 Q15 -98 15 -78 L15 -72 L-15 -72 Z" fill="${BRAND.ink800}"/>
+      <rect x="-18" y="-74" width="36" height="3.5" fill="${BRAND.ink950}"/>
+      <circle cx="0" cy="-60" r="9" fill="${BRAND.sand100}" fill-opacity="0.65"/>
+      <path d="M-22 -50 L22 -50 L28 50 L-28 50 Z" fill="${BRAND.ink800}"/>
+      <rect x="-11" y="-28" width="22" height="9" fill="${BRAND.canvas050}" fill-opacity="0.8"/>
+      <path d="M-22 -48 L-38 0 L-30 6 L-15 -34 Z" fill="${BRAND.ink800}"/>
+      <path d="M22 -48 L38 0 L30 6 L15 -34 Z" fill="${BRAND.ink800}"/>
+    </g>
+  </g>
+  <!-- ground shadow -->
+  <ellipse cx="360" cy="495" rx="30" ry="4" fill="${BRAND.ink950}" fill-opacity="0.5"/>
+  <ellipse cx="220" cy="495" rx="22" ry="3" fill="${BRAND.ink950}" fill-opacity="0.5"/>
+  <ellipse cx="520" cy="495" rx="22" ry="3" fill="${BRAND.ink950}" fill-opacity="0.5"/>
+  <ellipse cx="620" cy="495" rx="18" ry="3" fill="${BRAND.ink950}" fill-opacity="0.5"/>
+</svg>`;
+}
+
 function main() {
   mkdir(OUT_DIR);
   mkdir(path.join(OUT_DIR, 'products'));
@@ -1223,6 +1502,9 @@ function main() {
   mkdir(path.join(OUT_DIR, 'clients'));
   mkdir(path.join(OUT_DIR, 'hero'));
   mkdir(path.join(OUT_DIR, 'categories'));
+  mkdir(path.join(OUT_DIR, 'why-us'));
+  mkdir(path.join(OUT_DIR, 'process'));
+  mkdir(path.join(OUT_DIR, 'case-studies'));
 
   console.log('Generating product silhouettes (3 views each)…');
   for (const p of products) {
@@ -1257,6 +1539,22 @@ function main() {
       categoryCardSvg(c),
     );
   }
+
+  console.log('Generating WhyUs illustrations…');
+  for (const p of WHY_US_PANELS) {
+    write(path.join(OUT_DIR, 'why-us', `${p.id}.svg`), p.svg());
+  }
+
+  console.log('Generating process step illustrations…');
+  for (const p of PROCESS_PANELS) {
+    write(path.join(OUT_DIR, 'process', `${p.id}.svg`), p.svg());
+  }
+
+  console.log('Generating case study hero…');
+  write(
+    path.join(OUT_DIR, 'case-studies', 'construction-rivard.svg'),
+    caseStudyConstructionRivardSvg(),
+  );
 
   console.log('\nDone.');
 }

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 280" role="img" aria-hidden="true">
+  <rect width="280" height="280" fill="#F8F7F3"/>
+  <!-- back bubble (sand) -->
+  <path d="M150 70 Q230 70 230 120 Q230 160 175 165 L160 185 L160 165 Q150 165 145 160 Q120 155 120 120 Q120 70 150 70 Z" fill="#F0ECE4" stroke="#35556D" stroke-width="1.5"/>
+  <text x="175" y="125" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="700" fill="#35556D">Bonjour</text>
+  <!-- front bubble (slate) -->
+  <path d="M55 130 Q55 90 105 90 Q160 90 160 135 Q160 175 110 180 L95 200 L95 180 Q55 175 55 130 Z" fill="#35556D" stroke="#1D2127" stroke-width="1.5"/>
+  <text x="107" y="145" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="700" fill="#F8F7F3">Allô !</text>
+  <!-- accent dots -->
+  <circle cx="200" cy="55" r="3" fill="#1D2127"/>
+  <circle cx="218" cy="65" r="2" fill="#35556D"/>
+  <circle cx="60" cy="220" r="3" fill="#35556D"/>
+</svg>
