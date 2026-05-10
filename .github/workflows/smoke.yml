@@ -19,4 +19,11 @@ jobs:
       # runners and led to spurious smoke failures while the ephemeral
       # build was still warming up.
       - run: npx -y wait-on http://localhost:4173 --timeout 60000
+      # E2E_BASE_URL tells playwright.config.ts to skip its webServer
+      # block (which would otherwise spin up a SECOND server via
+      # `npm run dev` on port 5173 and race / time out under CI). The
+      # smoke spec itself reads process.env.BASE_URL.
       - run: npm run test:smoke
+        env:
+          E2E_BASE_URL: http://localhost:4173
+          BASE_URL: http://localhost:4173
