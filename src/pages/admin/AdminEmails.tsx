@@ -393,7 +393,6 @@ function TemplateEditorDrawer(props: EditorDrawerProps) {
       aria-modal="true"
       aria-labelledby={`editor-title-${templateId}`}
     >
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
       <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}

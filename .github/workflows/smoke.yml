@@ -9,9 +9,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: npm }
+        with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npx playwright install chromium --with-deps
       - run: npx vite build
       - run: npx vite preview --port 4173 &
-      - run: sleep 5 && npm run test:smoke
+      # Wait for the preview server to actually accept connections rather
+      # than guessing with a flat sleep — `sleep 5` was racy on slow CI
+      # runners and led to spurious smoke failures while the ephemeral
+      # build was still warming up.
+      - run: npx -y wait-on http://localhost:4173 --timeout 60000
+      - run: npm run test:smoke

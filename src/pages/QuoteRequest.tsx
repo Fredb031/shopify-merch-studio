@@ -109,7 +109,7 @@ function tierLabel(productSku: string, qty: number, lang: 'fr' | 'en'): string {
   const price = t.pricePerUnit;
   return lang === 'en'
     ? `Tier ${range} — $${price.toFixed(2)}/unit`
-    : `Palier ${range} — ${price.toFixed(2)} $/pièce`;
+    : `Palier ${range} — ${price.toFixed(2)} $/pièce`;
 }
 
 export default function QuoteRequest() {
@@ -390,7 +390,7 @@ export default function QuoteRequest() {
               <p className="text-va-muted text-base mb-6 max-w-[480px] mx-auto">
                 {lang === 'en'
                   ? `Thanks ${name || 'for reaching out'} — we’ll reply with a tailored quote within 2 business hours. Check your inbox at ${email}.`
-                  : `Merci ${name || 'd’avoir écrit'} — on revient avec une soumission personnalisée sous 2 heures ouvrables. Surveillez votre boîte : ${email}.`}
+                  : `Merci ${name || 'd’avoir écrit'} — on revient avec une soumission personnalisée sous 2 heures ouvrables. Surveillez votre boîte : ${email}.`}
               </p>
               <Link
                 to="/"
@@ -485,7 +485,7 @@ export default function QuoteRequest() {
                         type="text"
                         value={colors}
                         onChange={e => setColors(e.target.value)}
-                        placeholder={lang === 'en' ? 'e.g. PMS 2945 + white' : 'ex. PMS 2945 + blanc'}
+                        placeholder={lang === 'en' ? 'e.g. PMS 2945 + white' : 'ex. PMS 2945 + blanc'}
                         className={fieldBase}
                       />
                     </div>
