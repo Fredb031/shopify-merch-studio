@@ -27,3 +27,14 @@ jobs:
         env:
           E2E_BASE_URL: http://localhost:4173
           BASE_URL: http://localhost:4173
+      # Always upload Playwright's HTML report + traces on failure so
+      # the next person debugging the smoke job can see what actually
+      # broke — without this, exit-code-1 is all GitHub's UI shows.
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
