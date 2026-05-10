@@ -244,7 +244,7 @@ serve(async (req) => {
     }
 
     let xml: string;
-    let parsed: any;
+    let parsed: unknown;
 
     switch (action) {
       case 'product':

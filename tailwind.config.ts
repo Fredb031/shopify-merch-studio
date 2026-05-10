@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -12,9 +13,12 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Syne', 'system-ui', 'sans-serif'],
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        // DM Sans is the new homepage display face (industrial, geometric).
+        // Syne is kept as a fallback so already-shipped pages that lean on
+        // its more decorative cut don't repaint until they're migrated.
+        display: ['"DM Sans"', 'Syne', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', '"Courier New"', 'Courier', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -71,6 +75,16 @@ export default {
           ok:            '#059669',
           warn:          '#D97706',
           err:           '#DC2626',
+          // Industrial-Precision v4 brand layer (Carhartt + COS + Kith).
+          // Additive — current pages keep using the Vol I/III tokens
+          // above. The new homepage opts in to these.
+          paper:         '#FAFAF8', // warm white surface (not clinical)
+          warm:          '#F0EDE8', // card / alt-section surface
+          border:        '#EBEBEB', // hairline divider, warm-tinted
+          gold:          '#C4852A', // single accent — replaces blue on home
+          'gold-h':      '#B07520',
+          dark:          '#111111', // dark sections
+          'dim-2':       '#666660', // secondary text on warm bg
           // Deprecated aliases — kept until Phase 7 cleanup so already-shipped
           // consumers (va-black / va-blue-h / va-blue-l / va-offwhite /
           // va-bg-1/2/3 / va-line-h) keep compiling. Each alias points at
@@ -105,5 +119,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

@@ -28,4 +28,20 @@ export default tseslint.config(
       "no-debugger": "error",
     },
   },
+  // Tests + build-time scripts legitimately need `any` for mocks,
+  // fixtures, untyped third-party shims, and ad-hoc agent harnesses.
+  // Demote `no-explicit-any` to a warning in those surfaces so type
+  // ergonomics that don't ship to users can't fail CI.
+  {
+    files: [
+      "**/__tests__/**/*.{ts,tsx}",
+      "**/*.test.{ts,tsx}",
+      "**/*.spec.{ts,tsx}",
+      "tests/**/*.{ts,tsx}",
+      "scripts/**/*.{ts,tsx}",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
 );

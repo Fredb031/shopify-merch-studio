@@ -109,7 +109,7 @@ function ensurePixelInit(): void {
         version?: string;
       } = function (...args: unknown[]) {
         if (n.callMethod) {
-          n.callMethod.apply(n, args);
+          n.callMethod(...args);
         } else {
           (n.queue as unknown[]).push(args);
         }

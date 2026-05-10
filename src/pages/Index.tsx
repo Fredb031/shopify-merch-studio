@@ -443,7 +443,7 @@ export default function Index() {
 
         {/* 2. Blue glow on the left */}
         <div
-          className="absolute left-8 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-va-blue/6 blur-[100px] pointer-events-none"
+          className="absolute left-8 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-va-gold/6 blur-[100px] pointer-events-none"
           aria-hidden="true"
         />
 
@@ -480,7 +480,7 @@ export default function Index() {
                   {trustAvatars.map((init, i) => (
                     <div
                       key={i}
-                      className="w-7 h-7 rounded-full border-2 border-va-ink bg-va-blue/50 flex items-center justify-center text-white text-[10px] font-bold"
+                      className="w-7 h-7 rounded-full border-2 border-va-ink bg-va-gold/50 flex items-center justify-center text-white text-[10px] font-bold"
                       aria-hidden="true"
                     >
                       {init}
@@ -498,20 +498,25 @@ export default function Index() {
                   (no fade) so it can win the LCP race without waiting
                   on a 580ms animation tail. Adornments around it
                   (trust pill, subhead, CTAs) still animate in. */}
+              {/* Industrial-Precision v4 headline. Five words, one date,
+                  zero ambiguity. The 4 U's: useful (team kitted), urgent
+                  ("ce vendredi" = the current week), unique (nobody in
+                  Quebec merch says it), ultra-specific (a real day).
+                  The accent is on the date, not the noun, because the
+                  loss-aversion frame in the closing section pivots on
+                  the same calendar week. */}
               <h1
-                className="font-display font-black text-white text-5xl md:text-6xl xl:text-[76px] leading-[1.0] tracking-[-0.04em] mb-7"
+                className="font-display font-black text-white text-5xl md:text-6xl xl:text-[76px] leading-[0.98] tracking-[-0.04em] mb-7"
               >
                 {lang === 'en' ? (
                   <>
-                    Your team.<br />
-                    <span className="text-va-blue">Your image.</span><br />
-                    5 days.
+                    Kit your team<br />
+                    <span className="text-va-gold">this Friday.</span>
                   </>
                 ) : (
                   <>
-                    Ton équipe.<br />
-                    <span className="text-va-blue">Ton image.</span><br />
-                    5 jours.
+                    Habille ton équipe<br />
+                    <span className="text-va-gold">ce vendredi.</span>
                   </>
                 )}
               </h1>
@@ -540,10 +545,10 @@ export default function Index() {
                 <Link
                   ref={heroPrimaryCtaRef}
                   to="/boutique"
-                  className="group inline-block rounded-xl shadow-[0_0_36px_rgba(0,71,204,0.32)] hover:shadow-[0_0_52px_rgba(0,71,204,0.55)] transition-shadow duration-200 will-change-transform"
+                  className="group inline-block rounded-xl shadow-[0_0_36px_rgba(196,133,42,0.32)] hover:shadow-[0_0_52px_rgba(196,133,42,0.55)] transition-shadow duration-200 will-change-transform"
                 >
-                  <span className="inline-flex items-center gap-2 bg-va-blue text-white font-semibold px-8 py-4 rounded-xl text-[15px] tracking-[0.02em] hover:bg-va-blue-hover group-hover:scale-[1.02] group-active:scale-[0.97] transition-[transform,background-color] duration-200">
-                    {lang === 'en' ? 'Order now' : 'Commander maintenant'}
+                  <span className="inline-flex items-center gap-2 bg-va-gold text-va-ink font-extrabold px-8 py-4 rounded-sm text-[13px] tracking-[0.16em] uppercase hover:bg-va-gold-h group-hover:scale-[1.02] group-active:scale-[0.97] transition-[transform,background-color] duration-200">
+                    {lang === 'en' ? 'See products' : 'Voir les produits'}
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" aria-hidden="true" />
                   </span>
                 </Link>
@@ -555,25 +560,25 @@ export default function Index() {
                 </Link>
               </div>
 
-              {/* Trust bar — 4 micro-claims, va-blue glyphs */}
+              {/* Trust bar — 4 micro-claims, va-gold glyphs */}
               <div
                 className="flex flex-wrap gap-x-7 gap-y-2"
                 style={{ animation: 'fadeIn 0.4s 450ms forwards', opacity: 0 }}
               >
                 <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Zap className="w-4 h-4 text-va-blue" aria-hidden="true" />
+                  <Zap className="w-4 h-4 text-va-gold" aria-hidden="true" />
                   <span>{lang === 'en' ? '5 business days' : '5 jours ouvrables'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Check className="w-4 h-4 text-va-blue" aria-hidden="true" />
+                  <Check className="w-4 h-4 text-va-gold" aria-hidden="true" />
                   <span>{lang === 'en' ? 'From 1 piece' : 'À partir d’1 pièce'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <StarIcon className="w-4 h-4 text-va-blue" aria-hidden="true" />
+                  <StarIcon className="w-4 h-4 text-va-gold" aria-hidden="true" />
                   <span>{lang === 'en' ? '1-year warranty' : 'Garantie 1 an'}</span>
                 </div>
                 <div className="flex items-center gap-2 text-white/30 text-sm">
-                  <Package className="w-4 h-4 text-va-blue" aria-hidden="true" />
+                  <Package className="w-4 h-4 text-va-gold" aria-hidden="true" />
                   <span>{lang === 'en' ? 'Free shipping over $300' : 'Livraison gratuite dès 300$'}</span>
                 </div>
               </div>
@@ -641,7 +646,7 @@ export default function Index() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-white/8 rounded-3xl overflow-hidden">
             {/* Tile 1 — pieces shipped */}
             <div className="bg-va-ink px-10 md:px-14 py-12 text-center">
-              <div className="font-mono font-black text-5xl md:text-6xl text-va-blue tracking-tight mb-2">
+              <div className="font-mono font-black text-5xl md:text-6xl text-va-gold tracking-tight mb-2">
                 <CountUp to={33000} suffix="+" />
               </div>
               <div className="text-white text-base font-semibold mb-1">
@@ -653,7 +658,7 @@ export default function Index() {
             </div>
             {/* Tile 2 — companies */}
             <div className="bg-va-ink px-10 md:px-14 py-12 text-center">
-              <div className="font-mono font-black text-5xl md:text-6xl text-va-blue tracking-tight mb-2">
+              <div className="font-mono font-black text-5xl md:text-6xl text-va-gold tracking-tight mb-2">
                 <CountUp to={500} suffix="+" />
               </div>
               <div className="text-white text-base font-semibold mb-1">
@@ -667,7 +672,7 @@ export default function Index() {
             </div>
             {/* Tile 3 — turnaround */}
             <div className="bg-va-ink px-10 md:px-14 py-12 text-center">
-              <div className="font-mono font-black text-5xl md:text-6xl text-va-blue tracking-tight mb-2">
+              <div className="font-mono font-black text-5xl md:text-6xl text-va-gold tracking-tight mb-2">
                 <CountUp to={5} />
               </div>
               <div className="text-white text-base font-semibold mb-1">
@@ -683,7 +688,7 @@ export default function Index() {
 
       {/* ================================================================
           3. HOW IT WORKS — white canvas, three steps with ghost numerals
-          (01/02/03), va-blue-tint icon tiles, and a CTA arrow on step 3.
+          (01/02/03), va-warm icon tiles, and a CTA arrow on step 3.
           ============================================================== */}
       <SectionReveal className="bg-va-white py-24 md:py-36">
         <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-16">
@@ -700,20 +705,20 @@ export default function Index() {
               {
                 n: '01',
                 Icon: Upload,
-                fr: { title: 'Tu envoies ton logo.', body: 'PNG, SVG ou JPEG. On accepte tout. Pas de brief, pas de call. Juste ton fichier.' },
-                en: { title: 'You send your logo.', body: 'PNG, SVG or JPEG. We accept everything. No brief, no call. Just your file.' },
+                fr: { title: 'Tu envoies ton logo.', body: 'PNG, SVG ou JPEG. Pas de brief. Pas de call.' },
+                en: { title: 'You send your logo.', body: 'PNG, SVG or JPEG. No brief. No call.' },
               },
               {
                 n: '02',
                 Icon: Printer,
-                fr: { title: 'On imprime. Tu approuves rien.', body: 'Notre équipe valide la qualité. Si on n’aime pas, on refait. Tu reçois du parfait.' },
-                en: { title: 'We print. You approve nothing.', body: 'Our team checks quality. If we don’t love it, we redo it. You only get perfect.' },
+                fr: { title: 'On imprime. Tu approuves rien.', body: 'Standards de l’industrie appliqués automatiquement.' },
+                en: { title: 'We print. You approve nothing.', body: 'Industry standards applied — automatically.' },
               },
               {
                 n: '03',
                 Icon: Package,
-                fr: { title: 'Tu reçois en 5 jours.', body: 'Livraison garantie 5 jours ouvrables. Au-delà ? On rembourse. Sans condition.' },
-                en: { title: 'You get it in 5 days.', body: 'Delivery guaranteed 5 business days. Past that? Full refund. No conditions.' },
+                fr: { title: 'Livré en 5 jours. Garanti.', body: 'Si retard d’une seule journée — remboursé sans questions.' },
+                en: { title: 'Delivered in 5 days. Guaranteed.', body: 'A single day late — full refund, no questions.' },
               },
             ].map((step) => {
               const copy = lang === 'en' ? step.en : step.fr;
@@ -728,8 +733,8 @@ export default function Index() {
                     {step.n}
                   </div>
                   <div className="relative pt-8">
-                    <div className="w-12 h-12 bg-va-blue-tint rounded-xl flex items-center justify-center mb-5">
-                      <step.Icon className="w-5 h-5 text-va-blue" aria-hidden="true" />
+                    <div className="w-12 h-12 bg-va-warm rounded-xl flex items-center justify-center mb-5">
+                      <step.Icon className="w-5 h-5 text-va-gold" aria-hidden="true" />
                     </div>
                     <h3 className="font-display font-bold text-va-ink text-xl mb-3 tracking-tight">
                       {copy.title}
@@ -740,7 +745,7 @@ export default function Index() {
                     {isLast && (
                       <Link
                         to="/boutique"
-                        className="inline-flex items-center gap-2 text-va-blue font-semibold hover:gap-3 hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
+                        className="inline-flex items-center gap-2 text-va-gold font-semibold hover:gap-3 hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
                       >
                         {lang === 'en' ? 'Order now' : 'Commander maintenant'}
                         <ArrowRight className="w-4 h-4" aria-hidden="true" />
@@ -769,11 +774,11 @@ export default function Index() {
           <p className="text-va-muted text-[11px] font-semibold uppercase tracking-[0.15em] mb-5">
             {lang === 'en' ? 'The invisible cost' : 'Le coût invisible'}
           </p>
-          <h2 className="font-display font-black text-white text-4xl md:text-6xl tracking-tight leading-[1.0] mb-8">
+          <h2 className="font-display font-black text-white text-4xl md:text-6xl tracking-[-0.03em] leading-[1.0] mb-8">
             {lang === 'en' ? (
-              <>Every week without a uniform,<br /><span className="text-va-blue">that’s lost advertising.</span></>
+              <>Every week without a uniform,<br />that’s ad spend <span className="text-va-gold">lost.</span></>
             ) : (
-              <>Chaque semaine sans uniforme,<br /><span className="text-va-blue">c’est de la publicité perdue.</span></>
+              <>Chaque semaine sans uniforme,<br />c’est de la pub <span className="text-va-gold">perdue.</span></>
             )}
           </h2>
           <p className="text-white/45 text-xl leading-relaxed max-w-2xl mb-14">
@@ -783,15 +788,15 @@ export default function Index() {
           </p>
           <Link
             to="/boutique"
-            className="inline-flex items-center gap-2 bg-va-blue text-white px-10 py-5 rounded-xl text-lg font-semibold shadow-[0_0_48px_rgba(0,71,204,0.40)] hover:shadow-[0_0_64px_rgba(0,71,204,0.60)] hover:bg-va-blue-hover hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
+            className="inline-flex items-center gap-2 bg-va-gold text-va-ink px-10 py-5 rounded-sm text-base font-extrabold tracking-[0.02em] uppercase shadow-[0_0_48px_rgba(196,133,42,0.40)] hover:shadow-[0_0_64px_rgba(196,133,42,0.60)] hover:bg-va-gold-h hover:scale-[1.02] active:scale-[0.97] transition-all duration-200"
           >
-            {lang === 'en' ? 'Order now' : 'Commander maintenant'}
+            {lang === 'en' ? 'Order this Friday' : 'Commander ce vendredi'}
             <ArrowRight className="w-5 h-5" aria-hidden="true" />
           </Link>
-          <p className="text-white/20 text-sm mt-5">
+          <p className="text-white/35 text-[11px] tracking-[0.16em] uppercase font-semibold mt-5">
             {lang === 'en'
-              ? 'Delivery guaranteed in 5 days · No minimum · Refunded if late'
-              : 'Livraison garantie en 5 jours · Aucun minimum · Remboursé si retard'}
+              ? 'No minimum · 5 days guaranteed · Refunded if late · SSL secure'
+              : 'Aucun minimum · 5 jours garantis · Remboursé si retard · SSL sécurisé'}
           </p>
         </div>
       </SectionReveal>
@@ -877,13 +882,13 @@ export default function Index() {
                 data-faq-item
                 className="group rounded-lg bg-white border border-va-line transition-colors hover:bg-va-stone/40"
               >
-                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-va-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-va-blue focus-visible:ring-offset-1">
+                <summary className="flex items-center justify-between gap-4 cursor-pointer list-none px-5 py-4 rounded-lg text-[15px] md:text-[16px] font-medium text-va-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-va-gold focus-visible:ring-offset-1">
                   <span>{item.q}</span>
                   <ChevronDown
                     size={18}
                     strokeWidth={2}
                     aria-hidden="true"
-                    className="faq-chevron flex-shrink-0 text-va-blue transition-transform duration-200"
+                    className="faq-chevron flex-shrink-0 text-va-gold transition-transform duration-200"
                   />
                 </summary>
                 <div className="px-5 pb-4 pt-0 text-[14px] text-va-dim leading-[1.7]">
@@ -953,7 +958,7 @@ export default function Index() {
           home indicator. */}
       <div
         aria-hidden={!showStickyCta}
-        className={`md:hidden fixed left-0 right-0 z-[445] bg-va-blue text-white shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${
+        className={`md:hidden fixed left-0 right-0 z-[445] bg-va-gold text-white shadow-[0_-6px_24px_rgba(0,0,0,0.18)] ${
           reducedMotion ? '' : 'transition-transform duration-300 ease-out'
         } ${showStickyCta ? 'translate-y-0' : 'translate-y-full'}`}
         style={{ bottom: 'calc(60px + env(safe-area-inset-bottom, 0px))' }}
@@ -975,7 +980,7 @@ export default function Index() {
           <Link
             to="/boutique"
             tabIndex={showStickyCta ? 0 : -1}
-            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-white text-va-blue text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-va-blue"
+            className="flex-shrink-0 inline-flex items-center justify-center px-5 h-10 rounded-full bg-white text-va-gold text-[13px] font-extrabold tracking-[-0.2px] shadow-[0_4px_14px_rgba(255,255,255,0.4)] hover:scale-[1.02] active:scale-[0.97] transition-all duration-200 focus:outline-none focus-visible:ring-4 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-va-gold"
           >
             {lang === 'en' ? 'Order now' : 'Commander'}
           </Link>

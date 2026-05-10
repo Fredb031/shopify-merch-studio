@@ -101,7 +101,7 @@ export interface SanmarOrderResult {
 // ── Validation ─────────────────────────────────────────────────────────────
 
 /** Characters SanMar rejects in `companyName` (per PDF page on PO submit). */
-const FORBIDDEN_COMPANY_CHARS = /[@_!#$%^&*()<>/\\|~\[\]{}":'?]/;
+const FORBIDDEN_COMPANY_CHARS = /[@_!#$%^&*()<>/\\|~[\]{}":'?]/;
 
 const CA_POSTAL = /^[A-Za-z]\d[A-Za-z][ ]?\d[A-Za-z]\d$/;
 const US_POSTAL = /^\d{5}([- ]\d{4})?$/;
