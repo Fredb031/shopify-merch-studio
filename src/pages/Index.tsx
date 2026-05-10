@@ -315,7 +315,7 @@ export default function Index() {
               return (
                 <Link
                   key={p.sku}
-                  to={`/produits/${p.handle}`}
+                  to={`/product/${p.handle}`}
                   className={`bento-card group bg-va-warm hover:bg-[#e8e3dc] rounded-[3px] overflow-hidden transition-colors duration-150 ${isLarge ? 'md:col-span-2' : ''} ${isLarge ? 'border-b-2 border-va-gold' : ''}`}
                 >
                   <div className="bg-va-paper flex items-center justify-center p-4" style={{ height: isLarge ? 170 : 120 }}>
