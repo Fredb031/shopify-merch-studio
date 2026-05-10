@@ -11,30 +11,12 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npx playwright install chromium --with-deps
       - run: npx vite build
       - run: npx vite preview --port 4173 &
-      # Wait for the preview server to actually accept connections rather
-      # than guessing with a flat sleep — `sleep 5` was racy on slow CI
-      # runners and led to spurious smoke failures while the ephemeral
-      # build was still warming up.
+      # Wait for vite preview to actually serve before the smoke script
+      # starts hitting it. The previous flat `sleep 5` was racy on slow
+      # CI runners.
       - run: npx -y wait-on http://localhost:4173 --timeout 60000
-      # E2E_BASE_URL tells playwright.config.ts to skip its webServer
-      # block (which would otherwise spin up a SECOND server via
-      # `npm run dev` on port 5173 and race / time out under CI). The
-      # smoke spec itself reads process.env.BASE_URL.
       - run: npm run test:smoke
         env:
-          E2E_BASE_URL: http://localhost:4173
           BASE_URL: http://localhost:4173
-      # Always upload Playwright's HTML report + traces on failure so
-      # the next person debugging the smoke job can see what actually
-      # broke — without this, exit-code-1 is all GitHub's UI shows.
-      - if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: |
-            playwright-report
-            test-results
-          retention-days: 7
